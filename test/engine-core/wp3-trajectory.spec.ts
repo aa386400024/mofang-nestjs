@@ -660,7 +660,7 @@ describe('WP3 · 轨迹控制引擎', () => {
   });
 
   describe('⑮ 剧本偏移接入同盟三维 (WP52)', () => {
-    /** 一条"咨询师表达共情"事件 (safety +0.02 / bond +0.01 / trust +0.10). */
+    /** 一条"咨询师表达共情"事件 (AF-315 校准: safety +0.06 / bond +0.02 / trust +0.10). */
     const EMPATHY_EVENT: SessionEvent = { kind: 'empathy', matchedTerms: ['我能理解你'], strength: 1 };
 
     /**
@@ -715,7 +715,7 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('剧本 safety 与事件 safety **合并后统一过 cap** (不是各自过 cap)', () => {
       const eventDelta = aggregateTurnDelta([EMPATHY_EVENT]);
-      expect(eventDelta.safety).toBeCloseTo(0.02, 10);
+      expect(eventDelta.safety).toBeCloseTo(0.06, 10);
 
       const plan = actPlan(trajectoryNode('n1', { delta: { safety: 0.25 } }), true);
       const applied = applyTrajectory('force_override', bdiIntention(), baseSnapshot(), plan);
@@ -723,12 +723,12 @@ describe('WP3 · 轨迹控制引擎', () => {
       if (!scriptDelta) throw new Error('进入新幕那一轮必须带出剧本 delta');
 
       const merged = addDeltaVectors(eventDelta, scriptDelta);
-      expect(merged.safety).toBeCloseTo(0.27, 10);
+      expect(merged.safety).toBeCloseTo(0.31, 10);
 
       const capped = capTurnDelta(merged);
       expect(capped.safety).toBeCloseTo(0.2, 10);
-      // 各自过 cap 会得到 0.2 + 0.02 = 0.22 —— 合并后统一过才是 0.2.
-      expect(capped.safety).not.toBeCloseTo(0.22, 10);
+      // 各自过 cap 会得到 0.06 + 0.2 = 0.26 —— 合并后统一过才是 0.2.
+      expect(capped.safety).not.toBeCloseTo(0.26, 10);
     });
 
     it('会话层: 落库快照走的是"合并后统一过 cap" (0.7, 不是各自过 cap 的 0.72)', async () => {
@@ -738,7 +738,7 @@ describe('WP3 · 轨迹控制引擎', () => {
       });
       const { outputs } = await runTurns(script, [EMPATHY_TEXT]);
 
-      // 事件 empathy safety +0.02 + 剧本 safety 0.25 = 0.27 → cap 0.2 → 基线 0.5 + 0.2.
+      // 事件 empathy safety +0.06 + 剧本 safety 0.25 = 0.31 → cap 0.2 → 基线 0.5 + 0.2.
       expect(outputs[0]?.snapshot.safety).toBeCloseTo(0.7, 10);
       expect(outputs[0]?.snapshot.safety).not.toBeCloseTo(0.72, 10);
     });
@@ -757,9 +757,9 @@ describe('WP3 · 轨迹控制引擎', () => {
 
       expect(scriptedSnapshot.safety).toBeCloseTo(plainSnapshot.safety, 10);
       expect(scriptedSnapshot.bond).toBeCloseTo(plainSnapshot.bond, 10);
-      // 无剧本路径的事件 delta: empathy safety +0.02 / bond +0.01.
-      expect(plainSnapshot.safety).toBeCloseTo(0.52, 10);
-      expect(plainSnapshot.bond).toBeCloseTo(0.01, 10);
+      // 无剧本路径的事件 delta: empathy safety +0.06 / bond +0.02.
+      expect(plainSnapshot.safety).toBeCloseTo(0.56, 10);
+      expect(plainSnapshot.bond).toBeCloseTo(0.02, 10);
     });
 
     it('会话层: 剧本 bond 与事件 bond 合并后统一过 cap (bond 上向 cap 与 trust 同档 0.2)', async () => {

@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1398,
+    "lastEventSeq": 1417,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -2736,6 +2736,42 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-315",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-315/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af315-bdi-decision-sensitivity-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-316",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-317",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-317/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af317-af316-receipt-alignment-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-320",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-320/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af320-ci-type-narrowing-2026-11-23.md",
         "reply": null
       }
     }

@@ -50,21 +50,21 @@ function snap(overrides: Partial<BdiSnapshot> = {}): BdiSnapshot {
 
 describe('WP42 · 咨询同盟三维 (trust / safety / bond)', () => {
   describe('验收 #1: 同一事件, safety 与 bond 各自独立变化, 互不干扰', () => {
-    it('empathy: trust +0.10 / safety +0.02 / bond +0.01 (三维各走各的系数)', () => {
+    it('empathy: trust +0.10 / safety +0.06 / bond +0.02 (AF-315 校准后三维各走各的系数)', () => {
       const delta = aggregateTurnDelta([EMPATHY]);
 
       expect(delta.trust).toBeCloseTo(0.1, 10);
-      expect(delta.safety).toBeCloseTo(0.02, 10);
-      expect(delta.bond).toBeCloseTo(0.01, 10);
+      expect(delta.safety).toBeCloseTo(0.06, 10);
+      expect(delta.bond).toBeCloseTo(0.02, 10);
       // 三个值互不相同 —— 这正是"三维独立建模"的意义 (旧模型只有一个 trust).
       expect(new Set([delta.trust, delta.safety, delta.bond].map((v) => v.toFixed(8))).size).toBe(3);
     });
 
-    it('open_probe: 涨安全感但不涨纽带 (WP42 §3.3 表)', () => {
+    it('open_probe: 涨安全感但不涨纽带 (AF-315 校准值 safety +0.025)', () => {
       const delta = aggregateTurnDelta([OPEN_PROBE]);
 
       expect(delta.trust).toBeCloseTo(0.05, 10);
-      expect(delta.safety).toBeCloseTo(0.01, 10);
+      expect(delta.safety).toBeCloseTo(0.025, 10);
       expect(delta.bond).toBe(0);
     });
 
@@ -113,9 +113,9 @@ describe('WP42 · 咨询同盟三维 (trust / safety / bond)', () => {
       const out = transitionState(createEmptyBdiSnapshot(), [EMPATHY]);
 
       expect(out.trust).toBeCloseTo(0.4, 10);
-      // 同一事件里 safety / bond 也各自推进 (新维度, 不影响 trust).
-      expect(out.safety).toBeCloseTo(0.52, 10);
-      expect(out.bond).toBeCloseTo(0.01, 10);
+      // 同一事件里 safety / bond 也各自推进 (AF-315 校准: +0.06 / +0.02).
+      expect(out.safety).toBeCloseTo(0.56, 10);
+      expect(out.bond).toBeCloseTo(0.02, 10);
     });
 
     it('cloneBdiSnapshot 把两个新字段一起带走', () => {
@@ -138,8 +138,8 @@ describe('WP42 · 咨询同盟三维 (trust / safety / bond)', () => {
 
       const out = await session.turn(handle.handleId, { userText: EMPATHY_TEXT });
 
-      expect(out.snapshot.safety).toBeCloseTo(0.52, 10);
-      expect(out.snapshot.bond).toBeCloseTo(0.01, 10);
+      expect(out.snapshot.safety).toBeCloseTo(0.56, 10);
+      expect(out.snapshot.bond).toBeCloseTo(0.02, 10);
     });
   });
 

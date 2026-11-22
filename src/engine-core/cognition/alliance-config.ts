@@ -56,7 +56,8 @@ export type AllianceDeltaOverrides = Readonly<Partial<Record<CounselorEventKind,
  *
  * 门槛与系数分开: 系数管"每轮动多少", 门槛管"什么时候换策略" —— 两者调参节奏不同.
  *
- * 四个门槛字段 (S-1 起): 探索同盟门槛 `open` + 两个抗拒门槛 + 探索深度上限 `openDepth`.
+ * 门槛字段 (AF-315 起): 探索同盟门槛 `open` + 两个抗拒门槛 + 探索深度上限 `openDepth`
+ * + 探索时机 / 核心信念激活两个校准门槛.
  */
 export interface AllianceThresholds {
   /**
@@ -80,6 +81,26 @@ export interface AllianceThresholds {
    * 解析结果是**完整**的 (见该函数的返回类型).
    */
   readonly openDepth?: number;
+  /**
+   * 允许进入探索的最早轮次 (1 起; AF-315).
+   *
+   * 初次接触就追问深层情绪，在临床上不是探索而是侵入。缺省 2 = 第一轮最多叙述 /
+   * 简短回应，第二轮起才允许探索。非法 / 非整数 → 回退 2.
+   */
+  readonly explorationMinTurn?: number;
+  /**
+   * 核心信念激活的抑制门槛 (AF-315).
+   *
+   * 任一核心信念激活强度达到该值，且同盟安全感还没到 `coreActivationSafetyGate` 时，
+   * 不进入探索 —— 先把被激活的信念承接住，而不是继续往痛处推.
+   */
+  readonly coreActivationGate?: number;
+  /**
+   * 核心信念激活时的安全前提 (AF-315).
+   *
+   * 激活强度高时，只有 `min(trust, safety)` 达到该值才允许探索；缺省 0.75.
+   */
+  readonly coreActivationSafetyGate?: number;
 }
 
 /**
@@ -104,6 +125,16 @@ export interface AllianceConfig {
  *   常量与种子对象共用同一个值, 真相源仍是一处.
  */
 const DEFAULT_OPEN_DEPTH = 0.35;
+/**
+ * AF-315 种子值 (工程种子值，非临床标定).
+ *
+ * - 最早探索轮次 2：首轮只建立接触，第二轮起才允许探索；
+ * - 核心信念激活门槛 0.5：中等以上激活即视为"痛处被碰到"；
+ * - 激活时的安全前提 0.75：比普通探索门槛更高，避免刚碰到核心信念就继续深挖.
+ */
+const DEFAULT_EXPLORATION_MIN_TURN = 2;
+const DEFAULT_CORE_ACTIVATION_GATE = 0.5;
+const DEFAULT_CORE_ACTIVATION_SAFETY_GATE = 0.75;
 
 /**
  * 内核种子值 (工程种子值, **非临床标定** —— 待真实对练校准).
@@ -119,6 +150,10 @@ export const DEFAULT_ALLIANCE_CONFIG: AllianceConfig = {
     resistanceSafety: 0.3,
     // 深度门槛种子 (S-1) —— 与 planner 旧局部常量 LOW_DEPTH = 0.35 逐字相同.
     openDepth: DEFAULT_OPEN_DEPTH,
+    // AF-315: 探索时机与核心信念激活校准 (工程种子值，非临床标定).
+    explorationMinTurn: DEFAULT_EXPLORATION_MIN_TURN,
+    coreActivationGate: DEFAULT_CORE_ACTIVATION_GATE,
+    coreActivationSafetyGate: DEFAULT_CORE_ACTIVATION_SAFETY_GATE,
   },
 };
 
@@ -135,6 +170,12 @@ function sanitizeThreshold(value: number | undefined, fallback: number): number 
   return value;
 }
 
+/** 轮次门槛校验: 1..20 的整数; 非法回种子. */
+function sanitizeTurn(value: number | undefined, fallback: number): number {
+  if (value === undefined || !Number.isFinite(value) || !Number.isInteger(value) || value < 1 || value > 20) return fallback;
+  return value;
+}
+
 /**
  * 解析同盟三维的有效门槛 (端口缺项 / 非法 → 逐项回退内核种子值).
  *
@@ -144,20 +185,34 @@ function sanitizeThreshold(value: number | undefined, fallback: number): number 
  *   用内联交叉类型而不是另起一个导出类型别名: **不新增任何导出名** (内核公开面是契约,
  *   `boundary.spec.ts` 断言⑥ 守着 barrel 的双向白名单).
  */
-export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThresholds & { readonly openDepth: number } {
+export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThresholds & {
+  readonly openDepth: number;
+  readonly explorationMinTurn: number;
+  readonly coreActivationGate: number;
+  readonly coreActivationSafetyGate: number;
+} {
   const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
   const provided = config?.thresholds;
   if (!provided) {
     // ⚠️ 早退分支也必须产出**完整**门槛 (含 openDepth) —— 种子对象带着它, 这里再显式补一次:
     //    免得日后改种子形状时静默漏掉, 让 `depth < thresholds.openDepth` 变成
     //    `depth < undefined` (恒 false → 探索分支永不触发, 编译还不报错).
-    return { ...seed, openDepth: DEFAULT_OPEN_DEPTH };
+    return {
+      ...seed,
+      openDepth: DEFAULT_OPEN_DEPTH,
+      explorationMinTurn: DEFAULT_EXPLORATION_MIN_TURN,
+      coreActivationGate: DEFAULT_CORE_ACTIVATION_GATE,
+      coreActivationSafetyGate: DEFAULT_CORE_ACTIVATION_SAFETY_GATE,
+    };
   }
   return {
     open: sanitizeThreshold(provided.open, seed.open),
     resistanceTrust: sanitizeThreshold(provided.resistanceTrust, seed.resistanceTrust),
     resistanceSafety: sanitizeThreshold(provided.resistanceSafety, seed.resistanceSafety),
     openDepth: sanitizeThreshold(provided.openDepth, DEFAULT_OPEN_DEPTH),
+    explorationMinTurn: sanitizeTurn(provided.explorationMinTurn, DEFAULT_EXPLORATION_MIN_TURN),
+    coreActivationGate: sanitizeThreshold(provided.coreActivationGate, DEFAULT_CORE_ACTIVATION_GATE),
+    coreActivationSafetyGate: sanitizeThreshold(provided.coreActivationSafetyGate, DEFAULT_CORE_ACTIVATION_SAFETY_GATE),
   };
 }
 
@@ -198,6 +253,9 @@ export function resolveSessionAllianceConfig(base?: AllianceConfig, override?: P
     resistanceSafety: override.resistanceSafety ?? baseThresholds.resistanceSafety,
     // 深度门槛同走三条回落规则 (覆盖优先 / 缺项回落单例 / 非法回落种子).
     openDepth: override.openDepth ?? baseThresholds.openDepth,
+    explorationMinTurn: override.explorationMinTurn ?? baseThresholds.explorationMinTurn,
+    coreActivationGate: override.coreActivationGate ?? baseThresholds.coreActivationGate,
+    coreActivationSafetyGate: override.coreActivationSafetyGate ?? baseThresholds.coreActivationSafetyGate,
   };
   // 校验 + 非法值回落种子 —— 复用既有唯一校验口, 不新写一套.
   return {

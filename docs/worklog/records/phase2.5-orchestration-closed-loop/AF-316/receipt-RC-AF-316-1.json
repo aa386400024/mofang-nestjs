@@ -1,0 +1,251 @@
+{
+  "deliveredAt": "2026-11-22T23:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-316-1",
+    "taskId": "AF-316",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "59f6e07406816920d615ea146cc43a66b22740a2",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-315"
+    ],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/cognition/alliance-config.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/events/event-lexicon.ts",
+        "src/admin-debug/debug-session.service.ts",
+        "test/engine-core/af315-bdi-decision-sensitivity.spec.ts",
+        "test/engine-adapters/wp42-alliance-config.spec.ts",
+        "test/engine-adapters/wp58-turn-delta-audit.spec.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "bea5a71972eed3945dc11e60cb7bed4d724ddc52"
+      ],
+      "added": [
+        "test/engine-core/af315-bdi-decision-sensitivity.spec.ts",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-315/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-315/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-315/receipt-RC-AF-315-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/manifest.json",
+        "docs/worklog/completed/phase2.5/af315-bdi-decision-sensitivity-2026-11-22.md",
+        "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md"
+      ],
+      "modified": [
+        "src/admin-debug/debug-session.service.ts",
+        "src/engine-core/cognition/alliance-config.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/bdi-snapshot.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/domain/events/event-lexicon.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "test/admin-debug/wp58-debug-session.spec.ts",
+        "test/engine-adapters/wp42-alliance-config.spec.ts",
+        "test/engine-adapters/wp58-turn-delta-audit.spec.ts",
+        "test/engine-core/d3-timing-weight-port.spec.ts",
+        "test/engine-core/s1-open-depth-threshold.spec.ts",
+        "test/engine-core/wp3-trajectory.spec.ts",
+        "test/engine-core/wp42-alliance-three-dimensions.spec.ts",
+        "test/engine-core/wp53-personality-alliance-extension.spec.ts",
+        "test/engine-core/wp60-delta-table-config.spec.ts",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-core/af315-bdi-decision-sensitivity.spec.ts test/engine-core/wp1-bdi.spec.ts test/engine-core/wp42-alliance-three-dimensions.spec.ts test/engine-core/s1-open-depth-threshold.spec.ts test/engine-adapters/wp42-alliance-config.spec.ts test/engine-adapters/wp58-turn-delta-audit.spec.ts test/admin-debug",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 21,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "2.9s",
+        "note": "20 文件通过 + 1 skipped（21）；349 tests passed + 4 skipped（353）；含 AF-315 7 例、适配层门槛/增量镜像与 admin-debug 全套"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "tsc -b tsconfig.check.json exit 0"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "eslint --cache 与编排脚本 lint 均 exit 0；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 285,
+        "machine": "同上",
+        "wallClock": "19.29s",
+        "note": "284 passed + 1 skipped（285）；4408 tests passed + 4 skipped（4412）"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "1.23s",
+        "note": "12 tests passed；engine-core 纯层边界与公开面未破"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "无空白错误"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-316 status=submitted files=29 covered=19"
+      }
+    ],
+    "reproNotes": "AF-316 自 integrate 59f6e074 切出 task/AF-316-bdi-decision-sensitivity-rework，工作树 D:\\\\work\\\\Project\\\\backend\\\\mofang-nestjs-af281r，实现提交 bea5a71972eed3945dc11e60cb7bed4d724ddc52。复现：pnpm orchestration:preflight；pnpm typecheck；pnpm lint；pnpm exec vitest run test/engine-core/af315-bdi-decision-sensitivity.spec.ts test/engine-core/wp1-bdi.spec.ts test/engine-core/wp42-alliance-three-dimensions.spec.ts test/engine-core/s1-open-depth-threshold.spec.ts test/engine-adapters/wp42-alliance-config.spec.ts test/engine-adapters/wp58-turn-delta-audit.spec.ts test/admin-debug；pnpm test。20 轮低安全感场景以 LOW_SAFETY_PROFILE trust=0.32 / safety=0.35 / depth=0.40 连续输入有效共情文本，断言 safety 第 5 轮达到 0.65、首轮不探索、至少出现一次探索策略。规则轨样例只使用合成文本，不含真实来访隐私内容。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-316 经 CLI 登记、promote、run-once 领单；AF-315 已归档 rejected，本单为返修重签发，未复用编号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照均经 CLI 生成；未手改 task-state-index.json / journal.jsonl"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter、scope、gates、artifacts 与回执必填组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify PASS；schema、哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "任务单 scope 显式批准 engine-core 决策层改动；boundary.spec.ts 12/12 通过，纯层约束未破"
+      },
+      {
+        "item": "branch-scope",
+        "result": "pass",
+        "note": "task/AF-316-bdi-decision-sensitivity-rework 自基线 59f6e074 切出；实现、测试、交付记录、归档证据均在任务分支提交 bea5a719"
+      },
+      {
+        "item": "trace-contract",
+        "result": "pass",
+        "note": "DebugTurnTrace / DebugDeltaDetail 均为追加字段，不改既有字段名；非有限值降级为 0 / 不进入投影"
+      },
+      {
+        "item": "receipt-fields",
+        "result": "pass",
+        "note": "六组机读字段齐全：gateResults、scopeCheck、contractChecks、backlogItems、deviationTable、reviewVerdict"
+      },
+      {
+        "item": "scope-correction",
+        "result": "pass",
+        "note": "AF-315 因 test/engine-adapters/ 漏列被 rejected；AF-316 已显式修正 scope 并重新声明文件集"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 59f6e074 为切出点；任务单状态 submitted；回执 finalStatus completed；engine-core 改动属任务单授权范围；commit bea5a719 为当前 HEAD"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "生产训练留痕路径 trace-recorder.service.ts / engine-stream-backend.adapter.ts 的 TurnTrace.bdiSnapshot 仍只有五项，未同步移情与核心信念激活；需另开任务或扩 scope",
+      "admin-dashboard 尚未增加移情 / 核心信念激活展示列，后端字段追加式不报错但面板暂不显示",
+      "规则轨新增宽词（像是 / 你提到 / 你一直在）在真实咨询文本上的误判率尚缺大规模抽样",
+      "情境愿望分支当前无规则轨真实输入源，后续填充时需复核不会长期抢占探索",
+      "第 5 轮跨过 safety 0.6 是否符合真实来访信任建立节奏；如临床督导认为过快，回调 empathy.safety 至 0.04–0.05 并同步更新 AF-315 轮次断言",
+      "负移情优先于话量阻抗的策略顺序是否符合督导口径",
+      "依赖移情在低安全感下直接 request 的边界是否合适",
+      "规则轨反映式共情词表在真实咨询文本上的误判率抽样复核"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "高负移情且阻抗不低时进入 resistance",
+        "reality": "负移情主导可能发生在同盟数值很高的关系中",
+        "action": "negative >= 0.3 且高于 positive 0.1 时直接进 resistance，优先级高于话量阻抗",
+        "why": "负移情是对咨询师的不满 / 敌意投射，临床上应先处理关系裂痕，不应因 trust 高而继续探索"
+      },
+      {
+        "taskSays": "高依赖移情且安全度足够时进入 request",
+        "reality": "request 是回应具体诉求，不是深挖；低 safety 时探索分支已被门槛挡住",
+        "action": "dependency >= 0.4 且过探索时机门槛即 request，不额外要求 safety 高",
+        "why": "回具体请求比继续探索更安全，也避免依赖型来访被长期停在叙述"
+      },
+      {
+        "taskSays": "情境愿望进入决策",
+        "reality": "规则轨当前不生成情境愿望",
+        "action": "只消费 active + priority，分支留作模型轨 / 适配层输入",
+        "why": "任务单非目标禁止替换模型轨；不伪造来访侧信号"
+      },
+      {
+        "taskSays": "调试 trace 补齐决策字段",
+        "reality": "正式训练留痕路径与调试面板是两条投影路径",
+        "action": "本轮只改 src/admin-debug 调试面板路径；trace-recorder / engine-stream-backend 留作后续",
+        "why": "src/engine-adapters/wiring/ 不在任务单 scope，避免越界"
+      },
+      {
+        "taskSays": "AF-315 task scope 只列 test/engine-core/ 与 test/admin-debug/",
+        "reality": "适配层门槛与 turn delta 镜像必须随系数同步更新",
+        "action": "AF-316 显式加入 test/engine-adapters/，并重新声明文件集与 commit",
+        "why": "AF-315 因 scope 漏列被机读验收 rejected；返修必须修正授权域而不是删改实现"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-316 完成 BDI 决策带宽、同盟成长系数、规则轨事件覆盖与调试 trace 可观测性四组修复，并修正 AF-315 scope 漏列导致 rejected 的闭环缺陷。低安全感 20 轮共情场景第 5 轮 safety 达 0.65，首轮不探索且出现探索策略；负移情、依赖移情、核心信念激活、愿望权重均有确定性策略断言；10 条反映式共情全部不再落 neutral，纯复述与宽词误伤有反向护栏；trace 补齐移情与信念激活并处理非有限值。定向 349 例、typecheck、lint、全量 4408 例、boundary 12 例与 preflight 全绿；engine-core 改动经任务单显式授权且 boundary 通过。机读验收无阻塞人工复核项；临床节奏与真实语料误判率作为 openQuestions 跟踪，不宣称临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

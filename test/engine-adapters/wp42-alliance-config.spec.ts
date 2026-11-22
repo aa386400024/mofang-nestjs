@@ -31,11 +31,18 @@ function configStub(env: Readonly<Record<string, string>>): ConfigService {
 }
 
 describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
-  it('没配任何 env → 装配结果与内核种子值逐字一致', () => {
+  it('没配任何 env → 装配结果与内核种子值逐字一致 (仅 env 暴露的四字段)', () => {
     const config = resolveAllianceConfig(configStub({}));
 
-    expect(config).toEqual(DEFAULT_ALLIANCE_CONFIG);
     expect(config.deltas).toEqual({});
+    // AF-315 新增的 explorationMinTurn / coreActivationGate / coreActivationSafetyGate
+    // 不接 env；缺失时由内核 resolveAllianceThresholds 回落种子值.
+    expect(config.thresholds).toEqual({
+      open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
+      resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
+      resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
+      openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
+    });
   });
 
   it('配了系数覆写 → 真的按 env 生效', () => {
@@ -94,7 +101,12 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
     expect(config.deltas.empathy).toBeUndefined();
     // judgment 只配了一个维度 → 只有那一项被覆写.
     expect(config.deltas.judgment).toEqual({ safety: 0.03 });
-    expect(config.thresholds).toEqual(DEFAULT_ALLIANCE_CONFIG.thresholds);
+    expect(config.thresholds).toEqual({
+      open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
+      resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
+      resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
+      openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
+    });
   });
 
   it('门槛非法 (不在 [0,1]) → 回退内核种子值', () => {
@@ -106,7 +118,12 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
       }),
     );
 
-    expect(config.thresholds).toEqual(DEFAULT_ALLIANCE_CONFIG.thresholds);
+    expect(config.thresholds).toEqual({
+      open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
+      resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
+      resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
+      openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
+    });
   });
 
   it('11 种事件 × 2 维 = 22 个系数键全部可配 (逐个显式读, 漏一个断言会红)', () => {

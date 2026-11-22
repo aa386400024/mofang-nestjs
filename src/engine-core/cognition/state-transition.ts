@@ -183,6 +183,9 @@ const ZERO: DeltaVector = {
  *
  * WP42: 加 **safety / bond** 两列 (同盟三维).
  *   ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
+ *   AF-315 校准: 共情 safety +0.06 / 接纳 +0.05 / 正常化 +0.035 / 开放探问 +0.025 /
+ *     肯定 +0.04，使持续有效回应能在 10–15 轮内建立安全感；不再是 trust 单维狂涨、
+ *     safety 几乎不动. 依赖移情由 acceptance / normalization / affirmation 共同驱动.
  *   两列的口径 (任务单 §3.3):
  *     · 共情 / 接纳: 信任与安全感都涨, 纽带涨得慢 —— 情感连接需要时间;
  *     · 开放探问: 涨安全感 (敢答), 不涨纽带 (还没到建立连接那一步);
@@ -191,16 +194,18 @@ const ZERO: DeltaVector = {
  *     · 边界侵犯: 三维一起掉, safety 掉最狠 (被侵犯的人最先不敢说话);
  *     · 敏感议题触碰: 安全感略降 (话题本身让人紧绷), 但不是破坏性的, 纽带不动.
  *   幅度对照单回合 cap (11 维, safety / bond 与 trust 同档 ±0.20 / -0.30):
- *     safety 最大单事件 |delta| = 0.05 (boundary_cross) = 上向 cap 的 25%;
+ *     safety 最大单事件 |delta| = 0.06 (empathy) = 上向 cap 的 30%;
  *     bond   最大单事件 |delta| = 0.04 (boundary_cross) = 上向 cap 的 20%;
  *     都不到 80% 警戒线, 无 ⚠️ 标记.
  */
 const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   empathy: {
     // 正向修复算子: trust +0.10 (单事件已达上向 cap 的 50%)
+    // AF-315: safety +0.06 —— 原 +0.02 使 20 轮共情也难越过 0.6 探索门槛；
+    //   共情是安全感的主要来源，单事件 0.06 = 上向 cap 的 30%，仍留出多事件叠加空间.
     trust: 0.1,
-    safety: 0.02,
-    bond: 0.01,
+    safety: 0.06,
+    bond: 0.02,
     // WP-L: 信任与防御正交, 共情建立信任不等于拆防御, 阻抗只小幅松动.
     verbal: -0.03,
     depth: -0.02,
@@ -214,9 +219,11 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   },
   acceptance: {
     // 接纳算子: trust +0.08 (单事件达上向 cap 的 40%)
+    // AF-315: safety +0.05；依赖移情 +0.01 —— 持续被接纳是依赖移情的真实来源，
+    //   不再只靠 affirmation 单点驱动.
     trust: 0.08,
-    safety: 0.02,
-    bond: 0.01,
+    safety: 0.05,
+    bond: 0.02,
     // WP-L: 接纳同样不拆防御, 阻抗小幅松动.
     verbal: -0.02,
     depth: -0.02,
@@ -226,12 +233,13 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
     arousal: -0.02,
     positive: 0.02,
     negative: 0,
-    dependency: 0,
+    dependency: 0.01,
   },
   normalization: {
     // 正常化算子: trust +0.07 (单事件达上向 cap 的 35%)
+    // AF-315: safety +0.035；依赖 +0.005 —— 正常化也在传递“这里可以放松”.
     trust: 0.07,
-    safety: 0.01,
+    safety: 0.035,
     bond: 0.01,
     // WP-L: 「这很正常」是轻微松动, 不是拆墙.
     verbal: -0.02,
@@ -242,12 +250,13 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
     arousal: 0,
     positive: 0.01,
     negative: 0,
-    dependency: 0,
+    dependency: 0.005,
   },
   open_probe: {
     // 开放探问算子: trust +0.05 (单事件达上向 cap 的 25%)
+    // AF-315: safety +0.025 —— 开放探问本身即“你的话有空间”，应能积累安全感.
     trust: 0.05,
-    safety: 0.01,
+    safety: 0.025,
     bond: 0,
     // WP-L: 探问比共情略多暴露一点, 但仍受控.
     verbal: -0.02,
@@ -262,9 +271,10 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   },
   affirmation: {
     // 肯定算子: trust +0.08 (单事件达上向 cap 的 40%)
+    // AF-315: safety +0.04；依赖 +0.02（原值）—— 肯定仍是最强的依赖移情来源.
     trust: 0.08,
-    safety: 0.01,
-    bond: 0.01,
+    safety: 0.04,
+    bond: 0.02,
     // WP-L: 阻抗小幅松动.
     verbal: -0.015,
     depth: -0.02,

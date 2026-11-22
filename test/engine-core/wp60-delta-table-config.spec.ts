@@ -33,7 +33,7 @@ import {
   type SessionEvent,
 } from '../../src/engine-core/index.js';
 
-/** 共情事件 (DELTA_TABLE 基础值: trust +0.10 / safety +0.02 / bond +0.01). */
+/** 共情事件 (AF-315 校准基础值: trust +0.10 / safety +0.06 / bond +0.02). */
 const EMPATHY: SessionEvent = { kind: 'empathy', matchedTerms: [], strength: 1 };
 /** 评判事件 (trust -0.12 / safety -0.03 / bond -0.02). */
 const JUDGMENT: SessionEvent = { kind: 'judgment', matchedTerms: [], strength: 1 };
@@ -54,8 +54,8 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       const delta = aggregateTurnDelta([EMPATHY]);
 
       expect(delta.trust).toBeCloseTo(0.1, 10);
-      expect(delta.safety).toBeCloseTo(0.02, 10);
-      expect(delta.bond).toBeCloseTo(0.01, 10);
+      expect(delta.safety).toBeCloseTo(0.06, 10);
+      expect(delta.bond).toBeCloseTo(0.02, 10);
       expect(delta.verbal).toBeCloseTo(-0.03, 10);
       expect(delta.depth).toBeCloseTo(-0.02, 10);
       expect(delta.style).toBeCloseTo(-0.01, 10);
@@ -85,8 +85,8 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       const delta = aggregateTurnDelta([EMPATHY], undefined, { deltas: { empathy: { trust: 0.2 } } });
 
       expect(delta.trust).toBeCloseTo(0.2, 10);
-      expect(delta.safety).toBeCloseTo(0.02, 10);
-      expect(delta.bond).toBeCloseTo(0.01, 10);
+      expect(delta.safety).toBeCloseTo(0.06, 10);
+      expect(delta.bond).toBeCloseTo(0.02, 10);
       expect(delta.valence).toBeCloseTo(0.03, 10);
       expect(delta.arousal).toBeCloseTo(-0.02, 10);
     });
@@ -95,7 +95,7 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       const delta = aggregateTurnDelta([EMPATHY], undefined, { deltas: { empathy: { safety: 0.08 } } });
 
       expect(delta.safety).toBeCloseTo(0.08, 10);
-      expect(delta.bond).toBeCloseTo(0.01, 10);
+      expect(delta.bond).toBeCloseTo(0.02, 10);
     });
 
     it('覆写只作用于**单事件** → 另一个事件不受影响', () => {
@@ -114,7 +114,7 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       const delta = aggregateTurnDelta([EMPATHY, JUDGMENT], undefined, { deltas: { acceptance: { trust: 0.5 } } });
 
       expect(delta.trust).toBeCloseTo(0.1 - 0.12, 10);
-      expect(delta.safety).toBeCloseTo(0.02 - 0.03, 10);
+      expect(delta.safety).toBeCloseTo(0.06 - 0.03, 10);
     });
   });
 

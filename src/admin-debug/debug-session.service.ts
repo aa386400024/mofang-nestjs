@@ -208,7 +208,7 @@ export interface DebugSessionListItem extends DebugSessionSummary {
  * 单轮 delta 的**前端投影** (admin-dashboard 的 `DeltaDetail` 契约).
  *
  * ⚠️ 它是 `DeltaVector` 的**投影**, 不是另一份真相:
- *   8 个数值维度逐个来自 `delta`, 只多一个 `events` (内核的逐事件明细不对外).
+ *   8 个基础维度 + AF-315 移情三维逐个来自 `delta`, 只多一个 `events` (内核的逐事件明细不对外).
  */
 export interface DebugDeltaDetail {
   readonly trust: number;
@@ -219,6 +219,17 @@ export interface DebugDeltaDetail {
   readonly verbal: number;
   readonly depth: number;
   readonly style: number;
+  /**
+   * AF-315: 移情三维 delta.
+   *
+   * 此前只投影同盟 / 情绪 / 阻抗，移情状态虽已算出来，却在 trace 里“消失”，
+   * 导致把“没展示”误读成“没发生”。这里补齐，不改既有 8 维字段名.
+   */
+  readonly transference: {
+    readonly positive: number;
+    readonly negative: number;
+    readonly dependency: number;
+  };
   /**
    * 触发本轮变化的事件类型 (WP38 · 内核真值).
    *
@@ -242,7 +253,7 @@ export interface DebugTurnTrace {
   readonly turnIndex: number;
   /** 本场角色代号. */
   readonly characterSlug: string;
-  /** 本轮 BDI 快照 (含同盟三维 + 阻抗三维). */
+  /** 本轮 BDI 快照 (含同盟三维 + 阻抗三维 + 移情 / 信念激活). */
   readonly bdiSnapshot: {
     readonly trust: number;
     readonly safety: number;
@@ -256,6 +267,16 @@ export interface DebugTurnTrace {
     readonly resistanceStyle: number;
     /** 情绪标签 (内核按 valence × arousal 象限算的离散标签). */
     readonly anxiousSecure: string;
+    /** AF-315: 移情三态 —— BDI 已参与决策，trace 必须能直接看到. */
+    readonly transference: {
+      readonly positive: number;
+      readonly negative: number;
+      readonly dependency: number;
+    };
+    /** AF-315: 核心信念激活表 (theme → 强度). */
+    readonly coreBeliefActivation: Readonly<Record<string, number>>;
+    /** AF-315: 核心信念激活峰值 (决策直接读取的量). */
+    readonly coreBeliefActivationPeak: number;
   };
   /** 本轮 delta (全量 11 维); 第 1 轮为 null (没有上一轮快照可比). */
   readonly delta: DeltaVector | null;
@@ -1112,6 +1133,9 @@ function buildTurnMemories(
  * @returns 面板快照
  */
 function buildBdiSnapshot(snapshot: BdiSnapshot): DebugTurnTrace['bdiSnapshot'] {
+  // 非有限值不进入投影：面板/JSON 不能显示 NaN / Infinity（缺失即降级为不展示）.
+  const activation = Object.fromEntries(Object.entries(snapshot.coreBeliefActivation).filter(([, value]) => Number.isFinite(value)));
+  const activated = Object.values(activation);
   return {
     trust: snapshot.trust,
     safety: snapshot.safety,
@@ -1123,15 +1147,23 @@ function buildBdiSnapshot(snapshot: BdiSnapshot): DebugTurnTrace['bdiSnapshot'] 
     resistanceDepth: snapshot.resistance.depth,
     resistanceStyle: snapshot.resistance.style,
     anxiousSecure: snapshot.emotion.label,
+    // AF-315: 移情与信念激活是决策输入 —— 必须在 trace 里可见，避免再误判“全零”.
+    transference: {
+      positive: finiteOrZero(snapshot.transference.positive),
+      negative: finiteOrZero(snapshot.transference.negative),
+      dependency: finiteOrZero(snapshot.transference.dependency),
+    },
+    coreBeliefActivation: activation,
+    coreBeliefActivationPeak: activated.length > 0 ? Math.max(...activated, 0) : 0,
   };
 }
 
 /**
- * delta 向量 → 面板的 8 维投影.
+ * delta 向量 → 面板的 11 维投影 (8 个基础维 + 移情三维).
  *
  * @param delta 本轮 delta (全量 11 维)
  * @param events 本轮事件分类 (WP38 · 内核真值; 缺省 = 空数组)
- * @returns 前端契约形状 (缺移情三维 —— 面板没那一栏)
+ * @returns 前端契约形状 (含 AF-315 移情三维)
  */
 function buildDeltaDetail(delta: DeltaVector, events: readonly string[] = []): DebugDeltaDetail {
   return {
@@ -1143,9 +1175,20 @@ function buildDeltaDetail(delta: DeltaVector, events: readonly string[] = []): D
     verbal: delta.verbal,
     depth: delta.depth,
     style: delta.style,
+    // AF-315: 移情三维 delta 一并投影，否则 deltaDetail 只看得到 8 维.
+    transference: {
+      positive: finiteOrZero(delta.positive),
+      negative: finiteOrZero(delta.negative),
+      dependency: finiteOrZero(delta.dependency),
+    },
     // WP38: 真实事件类型 (此前恒为空数组 —— 内核没出口, 现在有了).
     events: [...events],
   };
+}
+
+/** 数值兜底: 非有限值 → 0，避免面板显示 NaN / Infinity. */
+function finiteOrZero(value: number): number {
+  return Number.isFinite(value) ? value : 0;
 }
 
 /**
