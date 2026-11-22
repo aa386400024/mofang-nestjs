@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T01:42:58.219Z",
+  "generatedAt": "2026-11-22T01:55:50.368Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1874,6 +1874,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-431",
+      "recordedAt": "2026-11-22T01:48:06.797Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-265",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-265-visitor-concurrency-smoke"
+      ]
+    },
+    {
+      "auditId": "AUD-430",
+      "recordedAt": "2026-11-22T01:48:03.080Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-265",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-265",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-265.json"
+      ]
+    },
+    {
+      "auditId": "AUD-429",
+      "recordedAt": "2026-11-22T01:47:56.247Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-265",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-428",
       "recordedAt": "2026-11-22T01:27:51.808Z",
       "actorRef": "orchestrator",
@@ -2062,67 +2109,20 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-261.json"
       ]
-    },
-    {
-      "auditId": "AUD-416",
-      "recordedAt": "2026-11-22T01:01:35.536Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-261",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-415",
-      "recordedAt": "2026-11-22T00:48:26.442Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-260",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-260-render-multi-turn-smoke"
-      ]
-    },
-    {
-      "auditId": "AUD-414",
-      "recordedAt": "2026-11-22T00:48:22.897Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-260",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-260",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-260.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 428,
+    "total": 431,
     "byResult": {
-      "allowed": 428,
+      "allowed": 431,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 427,
+      "TOOL-QUEUE-SCHEDULER": 430,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 428
+      "orchestrator": 431
     }
   },
   "protocolView": {
@@ -6769,6 +6769,24 @@
             "ref": "docs/worklog/completed/phase2.5/af264-visitor-fallback-smoke-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-265",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-265/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af265-visitor-concurrency-smoke-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6816,5 +6834,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 266
+  "archivedCount": 267
 }

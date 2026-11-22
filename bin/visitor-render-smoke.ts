@@ -41,6 +41,18 @@ const MULTI_TURN_COUNSELOR_PROMPTS = [
   '如果这周试着记录一下睡眠，你觉得可行吗？',
 ] as const;
 
+/** 并发 smoke 的独立开场：每路一个会话，避免同文案互相掩盖串话。 */
+const CONCURRENCY_COUNSELOR_PROMPTS = [
+  '最近这一周，你睡得怎么样？',
+  '白天会不会补觉？',
+  '躺下之后，脑子里在想什么？',
+  '这种状态大概持续多久了？',
+  '夜里会醒吗？',
+  '醒来之后还能睡着吗？',
+  '最近工作上有变化吗？',
+  '你希望我们先聊哪件事？',
+] as const;
+
 function arg(name: string, fallback: string | null = null): string | null {
   const index = process.argv.indexOf(name);
   if (index === -1 || index + 1 >= process.argv.length) return fallback;
@@ -302,6 +314,133 @@ async function probePrimaryFailure(router: LlmRouterService, probeModel: string)
   }
 }
 
+interface SmokeReport {
+  readonly callerPath: string;
+  readonly requestedProvider: string;
+  readonly faults: FaultFlags;
+  readonly primaryProbe: { ok: false; model: string; error: string } | null;
+  readonly turns: number;
+  readonly concurrency: number;
+  readonly wallElapsedMs: number;
+  readonly candidates: readonly { id: string; chatModel: string | null }[];
+  readonly turnResults: readonly TurnSummary[];
+  readonly usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+}
+
+/** 统一输出机读摘要：逐路明细 + 汇总，供人工与后续脚本消费。 */
+function printReport(report: SmokeReport): void {
+  const first = report.turnResults[0];
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        callerPath: report.callerPath,
+        requestedProvider: report.requestedProvider,
+        failPrimary: report.faults.failPrimary,
+        failPrimaryMode: report.faults.failPrimary ? report.faults.mode : null,
+        expectFallback: report.faults.expectFallback,
+        expectDegraded: report.faults.expectDegraded,
+        primaryProbe: report.primaryProbe,
+        turns: report.turns,
+        concurrency: report.concurrency,
+        wallElapsedMs: report.wallElapsedMs,
+        configuredCandidates: report.candidates,
+        providerHint: first?.providerHint ?? null,
+        model: first?.model ?? null,
+        elapsedMs: first?.elapsedMs ?? null,
+        ttftMs: first?.ttftMs ?? null,
+        deltas: first?.deltas ?? null,
+        chars: first?.chars ?? null,
+        usage: first?.usage ?? null,
+        totalUsage: report.usage,
+        finishReason: first?.finishReason ?? null,
+        fallbackUsed: report.turnResults.some((item) => item.fallbackUsed),
+        degraded: report.turnResults.some((item) => item.degraded),
+        guardLevel: first?.guardLevel ?? null,
+        preview: first?.preview ?? null,
+        turnDetails: report.turnResults,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+interface SessionBatch {
+  readonly turnResults: readonly TurnSummary[];
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly totalTokens: number;
+  readonly wallElapsedMs: number;
+}
+
+interface BatchOptions {
+  port: StreamingRenderPort;
+  concurrency: number;
+  turns: number;
+  maxTokens: number;
+  provider: string;
+  promptOverride: string | null;
+  faults: FaultFlags;
+}
+
+/** 跑一批会话：串行多轮或 N 路并发单轮，统一汇总 usage 与墙钟。 */
+async function executeSessions(options: BatchOptions): Promise<SessionBatch> {
+  const { port, concurrency, turns, maxTokens, provider, promptOverride, faults } = options;
+  const turnResults: TurnSummary[] = [];
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let totalTokens = 0;
+  const startedAt = Date.now();
+  const record = (summary: TurnSummary): void => {
+    promptTokens += summary.usage?.promptTokens ?? 0;
+    completionTokens += summary.usage?.completionTokens ?? 0;
+    totalTokens += summary.usage?.totalTokens ?? 0;
+    turnResults.push(summary);
+  };
+
+  if (concurrency > 1) {
+    const parallel = await Promise.all(
+      Array.from({ length: concurrency }, async (_, index) =>
+        runTurn({
+          port,
+          counselorText: CONCURRENCY_COUNSELOR_PROMPTS[index % CONCURRENCY_COUNSELOR_PROMPTS.length],
+          history: [],
+          turn: index + 1,
+          turns: concurrency,
+          maxTokens,
+          provider,
+          expectFallback: false,
+          expectDegraded: false,
+        }),
+      ),
+    );
+    for (const result of parallel) record(result.summary);
+  } else {
+    const history: RenderContextTurn[] = [];
+    for (let index = 0; index < turns; index += 1) {
+      const fallbackPrompt = MULTI_TURN_COUNSELOR_PROMPTS[index % MULTI_TURN_COUNSELOR_PROMPTS.length];
+      const counselorText = index === 0 && promptOverride !== null ? promptOverride : fallbackPrompt;
+      const result = await runTurn({
+        port,
+        counselorText,
+        history,
+        turn: index + 1,
+        turns,
+        maxTokens,
+        provider,
+        expectFallback: faults.expectFallback,
+        expectDegraded: faults.expectDegraded,
+      });
+      record(result.summary);
+      // 下一轮把本轮来访回复带入历史，形成 counselor/visitor 交替上下文。
+      history.push({ role: 'counselor', text: counselorText }, { role: 'visitor', text: result.text });
+    }
+  }
+
+  return { turnResults, promptTokens, completionTokens, totalTokens, wallElapsedMs: Date.now() - startedAt };
+}
+
 async function main(): Promise<void> {
   loadEnvOnce();
 
@@ -313,8 +452,15 @@ async function main(): Promise<void> {
   const maxTokens = numberArg('--max-tokens', DEFAULT_MAX_TOKENS);
   const timeoutMs = numberArg('--timeout-ms', DEFAULT_TIMEOUT_MS);
   const turns = Math.floor(numberArg('--turns', DEFAULT_TURNS));
+  const concurrency = Math.floor(numberArg('--concurrency', 1));
   const promptOverride = arg('--prompt');
   const faults = resolveFaultFlags(callerPath, provider);
+
+  if (concurrency > 1 && turns !== 1) fail('--concurrency 与 --turns 互斥：并发模式固定单轮');
+  if (concurrency > 1 && (faults.failPrimary || faults.expectFallback || faults.expectDegraded)) {
+    fail('--concurrency 不与故障注入开关同时使用');
+  }
+  if (concurrency > 1 && promptOverride !== null) fail('--concurrency 模式不接受 --prompt 固定开场');
 
   // smoke 显式模拟生产开关；不写回 .env，也不改全局 ENGINE_RENDER_PRIMARY_PROVIDER。
   process.env['VISITOR_LLM_PROVIDER'] = provider;
@@ -373,75 +519,35 @@ async function main(): Promise<void> {
   const port = buildEngineRenderPort(caller, renderConfig);
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
 
-  const history: RenderContextTurn[] = [];
-  const turnResults: TurnSummary[] = [];
-  let totalPromptTokens = 0;
-  let totalCompletionTokens = 0;
-  let totalTokens = 0;
+  const batch = await executeSessions({
+    port,
+    concurrency,
+    turns,
+    maxTokens,
+    provider,
+    promptOverride,
+    faults,
+  });
 
-  for (let index = 0; index < turns; index += 1) {
-    const fallbackPrompt = MULTI_TURN_COUNSELOR_PROMPTS[index % MULTI_TURN_COUNSELOR_PROMPTS.length];
-    const counselorText = index === 0 && promptOverride !== null ? promptOverride : fallbackPrompt;
-    const result = await runTurn({
-      port,
-      counselorText,
-      history,
-      turn: index + 1,
-      turns,
-      maxTokens,
-      provider,
-      expectFallback: faults.expectFallback,
-      expectDegraded: faults.expectDegraded,
-    });
-    const summary = result.summary;
-    totalPromptTokens += summary.usage?.promptTokens ?? 0;
-    totalCompletionTokens += summary.usage?.completionTokens ?? 0;
-    totalTokens += summary.usage?.totalTokens ?? 0;
-    turnResults.push(summary);
-    // 下一轮把本轮来访回复带入历史，形成 counselor/visitor 交替上下文。
-    history.push({ role: 'counselor', text: counselorText }, { role: 'visitor', text: result.text });
-  }
-
-  const first = turnResults[0];
-  console.log(
-    JSON.stringify(
-      {
-        ok: true,
-        callerPath,
-        requestedProvider: provider,
-        failPrimary: faults.failPrimary,
-        failPrimaryMode: faults.failPrimary ? faults.mode : null,
-        expectFallback: faults.expectFallback,
-        expectDegraded: faults.expectDegraded,
-        primaryProbe,
-        turns,
-        configuredCandidates: renderConfig.candidates.map((candidate) => ({
-          id: candidate.id,
-          chatModel: candidate.overrides?.chat?.model ?? null,
-        })),
-        providerHint: first?.providerHint ?? null,
-        model: first?.model ?? null,
-        elapsedMs: first?.elapsedMs ?? null,
-        ttftMs: first?.ttftMs ?? null,
-        deltas: first?.deltas ?? null,
-        chars: first?.chars ?? null,
-        usage: first?.usage ?? null,
-        totalUsage: {
-          promptTokens: totalPromptTokens,
-          completionTokens: totalCompletionTokens,
-          totalTokens,
-        },
-        finishReason: first?.finishReason ?? null,
-        fallbackUsed: turnResults.some((item) => item.fallbackUsed),
-        degraded: turnResults.some((item) => item.degraded),
-        guardLevel: first?.guardLevel ?? null,
-        preview: first?.preview ?? null,
-        turnDetails: turnResults,
-      },
-      null,
-      2,
-    ),
-  );
+  printReport({
+    callerPath,
+    requestedProvider: provider,
+    faults,
+    primaryProbe,
+    turns,
+    concurrency,
+    wallElapsedMs: batch.wallElapsedMs,
+    candidates: renderConfig.candidates.map((candidate) => ({
+      id: candidate.id,
+      chatModel: candidate.overrides?.chat?.model ?? null,
+    })),
+    turnResults: batch.turnResults,
+    usage: {
+      promptTokens: batch.promptTokens,
+      completionTokens: batch.completionTokens,
+      totalTokens: batch.totalTokens,
+    },
+  });
 }
 
 main().catch((error: unknown) => {
