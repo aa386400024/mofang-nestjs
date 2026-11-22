@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-326",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T01:55:00.000Z",
+  "updatedAt": "2026-11-22T18:36:57.612Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-326/task-sheet.md",
+    "sha256": "ac3e10d458582afb82863b379846114b333a4d79a5ebf351a2b7c07de1224980",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-326/receipt-RC-AF-326-1.json",
+      "sha256": "d85d1a76c96ff2c23fbf783c5221fd1e204d75d6293d3c826711ce13346809e9",
+      "receiptId": "RC-AF-326-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af326-classifier-prompt-v2-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af326-classifier-prompt-v2-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
