@@ -401,7 +401,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 切过备 → fallbackUsed=true (与聚合路径同一口径: 走过备用路径).
       return attempted.length > 1 ? { ...outcome.value, fallbackUsed: true } : outcome.value;
     }
-    return this.degradeOutcome(spec, outcome.reason, outcome.cause ?? 'other');
+    // barge-in / 暂停是正常交互, 不是渲染降级: 不记 degraded_total.
+    return this.degradeOutcome(spec, outcome.reason, outcome.cause ?? 'other', outcome.cause !== 'cancelled');
   }
 
   /**
@@ -465,7 +466,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       const model = this.resolveParams(spec, candidate).model;
       this.notify((telemetry) => telemetry.onAttempt?.(candidate.id, model));
       const outcome = await attempt(candidate);
+      if (outcome.kind !== 'success' && outcome.cause === 'cancelled') {
+        // 外部取消不是候选失败: 不记 attempts{degrade}, 不触发 fallback, 单独计数.
+        this.notify((telemetry) => telemetry.onCancelled?.(candidate.id, model));
+        return { outcome, attempted };
+      }
       this.notify((telemetry) => telemetry.onAttemptOutcome?.(candidate.id, model, toAttemptOutcome(outcome.kind)));
+      if (outcome.kind !== 'success') {
+        // 候选级失败原因必须保留: 单候选部署与末次候选都不塌缩成 exhausted.
+        this.notify((telemetry) => telemetry.onFailure?.(candidate.id, model, outcome.cause ?? 'other'));
+      }
       if (outcome.kind !== 'retry') {
         return { outcome, attempted };
       }
@@ -579,7 +589,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     }
 
     if (ctx.regenBudget <= 0) {
-      return { kind: 'degrade', reason: '输出命中 block 且重生成预算已耗尽' };
+      return { kind: 'degrade', reason: '输出命中 block 且重生成预算已耗尽', cause: 'guard' };
     }
     ctx.regenBudget -= 1;
     ctx.usedRegen = true;
@@ -622,7 +632,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const instruction = buildRealismRetryInstruction(audit.reasons, ctx.realism.eventPlan, ctx.realism.profile.shape);
     const call = await this.callOnce(candidate, params, this.withRealismInstruction(ctx.messages, instruction));
     if (!call.ok) {
-      return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
+      return call.retryable
+        ? { kind: 'retry', reason: call.reason, cause: call.cause ?? 'other' }
+        : { kind: 'degrade', reason: call.reason, cause: call.cause ?? 'other' };
     }
 
     const rawText = stripReasoningBlocks(call.response.content ?? '');
@@ -639,7 +651,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const verdict = await this.evaluate(retryText);
     this.reportSignal(retryText, verdict);
     if (verdict.level === 'block') {
-      return { kind: 'degrade', reason: '真人度重试后输出仍命中 block' };
+      return { kind: 'degrade', reason: '真人度重试后输出仍命中 block', cause: 'guard' };
     }
 
     const secondAudit = this.auditRealism(ctx.realism, retryText);
@@ -713,7 +725,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
 
     const call = await this.callOnce(candidate, regenParams, ctx.messages);
     if (!call.ok) {
-      return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
+      return call.retryable
+        ? { kind: 'retry', reason: call.reason, cause: call.cause ?? 'other' }
+        : { kind: 'degrade', reason: call.reason, cause: call.cause ?? 'other' };
     }
 
     // AF-106: 推理块既不是可见台词，也不能进逐字稿 / 历史 / 来访者引擎上下文。
@@ -733,7 +747,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const verdict = await this.evaluate(text);
     this.reportSignal(text, verdict);
     if (verdict.level === 'block') {
-      return { kind: 'degrade', reason: '重生成后输出仍命中 block' };
+      return { kind: 'degrade', reason: '重生成后输出仍命中 block', cause: 'guard' };
     }
     // 安全重生成也要过真人度审计：block 重生成不是绕过 R2 的后门。
     // 用降温后的 params 继续，避免重试又把温度抽回去。
@@ -779,6 +793,30 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   // ── 流式路径 ──────────────────────────────────────────────────────
 
   /**
+   * 已锁定后的流式中断归因: 外部取消 > 鉴权 > 其余错误分类.
+   *
+   * 抽成独立方法的原因: 三段判定塞进 `streamAttempt` 会把圈复杂度推过 lint 上限,
+   * 而这里的优先级本身值得单点解释 —— 取消是中段正常交互, 不能被记成上游失败.
+   */
+  private classifyLockedInterruption(
+    candidate: RenderCandidate,
+    error: unknown,
+    signal: AbortSignal | undefined,
+  ): AttemptOutcome<StreamRenderOutcome> {
+    if (signal?.aborted === true) {
+      this.logger.debug(`[streamRender] 候选 ${candidate.id} 锁定后被外部取消, 静默结束`);
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 外部取消`, cause: 'cancelled' };
+    }
+    if (isAuthFailure(error)) {
+      this.notify((telemetry) => telemetry.onAuthFailure?.(candidate.id));
+      this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后鉴权失败, 收尾降级: ${errorMessage(error)}`);
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后鉴权失败: ${errorMessage(error)}`, cause: 'auth' };
+    }
+    this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
+    return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}`, cause: classifyErrorCause(error) };
+  }
+
+  /**
    * 用一个候选跑一轮流式: 建流 → 取首 delta → 锁定 → 边吐边累计 → 收尾.
    *
    * 返回值语义与聚合路径同构 (success / retry / degrade), 所以两条路径共用同一个
@@ -812,7 +850,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const opened = await this.openStream(candidate, request, handlers);
     if (!opened.ok) {
       if (opened.cancelled === true) {
-        return { kind: 'degrade', reason: `候选 ${candidate.id} 外部取消` };
+        return { kind: 'degrade', reason: `候选 ${candidate.id} 外部取消`, cause: 'cancelled' };
       }
       return opened.retryable
         ? { kind: 'retry', reason: opened.reason, cause: opened.cause ?? 'other' }
@@ -899,8 +937,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         return { kind: 'degrade', reason: `候选 ${candidate.id} ${error.message}`, cause: 'idle' };
       }
       // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
-      this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
-      return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}`, cause: classifyErrorCause(error) };
+      return this.classifyLockedInterruption(candidate, error, handlers.signal);
     } finally {
       // 正常结束 / 中断 / 消费方抛错都要释放外部取消监听；否则长会话会累积悬挂监听。
       opened.dispose();
@@ -1140,6 +1177,14 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         }
       }
     } catch (error) {
+      // AF-274 (P0-2): 消费方主动取消不是上游故障 —— 不记失败、不切备。
+      // 否则一次 barge-in 会同时污染主备两个候选的熔断器，3 次即全场兜底。
+      // AF-282: 取消判定要**先于**首包超时判定 —— 取消会中止上游请求, 让
+      //   iterator 以一个 AbortError 结束; 若先判 timedOut 就把正常打断记成超时.
+      if (guard.externalAborted()) {
+        this.logger.debug(`[streamRender] 候选 ${candidate.id} 首包前被外部取消，静默结束`);
+        return { ok: false, retryable: false, cancelled: true, reason: '外部取消' };
+      }
       if (guard.timedOut()) {
         this.runtime.markFailure(candidate.id, this.config);
         this.notify((telemetry) => telemetry.onStreamTimeout?.(candidate.id, 'first-delta'));
@@ -1147,12 +1192,6 @@ export class LlmRenderAdapter implements StreamingRenderPort {
           `[streamRender] 候选 ${candidate.id} 流式首包超时 (phase=first-delta budget=${firstDeltaTimeoutMs}ms), 切下一个候选`,
         );
         return { ok: false, retryable: true, reason: `流式首包超时 (budget=${firstDeltaTimeoutMs}ms)`, cause: 'first-delta' };
-      }
-      // AF-274 (P0-2): 消费方主动取消不是上游故障 —— 不记失败、不切备。
-      // 否则一次 barge-in 会同时污染主备两个候选的熔断器，3 次即全场兜底。
-      if (guard.externalAborted()) {
-        this.logger.debug(`[streamRender] 候选 ${candidate.id} 首包前被外部取消，静默结束`);
-        return { ok: false, retryable: false, cancelled: true, reason: '外部取消' };
       }
       const failure = this.classifyFailure(candidate, error);
       return { ok: false, retryable: failure.retryable, reason: failure.reason, cause: failure.cause };
@@ -1324,8 +1363,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * `degraded=true` 的含义: 这段文本**不是**来访者完整说出来的真话 (兜底句或
    * 残句), 上层据此不把它写进历史与工作记忆.
    */
-  private degradeOutcome(spec: AdaptiveRenderSpec, reason: string, cause: RenderFailureCause = 'other'): StreamRenderOutcome {
-    this.notify((telemetry) => telemetry.onDegraded?.(cause));
+  private degradeOutcome(
+    spec: AdaptiveRenderSpec,
+    reason: string,
+    cause: RenderFailureCause = 'other',
+    recordDegraded = true,
+  ): StreamRenderOutcome {
+    if (recordDegraded) {
+      this.notify((telemetry) => telemetry.onDegraded?.(cause));
+    }
     const utterance = this.pickFallbackUtterance();
     this.logger.warn(`[streamRender] 降级兜底: degraded=true reason=${reason} utterance=${utterance}`);
     return {

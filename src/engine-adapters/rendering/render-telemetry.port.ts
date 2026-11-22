@@ -51,6 +51,15 @@ export interface RenderTelemetryPort {
   onStreamTimeout?(candidateId: string, phase: RenderStreamTimeoutPhase): void;
   /** 鉴权失败 (401/403). */
   onAuthFailure?(candidateId: string): void;
+  /**
+   * 候选级失败 (每次失败尝试记一次, 含末次候选).
+   *
+   * 与 `onAttemptOutcome` 分开: attempts 是"候选尝试"的分母, failure 保留
+   * 失败原因; 单候选部署与末次候选的 429/5xx/超时不再塌缩成 exhausted.
+   */
+  onFailure?(candidateId: string, model: string, cause: RenderFailureCause): void;
+  /** 外部取消 (barge-in / 暂停), 不是渲染降级, 单独计数. */
+  onCancelled?(candidateId: string, model: string): void;
   /** 从 from 候选切到 to 候选. */
   onFallback?(from: string, to: string, cause: RenderFailureCause): void;
   /** 本轮最终降级兜底. */
