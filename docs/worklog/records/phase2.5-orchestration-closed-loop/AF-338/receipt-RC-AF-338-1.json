@@ -1,0 +1,258 @@
+{
+  "deliveredAt": "2026-11-23T05:28:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-338-1",
+    "taskId": "AF-338",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "947454fa5b33365dea9871b23df191f7d6d6d2ee",
+    "dependsOn": ["AF-337"],
+    "priorTasks": ["AF-337", "AF-336", "AF-335"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-338/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af338-realism-event-type-attribution-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af338-realism-event-type-attribution-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["6e4ddb8754788e293fbc2a600ac6426cac0e36fd"],
+      "added": [
+        "src/shared/realism/realism-event-type-profile.ts",
+        "bin/visitor-realism-event-type-profile.ts",
+        "test/shared/realism/realism-event-type-profile.spec.ts",
+        "docs/worklog/completed/phase2.5/af338-realism-event-type-attribution-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af338-realism-event-type-attribution-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-338/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-338/task-sheet.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-event-type-profile.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 9,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "224ms",
+        "note": "9/9 通过"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-event-type-profile.ts --dir af336.../reps --out .../off-profile.json --arms off",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.4s",
+        "note": "anxious off 64 事件/96 轮；guarded off 55 事件/96 轮；零模型调用"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-event-type-profile.ts --dir af337.../reps --out .../full-minimal-profile.json --arms \"full,minimal\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.4s",
+        "note": "anxious full 194 事件/96 轮；guarded full 116 事件/96 轮；minimal 与 off 同词表"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 296,
+        "tests": 4530,
+        "machine": "同上",
+        "wallClock": "19.37s",
+        "note": "296 文件通过 / 1 跳过（297）；4530 例通过 / 4 跳过（4534）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-338 status=submitted files=11"
+      }
+    ],
+    "reproNotes": "先跑单测 9 例；再对 AF-336 的 8 份 off rep 与 AF-337 的 8 份 full+minimal rep 生成剖面；最后跑 typecheck、lint、全量 4530 例与 engine-core 零 diff。CLI 只接受 reps=1 的 rep 文件，目录内不可混入 summary.json。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-338 经 CLI register / promote / run-once / branch create；分支名与提交标题只含一个任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "新增模块在 src/shared/realism/，不碰 engine-core；diff 为空"
+      },
+      {
+        "item": "pure-layer",
+        "result": "pass",
+        "note": "模块零 IO / 零随机 / 零文本 / 零 @nestjs；CLI 才做文件读写"
+      },
+      {
+        "item": "no-model-spend",
+        "result": "pass",
+        "note": "本单零新增模型调用，只读已有 rep JSON"
+      },
+      {
+        "item": "no-gate-change",
+        "result": "pass",
+        "note": "未改 humanization-v1 阈值、未改生产 prompt、未切 RENDER_REALISM_MODE"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "剖面只输出类型计数与频次；原始 JSON 留 gitignored 目录；无台词文本"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "类型级频率归因，不是真人感因果关系证明；不宣称临床有效性"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 947454fa 为切出点；任务单 implementation；回执 finalStatus completed；实现提交 6e4ddb87 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF338-B1",
+        "impact": "焦虑 full 净增 130 个事件中 repair 占 50.8%、pause 30.0%、filler 18.5%；repair 是主放大器，但也是真人度信号，不能简单删除。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF338-B2",
+        "impact": "回避 full 的 pause 每轮 1.0、trailoff 0.2083，repair 全程 0；回避的真人度增量是停顿频率，不是 repair。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF338-B3",
+        "impact": "minimal 与 off 基本同词表：焦虑 filler 同为 31、repair 均为 0；不可分是结构性，不是样本量不足。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF338-B4",
+        "impact": "统一减层同时处理两个人设会把真人度信号一起删掉；下一轮候选需分人设调 repair/filler 与 pause/trailoff。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF338-B5",
+        "impact": "剖面只做类型级频次，未做逐轮位置（第几轮、句首/句尾）归因；无法判断事件是否集中在长会话后段。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF338-B6",
+        "impact": "CLI 要求目录内只有 rep 文件；混入 summary.json 会因 reps 缺失被拒绝。可在帮助文档中显式说明目录约定。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "焦虑是否先单独压 repair 与 filler，再谈 pause",
+      "回避是否先压每轮必有 pause，保留少量 trailoff",
+      "是否为两人设分别设计候选，而不是继续统一减层",
+      "是否需要逐轮位置归因来定位长会话后段的事件堆积"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "纯函数模块 + CLI + 单测",
+        "reality": "已交付；单测 9 例",
+        "action": "按任务单交付",
+        "why": "无偏差"
+      },
+      {
+        "taskSays": "用 AF-336 off 与 AF-337 full/minimal 产出剖面",
+        "reality": "已产出两份 JSON",
+        "action": "按任务单交付",
+        "why": "零模型调用"
+      },
+      {
+        "taskSays": "不改生产 / 不调阈值",
+        "reality": "未改生产、humanization-v1、RENDER_REALISM_MODE",
+        "action": "保持生产 off",
+        "why": "本单只做归因工具"
+      }
+    ],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-338 交付纯函数剖面模块、CLI 与 9 例单测；用真实 rep JSON 产出 6 个 persona × arm 剖面，定位焦虑 full 的 repair/filler 与回避 full 的 pause/trailoff 放大器，并证明 minimal 与 off 同词表。typecheck、lint、全量 4530 例、engine-core 零 diff 全部通过；零新增模型调用，未改生产 prompt 与阈值。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
