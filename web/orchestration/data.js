@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T07:07:38.351Z",
+  "generatedAt": "2026-11-22T07:23:27.434Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1826,6 +1826,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-487",
+      "recordedAt": "2026-11-22T07:21:10.861Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-285",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-285",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-285.json"
+      ]
+    },
+    {
+      "auditId": "AUD-486",
+      "recordedAt": "2026-11-22T07:20:35.746Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-285",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-285-production-candidate-smoke"
+      ]
+    },
+    {
+      "auditId": "AUD-485",
+      "recordedAt": "2026-11-22T07:20:30.702Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-285",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-484",
       "recordedAt": "2026-11-22T06:53:40.393Z",
       "actorRef": "orchestrator",
@@ -2016,67 +2063,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-472",
-      "recordedAt": "2026-11-22T06:13:26.241Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-281",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-281-visitor-v5-parity"
-      ]
-    },
-    {
-      "auditId": "AUD-471",
-      "recordedAt": "2026-11-22T06:13:18.072Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-281",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-281",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-281.json"
-      ]
-    },
-    {
-      "auditId": "AUD-470",
-      "recordedAt": "2026-11-22T06:12:47.315Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-280:AF-281",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 484,
+    "total": 487,
     "byResult": {
-      "allowed": 484,
+      "allowed": 487,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 483,
+      "TOOL-QUEUE-SCHEDULER": 486,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 484
+      "orchestrator": 487
     }
   },
   "protocolView": {
@@ -7021,6 +7021,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af283-render-alerting-runbook-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-285",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7058,5 +7076,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 284
+  "archivedCount": 285
 };

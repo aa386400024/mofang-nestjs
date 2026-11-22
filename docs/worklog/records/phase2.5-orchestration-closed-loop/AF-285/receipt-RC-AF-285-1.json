@@ -1,0 +1,140 @@
+{
+  "deliveredAt": "2026-11-22T15:28:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-285-1",
+    "taskId": "AF-285",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "2769836e85dc6a0ac7b6d423e2596740e5da2b25",
+    "dependsOn": ["AF-283"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md",
+      "reply": null,
+      "others": ["data/af285-switch-check.log", "data/af285-smoke-doubao.log", "data/af285-smoke-minimax.log"]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/manifest.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["ca5bf570db4b1950650a7f2b5e40693a72f395d5"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 4 秒",
+        "note": "主候选 doubao/种子角色模型；候选链 doubao→minimax；两把 key present；ENGINE_RENDER_PRIMARY_PROVIDER=minimax 被来访者总开关覆盖，符合 AF-252 设计；日志 data/af285-switch-check.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2942ms",
+        "note": "3/3 stop；fallback/degraded 全 false；TTFT 1237/947/738ms；prompt 745/778/813；日志 data/af285-smoke-doubao.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "4740ms",
+        "note": "3/3 stop；fallback/degraded 全 false；TTFT 1751/939/1041ms；首轮 1.75s 接近 2s P95 告警线；日志 data/af285-smoke-minimax.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src test bin docker docs/runbooks",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；本单零代码改动。工作树内 AF-280/AF-281 未跟踪半成品未改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-285-production-candidate-smoke 自 integrate 2769836e 切出。先跑开关自检确认主候选与回滚链，再串行跑两条各 3 轮真实 smoke，避免并发干扰 TTFT。豆包主候选 3/3 stop、无回退无降级；MiniMax 回滚候选 3/3 stop、无回退无降级，但首轮 TTFT 1.75s 逼近 AF-283 的 2s P95 告警线。prompt tokens 相对 AF-278 基线在第 2、3 轮各 +3/+2，未定位到同轮文本差异，按观测噪声记录。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支 task/AF-285-production-candidate-smoke 与提交只含 AF-285"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / branch create / run-once 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "交付记录六组机读字段齐全，回执 JSON 完整"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动，本单连 src/test/bin 都零改动"
+      },
+      {
+        "item": "telemetry-privacy",
+        "result": "pass",
+        "note": "记录只含模型名、token 数、延迟与来访者短句预览，不含完整 prompt、密钥或会话标识"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 integrate 2769836e；依赖 AF-283 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-minimax-ttft-near-threshold",
+        "impact": "回滚候选首轮 TTFT 1.75s，接近 2s P95 告警线；若持续贴线，回滚后用户体验与告警噪声都会变差"
+      },
+      {
+        "id": "visitor-prompt-token-drift",
+        "impact": "同剧本 prompt tokens 比 AF-278 基线高 2–3，未定位原因；若为 prompt 内容漂移，会影响成本核算与缓存命中"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "与 AF-278 基线对齐",
+        "reality": "第 2、3 轮 prompt tokens 各高 3 / 2",
+        "action": "记录为观测漂移，不当作回归结论；新增 backlog 待同 prompt 快照复测",
+        "why": "未定位到同轮 prompt 文本差异，不能凭 token 数直接判回归"
+      },
+      {
+        "taskSays": "主备都 3/3",
+        "reality": "MiniMax 首轮 TTFT 1.75s，接近告警线",
+        "action": "按通过记录，同时登记 TTFT 贴线观察项",
+        "why": "本次 3/3 成功满足链路可用判据，贴线风险单独跟踪"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "开关自检 exit 0 且主备链装配正确；豆包主候选 3/3、MiniMax 回滚候选 3/3，均无回退无降级；本单零代码改动，符合 verification 类型。两项观测偏差已如实写入交付记录、回执与 backlog，没有把贴线或 token 漂移说成全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

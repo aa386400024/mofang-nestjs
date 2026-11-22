@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1288,
+    "lastEventSeq": 1293,
     "rebuiltAt": null
   },
   "tasks": [
@@ -2668,6 +2668,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af283-render-alerting-runbook-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-285",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md",
         "reply": null
       }
     }
