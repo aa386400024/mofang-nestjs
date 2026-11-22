@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-334",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-23T04:36:00+08:00",
-  "updatedAt": "2026-11-22T20:31:26.787Z",
+  "updatedAt": "2026-11-22T20:42:36.850Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-334/task-sheet.md",
     "sha256": "361d667d25eac349d6b612716eea02081331ba41532d59b3213ad7f53b489f61",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-334/receipt-RC-AF-334-1.json",
+      "sha256": "213d11119a69ed8546c385db2253e178fe9be57278cdb42a282673f6ecbc96af",
+      "receiptId": "RC-AF-334-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af334-realism-long-session-ablation-2026-11-23.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-af334-realism-long-session-ablation-task-2026-11-23.md"
