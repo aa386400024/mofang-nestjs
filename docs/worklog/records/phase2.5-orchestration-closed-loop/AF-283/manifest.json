@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-283",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T14:55:00+08:00",
+  "updatedAt": "2026-11-22T06:50:25.961Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md",
+    "sha256": "9b1c9fe42ac18b6b2d7be94b4bb3ad9ad2db1573444c69cc86dea2bf55cd866b",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/AF-283-render-alerting-runbook-2026-11-23.md"
+  ],
+  "tombstone": null
+}

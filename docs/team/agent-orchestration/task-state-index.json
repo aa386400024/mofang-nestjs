@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1281,
+    "lastEventSeq": 1284,
     "rebuiltAt": null
   },
   "tasks": [
@@ -139,7 +139,7 @@
     },
     {
       "taskId": "AF-283",
-      "status": "ready",
+      "status": "submitted",
       "history": [
         {
           "at": "2026-11-22T06:50:26.329Z",
@@ -147,6 +147,13 @@
           "to": "ready",
           "by": "orchestrator-cli",
           "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-22T06:53:40.221Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
         }
       ],
       "contextId": "phase2.5-orchestration-closed-loop",
@@ -225,83 +232,6 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-22T06:50:26.328Z"
-    },
-    {
-      "taskId": "AF-284",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T06:51:53.824Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "人工提级"
-        },
-        {
-          "at": "2026-11-22T06:52:10.284Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "扩展 executor 资源域以覆盖部署与运行手册（docker/、docs/runbooks/）",
-      "type": "implementation",
-      "baselineRef": "a9cdc4b8afbe2b6ee8ecfb1df238a8adf5764662",
-      "dependsOn": [],
-      "priorTasks": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T06:51:53.451Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "docs/team/agent-orchestration/agent-cards/executor.json",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md",
-          "check": "任务单 schema 合法",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs status",
-          "check": "状态面可读且投影一致",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "engine-core 零改动",
-          "threshold": "输出为空"
-        }
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-22T06:51:53.823Z"
     }
   ],
   "archivedTasks": [
@@ -2816,6 +2746,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-284",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md",
         "reply": null
       }
     }

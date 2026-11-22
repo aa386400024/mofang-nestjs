@@ -1,0 +1,72 @@
+{
+  "deliveredAt": "2026-11-22T14:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-284-1",
+    "taskId": "AF-284",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "a9cdc4b8afbe2b6ee8ecfb1df238a8adf5764662",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md"
+      ],
+      "modified": ["docs/team/agent-orchestration/agent-cards/executor.json"],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["91b7e90f932f726445ee7b9508eda16a44c572a1"]
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 2 秒",
+        "note": "任务单 / 事件日志 / 索引投影全部 PASS；日志 data/af284-validate1.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "executor Agent Card resources 增加 docker/ 与 docs/runbooks/；未改 limits、调度器、engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "分支与提交只含 AF-284"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / branch / run-once 均经 CLI"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"}
+    ],
+    "fieldAlignment": {"result": "aligned", "note": "baseline a9cdc4b8 与分支起点一致"},
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "资源域补齐 docker/ 与 docs/runbooks/，AF-283 的 scope-domain-conflict 解除；validate 全 PASS，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

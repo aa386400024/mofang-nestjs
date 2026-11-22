@@ -1,12 +1,12 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T06:52:10.358Z",
+  "generatedAt": "2026-11-22T06:53:40.289Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 2,
+    "ready": 1,
     "submitted": 1,
     "working": 0,
     "completed": 0,
@@ -62,7 +62,7 @@ window.ORCH_SNAPSHOT = {
       "contextId": "phase2.5-orchestration-closed-loop",
       "type": "implementation",
       "title": "渲染遥测告警规则与灰度判读 Runbook（Prometheus 规则 + Grafana 面板 + 回滚判据）",
-      "status": "ready",
+      "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
       "attemptCount": 0,
@@ -74,36 +74,27 @@ window.ORCH_SNAPSHOT = {
         "reply": null
       },
       "manualReview": [],
-      "dispatch": null
-    },
-    {
-      "taskId": "AF-284",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "扩展 executor 资源域以覆盖部署与运行手册（docker/、docs/runbooks/）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
       "dispatch": {
-        "taskId": "AF-284",
+        "taskId": "AF-283",
         "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
+        "channel": "gui-relay",
+        "targetRole": "executor",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-22T06:52:10.287Z",
-        "leaseDeadline": "2026-11-22T07:22:10.284Z",
+        "dispatchedAt": "2026-11-22T06:53:40.223Z",
+        "leaseDeadline": "2026-11-22T07:23:40.221Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-284.json"
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-283.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T06:53:40.223Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-283.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
       }
     }
   ],
@@ -1751,6 +1742,8 @@ window.ORCH_SNAPSHOT = {
         "bin/",
         "test/",
         "admin-dashboard/",
+        "docker/",
+        "docs/runbooks/",
         ".env.example",
         "docs/team/agent-orchestration/agent-cards/executor.json",
         "docs/worklog/pending/",
@@ -1872,6 +1865,21 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-483",
+      "recordedAt": "2026-11-22T06:52:10.468Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-284",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-284",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-284.json"
+      ]
+    },
     {
       "auditId": "AUD-482",
       "recordedAt": "2026-11-22T06:51:54.268Z",
@@ -2095,37 +2103,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-279.json"
       ]
-    },
-    {
-      "auditId": "AUD-468",
-      "recordedAt": "2026-11-22T06:05:05.681Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-279",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 482,
+    "total": 483,
     "byResult": {
-      "allowed": 482,
+      "allowed": 483,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 481,
+      "TOOL-QUEUE-SCHEDULER": 482,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 482
+      "orchestrator": 483
     }
   },
   "protocolView": {
@@ -2162,9 +2153,9 @@ window.ORCH_SNAPSHOT = {
         "title": "渲染遥测告警规则与灰度判读 Runbook（Prometheus 规则 + Grafana 面板 + 回滚判据）",
         "type": "implementation",
         "status": {
-          "framework": "ready",
-          "protocol": null,
-          "stage": "orchestration"
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
         },
         "groupId": "phase2.5-orchestration-closed-loop",
         "requiredSkills": [],
@@ -2176,30 +2167,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-284",
-        "title": "扩展 executor 资源域以覆盖部署与运行手册（docker/、docs/runbooks/）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md"
           }
         ]
       }
@@ -7080,6 +7047,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-284",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7109,16 +7094,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-283",
         "kind": "taskSheet",
         "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
-      },
-      {
-        "taskId": "AF-284",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md"
-      },
-      {
-        "taskId": "AF-284",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7132,5 +7107,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 282
+  "archivedCount": 283
 };
