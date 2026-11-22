@@ -4,145 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1328,
+    "lastEventSeq": 1330,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-293",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T09:21:39.605Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "AF-292 PR 基线冲突后，在最新 integrate 重建同一交付"
-        },
-        {
-          "at": "2026-11-22T09:23:34.878Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "引擎渲染路径 V5 来访者约束对齐与生产路径盲评",
-      "type": "implementation",
-      "baselineRef": "2b8a1cf6eb0fc2ca40ee528e9b159cf1a1b139f6",
-      "dependsOn": [
-        "AF-243",
-        "AF-248"
-      ],
-      "priorTasks": [
-        "AF-232",
-        "AF-237",
-        "AF-240",
-        "AF-241",
-        "AF-243",
-        "AF-245",
-        "AF-248",
-        "AF-252",
-        "AF-263",
-        "AF-280",
-        "AF-281",
-        "AF-292"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T06:14:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/shared/realism/",
-          "src/agent/visitor/",
-          "src/engine-adapters/rendering/",
-          "src/engine-adapters/wiring/",
-          "test/agent/visitor/",
-          "test/engine-adapters/",
-          "test/shared/realism/",
-          "bin/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-293/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af280-visitor-v5-parity-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/agent/visitor/af280-visitor-prompt-variant.spec.ts test/engine-adapters/af280-render-prompt-variant.spec.ts",
-          "check": "共享 V5 约束与引擎渲染变体契约全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型闭合",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量回归",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "engine-core 零改动",
-          "threshold": "输出为空"
-        }
-      ],
-      "successCriteria": [
-        "新增纯共享模块，导出 VisitorPromptVariant、V5 约束正文与严格解析函数；旧 VisitorService 与引擎渲染路径引用同一份正文，禁止复制两套。",
-        "引擎渲染 buildVisitorMessages 支持变体入参；默认 shared 时 system prompt 与改动前逐字一致，seed-v5 时只在硬规则之后追加 V5 约束块。",
-        "RenderConfigFactory 从 VISITOR_PROMPT_VARIANT 读取变体并注入 buildMessages；非法值 fail fast，错误文案含 key 与允许值。",
-        "舞台说明投影仅在 seed-v5 开启，shared 路径不剥离任何字符。",
-        "单测覆盖默认零回归、seed-v5 追加位置与正文、非法值拒绝、旧/新两条链路引用同一常量。",
-        "用生产引擎渲染路径生成 12 场固定咨询师脚本会话，A=shared、B=seed-v5，同一 Seed Character 模型；两评分员盲评，身份不泄露。",
-        "盲评报告包含 AI 暴露、建议、总结、剧情推进、投影后括号、原始括号、超长率、提问率、L3 短答率、标记错误率、过度配合指数、首 token P95、两评分员 κ/绝对差/exact/within±1。",
-        "预登记硬门槛：AI 暴露 0、建议 0、总结 0、剧情推进 0、原始括号 0、标记错误率低于 1%、L3 短答率不低于 shared 的 80%、首 token P95 不高于 1500ms。",
-        "预登记软门槛：五维 human-likeness 不低于 shared 0.2 分、过度配合指数不高于 shared、两评分员 κ 不低于 0.4 且绝对差不超过 0.3、长度 std 不低于 0.5。",
-        "任一硬门槛失败即不切流，保留 VISITOR_PROMPT_VARIANT=shared，交付记录写失败原因与回滚证据。",
-        "全部硬门槛通过且软门槛不退化后，设 VISITOR_PROMPT_VARIANT=seed-v5，重启本地服务，跑 20 轮真实 smoke；失败可一键回 shared。",
-        "不修改既有评分 prompt、阈值、证据校验、R6-D 口径；不声称临床达标；真人双标仍标记为待上线阶段补做。",
-        "定向测试、lint、typecheck、全量测试全绿；交付记录、机读回执、归档与受保护 PR 齐全。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af280-visitor-v5-parity-2026-11-22.md",
-          "kind": "report"
-        },
-        {
-          "name": "生产路径盲评报告",
-          "path": "data/phase25-exit/af280-engine-render-v5/report.json",
-          "kind": "dataset"
-        },
-        {
-          "name": "生产路径盲评摘要",
-          "path": "data/phase25-exit/af280-engine-render-v5/summary.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-22T09:21:39.604Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2745,6 +2610,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-231/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-293",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-293/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af280-visitor-v5-parity-2026-11-22.md",
         "reply": null
       }
     }
