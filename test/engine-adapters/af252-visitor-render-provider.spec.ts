@@ -26,8 +26,14 @@ class StubRouter {
   }
 }
 
+// AF-275: 自动补出来的备候选必须有 key；本组用例只测候选链与模型映射，给两把假 key 让装配通过。
+const PROVIDER_KEYS = {
+  LLM_DOUBAO_API_KEY: 'test-doubao-key',
+  MINIMAX_API_KEY: 'test-minimax-key',
+} as const;
+
 function build(env: Readonly<Record<string, string>>): ReturnType<RenderConfigFactory['build']> {
-  return new RenderConfigFactory(stubConfig(env), new StubRouter() as unknown as LlmRouterService).build();
+  return new RenderConfigFactory(stubConfig({ ...PROVIDER_KEYS, ...env }), new StubRouter() as unknown as LlmRouterService).build();
 }
 
 function modelOf(config: ReturnType<RenderConfigFactory['build']>, id: string, kind: 'chat' | 'stable' | 'advanced'): string | undefined {

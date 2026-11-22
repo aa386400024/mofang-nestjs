@@ -31,6 +31,7 @@ import { DEFAULT_VISITOR_DOUBAO_MODEL } from '../../agent/visitor/visitor.runtim
 import type { RenderTaskKind, RiskProbePort } from '../../engine-core/index.js';
 import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums.js';
 import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
+import { resolveProviderApiKeyEnvKey } from '../../llm/config/provider-env.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import {
   LlmRenderAdapter,
@@ -101,10 +102,13 @@ export class RenderConfigFactory {
    * @returns 渲染适配器配置
    */
   build(): RenderAdapterConfig {
-    const candidates = this.buildCandidates();
+    const plan = this.buildCandidates();
     // V2026-11-09 治本 (Phase2.5 WP-H · 改动 1): 候选数校验放在**装配期**.
     //   跑批时才发现"没有备份"就晚了 —— 那时几千场数据已经全是兜底句.
-    this.assertFailoverCapacity(candidates);
+    this.assertFailoverCapacity(plan.candidates);
+    // AF-275: 候选存在 ≠ 候选可用。自动补出来的备候选没有 key 时，
+    // 装配期就炸掉，不能等故障真的发生才在运行期报 "API key not found"。
+    this.assertCandidateCredentials(plan.candidates, plan.autoFallbackId);
     const chatTemperature = this.ratioNumber('ENGINE_RENDER_CHAT_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.chat.temperature);
     const stableTemperature = this.ratioNumber('ENGINE_RENDER_STABLE_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.stable.temperature);
     // V2026-10-29 治本 (WP9-C): token 上限走**新字段** `maxCompletionTokens`
@@ -116,7 +120,7 @@ export class RenderConfigFactory {
     //   风险轮次由适配器按内核判定结果强制抬档 (medium/high), 不受这里影响.
     const reasoningEffort = this.reasoningEffort('ENGINE_RENDER_REASONING_EFFORT') ?? DEFAULT_RENDER_REASONING_EFFORT;
 
-    return createRenderAdapterConfig(candidates, {
+    return createRenderAdapterConfig(plan.candidates, {
       taskDefaults: {
         // advanced 本期回退 chat 口径 (本期没有高阶档位, 别假装有).
         chat: { temperature: chatTemperature, maxCompletionTokens, reasoningEffort },
@@ -138,8 +142,15 @@ export class RenderConfigFactory {
 
   /**
    * 候选序列: 主候选 + 逗号分隔的备候选 (顺序即优先级, 去重).
+   *
+   * AF-275: 先按去重后的真实候选数判断要不要自动补备。
+   * 旧实现看的是「原始 fallback 文本长度」：`ENGINE_RENDER_FALLBACK_PROVIDERS=doubao`
+   * 而主候选也是 doubao 时，`fallbacks.length !== 0` 会跳过补备，去重后只剩单候选。
+   * 现在显式列表先与主候选一起去重，仍只有 1 个时才补对端。
+   *
+   * @returns 候选序列 + 是否自动补过对端备候选
    */
-  private buildCandidates(): RenderCandidate[] {
+  private buildCandidates(): { readonly candidates: RenderCandidate[]; readonly autoFallbackId: string | null } {
     const visitorProvider = this.visitorProviderOverride();
     const configuredPrimary =
       this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.DEEPSEEK;
@@ -155,23 +166,56 @@ export class RenderConfigFactory {
     // 切到豆包时若没有显式备候选，自动补 MiniMax；切回 MiniMax 时同理自动补豆包。
     // 单候选一熔断就是整场兜底句 —— 回滚方案不能只做到“能切”，还要“切了有备胎”。
     // 只在 `VISITOR_LLM_PROVIDER` 显式指定时生效，未配置的既有部署保持原候选链零回归。
-    if (fallbacks.length === 0) {
-      if (visitorProvider === AIProviderId.DOUBAO) {
-        fallbacks.push(AIProviderId.MINIMAX);
-      } else if (visitorProvider === AIProviderId.MINIMAX) {
-        fallbacks.push(AIProviderId.DOUBAO);
+    const ids = [...new Set([primary, ...fallbacks])];
+    let autoFallbackId: string | null = null;
+    if (ids.length === 1 && visitorProvider !== null) {
+      const opposite = visitorProvider === AIProviderId.DOUBAO ? AIProviderId.MINIMAX : AIProviderId.DOUBAO;
+      if (!ids.includes(opposite)) {
+        ids.push(opposite);
+        autoFallbackId = opposite;
       }
     }
 
-    const ids = [...new Set([primary, ...fallbacks])];
-    return ids.map((id) => ({
-      id,
-      overrides: {
-        chat: { model: this.modelFor('chat', id) },
-        stable: { model: this.modelFor('stable', id) },
-        advanced: { model: this.modelFor('advanced', id) },
-      },
-    }));
+    return {
+      candidates: ids.map((id) => ({
+        id,
+        overrides: {
+          chat: { model: this.modelFor('chat', id) },
+          stable: { model: this.modelFor('stable', id) },
+          advanced: { model: this.modelFor('advanced', id) },
+        },
+      })),
+      autoFallbackId,
+    };
+  }
+
+  /**
+   * 候选凭据可用性守卫 (装配期).
+   *
+   * AF-275: 自动补出来的对端备候选是**系统替部署方加的**，不能假定它的 key 已配好。
+   * 缺 key 时直接启动失败 —— 否则故障真的发生时，备候选会报 "API key not found"，
+   * 用户仍然只听到兜底句，和没有备胎一样。
+   *
+   * 显式配置的候选保留既有部署弹性：`ENGINE_RENDER_REQUIRE_FAILOVER=true` 时硬失败，
+   * 否则只告警（避免因为某个非主用 provider 暂时没配 key 而整体起不来）。
+   *
+   * @param candidates 候选序列
+   * @param autoFallbackId 自动补出来的备候选 id
+   */
+  private assertCandidateCredentials(candidates: readonly RenderCandidate[], autoFallbackId: string | null): void {
+    for (const candidate of candidates) {
+      const envKey = resolveProviderApiKeyEnvKey(candidate.id as AIProviderId);
+      if (this.text(envKey) !== undefined) continue;
+      const isAutoFallback = candidate.id === autoFallbackId;
+      const message = `候选 ${candidate.id} 缺少 apiKey: ${envKey} 未配置或为空`;
+      if (isAutoFallback) {
+        throw new Error(`渲染候选凭据校验失败（自动补的备候选必须可用）: ${message}`);
+      }
+      if (this.requireFailover()) {
+        throw new Error(`渲染候选凭据校验失败: ${message}`);
+      }
+      this.logger.warn(`[render] ${message}；该候选运行期会失败，按需补 key 或从候选链移除`);
+    }
   }
 
   /**
