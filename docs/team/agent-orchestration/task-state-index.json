@@ -4,10 +4,122 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1426,
+    "lastEventSeq": 1429,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-323",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T17:12:48.998Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始实现工具链与影子审计"
+        },
+        {
+          "at": "2026-11-22T17:12:56.487Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "工具链收口与真实语料分类器影子审计",
+      "type": "implementation",
+      "baselineRef": "3f12ae0834a28ac0dee1dac5a378e0dd4d7a4bb8",
+      "dependsOn": [
+        "AF-322"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T17:12:48.660Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "package.json",
+          ".github/workflows/ci.yml",
+          "scripts/orchestration/",
+          "scripts/ops/quality/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "docs/worklog/records/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs scripts/orchestration/__tests__/af322-classifier-shadow-audit.spec.mjs",
+          "check": "编排单测与审计统计单测全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "本地类型检查与 CI 同口径覆盖整个 tsconfig.json",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试通过",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链一致",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+          "check": "记录包哈希一致",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "package.json 的 typecheck 与 CI 完全相同地覆盖整个 tsconfig.json；保留 src 快检入口。",
+        "CI Typecheck 直接调用 pnpm typecheck，消除本地与远端命令漂移。",
+        "任务分支名构造拒绝 slug 内混入任务编号，含大小写、连字符与嵌入位置变体。",
+        "真实 trace 影子审计脚本可对指定场次抽样，输出 agreement、Jaccard、neutral 率、degraded 率与模型标识，且不输出任何对话原文。",
+        "审计统计纯函数有独立单测，缺场次与降级轮不会被静默吞掉。",
+        "对 8 场目标 trace 执行一次影子审计，报告给出真实数字、缺失场次与限制。",
+        "交付记录含六组机读锚点与临床边界；任务归档并通过受保护 PR 合入 integrate。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md",
+          "kind": "report"
+        },
+        {
+          "name": "真实语料影子审计报告",
+          "path": "docs/worklog/completed/phase2.5/af323-classifier-shadow-audit-2026-11-23.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T17:12:48.997Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

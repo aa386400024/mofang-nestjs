@@ -2010,6 +2010,16 @@ describe('AF-012 任务分支流程与治理', () => {
     expect(emptySlug.branchName).toBeNull();
   });
 
+  it('分支名构造：slug 混入任务编号一律拒绝（大小写 / 连字符 / 嵌入 / 多号）', () => {
+    for (const slug of ['af316-receipt', 'AF-317-receipt', 'fix-af322-alignment', 'af321-af322-merge', 'fooaf316']) {
+      const built = buildBranchName('AF-323', slug);
+      expect(built.valid).toBe(false);
+      expect(built.branchName).toBeNull();
+      expect(built.errors.join(' ')).toMatch('slug 不得包含任务编号');
+    }
+    expect(buildBranchName('AF-323', 'toolchain-shadow-audit').valid).toBe(true);
+  });
+
   it('分支名校验：前缀、taskId 包含、空任务段判定', () => {
     expect(validateBranchName('task/AF-012-x', 'AF-012').valid).toBe(true);
     expect(validateBranchName('feature/x', 'AF-012').valid).toBe(false);
