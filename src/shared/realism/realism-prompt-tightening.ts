@@ -5,7 +5,17 @@
 import { ABLATION_PERSONA_DEFS, getAblationPersona, type AblationPersona } from './realism-prompt-ablation.js';
 import { buildVisitorRealismProfile, buildVisitorRealismPromptBlock } from './visitor-realism-profile.js';
 
-export const TIGHTENING_ARMS = ['off', 'full', 'no-shape', 'no-event', 'no-quota', 'minimal', 'tightened'] as const;
+export const TIGHTENING_ARMS = [
+  'off',
+  'full',
+  'no-shape',
+  'no-event',
+  'no-quota',
+  'minimal',
+  'tightened',
+  'typed',
+  'typed-noshape',
+] as const;
 
 export type TighteningArm = (typeof TIGHTENING_ARMS)[number];
 
@@ -108,6 +118,61 @@ export function buildTightenedBlock(persona: AblationPersona): string {
 }
 
 /**
+ * 构造分型收紧候选块 (AF-338 归因结论).
+ *
+ * 语义:
+ *   · 焦虑: 保留形态层, 但禁用 repair、把配额压到单轮最多 1 处, 只允许 filler / pause;
+ *   · 回避: 保留形态层, 但把 pause 压到每两轮最多一次, 只允许 trailoff / pause.
+ *   · 其余行逐字保留; 这是候选, 不是生产块.
+ *
+ * @param persona 人设
+ * @returns 分型候选块; 生产块为空时返回空串
+ */
+export function buildTypedBlock(persona: AblationPersona): string {
+  const fullBlock = buildFullBlock(persona);
+  if (fullBlock.length === 0) return '';
+  const [header, ...lines] = fullBlock.split('\n');
+  if (findDirective(lines, QUOTA_PREFIX) === null) throw new Error(`生产块缺少 ${QUOTA_PREFIX}，无法构造分型候选`);
+  if (findDirective(lines, EVENT_PREFIX) === null) throw new Error(`生产块缺少 ${EVENT_PREFIX}，无法构造分型候选`);
+
+  const typed =
+    persona.id === 'anxious'
+      ? new Map<string, string>([
+          [QUOTA_PREFIX, '不流利配额：六类合计最多 2 处、单轮最多 1 处；只允许填充词或停顿，不要改口；没有自然发生就不加。'],
+          [EVENT_PREFIX, '事件层：这一轮最多一处填充词或停顿；不要改口、不要重复词、不要拖长音；前一轮用过就跳过。'],
+        ])
+      : new Map<string, string>([
+          [QUOTA_PREFIX, '不流利配额：六类合计最多 2 处、单轮最多 1 处；停顿最多每两轮一次；没有自然发生就不加。'],
+          [EVENT_PREFIX, '事件层：这一轮只在自然卡住时保留一处半截话或停顿；不要每轮都停顿，不要填充词、改口、重复词、拖长音。'],
+        ]);
+
+  return [
+    header,
+    ...lines.map((line) => {
+      const content = contentOf(line);
+      const hit = [...typed.entries()].find(([prefix]) => content.startsWith(prefix));
+      return hit === undefined ? line : `- ${hit[1]}`;
+    }),
+  ].join('\n');
+}
+
+/**
+ * 构造“分型 + 去形态”候选块.
+ *
+ * AF-339 实测发现: typed 保留形态层时, 焦虑的形态句本身强制改口、回避的形态句强制每轮停顿,
+ * 事件层禁令压不住. 本候选在 typed 基础上再删形态层, 验证是不是形态层在推高事件.
+ *
+ * @param persona 人设
+ * @returns 分型去形态候选块; 生产块为空时返回空串
+ */
+export function buildTypedNoShapeBlock(persona: AblationPersona): string {
+  const typedBlock = buildTypedBlock(persona);
+  if (typedBlock.length === 0) return '';
+  const [header, ...lines] = typedBlock.split('\n');
+  return [header, ...withoutPrefixes(lines, [SHAPE_PREFIX])].join('\n');
+}
+
+/**
  * 构造某分支的 prompt 块.
  *
  * @param persona 人设
@@ -116,6 +181,8 @@ export function buildTightenedBlock(persona: AblationPersona): string {
  */
 export function buildTighteningPromptBlock(persona: AblationPersona, arm: TighteningArm): string {
   if (arm === 'tightened') return buildTightenedBlock(persona);
+  if (arm === 'typed') return buildTypedBlock(persona);
+  if (arm === 'typed-noshape') return buildTypedNoShapeBlock(persona);
   return buildSubtractiveBlock(persona, arm);
 }
 

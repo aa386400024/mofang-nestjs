@@ -5,6 +5,8 @@ import {
   TIGHTENING_PERSONAS,
   buildSubtractiveBlock,
   buildTightenedBlock,
+  buildTypedBlock,
+  buildTypedNoShapeBlock,
   buildTighteningPromptBlock,
   buildTighteningSystemPrompt,
   getTighteningPersona,
@@ -26,8 +28,8 @@ function hasPrefix(block: string, prefix: string): boolean {
 }
 
 describe('realism-prompt-tightening', () => {
-  it('固定七个分支与两个人设', () => {
-    expect(TIGHTENING_ARMS).toEqual(['off', 'full', 'no-shape', 'no-event', 'no-quota', 'minimal', 'tightened']);
+  it('固定九个分支与两个人设', () => {
+    expect(TIGHTENING_ARMS).toEqual(['off', 'full', 'no-shape', 'no-event', 'no-quota', 'minimal', 'tightened', 'typed', 'typed-noshape']);
     expect(TIGHTENING_PERSONAS).toEqual(['anxious', 'guarded']);
   });
 
@@ -115,6 +117,46 @@ describe('realism-prompt-tightening', () => {
     expect(buildTightenedBlock(ANXIOUS)).toContain('说出口后改一次口');
     expect(buildTightenedBlock(GUARDED)).toContain('这个……我不太想说');
     expect(buildTightenedBlock(ANXIOUS)).not.toContain('这个……我不太想说');
+  });
+
+  it('分型候选与 full 行数一致, 只替换配额与事件两行', () => {
+    for (const persona of [ANXIOUS, GUARDED]) {
+      const fullLines = buildSubtractiveBlock(persona, 'full').split('\n');
+      const typed = buildTypedBlock(persona).split('\n');
+      expect(typed[0]).toBe(fullLines[0]);
+      expect(typed).toHaveLength(fullLines.length);
+      expect(typed.filter((line, index) => line !== fullLines[index])).toHaveLength(2);
+    }
+  });
+
+  it('焦虑分型候选禁用改口, 只留填充词与停顿', () => {
+    const block = buildTypedBlock(ANXIOUS);
+    expect(block).toContain('只允许填充词或停顿，不要改口');
+    expect(block).toContain('不要改口、不要重复词、不要拖长音');
+    expect(block).not.toContain('改口 1 处');
+  });
+
+  it('回避分型候选把停顿压到每两轮一次, 保留半截话', () => {
+    const block = buildTypedBlock(GUARDED);
+    expect(block).toContain('停顿最多每两轮一次');
+    expect(block).toContain('只在自然卡住时保留一处半截话或停顿');
+    expect(block).toContain('不要每轮都停顿');
+  });
+
+  it('分型去形态候选只比 typed 少形态一行', () => {
+    for (const persona of [ANXIOUS, GUARDED]) {
+      const typed = buildTypedBlock(persona).split('\n');
+      const noShape = buildTypedNoShapeBlock(persona).split('\n');
+      expect(noShape[0]).toBe(typed[0]);
+      expect(noShape).toHaveLength(typed.length - 1);
+      expect(noShape.some((line) => directiveText(line).startsWith('话轮形态层：'))).toBe(false);
+      expect(noShape).toEqual(typed.filter((line) => !directiveText(line).startsWith('话轮形态层：')));
+    }
+  });
+
+  it('分型去形态候选仍保留分型配额与事件限制', () => {
+    expect(buildTypedNoShapeBlock(ANXIOUS)).toContain('只允许填充词或停顿，不要改口');
+    expect(buildTypedNoShapeBlock(GUARDED)).toContain('停顿最多每两轮一次');
   });
 
   it('非 off 分支的 prompt 都以基础人设开头并空一行接块', () => {
