@@ -454,7 +454,10 @@ export class InMemoryEngineSession implements EngineSessionPort {
       turnIndex: runtime.turnIndex + 1,
       timingWeight: this.timingWeightConfig,
     });
-    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, runtime.allianceConfig);
+    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, runtime.allianceConfig, {
+      // AF-315: 探索时机按 1 起轮次判定；首轮最多建立接触，不进入深度探索。
+      turnNumber: runtime.turnIndex + 1,
+    });
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
     //    可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).

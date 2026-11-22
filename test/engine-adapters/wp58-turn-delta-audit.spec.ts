@@ -274,11 +274,11 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
     });
     await flush();
 
-    // 内核 DELTA_TABLE.empathy 的 11 维原值.
+    // 内核 DELTA_TABLE.empathy 的 11 维原值 (AF-315 校准).
     expect(repo.saved[0]?.rawDelta).toEqual({
       trust: 0.1,
-      safety: 0.02,
-      bond: 0.01,
+      safety: 0.06,
+      bond: 0.02,
       verbal: -0.03,
       depth: -0.02,
       style: -0.01,
@@ -329,8 +329,8 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
     //   审计**原样落库**, 不补造.
     const touch = row?.eventDetails.find((detail) => detail.kind === 'sensitive_touch');
     expect(touch?.matchedTerms).toEqual([]);
-    // delta = empathy + sensitive_touch 两份系数之和 (safety 0.02 + (-0.01) / arousal -0.02 + 0.15).
-    expect(row?.rawDelta.safety).toBeCloseTo(0.01, 10);
+    // delta = empathy + sensitive_touch 两份系数之和 (safety 0.06 + (-0.01) / arousal -0.02 + 0.15).
+    expect(row?.rawDelta.safety).toBeCloseTo(0.05, 10);
     expect(row?.rawDelta.arousal).toBeCloseTo(0.13, 10);
   });
 

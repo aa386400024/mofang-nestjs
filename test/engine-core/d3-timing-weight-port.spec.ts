@@ -87,10 +87,10 @@ describe('D-3 · 时序权重端口骨架 (内核)', () => {
       const base = createEmptyBdiSnapshot();
       const next = transitionState(base, [EMPATHY]);
 
-      // 旧模型的算术: 初始 trust 0.3 / safety 0.5 / bond 0 + 共情 (+0.10 / +0.02 / +0.01).
+      // 旧模型的算术: 初始 trust 0.3 / safety 0.5 / bond 0 + 共情 (+0.10 / +0.06 / +0.02).
       expect(next.trust).toBeCloseTo(0.4, 10);
-      expect(next.safety).toBeCloseTo(0.52, 10);
-      expect(next.bond).toBeCloseTo(0.01, 10);
+      expect(next.safety).toBeCloseTo(0.56, 10);
+      expect(next.bond).toBeCloseTo(0.02, 10);
     });
 
     it('固定事件序列 → 缺省快照与「显式 none」逐字相同 (整快照 toEqual)', () => {

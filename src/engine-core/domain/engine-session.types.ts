@@ -93,6 +93,12 @@ export interface OpenEngineSessionInput {
     readonly resistanceSafety?: number;
     /** 探索通道的深度阻抗上限 (S-1 端口化; 缺省由内核种子回落). */
     readonly openDepth?: number;
+    /** AF-315: 允许进入探索的最早轮次 (缺省 2). */
+    readonly explorationMinTurn?: number;
+    /** AF-315: 核心信念激活抑制门槛 (缺省 0.5). */
+    readonly coreActivationGate?: number;
+    /** AF-315: 核心信念激活时的安全前提 (缺省 0.75). */
+    readonly coreActivationSafetyGate?: number;
   };
 }
 

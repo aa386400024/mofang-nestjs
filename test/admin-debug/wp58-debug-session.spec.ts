@@ -150,6 +150,10 @@ function makeSnapshot(
     readonly verbal?: number;
     readonly depth?: number;
     readonly style?: number;
+    /** AF-315: 移情三态覆盖 (trace 可观测性断言用). */
+    readonly transference?: Partial<BdiSnapshot['transference']>;
+    /** AF-315: 核心信念激活覆盖 (trace 可观测性断言用). */
+    readonly coreBeliefActivation?: Readonly<Record<string, number>>;
   } = {},
 ): BdiSnapshot {
   const base = createEmptyBdiSnapshot();
@@ -158,6 +162,14 @@ function makeSnapshot(
     trust: overrides.trust ?? 0.5,
     safety: overrides.safety ?? 0.4,
     bond: overrides.bond ?? 0.1,
+    transference: {
+      ...base.transference,
+      ...overrides.transference,
+    },
+    coreBeliefActivation: {
+      ...base.coreBeliefActivation,
+      ...overrides.coreBeliefActivation,
+    },
     emotion: {
       ...base.emotion,
       valence: overrides.valence ?? 0.5,
@@ -526,10 +538,24 @@ describe('WP58 · 引擎调试面板', () => {
       expect(engine.turns[0]?.options).toEqual({ includePromptFull: true });
     });
 
-    it('BDI 快照含 safety / bond 三维 + 阻抗三维', async () => {
+    it('BDI 快照含 safety / bond 三维 + 阻抗三维 + AF-315 移情 / 信念激活', async () => {
       const { service, engine } = buildService();
       const created = await service.createSession(KNOWN_SLUG);
-      engine.queue.push(makeTurnResult(makeSnapshot({ trust: 0.55, safety: 0.45, bond: 0.2, verbal: 0.31, depth: 0.32, style: 0.33 }), 1));
+      engine.queue.push(
+        makeTurnResult(
+          makeSnapshot({
+            trust: 0.55,
+            safety: 0.45,
+            bond: 0.2,
+            verbal: 0.31,
+            depth: 0.32,
+            style: 0.33,
+            transference: { positive: 0.18, negative: 0.04, dependency: 0.02 },
+            coreBeliefActivation: { worthless: 0.62, unlovable: 0.21 },
+          }),
+          1,
+        ),
+      );
 
       const { trace } = await service.runTurn(created.sessionId, COUNSELOR_TEXT);
 
@@ -542,6 +568,30 @@ describe('WP58 · 引擎调试面板', () => {
       // 标量 resistance 口径 = 话量阻抗 (与 WP19-R 留痕同款).
       expect(trace.bdiSnapshot.resistance).toBe(0.31);
       expect(trace.bdiSnapshot.anxiousSecure).toBe('neutral');
+      // AF-315: 移情 / 信念激活不再被投影丢掉 —— trace 必须能直接看到决策输入.
+      expect(trace.bdiSnapshot.transference).toEqual({ positive: 0.18, negative: 0.04, dependency: 0.02 });
+      expect(trace.bdiSnapshot.coreBeliefActivation).toEqual({ worthless: 0.62, unlovable: 0.21 });
+      expect(trace.bdiSnapshot.coreBeliefActivationPeak).toBeCloseTo(0.62, 10);
+    });
+
+    it('非有限值降级为 0 / 不进入投影，trace 不吐 NaN / Infinity', async () => {
+      const { service, engine } = buildService();
+      const created = await service.createSession(KNOWN_SLUG);
+      engine.queue.push(
+        makeTurnResult(
+          makeSnapshot({
+            transference: { positive: Number.NaN, negative: Number.POSITIVE_INFINITY, dependency: Number.NEGATIVE_INFINITY },
+            coreBeliefActivation: { broken: Number.NaN, healthy: 0.4 },
+          }),
+          1,
+        ),
+      );
+
+      const { trace } = await service.runTurn(created.sessionId, COUNSELOR_TEXT);
+
+      expect(trace.bdiSnapshot.transference).toEqual({ positive: 0, negative: 0, dependency: 0 });
+      expect(trace.bdiSnapshot.coreBeliefActivation).toEqual({ healthy: 0.4 });
+      expect(trace.bdiSnapshot.coreBeliefActivationPeak).toBeCloseTo(0.4, 10);
     });
 
     it('delta = 前后快照差 (第 1 轮 null, 第 2 轮有值)', async () => {
@@ -549,7 +599,15 @@ describe('WP58 · 引擎调试面板', () => {
       const created = await service.createSession(KNOWN_SLUG);
       engine.queue.push(
         makeTurnResult(makeSnapshot({ trust: 0.5, safety: 0.4, bond: 0.1 }), 1),
-        makeTurnResult(makeSnapshot({ trust: 0.55, safety: 0.42, bond: 0.11 }), 2),
+        makeTurnResult(
+          makeSnapshot({
+            trust: 0.55,
+            safety: 0.42,
+            bond: 0.11,
+            transference: { positive: 0.04, negative: 0.01, dependency: 0.02 },
+          }),
+          2,
+        ),
       );
 
       const first = await service.runTurn(created.sessionId, COUNSELOR_TEXT);
@@ -560,8 +618,12 @@ describe('WP58 · 引擎调试面板', () => {
       expect(second.trace.delta?.trust).toBeCloseTo(0.05, 6);
       expect(second.trace.delta?.safety).toBeCloseTo(0.02, 6);
       expect(second.trace.delta?.bond).toBeCloseTo(0.01, 6);
-      // 前端投影: 8 维 + events (内核事件明细不对外 → 空数组).
+      expect(second.trace.delta?.positive).toBeCloseTo(0.04, 6);
+      expect(second.trace.delta?.negative).toBeCloseTo(0.01, 6);
+      expect(second.trace.delta?.dependency).toBeCloseTo(0.02, 6);
+      // 前端投影: 8 维 + 移情三维 + events (内核事件明细不对外 → 空数组).
       expect(second.trace.deltaDetail?.trust).toBeCloseTo(0.05, 6);
+      expect(second.trace.deltaDetail?.transference).toEqual({ positive: 0.04, negative: 0.01, dependency: 0.02 });
       expect(second.trace.deltaDetail?.events).toEqual([]);
     });
 

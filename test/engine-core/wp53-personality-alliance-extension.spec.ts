@@ -79,10 +79,10 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
 
       const safetyByStyle = STYLES.map((style) => safetyOf(base, style));
 
-      expect(safetyByStyle[0]).toBeCloseTo(0.02, 10); // secure   ×1.0
-      expect(safetyByStyle[1]).toBeCloseTo(0.01, 10); // avoidant ×0.5
-      expect(safetyByStyle[2]).toBeCloseTo(0.014, 10); // anxious  ×0.7
-      expect(safetyByStyle[3]).toBeCloseTo(0.012, 10); // disorganized ×0.6
+      expect(safetyByStyle[0]).toBeCloseTo(0.06, 10); // secure   ×1.0
+      expect(safetyByStyle[1]).toBeCloseTo(0.03, 10); // avoidant ×0.5
+      expect(safetyByStyle[2]).toBeCloseTo(0.042, 10); // anxious  ×0.7
+      expect(safetyByStyle[3]).toBeCloseTo(0.036, 10); // disorganized ×0.6
       expect(new Set(safetyByStyle.map((value) => value.toFixed(8))).size).toBe(4);
     });
 
@@ -107,10 +107,10 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
 
       const bondByStyle = STYLES.map((style) => bondOf(base, style));
 
-      expect(bondByStyle[0]).toBeCloseTo(0.01, 10); // secure   ×1.0
-      expect(bondByStyle[1]).toBeCloseTo(0.005, 10); // avoidant ×0.5
-      expect(bondByStyle[2]).toBeCloseTo(0.013, 10); // anxious  ×1.3
-      expect(bondByStyle[3]).toBeCloseTo(0.008, 10); // disorganized ×0.8
+      expect(bondByStyle[0]).toBeCloseTo(0.02, 10); // secure   ×1.0
+      expect(bondByStyle[1]).toBeCloseTo(0.01, 10); // avoidant ×0.5
+      expect(bondByStyle[2]).toBeCloseTo(0.026, 10); // anxious  ×1.3
+      expect(bondByStyle[3]).toBeCloseTo(0.016, 10); // disorganized ×0.8
       expect(new Set(bondByStyle.map((value) => value.toFixed(8))).size).toBe(4);
     });
 
@@ -174,8 +174,8 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
 
       // trust: 增益 ×0.6; safety / bond: 增益 ×0.5; 阻抗下降量 ÷ 1.3.
       expect(modulated.trust).toBeCloseTo(0.1 * 0.6, 10);
-      expect(modulated.safety).toBeCloseTo(0.02 * 0.5, 10);
-      expect(modulated.bond).toBeCloseTo(0.01 * 0.5, 10);
+      expect(modulated.safety).toBeCloseTo(0.06 * 0.5, 10);
+      expect(modulated.bond).toBeCloseTo(0.02 * 0.5, 10);
       expect(modulated.verbal).toBeCloseTo(-0.03 / 1.3, 10);
       expect(modulated.depth).toBeCloseTo(-0.02 / 1.3, 10);
       expect(modulated.style).toBeCloseTo(-0.01 / 1.3, 10);
@@ -194,8 +194,8 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const modulated = modulateDeltaByPersonality(base, { attachmentStyle: 'avoidant', config: custom });
 
       expect(modulated.trust).toBeCloseTo(0.1, 10); // trustScale 改了 → 不再是 0.6
-      expect(modulated.safety).toBeCloseTo(0.02 * 0.25, 10);
-      expect(modulated.bond).toBeCloseTo(0.01 * 2, 10);
+      expect(modulated.safety).toBeCloseTo(0.06 * 0.25, 10);
+      expect(modulated.bond).toBeCloseTo(0.02 * 2, 10);
       expect(modulated.verbal).toBeCloseTo(-0.03, 10); // resistanceScale = 1 → 不再除 1.3
     });
   });
@@ -220,14 +220,14 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       };
 
       const avoidant = modulateDeltaByPersonality(base, { attachmentStyle: 'avoidant', config: broken });
-      expect(avoidant.safety).toBeCloseTo(0.02 * 0.5, 10); // 回退种子 0.5
-      expect(avoidant.bond).toBeCloseTo(0.01 * 0.5, 10); // 回退种子 0.5
+      expect(avoidant.safety).toBeCloseTo(0.06 * 0.5, 10); // 回退种子 0.5
+      expect(avoidant.bond).toBeCloseTo(0.02 * 0.5, 10); // 回退种子 0.5
       expect(Number.isFinite(avoidant.safety)).toBe(true);
       expect(Number.isFinite(avoidant.bond)).toBe(true);
 
       const anxious = modulateDeltaByPersonality(base, { attachmentStyle: 'anxious', config: broken });
-      expect(anxious.safety).toBeCloseTo(0.02 * 0.7, 10); // 回退种子 0.7
-      expect(anxious.bond).toBeCloseTo(0.01 * 1.3, 10); // 回退种子 1.3
+      expect(anxious.safety).toBeCloseTo(0.06 * 0.7, 10); // 回退种子 0.7
+      expect(anxious.bond).toBeCloseTo(0.02 * 1.3, 10); // 回退种子 1.3
     });
 
     it('系数 0 是合法值 (该维度本轮完全不涨), 不当非法值回退', () => {
@@ -310,11 +310,11 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const base = aggregateTurnDelta([EMPATHY], alliance);
 
       expect(base.safety).toBeCloseTo(0.1, 10);
-      expect(base.bond).toBeCloseTo(0.01, 10); // 没覆写 → 基础值
+      expect(base.bond).toBeCloseTo(0.02, 10); // 没覆写 → AF-315 基础值
 
       const modulated = modulateDeltaByPersonality(base, { attachmentStyle: 'avoidant' });
       expect(modulated.safety).toBeCloseTo(0.05, 10);
-      expect(modulated.bond).toBeCloseTo(0.005, 10);
+      expect(modulated.bond).toBeCloseTo(0.01, 10);
     });
   });
 
@@ -334,10 +334,10 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
         observer: (report) => reports.push(report),
       });
 
-      // 0.02 × 100 = 2.0 → cap 上向 0.2 → 基线 0.5 + 0.2.
+      // 0.06 × 100 = 6.0 → cap 上向 0.2 → 基线 0.5 + 0.2.
       expect(next.safety).toBeCloseTo(0.7, 10);
       const safetyEntry = reports[0]?.entries.find((entry) => entry.dimension === 'safety');
-      expect(safetyEntry?.raw).toBeCloseTo(2, 10);
+      expect(safetyEntry?.raw).toBeCloseTo(6, 10);
       expect(safetyEntry?.capped).toBeCloseTo(0.2, 10);
     });
 
@@ -354,7 +354,7 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
         personality: { attachmentStyle: 'secure', config: amplified },
       });
 
-      // 0.01 × 100 = 1.0 → cap 上向 0.2 → 基线 0 + 0.2.
+      // 0.02 × 100 = 2.0 → cap 上向 0.2 → 基线 0 + 0.2.
       expect(next.bond).toBeCloseTo(0.2, 10);
     });
   });
@@ -392,9 +392,9 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
 
       const out = await session.turn(handleId, { userText: '听起来你现在一定很难受, 我能理解你' });
 
-      // safety: 0.5 + 0.02 × 0.5; bond: 0 + 0.01 × 0.5.
-      expect(out.snapshot.safety).toBeCloseTo(0.51, 10);
-      expect(out.snapshot.bond).toBeCloseTo(0.005, 10);
+      // safety: 0.5 + 0.06 × 0.5; bond: 0 + 0.02 × 0.5.
+      expect(out.snapshot.safety).toBeCloseTo(0.53, 10);
+      expect(out.snapshot.bond).toBeCloseTo(0.01, 10);
     });
 
     it('落库路径与内核 transitionState 路径逐字一致 (provisional 不漂)', async () => {
@@ -420,8 +420,8 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
 
       const out = await session.turn(handleId, { userText: '听起来你现在一定很难受, 我能理解你' });
 
-      expect(out.snapshot.safety).toBeCloseTo(0.52, 10);
-      expect(out.snapshot.bond).toBeCloseTo(0.01, 10);
+      expect(out.snapshot.safety).toBeCloseTo(0.56, 10);
+      expect(out.snapshot.bond).toBeCloseTo(0.02, 10);
     });
   });
 });

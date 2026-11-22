@@ -33,6 +33,18 @@
 //     同盟门槛不同构 (按角色 / 会话配不动). 本次把它并入端口字段
 //     `thresholds.openDepth` —— **种子值逐字不变**, 缺省路径的判定结果与改造前
 //     完全一致 (零行为变化); 只是让深度门槛从此可被同一条注入通道配置.
+//
+//   AF-315 (2026-11-22 · 决策敏感性与临床校准):
+//     8 场 20 轮调试 trace 显示：trust 能到 0.9，safety 却卡在 0.4，探索门槛
+//     `min(trust, safety) >= 0.6` 几乎不可达，策略长期锁死在 `recounting`。
+//     本轮把决策带宽扩到 BDI 的其余状态：
+//       ① 首轮禁止深度探索（`explorationMinTurn`，缺省 2）；
+//       ② 核心信念激活高且安全感不足时抑制探索（`coreActivationGate` /
+//          `coreActivationSafetyGate`）；
+//       ③ 负移情主导 → 抗拒；依赖移情高 → 请求；
+//       ④ 底层愿望 `avoid_pain` 压过 `understood` 时抑制探索，`understood` 高时
+//          小幅下调探索门槛。
+//     所有新输入都来自快照，不给规则轨引入随机或来访侧幻觉信号。
 
 import { resolveAllianceThresholds, type AllianceConfig } from './alliance-config.js';
 import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
@@ -48,40 +60,182 @@ const HIGH_VERBAL = 0.55;
 // 种子值逐字不变 (0.35), 缺省零行为变化.
 
 /**
- * 规划本轮意图. 阈值为集中常量, 便于后期调参.
- * @param snapshot 迁移后的最新快照
- * @param profile 角色内核 (仅取禁止行为透传)
- * @param alliance 同盟三维端口 (缺省 = 内核种子门槛)
+ * 决策信号快照 (AF-315).
+ *
+ * 把“从快照里读出哪些量、以及这些量之间的大小关系”集中在一处计算，
+ * 让 `planIntention` 只负责选策略 —— 否则单函数条件过多，规则难审、难测。
  */
-export function planIntention(snapshot: BdiSnapshot, profile?: CharacterProfile, alliance?: AllianceConfig): Intention {
+interface DecisionSignals {
+  readonly aggregate: number;
+  readonly allianceGate: number;
+  readonly allianceLow: boolean;
+  readonly turnNumber: number;
+  readonly turnTooEarly: boolean;
+  readonly activationPeak: number;
+  readonly activationBlocksExploration: boolean;
+  readonly negativeDominant: boolean;
+  readonly dependencyHigh: boolean;
+  readonly understoodWeight: number;
+  readonly avoidPainWeight: number;
+  readonly avoidanceDominant: boolean;
+  readonly explorationGate: number;
+  readonly situationalPriority: number;
+}
+
+/** 从快照与门槛推导本轮全部决策信号 (纯函数, 无随机). */
+function deriveDecisionSignals(
+  snapshot: BdiSnapshot,
+  thresholds: ReturnType<typeof resolveAllianceThresholds>,
+  turnNumber: number,
+): DecisionSignals {
   const { verbal, depth, style } = snapshot.resistance;
   const aggregate = (verbal + depth + style) / 3;
-  const thresholds = resolveAllianceThresholds(alliance);
   // WP42: 探索门槛取信任与安全感的**较小者** —— 短板决定能不能探索.
   const allianceGate = Math.min(snapshot.trust, snapshot.safety);
   // WP42: 抗拒触发 —— 信任或安全感任一塌到低位即算.
   const allianceLow = snapshot.trust < thresholds.resistanceTrust || snapshot.safety < thresholds.resistanceSafety;
+  const turnTooEarly = turnNumber < thresholds.explorationMinTurn;
+  // AF-315: 核心信念激活峰值 —— 只读快照，不新增来访侧信号。
+  const activationPeak = Object.values(snapshot.coreBeliefActivation).reduce((max, value) => Math.max(max, value), 0);
+  const activationBlocksExploration = activationPeak >= thresholds.coreActivationGate && allianceGate < thresholds.coreActivationSafetyGate;
+  // AF-315: 移情进入决策。负移情主导 = 对咨询师的不满 / 敌意投射已经压过好感。
+  const negativeDominant = snapshot.transference.negative >= 0.3 && snapshot.transference.negative >= snapshot.transference.positive + 0.1;
+  const dependencyHigh = snapshot.transference.dependency >= 0.4;
+  // AF-315: 愿望层。`avoid_pain` 明显压过“被理解”时，先保护自己，不往深处走。
+  const understoodWeight = Math.max(
+    snapshot.underlyingDesires.find((desire) => desire.key === 'understood')?.currentWeight ?? 0,
+    snapshot.underlyingDesires.find((desire) => desire.key === 'accepted')?.currentWeight ?? 0,
+  );
+  const avoidPainWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'avoid_pain')?.currentWeight ?? 0;
+  const avoidanceDominant = avoidPainWeight - understoodWeight > 0.1;
+  // AF-315: `understood` 高时略微下调探索门槛；幅度很小，避免覆盖同盟短板。
+  const explorationGate = Math.max(0, thresholds.open - (understoodWeight >= 0.65 ? 0.03 : 0));
+  // AF-315: 情境愿望有明确高优先级诉求时，先回应具体请求 (规则轨不解析文本)。
+  const situationalPriority = snapshot.situationalDesires
+    .filter((desire) => desire.active)
+    .reduce((max, desire) => Math.max(max, desire.priority), 0);
+  return {
+    aggregate,
+    allianceGate,
+    allianceLow,
+    turnNumber,
+    turnTooEarly,
+    activationPeak,
+    activationBlocksExploration,
+    negativeDominant,
+    dependencyHigh,
+    understoodWeight,
+    avoidPainWeight,
+    avoidanceDominant,
+    explorationGate,
+    situationalPriority,
+  };
+}
 
-  let strategy: BehaviorStrategy = 'recounting';
-  let rationale = '默认叙述事实, 尚未进入探索';
+/** 按优先级选策略与解释 (纯函数, 无副作用). */
+function selectStrategy(
+  snapshot: BdiSnapshot,
+  signals: DecisionSignals,
+  thresholds: ReturnType<typeof resolveAllianceThresholds>,
+): { strategy: BehaviorStrategy; rationale: string } {
+  const { verbal, depth } = snapshot.resistance;
+  const {
+    aggregate,
+    allianceGate,
+    allianceLow,
+    turnNumber,
+    turnTooEarly,
+    activationPeak,
+    activationBlocksExploration,
+    negativeDominant,
+    dependencyHigh,
+    understoodWeight,
+    avoidPainWeight,
+    avoidanceDominant,
+    explorationGate,
+    situationalPriority,
+  } = signals;
 
   if (aggregate >= HIGH_RESISTANCE_AGG && allianceLow) {
-    strategy = 'resistance';
-    rationale = `整体防御强(agg=${aggregate.toFixed(2)})且信任/安全感偏低(trust=${snapshot.trust.toFixed(2)}, safety=${snapshot.safety.toFixed(2)}), 倾向抗拒`;
-  } else if (verbal >= HIGH_VERBAL) {
-    strategy = 'simple_response';
-    rationale = `话量阻抗高(${verbal.toFixed(2)}), 倾向简短回应`;
-  } else if (allianceGate >= thresholds.open && depth < thresholds.openDepth) {
-    strategy = snapshot.emotion.valence < 0 ? 'affective_exploration' : 'cognitive_exploration';
-    rationale = `信任与安全感均达探索门槛(min=${allianceGate.toFixed(2)}, trust=${snapshot.trust.toFixed(2)}, safety=${snapshot.safety.toFixed(2)})且深度阻抗低(${depth.toFixed(2)}), 进入探索`;
+    return {
+      strategy: 'resistance',
+      rationale: `整体防御强(agg=${aggregate.toFixed(2)})且信任/安全感偏低(trust=${snapshot.trust.toFixed(2)}, safety=${snapshot.safety.toFixed(2)}), 倾向抗拒`,
+    };
   }
+  if (negativeDominant) {
+    return {
+      strategy: 'resistance',
+      rationale: `负移情主导(negative=${snapshot.transference.negative.toFixed(2)}, positive=${snapshot.transference.positive.toFixed(2)}), 对咨询师的不满先以抗拒表达`,
+    };
+  }
+  if (verbal >= HIGH_VERBAL) {
+    return { strategy: 'simple_response', rationale: `话量阻抗高(${verbal.toFixed(2)}), 倾向简短回应` };
+  }
+  if (dependencyHigh && turnNumber >= thresholds.explorationMinTurn) {
+    return {
+      strategy: 'request',
+      rationale: `依赖移情高(dependency=${snapshot.transference.dependency.toFixed(2)}), 先回应具体请求而不是继续探索`,
+    };
+  }
+  if (situationalPriority >= 0.7) {
+    return { strategy: 'request', rationale: `情境愿望优先级高(${situationalPriority.toFixed(2)}), 先回应来访本轮具体诉求` };
+  }
+  if (
+    allianceGate >= explorationGate &&
+    depth < thresholds.openDepth &&
+    !turnTooEarly &&
+    !activationBlocksExploration &&
+    !avoidanceDominant
+  ) {
+    return {
+      strategy: snapshot.emotion.valence < 0 ? 'affective_exploration' : 'cognitive_exploration',
+      rationale: `信任与安全感均达探索门槛(min=${allianceGate.toFixed(2)}, gate=${explorationGate.toFixed(2)}, trust=${snapshot.trust.toFixed(2)}, safety=${snapshot.safety.toFixed(2)})且深度阻抗低(${depth.toFixed(2)}), 进入探索`,
+    };
+  }
+  if (activationBlocksExploration) {
+    return {
+      strategy: 'recounting',
+      rationale: `核心信念激活高(peak=${activationPeak.toFixed(2)})且安全感不足(safety=${snapshot.safety.toFixed(2)}), 先承接痛处, 暂不探索`,
+    };
+  }
+  if (turnTooEarly && allianceGate >= explorationGate) {
+    return { strategy: 'recounting', rationale: `第 ${turnNumber} 轮仍处于建立接触阶段, 暂不进入深度探索` };
+  }
+  if (avoidanceDominant) {
+    return {
+      strategy: 'recounting',
+      rationale: `回避痛苦(${avoidPainWeight.toFixed(2)})压过被理解(${understoodWeight.toFixed(2)}), 先维持安全叙述, 不向痛处推进`,
+    };
+  }
+  return { strategy: 'recounting', rationale: '默认叙述事实, 尚未进入探索' };
+}
+
+/**
+ * 规划本轮意图. 阈值为集中常量, 便于后期调参.
+ * @param snapshot 迁移后的最新快照
+ * @param profile 角色内核 (仅取禁止行为透传)
+ * @param alliance 同盟三维端口 (缺省 = 内核种子门槛)
+ * @param context 轮次上下文 (AF-315; 缺省 = 不启用首轮抑制, 保持直接调用方的旧行为)
+ */
+export function planIntention(
+  snapshot: BdiSnapshot,
+  profile?: CharacterProfile,
+  alliance?: AllianceConfig,
+  context?: { readonly turnNumber?: number },
+): Intention {
+  const thresholds = resolveAllianceThresholds(alliance);
+  // AF-315: 轮次门槛. 缺省用 +∞ = 不做首轮抑制，保持既有直接调用方的行为；
+  //   引擎会话会显式传 1 起轮次号。
+  const turnNumber = context?.turnNumber ?? Number.POSITIVE_INFINITY;
+  const signals = deriveDecisionSignals(snapshot, thresholds, turnNumber);
+  const selected = selectStrategy(snapshot, signals, thresholds);
 
   return {
-    strategy,
+    strategy: selected.strategy,
     emotion: snapshot.emotion,
     resistance: snapshot.resistance,
     transference: snapshot.transference,
     forbiddenBehaviors: profile?.forbiddenBehaviors ?? [],
-    rationale,
+    rationale: selected.rationale,
   };
 }
