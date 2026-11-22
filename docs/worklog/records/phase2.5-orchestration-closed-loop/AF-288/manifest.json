@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-288",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T16:15:00+08:00",
+  "updatedAt": "2026-11-22T08:11:46.741Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/task-sheet.md",
+    "sha256": "0e9ba60d211810bf77f32540806d5c6bef878ec2c22a3bd6275f8addd9ed7727",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/receipt-RC-AF-288-1.json",
+      "sha256": "fda307d282b56fe38fbf6b625fecbacf632ec437f9b8794bddf81488ca56008f",
+      "receiptId": "RC-AF-288-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-288-doubao-long-soak-concurrency.md"
+  ],
+  "tombstone": null
+}

@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1306,
+    "lastEventSeq": 1308,
     "rebuiltAt": null
   },
   "tasks": [
@@ -136,93 +136,6 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
-    },
-    {
-      "taskId": "AF-288",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T08:08:19.952Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "人工提级"
-        },
-        {
-          "at": "2026-11-22T08:08:37.252Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "豆包主候选 20 轮长对练 soak 与 8 路并发真实 smoke",
-      "type": "verification",
-      "baselineRef": "c932e9d14f98a8e1300cf69279926f7378303766",
-      "dependsOn": [
-        "AF-285",
-        "AF-286",
-        "AF-287"
-      ],
-      "priorTasks": [
-        "AF-268",
-        "AF-278",
-        "AF-283",
-        "AF-285",
-        "AF-286",
-        "AF-287"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T08:08:19.582Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
-          "check": "主候选仍为豆包",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 20",
-          "check": "20 轮串行长对练全成功、无 fallback/degraded",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --concurrency 8 --turns 1",
-          "check": "8 路并发单轮全成功、无 fallback/degraded",
-          "threshold": "exit=0"
-        }
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "长对练与并发 smoke 交付记录",
-          "path": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-22T08:08:19.951Z"
     }
   ],
   "archivedTasks": [
@@ -2782,6 +2695,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-287/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af287-candidate-cooldown-attribution-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-288",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md",
         "reply": null
       }
     }
