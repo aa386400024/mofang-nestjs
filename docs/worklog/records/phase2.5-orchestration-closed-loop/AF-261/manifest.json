@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-261",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T09:10:00+08:00",
-  "updatedAt": "2026-11-22T01:01:34.949Z",
+  "updatedAt": "2026-11-22T01:10:55.007Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/task-sheet.md",
     "sha256": "facf3ba1fe8fc4c3693d192525a6e4de3a43bf2ee38208d19b41131645eeda7f",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/receipt-RC-AF-261-1.json",
+      "sha256": "ccf9f8dc8acffb363ff522ff22e81195fa987422200039d9254dd2ee12dd87de",
+      "receiptId": "RC-AF-261-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af261-provider-cost-breakdown-task-2026-11-22.md"
