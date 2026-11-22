@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-331",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T03:45:00+08:00",
+  "updatedAt": "2026-11-22T19:34:18.522Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-331/task-sheet.md",
+    "sha256": "f63a97532312515cc1a06d56464afbeed2be9bcb9c3e908ada1fe94e20df1fe0",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af331-realism-prompt-tightening-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af331-realism-prompt-tightening-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
