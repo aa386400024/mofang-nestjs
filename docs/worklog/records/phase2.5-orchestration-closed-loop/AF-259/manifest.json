@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-259",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T08:40:00+08:00",
-  "updatedAt": "2026-11-22T00:35:56.543Z",
+  "updatedAt": "2026-11-22T00:44:26.346Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md",
     "sha256": "a6cede88f76cbb996b5c16b396833572bc461d89e562b9599dc858f6e452e63d",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/receipt-RC-AF-259-1.json",
+      "sha256": "db01319a6fcfc2e900ba43fbbe13b5f2f2d66be411d50f57a8b94badfcd7e97a",
+      "receiptId": "RC-AF-259-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af259-render-router-doubao-smoke-task-2026-11-22.md"

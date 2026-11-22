@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T00:36:04.086Z",
+  "generatedAt": "2026-11-22T00:44:26.410Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,46 +99,6 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-259",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "引擎渲染生产 RouterChatCaller 豆包 smoke",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-259",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T00:36:04.018Z",
-        "leaseDeadline": "2026-11-22T01:06:04.013Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-259.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T00:36:04.018Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-259.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1914,6 +1874,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-412",
+      "recordedAt": "2026-11-22T00:36:07.780Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-259",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-259-render-router-doubao-smoke"
+      ]
+    },
+    {
+      "auditId": "AUD-411",
+      "recordedAt": "2026-11-22T00:36:04.184Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-259",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-259",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-259.json"
+      ]
+    },
+    {
       "auditId": "AUD-410",
       "recordedAt": "2026-11-22T00:35:57.082Z",
       "actorRef": "orchestrator",
@@ -2117,52 +2107,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-397",
-      "recordedAt": "2026-11-22T00:05:00.068Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-254",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-396",
-      "recordedAt": "2026-11-21T23:46:15.523Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-253",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-253",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-253.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 410,
+    "total": 412,
     "byResult": {
-      "allowed": 410,
+      "allowed": 412,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 409,
+      "TOOL-QUEUE-SCHEDULER": 411,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 410
+      "orchestrator": 412
     }
   },
   "protocolView": {
@@ -2217,32 +2175,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-259",
-        "title": "引擎渲染生产 RouterChatCaller 豆包 smoke",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-258"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md"
           }
         ]
       }
@@ -6727,6 +6659,24 @@
             "ref": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-259",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6761,16 +6711,6 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-259",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md"
-      },
-      {
-        "taskId": "AF-259",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6784,5 +6724,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 260
+  "archivedCount": 261
 }
