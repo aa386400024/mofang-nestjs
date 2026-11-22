@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-338",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T05:22:00+08:00",
+  "updatedAt": "2026-11-22T21:19:33.141Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-338/task-sheet.md",
+    "sha256": "d007f90f1d33c913c9d19c37292c2a793773b3727ee06319f27dfdc158b8eb00",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af338-realism-event-type-attribution-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af338-realism-event-type-attribution.md"
+  ],
+  "tombstone": null
+}
