@@ -15,6 +15,7 @@ export const TIGHTENING_ARMS = [
   'tightened',
   'typed',
   'typed-noshape',
+  'shape-capped',
 ] as const;
 
 export type TighteningArm = (typeof TIGHTENING_ARMS)[number];
@@ -173,6 +174,28 @@ export function buildTypedNoShapeBlock(persona: AblationPersona): string {
 }
 
 /**
+ * 构造“只压形态层”候选块.
+ *
+ * AF-339 证明形态层是每轮事件的主驱动. 本候选只把形态层从“每轮执行”改成
+ * “整场最多三次、本轮最多一次”, 配额层与事件层逐字保留, 用于隔离形态层限次的效果.
+ *
+ * @param persona 人设
+ * @returns 形态限次候选块; 生产块为空时返回空串
+ */
+export function buildShapeCappedBlock(persona: AblationPersona): string {
+  const fullBlock = buildFullBlock(persona);
+  if (fullBlock.length === 0) return '';
+  const [header, ...lines] = fullBlock.split('\n');
+  const shapeLine = findDirective(lines, SHAPE_PREFIX);
+  if (shapeLine === null) throw new Error(`生产块缺少 ${SHAPE_PREFIX}，无法构造形态限次候选`);
+  const shapeText = contentOf(shapeLine).slice(SHAPE_PREFIX.length);
+  const replacement =
+    `话轮形态层：整场最多三次、本轮最多一次；只有角色自然走到「${shapeText}」时才用；` + '前一轮已经用过就跳过，不得每轮都改口或停顿。';
+
+  return [header, ...lines.map((line) => (contentOf(line).startsWith(SHAPE_PREFIX) ? `- ${replacement}` : line))].join('\n');
+}
+
+/**
  * 构造某分支的 prompt 块.
  *
  * @param persona 人设
@@ -183,6 +206,7 @@ export function buildTighteningPromptBlock(persona: AblationPersona, arm: Tighte
   if (arm === 'tightened') return buildTightenedBlock(persona);
   if (arm === 'typed') return buildTypedBlock(persona);
   if (arm === 'typed-noshape') return buildTypedNoShapeBlock(persona);
+  if (arm === 'shape-capped') return buildShapeCappedBlock(persona);
   return buildSubtractiveBlock(persona, arm);
 }
 

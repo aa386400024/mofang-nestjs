@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-340",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T05:50:00+08:00",
+  "updatedAt": "2026-11-22T21:48:19.117Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-340/task-sheet.md",
+    "sha256": "158be2114a70bd8817893a2701d32be6a5d16b8fe1682360a98d9d93ba3b4d37",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af340-realism-shape-capped-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af340-realism-shape-capped.md"
+  ],
+  "tombstone": null
+}
