@@ -88,8 +88,8 @@
         "warnings": 0,
         "specFiles": 282,
         "machine": "同上",
-        "wallClock": "23.96s",
-        "note": "282 files passed + 1 skipped；4387 tests passed + 8 skipped"
+        "wallClock": "25.04s",
+        "note": "合入最新 integrate 后复跑：283 files passed + 1 skipped；4399 tests passed + 4 skipped"
       },
       {
         "command": "git diff --stat HEAD -- src/engine-core",
