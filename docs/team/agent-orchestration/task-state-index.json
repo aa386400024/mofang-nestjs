@@ -4,10 +4,94 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1345,
+    "lastEventSeq": 1348,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-297",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T10:12:13.138Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-22T10:12:53.425Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "渲染轮次结局恰好一次（异常逃逸兜底）",
+      "type": "fix",
+      "baselineRef": "16f8707204dbf25fc733d30254c4237325696336",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-292",
+        "AF-296"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T10:12:12.756Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/engine-adapters/rendering/llm-render.adapter.ts",
+          "test/engine-adapters/af292-render-round-outcome.spec.ts",
+          "docs/worklog/completed/phase2.5/af297-render-round-exactly-once-2026-11-22.md",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-297/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-297/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af297-render-round-exactly-once-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/engine-adapters/af292-render-round-outcome.spec.ts",
+          "check": "轮次结局恰好一次与异常兜底",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "TypeScript 全量类型检查",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "render() / streamRender() 顶层有 try/catch 兜底，异常逃逸时返回兜底话术而不是 reject。",
+        "异常兜底同样记 rounds{degrade}，且一次调用恰好一次，不因嵌套 render/streamViaAggregate 重复。",
+        "成功/降级/取消/guard/exhausted 的既有上报次数不变。",
+        "buildMessages 抛错、streamViaAggregate 抛错两条入口各有一条测试证明只记一次。",
+        "不改 engine-core、不改指标名、不碰告警阈值。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "AF-297 交付记录",
+          "path": "docs/worklog/completed/phase2.5/af297-render-round-exactly-once-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-22T10:12:13.137Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
