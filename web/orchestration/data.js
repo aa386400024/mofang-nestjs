@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T11:24:21.822Z",
+  "generatedAt": "2026-11-22T11:44:18.314Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-527",
+      "recordedAt": "2026-11-22T11:33:13.803Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-302",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-302",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-302.json"
+      ]
+    },
+    {
+      "auditId": "AUD-526",
+      "recordedAt": "2026-11-22T11:32:40.151Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-302",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-525",
       "recordedAt": "2026-11-22T11:06:37.735Z",
       "actorRef": "orchestrator",
@@ -1988,52 +2020,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-296.json"
       ]
-    },
-    {
-      "auditId": "AUD-512",
-      "recordedAt": "2026-11-22T10:00:36.457Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-296",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-511",
-      "recordedAt": "2026-11-22T09:49:12.257Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-295",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-295",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-295.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 525,
+    "total": 527,
     "byResult": {
-      "allowed": 525,
+      "allowed": 527,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 524,
+      "TOOL-QUEUE-SCHEDULER": 526,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 525
+      "orchestrator": 527
     }
   },
   "protocolView": {
@@ -7275,6 +7275,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-302",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-302/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af302-render-acceptance-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7299,5 +7317,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 302
+  "archivedCount": 303
 };
