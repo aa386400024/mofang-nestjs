@@ -140,32 +140,7 @@ const crisisOutcomeLabel = computed(() => {
 })
 
 /** 结束原因的展示文案（自然收尾 / 轮数上限 / 危机 / 停滞 / 异常）. */
-const endReasonLabel = computed(() => {
-  switch (exitReason.value) {
-    case 'natural_close':
-      return '咨询师自然收尾'
-    case 'max_turns':
-      return '达到轮数上限'
-    case 'crisis':
-      return '触发危机保护'
-    case 'crisis_practice_max':
-      return '危机稳定化练习完成'
-    case 'crisis_practice_close':
-      return '危机稳定化后收尾'
-    case 'crisis_escalated':
-      return '危机升级终止'
-    case 'crisis_safety_incomplete':
-      return '危机收束缺项'
-    case 'stagnant':
-      return '对话停滞'
-    case 'interrupted':
-      return '进程重启中断'
-    case 'error':
-      return '异常结束'
-    default:
-      return sessionStatus.value || '已结束'
-  }
-})
+const endReasonLabel = computed(() => exitReasonText(exitReason.value, sessionStatus.value || '已结束'))
 // BDI 状态历史（每轮记录一次，供右侧面板画曲线）
 const bdiHistory = ref<BdiSnapshotPoint[]>([])
 // 当前轮的 trace（右侧面板展示用）
@@ -217,6 +192,120 @@ function encounterLabel(s: PracticeSession): string {
   if (s.encounterMode !== 'online') return '面对面'
   const channel = s.encounterChannel === 'video' ? '视频' : s.encounterChannel === 'text' ? '文字' : '语音'
   return `线上${channel}`
+}
+
+/** AF-314: 常见模型 id 的紧凑展示名；未知模型回退完整 id，不隐藏真实标识。 */
+const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  'doubao-seed-character-260628': '豆包 Seed Character',
+  'MiniMax-M3': 'MiniMax M3',
+  'MiniMax-M3.1-Flash': 'MiniMax M3.1 Flash',
+  'deepseek-chat': 'DeepSeek Chat',
+  'qwen-plus': 'Qwen Plus',
+}
+
+function modelShortName(model: string | null | undefined): string {
+  if (!model) return '未记录'
+  return MODEL_DISPLAY_NAMES[model] ?? model
+}
+
+/** AF-314: 退出原因人读标签；卡片与详情共用同一映射。 */
+function exitReasonText(reason: string | null | undefined, fallback = '未记录'): string {
+  switch (reason) {
+    case 'natural_close':
+      return '咨询师自然收尾'
+    case 'max_turns':
+      return '达到轮数上限'
+    case 'crisis':
+      return '触发危机保护'
+    case 'crisis_practice_max':
+      return '危机稳定化练习完成'
+    case 'crisis_practice_close':
+      return '危机稳定化后收尾'
+    case 'crisis_escalated':
+      return '危机升级终止'
+    case 'crisis_safety_incomplete':
+      return '危机收束缺项'
+    case 'stagnant':
+      return '对话停滞'
+    case 'interrupted':
+      return '进程重启中断'
+    case 'error':
+      return '异常结束'
+    default:
+      return reason || fallback
+  }
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+/** AF-314: 场次时间紧凑展示（当年省略年份，悬浮提示给完整时间）。 */
+function formatPracticeTime(iso: string | null | undefined): string {
+  if (!iso) return '时间未记录'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '时间未记录'
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  return `${sameYear ? '' : `${d.getFullYear()}-`}${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+function formatDurationSeconds(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds))
+  if (seconds < 60) return `${seconds}秒`
+  const minutes = Math.floor(seconds / 60)
+  const restSeconds = seconds % 60
+  if (minutes < 60) return restSeconds > 0 ? `${minutes}分${restSeconds}秒` : `${minutes}分`
+  const hours = Math.floor(minutes / 60)
+  const restMinutes = minutes % 60
+  return restMinutes > 0 ? `${hours}时${restMinutes}分` : `${hours}时`
+}
+
+/** AF-314: 对练时长；运行中按当前时刻实时计算，不伪造 finishedAt. */
+function practiceDurationText(s: PracticeSession): string {
+  const start = new Date(s.startedAt).getTime()
+  if (Number.isNaN(start)) return '时长未记录'
+  if (s.finishedAt) {
+    const finish = new Date(s.finishedAt).getTime()
+    if (Number.isNaN(finish)) return '时长未记录'
+    return formatDurationSeconds((finish - start) / 1000)
+  }
+  if (s.status === 'running') return `进行中 ${formatDurationSeconds((Date.now() - start) / 1000)}`
+  return '时长未记录'
+}
+
+function practiceCostText(s: PracticeSession): string | null {
+  if (s.totalCost === null || s.totalCost === undefined) return null
+  const cost = Number(s.totalCost)
+  if (!Number.isFinite(cost)) return null
+  return `¥${cost.toFixed(4).replace(/\.?0+$/, '')}`
+}
+
+/** AF-314: 卡片模型摘要；历史行分列缺失时回退引擎指纹模型并明示语义。 */
+function practiceModelSummary(s: PracticeSession): string {
+  const visitor = s.visitorModel ? `来访 ${modelShortName(s.visitorModel)}` : ''
+  const counselor = s.counselorModel ? `咨询 ${modelShortName(s.counselorModel)}` : ''
+  if (visitor && counselor) return `${visitor} · ${counselor}`
+  if (visitor) return visitor
+  if (counselor) return counselor
+  if (s.modelVersion) return `引擎 ${modelShortName(s.modelVersion)}`
+  return '未记录'
+}
+
+/** AF-314: 悬浮提示给完整 ID 与辅助排障字段，卡片本身保持紧凑。 */
+function practiceSessionTooltip(s: PracticeSession): string {
+  const finish = s.finishedAt ? ` ~ ${formatPracticeTime(s.finishedAt)}` : ''
+  const cost = practiceCostText(s)
+  const lines = [
+    `对练时间：${formatPracticeTime(s.startedAt)}${finish}`,
+    `退出原因：${exitReasonText(s.exitReason)}`,
+    `来访者模型：${s.visitorModel ?? '未记录'}${s.visitorModelProvider ? `（${s.visitorModelProvider}）` : ''}`,
+    `咨询师模型：${s.counselorModel ?? '未记录'}`,
+    `引擎模型：${s.modelVersion ?? '未记录'}`,
+    `成本：${cost ?? '未记录'}`,
+  ]
+  if (s.batchId) lines.push(`批次：${s.batchId}`)
+  if (s.seedValue) lines.push(`种子：${s.seedValue}`)
+  return lines.join('\n')
 }
 
 // 根据 slug 查角色名称（codename）
@@ -1102,6 +1191,27 @@ onUnmounted(() => {
                         {{ s.crisisOutcome === 'safety_plan_completed' ? '安全计划已完成' : s.crisisOutcome === 'escalated' ? '已升级求助' : '安全计划未完成' }}
                       </span>
                     </template>
+                  </div>
+                  <!-- AF-314: 对练时间 / 时长 / 成本，悬浮提示给完整时间与排障字段 -->
+                  <div
+                    class="text-[11px] text-muted/90 mt-0.5 flex items-center gap-1.5 min-w-0"
+                    :title="practiceSessionTooltip(s)"
+                  >
+                    <span class="flex-shrink-0">对练 {{ formatPracticeTime(s.startedAt) }}</span>
+                    <span>·</span>
+                    <span class="truncate">{{ practiceDurationText(s) }}</span>
+                    <template v-if="practiceCostText(s)">
+                      <span>·</span>
+                      <span class="truncate">{{ practiceCostText(s) }}</span>
+                    </template>
+                  </div>
+                  <!-- AF-314: 来访者/咨询师模型，完整 ID 在悬浮提示里 -->
+                  <div
+                    class="text-[11px] text-muted/90 mt-0.5 flex items-center gap-1.5 min-w-0"
+                    :title="practiceSessionTooltip(s)"
+                  >
+                    <span class="flex-shrink-0">模型</span>
+                    <span class="truncate">{{ practiceModelSummary(s) }}</span>
                   </div>
                 </div>
 

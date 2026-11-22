@@ -482,6 +482,10 @@ export interface PracticeSession {
   exitReason: string | null
   batchId: string | null
   modelVersion: string | null
+  // AF-314: 模型可观测分列。历史场次为 NULL，展示层回退 modelVersion。
+  visitorModelProvider?: string | null
+  visitorModel?: string | null
+  counselorModel?: string | null
   seedValue: string | null
   totalCost: number | null
   errorMessage: string | null

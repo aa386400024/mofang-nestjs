@@ -157,6 +157,48 @@ describe('PracticeRunnerService', () => {
     expect(engine.close).toHaveBeenCalledWith('ds_test');
   });
 
+  // AF-314: 会话启动时把「来访者渲染主候选 + 咨询师模型」分列落库.
+  //   为什么必须分列: modelVersion 是全局指纹模型，灰度切豆包后与会话真实来访者模型不同.
+  it('启动场次时落库来访者模型与咨询师模型', async () => {
+    interface ModelColumns {
+      visitorModelProvider?: string | null;
+      visitorModel?: string | null;
+      counselorModel?: string | null;
+    }
+    engine.turn.mockResolvedValueOnce(makeTurn(1, '来访说第一句'));
+    Object.assign(counselor, { modelId: 'MiniMax-M3' });
+    const modelAwareRunner = new PracticeRunnerService(
+      engine as unknown as TurnEnginePort,
+      counselor as never,
+      {
+        build: vi.fn(async () => ({
+          model: 'MiniMax-M3',
+          characterSlug: 'vpt_test',
+          characterVersion: '1.0.0',
+          counselorModeId: 'expert',
+          deliberationMode: 'rule_only',
+          scenarioType: 'full_simulation',
+          engineVersion: 'test',
+          promptVersion: 'test',
+          sessionSeed: 'single/test',
+        })),
+      } as never,
+      repo as never,
+      undefined,
+      undefined,
+      undefined,
+      { primaryVisitorRoute: () => ({ provider: 'doubao', model: 'doubao-seed-character-260628' }) } as never,
+    );
+
+    await modelAwareRunner.run({ characterSlug: 'vpt_test', counselorMode: makeMode(), maxTurns: 1 });
+
+    const runningRow = repo.created.find((row) => (row as { status?: string }).status === 'running') as ModelColumns | undefined;
+    expect(runningRow).toBeDefined();
+    expect(runningRow?.visitorModelProvider).toBe('doubao');
+    expect(runningRow?.visitorModel).toBe('doubao-seed-character-260628');
+    expect(runningRow?.counselorModel).toBe('MiniMax-M3');
+  });
+
   // ── WP-J 改动 B: 危机后置练习窗 ────────────────────────────────────────────
   //   旧行为 (crisisDetected → 立刻 crisis_ended) 已废除: 它把"危机"当"会话中断",
   //   24 场里 3 场停在来访者刚说出危机那一句, 咨询师一个字都没回.

@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T14:00:02.015Z",
+  "generatedAt": "2026-11-22T14:24:50.608Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,48 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-314",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "自动对练场次卡片展示对练时间与来访者/咨询师模型",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-314",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T14:24:50.536Z",
+        "leaseDeadline": "2026-11-22T14:54:50.533Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-314.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T14:24:50.536Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-314.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1785,6 +1826,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-025",
+      "recordedAt": "2026-11-22T14:24:16.409Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-314",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-024",
       "recordedAt": "2026-11-22T12:50:43.230Z",
       "actorRef": "orchestrator",
@@ -2006,40 +2064,50 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-010",
-      "recordedAt": "2026-11-22T09:32:42.504Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-294",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-294",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-294.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 24,
+    "total": 25,
     "byResult": {
-      "allowed": 24,
+      "allowed": 25,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 23,
+      "TOOL-QUEUE-SCHEDULER": 24,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 24
+      "orchestrator": 25
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-314",
+        "title": "自动对练场次卡片展示对练时间与来访者/咨询师模型",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7344,9 +7412,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-314",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md"
+      },
+      {
+        "taskId": "AF-314",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },

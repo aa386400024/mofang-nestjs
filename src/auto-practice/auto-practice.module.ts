@@ -26,6 +26,7 @@ import { AdminBasicAuthMiddleware } from '../admin-debug/admin-basic-auth.middle
 import { AdminDebugChatModule } from '../admin-debug/admin-debug-chat.module.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 import { CharacterPoolModule } from '../engine-adapters/wiring/character/character-pool.module.js';
+import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
 import { LlmModule } from '../llm/llm.module.js';
 import { User } from '../user/entities/user.entity.js';
 import { UserModule } from '../user/index.js';
@@ -51,6 +52,8 @@ import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
     AdminDebugChatModule,
     // 角色池: AF-103 入队前角色存在性校验复用 CHARACTER_PROFILE_RESOLVER（同一真相源）.
     CharacterPoolModule,
+    // AF-314: 会话启动时读取来访者渲染主候选的真实 provider/model（只读出口）.
+    EngineWiringModule,
     // LLM 路由层 (咨询师台词生成).
     LlmModule,
     // JwtAuthGuard (AdminBasicAuthMiddleware 的第二个构造参数, 学员身份解析).

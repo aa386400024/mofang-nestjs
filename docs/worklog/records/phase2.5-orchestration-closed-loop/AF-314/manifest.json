@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-314",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T22:05:00+08:00",
+  "updatedAt": "2026-11-22T14:24:15.979Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
+    "sha256": "36b85e4fc64242db5d0319e3900ff9aa76d21ad4378e66fe7a11a5139f56c140",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-orchestration-closed-loop-af314-practice-session-models-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
