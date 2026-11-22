@@ -85,7 +85,7 @@ import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
 import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../../counselor/config/counselor-llm.config.js';
 import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
-import { resolveSessionCostPricing } from '../observability/session-cost.js';
+import { resolveSessionCostPricingTable } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
 import { PsyGuardHealthModule } from './risk/psyguard-health.module.js';
@@ -633,11 +633,22 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
           //   "每轮 BDI 快照落库"一次都没发生过 (turn_debug_trace 恒空).
           //   缺装配 = 不留痕 (会话照常), 不阻断对练主链路.
           traceRecorder,
-          // WP24: 成本单价走 env (定价表换版只改配置, 不发版).
-          //   解析口径在 `resolveSessionCostPricing` —— 非法值回退默认, 不抛.
-          pricing: resolveSessionCostPricing({
+          // WP24/AF-261: 成本单价走 env (定价表换版只改配置, 不发版).
+          //   解析口径在 `resolveSessionCostPricingTable` —— 非法值回退默认, 不抛。
+          //   全局两个旧键作为 fallback；provider 覆盖键缺省时回落 fallback。
+          pricingTable: resolveSessionCostPricingTable({
             inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K'),
             outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K'),
+            providers: {
+              doubao: {
+                inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K_DOUBAO'),
+                outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K_DOUBAO'),
+              },
+              minimax: {
+                inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K_MINIMAX'),
+                outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K_MINIMAX'),
+              },
+            },
           }),
           // WP14: 学员侧处置闸门 (置位重点监测) + 风险审计插槽 (写 student_risk_events).
           studentRiskGate: studentRisk,

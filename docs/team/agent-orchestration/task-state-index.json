@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1151,
+    "lastEventSeq": 1154,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,6 +264,88 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-261",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T01:01:35.340Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "单场成本按 provider 分账"
+        },
+        {
+          "at": "2026-11-22T01:01:42.245Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "单场成本按 provider 分账",
+      "type": "implementation",
+      "baselineRef": "785a60f436d6f6781064e20726179c1c24124261",
+      "dependsOn": [
+        "AF-260"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T01:01:34.952Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/engine-adapters/observability/",
+          "src/engine-adapters/wiring/",
+          "test/engine-adapters/",
+          ".env.example",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/engine-adapters/af261-provider-cost.spec.ts test/engine-adapters/wp24-session-cost-log.spec.ts",
+          "check": "provider 分账与既有成本口径回归",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "check": "CI 全量 typecheck 0 error",
+          "threshold": "exit=0"
+        }
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T01:01:35.339Z"
     }
   ],
   "archivedTasks": [

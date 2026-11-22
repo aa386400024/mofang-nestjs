@@ -65,7 +65,7 @@ import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridg
 import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import type { DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
 import type { DeliberationGatePort } from '../deliberation-gate/deliberation-gate.types.js';
-import type { SessionCostPricing } from '../observability/session-cost.js';
+import type { SessionCostPricing, SessionCostPricingTable } from '../observability/session-cost.js';
 import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
@@ -454,6 +454,12 @@ export interface EngineStreamBackendDeps {
    */
   readonly pricing?: SessionCostPricing;
   /**
+   * provider 维度定价表 (AF-261; 缺省 = 只用 `pricing` 单一口径).
+   *
+   * 与 `pricing` 同款可选语义：配了才按 provider 分账，没配不影响会话。
+   */
+  readonly pricingTable?: SessionCostPricingTable;
+  /**
    * 调试快照记录器 (WP19-R; 缺省 = 不留痕).
    *
    * 缺省语义与上面几个一致: 没装配记录器 → 只是没有调试快照落库,
@@ -725,5 +731,6 @@ export function createEngineStreamBackend(deps: EngineStreamBackendDeps): Engine
     deps.riskProbe,
     deps.idempotency ?? new TurnIdempotencyService(),
     deps.evaluation,
+    deps.pricingTable,
   );
 }
