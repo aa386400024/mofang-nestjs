@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-260",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T09:00:00+08:00",
-  "updatedAt": "2026-11-22T00:48:15.199Z",
+  "updatedAt": "2026-11-22T00:57:04.279Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/task-sheet.md",
     "sha256": "c60822caf56a346bfa03a79c25c1ae06ebb387465baa909c8922ed77983fd005",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/receipt-RC-AF-260-1.json",
+      "sha256": "fa5d133c41107985c27e5e2be1b0dcce66d2e3263ea3a7f43f798fa835dffccb",
+      "receiptId": "RC-AF-260-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af260-render-multi-turn-smoke-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af260-render-multi-turn-smoke-task-2026-11-22.md"
