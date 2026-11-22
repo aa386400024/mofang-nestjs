@@ -4,10 +4,92 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1372,
+    "lastEventSeq": 1375,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-301",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T11:06:02.168Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-22T11:06:33.913Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "突发告警按故障生命周期分窗",
+      "type": "fix",
+      "baselineRef": "2a00b9ddd4d60021715630c491c281ce3832a61d",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-292",
+        "AF-298",
+        "AF-300"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T11:06:00.000Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "docker/prometheus/alerts.yml",
+          "test/config/af283-render-alerting.spec.ts",
+          "docs/runbooks/render-telemetry-alerting.md",
+          "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/"
+        ],
+        "modules": [
+          "prometheus"
+        ],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/config/af283-render-alerting.spec.ts",
+          "check": "四条突发告警必须含近期 1m 持续条件，鉴权告警不误加",
+          "threshold": "exit=0 且 0 failed"
+        }
+      ],
+      "successCriteria": [
+        "StreamTimeoutSpike、FailureCauseSpike、CooldownServedSpike、CandidateCooldownSpike 增加“最近 1m 仍有增量”的持续条件，故障停止后不再被 10m 窗口拖着继续 firing。",
+        "AuthFailure 保持“任一次 401 都告警”，不加快期条件，避免低流量时自动消警掩盖配置错误。",
+        "静态测试逐条断言四条 Spike 含 1m 条件、Auth 不含；反向去掉一条 1m 条件测试必须失败。",
+        "Runbook §2/§7 写清生命周期分窗语义与低流量取舍；不改阈值、不改业务代码。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "AF-301 交付记录",
+          "path": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-22T11:06:02.167Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
