@@ -14,10 +14,15 @@ import { config as loadEnvFile } from 'dotenv';
 import { existsSync } from 'node:fs';
 
 import { LlmService } from '../src/agent/llm/llm.service.js';
+import type { ChatCaller } from '../src/engine-adapters/rendering/llm-render.adapter.js';
 import { createLlmServiceChatCaller } from '../src/engine-adapters/wiring/llm-service-chat-caller.js';
 import { buildEngineRenderPort, RenderConfigFactory } from '../src/engine-adapters/wiring/render-config.factory.js';
+import { RouterChatCaller } from '../src/engine-adapters/wiring/router-chat-caller.js';
 import type { RenderSpec } from '../src/engine-core/index.js';
-import type { LlmRouterService } from '../src/llm/registry/llm-router.service.js';
+import { AIProviderId, LLMCapability } from '../src/llm/common/enums/llm.enums.js';
+import { DoubaoChatProvider } from '../src/llm/providers/doubao.provider.js';
+import { LlmRouterService } from '../src/llm/registry/llm-router.service.js';
+import { ProviderRegistryService } from '../src/llm/registry/provider-registry.service.js';
 
 const DEFAULT_MAX_TOKENS = 160;
 const DEFAULT_TIMEOUT_MS = 45_000;
@@ -89,6 +94,9 @@ async function main(): Promise<void> {
 
   const provider = (arg('--provider', 'doubao') ?? 'doubao').toLowerCase();
   if (provider !== 'doubao' && provider !== 'minimax') fail('--provider 只允许 doubao / minimax');
+  const callerPath = (arg('--caller', 'router') ?? 'router').toLowerCase();
+  if (callerPath !== 'router' && callerPath !== 'llm-service') fail('--caller 只允许 router / llm-service');
+  if (callerPath === 'router' && provider !== 'doubao') fail('--caller router 目前只支持 --provider doubao');
   const maxTokens = numberArg('--max-tokens', DEFAULT_MAX_TOKENS);
   const timeoutMs = numberArg('--timeout-ms', DEFAULT_TIMEOUT_MS);
   const counselorText = arg('--prompt', '最近这一周，你睡得怎么样？') ?? '';
@@ -107,23 +115,50 @@ async function main(): Promise<void> {
   const config = {
     get: <T>(key: string): T | undefined => process.env[key] as T | undefined,
   } as unknown as ConfigService;
-  const llm = new LlmService(config);
-  const fakeRouter = {
-    getDefaultModelForTier: (): string => process.env.MINIMAX_LLM_MODEL?.trim() ?? 'MiniMax-M3.1',
-  } as unknown as LlmRouterService;
-  const renderConfig = new RenderConfigFactory(config, fakeRouter).build();
+
+  let router: LlmRouterService;
+  let caller: ChatCaller;
+
+  if (callerPath === 'router') {
+    // 生产路由链：ProviderRegistry → LlmRouterService → RouterChatCaller。
+    process.env['LLM_DEFAULT_CHAT_PROVIDER'] = 'doubao';
+    const configuredModel = process.env['LLM_DOUBAO_MODEL']?.trim();
+    const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
+    const providerClient = new DoubaoChatProvider({ defaultChatModel: doubaoModel });
+    const registry = new ProviderRegistryService();
+    registry.registerChat(providerClient, {
+      id: AIProviderId.DOUBAO,
+      displayName: '豆包 smoke',
+      baseUrl: providerClient.baseUrl,
+      // router 的 apiKey 由 defaultEnvApiKeyResolver 从 env 读取，这里的占位值不参与请求。
+      apiKey: '',
+      capabilities: [LLMCapability.CHAT],
+      defaultModels: { [LLMCapability.CHAT]: doubaoModel },
+      defaultChatModel: doubaoModel,
+      enabled: true,
+    });
+    router = new LlmRouterService(registry, config);
+    caller = new RouterChatCaller(router);
+  } else {
+    const llm = new LlmService(config);
+    router = {
+      getDefaultModelForTier: (): string => process.env.MINIMAX_LLM_MODEL?.trim() ?? 'MiniMax-M3.1',
+    } as unknown as LlmRouterService;
+    caller = createLlmServiceChatCaller(llm, {
+      provider,
+      tenantId: 'af259-smoke',
+      userId: 'af259-smoke',
+      traceId: 'af259',
+      timeoutMs,
+    });
+  }
+
+  const renderConfig = new RenderConfigFactory(config, router).build();
 
   if (provider === 'doubao' && renderConfig.candidates[0]?.id !== 'doubao') {
     fail(`候选装配异常：VISITOR_LLM_PROVIDER=doubao，但主候选=${renderConfig.candidates[0]?.id ?? '(空)'}`);
   }
 
-  const caller = createLlmServiceChatCaller(llm, {
-    provider,
-    tenantId: 'af255-smoke',
-    userId: 'af255-smoke',
-    traceId: 'af255',
-    timeoutMs,
-  });
   const port = buildEngineRenderPort(caller, renderConfig);
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
 
@@ -152,6 +187,7 @@ async function main(): Promise<void> {
     JSON.stringify(
       {
         ok: true,
+        callerPath,
         requestedProvider: provider,
         configuredCandidates: renderConfig.candidates.map((candidate) => ({
           id: candidate.id,

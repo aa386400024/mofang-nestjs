@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1141,
+    "lastEventSeq": 1144,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,6 +264,85 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-259",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T00:35:56.903Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "生产 RouterChatCaller 豆包 smoke"
+        },
+        {
+          "at": "2026-11-22T00:36:04.013Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "引擎渲染生产 RouterChatCaller 豆包 smoke",
+      "type": "implementation",
+      "baselineRef": "b13f4e1b63d2b4bac572780bbafc2c76332e996a",
+      "dependsOn": [
+        "AF-258"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T00:35:56.545Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --max-tokens 160 --timeout-ms 45000",
+          "check": "生产 RouterChatCaller 路径真实豆包出话",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "check": "CI 全量 typecheck 0 error",
+          "threshold": "exit=0"
+        }
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T00:35:56.902Z"
     }
   ],
   "archivedTasks": [
