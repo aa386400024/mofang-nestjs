@@ -4,120 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1455,
+    "lastEventSeq": 1457,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-329",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T19:00:49.093Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始做 active/off prompt A/B smoke"
-        },
-        {
-          "at": "2026-11-22T19:00:55.904Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "来访者文字真人度 active/off prompt A/B smoke",
-      "type": "verification",
-      "baselineRef": "d2036b019b51caf9787c4f449a2c806f5667eed7",
-      "dependsOn": [
-        "AF-328"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T19:00:00.000Z",
-      "deadline": "2026-11-23T19:00:00+08:00",
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "bin/",
-          "test/",
-          "src/shared/realism/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [
-          "visitor-realism"
-        ],
-        "interfaces": [
-          "realism-prompt-ab"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/auto-practice/metrics/humanization-acceptance.spec.ts test/shared/realism/realism-prompt-ab.spec.ts",
-          "check": "定向单测全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量测试全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "输出为空",
-          "threshold": "exit=0"
-        }
-      ],
-      "successCriteria": [
-        "新增离线 A/B CLI：同一合成来访者人设、同一组 6 个咨询师轮次，分别用 active 与 off system prompt 真实调用豆包 Seed Character。",
-        "active 分支 system prompt 必须逐字包含 buildVisitorRealismProfile(active) 的 directives；off 分支必须不包含该块，且两分支其余 prompt 逐字一致。",
-        "输出只含数字：每分支 visitor 轮数、六类计数、事件/轮、轮次率、密度/百字、修正/轮，以及 active-off 差值；不输出任何完整台词。",
-        "真实跑一次 A/B，报告写清模型、温度、超时、调用数、失败数与数字；失败调用如实计入，不静默丢弃。",
-        "判据同时给 audit（只测量）与 active（假设性判定）两种视图，明确不宣称注入链路有效或临床有效。",
-        "单测覆盖 prompt 分支构造、情绪标签剥离、消息序列、分支汇总与差值，至少 8 例。",
-        "定向测试、typecheck、lint、全量测试、engine-core 零 diff 全部通过。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
-          "kind": "report"
-        },
-        {
-          "name": "A/B 实测报告",
-          "path": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-report-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-22T19:00:49.092Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2954,6 +2844,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-328/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af328-humanization-acceptance-v1-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-329",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
         "reply": null
       }
     }

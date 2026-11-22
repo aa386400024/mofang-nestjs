@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T19:00:55.975Z",
+  "generatedAt": "2026-11-22T19:08:31.448Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-329",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "verification",
-      "title": "来访者文字真人度 active/off prompt A/B smoke",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-329",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T19:00:55.907Z",
-        "leaseDeadline": "2026-11-22T19:30:55.904Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-329.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T19:00:55.907Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-329.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1825,6 +1784,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-056",
+      "recordedAt": "2026-11-22T19:01:01.187Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-329",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-329-realism-prompt-ab"
+      ]
+    },
+    {
+      "auditId": "AUD-055",
+      "recordedAt": "2026-11-22T19:00:56.043Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-329",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-329",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-329.json"
+      ]
+    },
+    {
       "auditId": "AUD-054",
       "recordedAt": "2026-11-22T19:00:49.243Z",
       "actorRef": "orchestrator",
@@ -2032,84 +2021,25 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-323.json"
       ]
-    },
-    {
-      "auditId": "AUD-041",
-      "recordedAt": "2026-11-22T17:12:49.152Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-323",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-040",
-      "recordedAt": "2026-11-22T16:37:53.801Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-322",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-322-bdi-decision-trace"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 54,
+    "total": 56,
     "byResult": {
-      "allowed": 54,
+      "allowed": 56,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 53,
+      "TOOL-QUEUE-SCHEDULER": 55,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 54
+      "orchestrator": 56
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-329",
-        "title": "来访者文字真人度 active/off prompt A/B smoke",
-        "type": "verification",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-328"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7634,6 +7564,24 @@
             "ref": "docs/worklog/completed/phase2.5/af328-humanization-acceptance-v1-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-329",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7648,22 +7596,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-329",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md"
-      },
-      {
-        "taskId": "AF-329",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7671,5 +7606,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 318
+  "archivedCount": 319
 }
