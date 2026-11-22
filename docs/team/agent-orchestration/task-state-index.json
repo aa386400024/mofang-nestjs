@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1308,
+    "lastEventSeq": 1311,
     "rebuiltAt": null
   },
   "tasks": [
@@ -136,6 +136,58 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-289",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T08:21:06.767Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "AF-288 已合并；补当前冷却状态与真实故障取证"
+        },
+        {
+          "at": "2026-11-22T08:21:20.544Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "候选冷却当前状态指标 + 真实故障链路指标取证",
+      "type": "implementation",
+      "baselineRef": "613ca88b62701bf9672737450b8f1bfbd0deaf27",
+      "dependsOn": [
+        "AF-288"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T08:21:06.412Z",
+      "agentRole": "orchestrator",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-289/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "plannedArtifacts": [],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "scope": {
+        "files": [],
+        "modules": [],
+        "interfaces": []
+      },
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T08:21:06.766Z"
     }
   ],
   "archivedTasks": [
