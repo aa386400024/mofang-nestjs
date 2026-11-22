@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T06:33:10.760Z",
+  "generatedAt": "2026-11-22T06:44:46.323Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,46 +49,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-282",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "渲染遥测语义修正（barge-in 不计降级 + 候选失败原因指标 + 安全拦截 cause 统一）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-282",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T06:33:10.687Z",
-        "leaseDeadline": "2026-11-22T07:03:10.682Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-282.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T06:33:10.687Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-282.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1864,6 +1824,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-478",
+      "recordedAt": "2026-11-22T06:33:10.866Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-282",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-282",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-282.json"
+      ]
+    },
+    {
       "auditId": "AUD-477",
       "recordedAt": "2026-11-22T06:32:48.012Z",
       "actorRef": "orchestrator",
@@ -2086,35 +2061,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-277-rollback-concurrency-long-context"
       ]
-    },
-    {
-      "auditId": "AUD-463",
-      "recordedAt": "2026-11-22T05:22:53.030Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-277",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-277",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-277.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 477,
+    "total": 478,
     "byResult": {
-      "allowed": 477,
+      "allowed": 478,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 476,
+      "TOOL-QUEUE-SCHEDULER": 477,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 477
+      "orchestrator": 478
     }
   },
   "protocolView": {
@@ -2143,32 +2103,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-282",
-        "title": "渲染遥测语义修正（barge-in 不计降级 + 候选失败原因指标 + 安全拦截 cause 统一）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-278"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
           }
         ]
       }
@@ -7031,6 +6965,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-282",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7055,16 +7007,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-282",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md"
-      },
-      {
-        "taskId": "AF-282",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7078,5 +7020,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 281
+  "archivedCount": 282
 };
