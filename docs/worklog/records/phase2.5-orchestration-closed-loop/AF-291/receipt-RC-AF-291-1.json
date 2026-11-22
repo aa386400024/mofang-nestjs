@@ -1,0 +1,158 @@
+{
+  "deliveredAt": "2026-11-22T16:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-291-1",
+    "taskId": "AF-291",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "c453f05a1bd7d596e590d87491c9870a4e7bd3a6",
+    "dependsOn": [],
+    "priorTasks": ["AF-289", "AF-290"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-291/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af291-af289-acceptance-scope-fix-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af291-preflight.log",
+        "data/af291-runonce-claim.log",
+        "data/af289-target3.log",
+        "data/af289-typecheck4.log",
+        "data/af289-fault-metrics2.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af291-af289-acceptance-scope-fix-2026-11-22.md",
+        "test/engine-adapters/af289-candidate-cooldown-state.spec.ts"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docker/grafana/dashboards/mofang-overview.json",
+        "docs/runbooks/render-telemetry-alerting.md",
+        "docs/worklog/completed/phase2.5/af289-candidate-cooldown-current-state-2026-11-22.md",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/rendering/render-metrics.telemetry.ts",
+        "src/engine-adapters/rendering/render-telemetry.port.ts",
+        "src/shared/infra/metrics/metrics.service.ts",
+        "test/config/af283-render-alerting.spec.ts",
+        "test/shared/infra/metrics/render-telemetry-metrics.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["2ca2432f", "c453f05a", "5e673b93"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1s",
+        "note": "[ORCH-GATE] PASS task=- status=- files=0 covered=0；日志 data/af291-preflight.log"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af289-candidate-cooldown-state.spec.ts test/engine-adapters/af287-candidate-cooldown.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts test/config/af283-render-alerting.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "同上",
+        "wallClock": "791ms",
+        "note": "4 files / 14 tests passed；日志 data/af289-target3.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "热缓存，约 2s",
+        "note": "0 error；日志 data/af289-typecheck4.log"
+      },
+      {
+        "command": "pnpm exec eslint <AF-289 源码/测试/脚本 8 文件>",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 70-100s",
+        "note": "本单文件 0 error / 0 warning；data/af289-eslint4.log、data/af289-eslint-fix2.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --fail-primary --fail-primary-mode rate-limit --expect-fallback --turns 3 --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "4760ms",
+        "note": "3/3 stop、fallback 3、失败原因 rate-limit 3、gauge 剩余 58.6s、cooldown_served=0；data/af289-fault-metrics2.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "AF-289 原分支因任务单缺 scope.files 被 rejected；AF-290 以 orchestrator 角色重开被 scope-domain-conflict 拦截后取消；AF-291 以 executor 从 c453f05a 切 stacked 分支 task/AF-291-af289-merge，保留 AF-289 三个原始提交，补 scope 与验收记录。分支历史：b05cb718、2ca2432f、c453f05a、5cd5f316、5e673b93。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-291 任务单、分支、收尾提交一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "stacked-history", "result": "pass", "note": "保留 AF-289 原始提交，无 cherry-pick 改写"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "privacy", "result": "pass", "note": "指标只带 candidate/model，不含 prompt / 台词 / 会话 id"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=c453f05a 为 AF-289 当前 HEAD；AF-289 已归档 rejected，AF-290 已取消"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-rounds-denominator",
+        "impact": "降级率/回退率/取消率分母仍按 attempts 而非轮次，exhausted/guard/empty 轮次漏记，比值偏高；MiniMax 评审 P0-1"
+      },
+      {
+        "id": "visitor-render-auth-alert-empty-label",
+        "impact": "VisitorRenderAuthFailure 的 sum() 丢掉 candidate 标签，告警文本候选为空；MiniMax 评审 P0-3"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-290 修正 scope",
+        "reality": "AF-290 agentRole=orchestrator 被资源域拦截并取消",
+        "action": "改开 AF-291，agentRole=executor",
+        "why": "orchestrator 的 Agent Card 不含 src/test/bin，不能写业务实现"
+      },
+      {
+        "taskSays": "只修正 scope，不改实现",
+        "reality": "同时把 AF-289 交付记录追加验收返修事实",
+        "action": "保留 rejected 审计事实，不抹除",
+        "why": "避免审计链断裂，后续可追到 RW-AF-289-1"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-291 任务单 scope 覆盖 AF-289 全部改动文件；stacked 分支保留原始三个提交；定向 14 例、typecheck、scoped ESLint、真实 429 故障 smoke 与内核边界均通过；全量 lint/test 失败仍全部来自未跟踪 AF-280/AF-281 并行产物，本单零引入。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
