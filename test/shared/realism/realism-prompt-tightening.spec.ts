@@ -4,6 +4,7 @@ import {
   TIGHTENING_ARMS,
   TIGHTENING_PERSONAS,
   buildSubtractiveBlock,
+  buildShapeCappedBlock,
   buildTightenedBlock,
   buildTypedBlock,
   buildTypedNoShapeBlock,
@@ -28,8 +29,19 @@ function hasPrefix(block: string, prefix: string): boolean {
 }
 
 describe('realism-prompt-tightening', () => {
-  it('固定九个分支与两个人设', () => {
-    expect(TIGHTENING_ARMS).toEqual(['off', 'full', 'no-shape', 'no-event', 'no-quota', 'minimal', 'tightened', 'typed', 'typed-noshape']);
+  it('固定十个分支与两个人设', () => {
+    expect(TIGHTENING_ARMS).toEqual([
+      'off',
+      'full',
+      'no-shape',
+      'no-event',
+      'no-quota',
+      'minimal',
+      'tightened',
+      'typed',
+      'typed-noshape',
+      'shape-capped',
+    ]);
     expect(TIGHTENING_PERSONAS).toEqual(['anxious', 'guarded']);
   });
 
@@ -157,6 +169,39 @@ describe('realism-prompt-tightening', () => {
   it('分型去形态候选仍保留分型配额与事件限制', () => {
     expect(buildTypedNoShapeBlock(ANXIOUS)).toContain('只允许填充词或停顿，不要改口');
     expect(buildTypedNoShapeBlock(GUARDED)).toContain('停顿最多每两轮一次');
+  });
+
+  it('形态限次候选与 full 行数一致, 只替换形态一行', () => {
+    for (const persona of [ANXIOUS, GUARDED]) {
+      const fullLines = buildSubtractiveBlock(persona, 'full').split('\n');
+      const capped = buildShapeCappedBlock(persona).split('\n');
+      expect(capped[0]).toBe(fullLines[0]);
+      expect(capped).toHaveLength(fullLines.length);
+      const changed = capped.filter((line, index) => line !== fullLines[index]);
+      expect(changed).toHaveLength(1);
+      expect(directiveText(changed[0])).toMatch(/^话轮形态层：/);
+    }
+  });
+
+  it('形态限次候选把每轮执行改成整场最多三次, 保留人设原形态', () => {
+    const anxious = buildShapeCappedBlock(ANXIOUS);
+    const guarded = buildShapeCappedBlock(GUARDED);
+    expect(anxious).toContain('整场最多三次、本轮最多一次');
+    expect(anxious).toContain('前一轮已经用过就跳过');
+    expect(anxious).toContain('说出口后改一次口');
+    expect(guarded).toContain('这个……我不太想说');
+    expect(anxious).not.toContain('这个……我不太想说');
+  });
+
+  it('形态限次候选逐字保留 full 的配额与事件层', () => {
+    for (const persona of [ANXIOUS, GUARDED]) {
+      const fullLines = buildSubtractiveBlock(persona, 'full').split('\n').slice(1);
+      const cappedLines = buildShapeCappedBlock(persona).split('\n').slice(1);
+      for (const line of fullLines) {
+        if (directiveText(line).startsWith('话轮形态层：')) continue;
+        expect(cappedLines).toContain(line);
+      }
+    }
   });
 
   it('非 off 分支的 prompt 都以基础人设开头并空一行接块', () => {
