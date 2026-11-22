@@ -20,7 +20,7 @@ function service(enabled: boolean): MetricsService {
 }
 
 describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
-  it('十类指标可按 candidate / model / phase / cause 标签读出', async () => {
+  it('十一类指标可按 candidate / model / phase / cause 标签读出', async () => {
     const metrics = service(true);
     const telemetry = new RenderMetricsTelemetry(metrics);
 
@@ -35,6 +35,7 @@ describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
     telemetry.onCancelled('minimax');
     telemetry.onCooldownServed();
     telemetry.onCandidateCooldown('minimax', 'MiniMax-M3', 'rate-limit', 60_000);
+    telemetry.onCandidateCooldownState('minimax', 'MiniMax-M3', 1_760_000_000_000);
     telemetry.onFallback('minimax', 'doubao', 'rate-limit');
     telemetry.onDegraded('exhausted');
 
@@ -104,6 +105,11 @@ describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
         }),
       ]),
     );
+    const candidateCooldownUntil = samples.find((sample) => sample.name === 'visitor_render_candidate_cooldown_until_seconds');
+    expect(candidateCooldownUntil?.type).toBe('gauge');
+    expect(candidateCooldownUntil?.values).toEqual(
+      expect.arrayContaining([expect.objectContaining({ labels: { candidate: 'minimax', model: 'MiniMax-M3' }, value: 1_760_000_000 })]),
+    );
     expect(
       samples
         .find((sample) => sample.name === 'visitor_render_fallback_total')
@@ -135,6 +141,7 @@ describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
       telemetry.onCancelled('minimax');
       telemetry.onCooldownServed();
       telemetry.onCandidateCooldown('minimax', 'MiniMax-M3', 'rate-limit', 1000);
+      telemetry.onCandidateCooldownState('minimax', 'MiniMax-M3', 0);
       telemetry.onFallback('minimax', 'doubao', 'auth');
       telemetry.onDegraded('exhausted');
     }).not.toThrow();
