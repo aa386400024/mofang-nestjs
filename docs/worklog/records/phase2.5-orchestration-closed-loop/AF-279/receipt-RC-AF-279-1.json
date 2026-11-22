@@ -1,0 +1,199 @@
+{
+  "deliveredAt": "2026-11-22T14:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-279-1",
+    "taskId": "AF-279",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "review",
+    "agentRole": "executor",
+    "baselineRef": "39b4f88d8b8f64f2a1507f30fba01367a0abd59a",
+    "dependsOn": ["AF-278"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-279/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af279-af278-render-telemetry-review-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/pending/relay-response-AF-278-REVIEW-20261122-1400.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/inbox/af279-af278-render-telemetry-review-2026-11-22.md",
+        "docs/worklog/pending/relay-response-AF-278-REVIEW-20261122-1400.md",
+        "docs/worklog/completed/phase2.5/af279-af278-render-telemetry-review-2026-11-22.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 5.1 / node v26.13.2 / pnpm",
+        "wallClock": "约 20 秒",
+        "note": "tsc -b tsconfig.check.json exit 0；只读评审未改 src/"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af278-render-telemetry.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "同上",
+        "wallClock": "972ms",
+        "note": "2 files / 9 tests passed；复跑被评审的两个定向 spec"
+      },
+      {
+        "command": "pnpm exec tsx -",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "stdin 内联探针 7 条（A barge-in / B 两候选全 429 / C 单候选 429 / D 锁定后 401 / E 输出 guard block / F 纯推理流 / G 未配置模型名）全部复现；仓内零临时文件"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/ test/",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；只读评审未改实现与测试"
+      }
+    ],
+    "reproNotes": "评审对象为 AF-278 实现提交 af4c370c（原 cf9cac4a，L3 squash 后重写；已逐文件比对，src/ 六个实现文件逐字节一致，仅 test/shared/infra/metrics/render-telemetry-metrics.spec.ts 做了 labels 索引签名与 as unknown as 类型安全微调，故报告行号按当前树给出）。评审方法：逐行读 11 个文件 diff + 以 pnpm exec tsx -（stdin 内联，不落盘）构造真实 LlmRenderAdapter 与记录型 RenderTelemetryPort 实测 7 条路径。结论：遥测不影响渲染主流程且隐私契约成立，但 P0-1（barge-in 被计成降级）与 P0-2（末次/单候选失败原因在六指标中消失）使其不足以支撑线上告警与灰度判读，判定需修后上。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单 AF-279，登记 / promote / 领单均经 orchestrator-cli，状态面未手改"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI；未手改 task-state-index.json 与事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "交付记录六组机读字段齐全，回执 JSON 完整"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "归档后 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动；src/ 与 test/ 亦零改动（只读评审）"
+      },
+      {
+        "item": "telemetry-privacy",
+        "result": "pass",
+        "note": "确认六类指标标签仅 candidate/model/outcome/phase/cause/from/to，不含内容与原始错误文案"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 39b4f88d 为评审时的 HEAD；依赖 AF-278 已归档"
+    },
+    "backlogItems": [
+      {
+        "id": "P0-1 visitor-render-telemetry-barge-in-not-degraded",
+        "impact": "正常用户打断被计成 degraded{cause=other} 与 attempts{outcome=degrade}，降级率曲线被正常交互主导"
+      },
+      {
+        "id": "P0-2 visitor-render-telemetry-failure-cause-metric",
+        "impact": "末次候选与单候选部署的失败原因在六个指标里完全消失，AF-278 立项要回答的问题仍回答不了"
+      },
+      {
+        "id": "P1-1 visitor-render-telemetry-guard-cause-unified",
+        "impact": "前置预检记 guard 而输出 guard 记 other，安全拦截率算不出"
+      },
+      {
+        "id": "P1-2 visitor-render-telemetry-visible-first-budget",
+        "impact": "纯推理流绕过首包与 idle 保护，用户干等时六类指标零信号"
+      },
+      {
+        "id": "P1-3 visitor-render-telemetry-locked-auth-failure",
+        "impact": "锁定后鉴权失败不记 auth_failure_total 且 cause 归 other，最需告警的故障不可见"
+      },
+      {
+        "id": "P1-4 visitor-render-telemetry-cooldown-distinct",
+        "impact": "熔断全损与候选试完全败都记 exhausted，熔断挡掉的轮次数只能翻日志"
+      },
+      {
+        "id": "P1-5 visitor-render-telemetry-regen-attempt",
+        "impact": "regen 与真人度重试的二次上游调用不入 attempts 且 cause 丢失，限流与成本分析失真"
+      },
+      {
+        "id": "P1-6 visitor-render-telemetry-timeout-misattribution",
+        "impact": "guard.timedOut() 优先判定把撞上定时器的真实上游错误误归因为首包超时"
+      },
+      {
+        "id": "P1-7 visitor-render-telemetry-first-delta-semantics",
+        "impact": "first-delta 超时量 raw chunk 而 TTFT 直方图量可见闭合句，同名不同义"
+      },
+      {
+        "id": "P1-8 visitor-render-telemetry-aggregate-path",
+        "impact": "聚合路径无 first_delta 与 stream_timeout，且该路径零测试"
+      },
+      {
+        "id": "P2-1..P2-8",
+        "impact": "attempts 不等于上游调用次数与 model 空标签、retry 命名、attempt/outcome 可不配对、分层自相矛盾、工厂手写 new、标签无白名单兜底、TTFT 生存者偏差、既有日志带兜底句"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "评审提交 cf9cac4a",
+        "reality": "该提交已被 L3 squash 重写为 af4c370c",
+        "action": "逐文件比对 af4c370c 与 cf9cac4a：src/ 六个实现文件逐字节一致，仅指标 spec 类型标注微调，报告行号按当前树给出",
+        "why": "保证评审结论与行号引用仍然指向将要上生产的代码"
+      },
+      {
+        "taskSays": "只读评审，不改代码",
+        "reality": "结论含 2 条 P0 与 8 条 P1，需修复才能上生产",
+        "action": "本单只出报告与最小修改建议，不在本任务内实施修复，P0/P1 另开返修单",
+        "why": "评审与修复分离，验收结论只基于工件证据"
+      },
+      {
+        "taskSays": "不得写文件",
+        "reality": "需要实测多条运行时路径",
+        "action": "探针走 pnpm exec tsx -（stdin 内联），仓内零临时文件；typecheck 与定向 vitest 为只读命令",
+        "why": "在不改任何实现与测试的前提下取得运行时证据"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "AF-278 的渲染遥测为纯旁路且实现抛错被吞，评审未发现任何遥测可改变渲染结果的路径；六类指标标签封闭、无 prompt/台词/会话 id/原始错误文案，隐私契约通过；engine-core 零改动。但 P0-1 使正常用户打断被计成降级、P0-2 使末次与单候选的失败原因在六指标中完全消失，因此该套指标目前不足以支撑线上告警与灰度判读，判定 conditional-pass：遥测可上线留痕，不可用作告警依据，须先修 P0-1 与 P0-2（并补 T1-T5 用例）再用于判读。遗留项均已编号且无人工复核项。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

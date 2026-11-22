@@ -56,6 +56,17 @@ export class MetricsService implements OnModuleInit {
   private practiceAsrTranscribeCounter!: Counter<string>;
   private practiceAsrDuration!: Histogram<string>;
 
+  // V2026-11-22 (AF-278 · 渲染链路可观测性):
+  //   线上"来访者不开口"最常见的原因不是模型质量, 而是首包/块间超时、鉴权失效、
+  //   限流或候选耗尽. 这些此前只有日志, 看板无法聚合. 指标只带候选/模型/封闭原因,
+  //   不带任何 prompt / 台词 / 会话内容.
+  private visitorRenderAttempts!: Counter<string>;
+  private visitorRenderFirstDelta!: Histogram<string>;
+  private visitorRenderStreamTimeout!: Counter<string>;
+  private visitorRenderAuthFailure!: Counter<string>;
+  private visitorRenderFallback!: Counter<string>;
+  private visitorRenderDegraded!: Counter<string>;
+
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit(): void {
@@ -145,6 +156,45 @@ export class MetricsService implements OnModuleInit {
       buckets: [0.2, 0.5, 1, 2, 3, 5, 8, 10, 15, 20, 30, 45, 60],
       registers: [this.registry],
     });
+
+    // ----- 来访者渲染链路 (AF-278) -----
+    this.visitorRenderAttempts = new Counter({
+      name: 'visitor_render_attempts_total',
+      help: '候选尝试次数 (按 candidate/model/outcome 标签, outcome: success / retry / degrade)',
+      labelNames: ['candidate', 'model', 'outcome'],
+      registers: [this.registry],
+    });
+    this.visitorRenderFirstDelta = new Histogram({
+      name: 'visitor_render_first_delta_seconds',
+      help: '首个可见增量耗时 / TTFT (秒, 按 candidate/model 标签)',
+      labelNames: ['candidate', 'model'],
+      buckets: [0.1, 0.25, 0.5, 0.8, 1, 1.5, 2, 3, 5, 8, 12, 20, 30],
+      registers: [this.registry],
+    });
+    this.visitorRenderStreamTimeout = new Counter({
+      name: 'visitor_render_stream_timeout_total',
+      help: '流式等待超时次数 (按 candidate/phase 标签, phase: first-delta / idle)',
+      labelNames: ['candidate', 'phase'],
+      registers: [this.registry],
+    });
+    this.visitorRenderAuthFailure = new Counter({
+      name: 'visitor_render_auth_failure_total',
+      help: '渲染候选鉴权失败次数 (按 candidate 标签)',
+      labelNames: ['candidate'],
+      registers: [this.registry],
+    });
+    this.visitorRenderFallback = new Counter({
+      name: 'visitor_render_fallback_total',
+      help: '候选回退次数 (按 from/to/cause 标签)',
+      labelNames: ['from', 'to', 'cause'],
+      registers: [this.registry],
+    });
+    this.visitorRenderDegraded = new Counter({
+      name: 'visitor_render_degraded_total',
+      help: '最终降级兜底次数 (按 cause 标签)',
+      labelNames: ['cause'],
+      registers: [this.registry],
+    });
   }
 
   // ========================================================================
@@ -226,6 +276,51 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.practiceAsrDuration.observe(durationSec);
+  }
+
+  // ----- 来访者渲染链路 (AF-278) -----
+  // 标签值由适配层用封闭枚举传入; 这里不再做自由文本清洗 —— 任何自由文本都不该到达这里.
+
+  incVisitorRenderAttempt(candidate: string, model: string, outcome: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderAttempts.inc({ candidate, model, outcome });
+  }
+
+  observeVisitorRenderFirstDelta(candidate: string, model: string, seconds: number): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderFirstDelta.observe({ candidate, model }, seconds);
+  }
+
+  incVisitorRenderStreamTimeout(candidate: string, phase: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderStreamTimeout.inc({ candidate, phase });
+  }
+
+  incVisitorRenderAuthFailure(candidate: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderAuthFailure.inc({ candidate });
+  }
+
+  incVisitorRenderFallback(from: string, to: string, cause: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderFallback.inc({ from, to, cause });
+  }
+
+  incVisitorRenderDegraded(cause: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderDegraded.inc({ cause });
   }
 
   // ========================================================================

@@ -85,6 +85,11 @@ import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
 import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../../counselor/config/counselor-llm.config.js';
 import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import { MetricsService } from '../../shared/infra/metrics/metrics.service.js';
+import { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
+import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { resolveSessionCostPricingTable } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
@@ -102,10 +107,6 @@ import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import { LlmModule } from '../../llm/llm.module.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
-import { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
-import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
-import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
-import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
 import { resolveModelClassifierModeConfig, type ModelClassifierEffectiveMode } from '../cognition/model-classifier-mode.config.js';
 import { RedisModelClassifierObserver } from '../cognition/model-classifier-observation.js';
@@ -123,6 +124,7 @@ import { RollingSessionSummaryService, type RollingSummaryCleanupPort } from '..
 import { LlmRollingSummaryGenerator, resolveRollingSummaryModel } from '../persistence/rolling-summary.generator.js';
 import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
 import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator.js';
+import { RenderMetricsTelemetry } from '../rendering/render-metrics.telemetry.js';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
 
@@ -256,7 +258,12 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
     //   没配 `PSYGUARD_BASE_URL` 时输出侧**不接探测**, 维持现状 (只有内核规则层).
     {
       provide: ENGINE_RENDER_PORT,
-      useFactory: (caller: RouterChatCaller, configFactory: RenderConfigFactory, config: ConfigService): StreamingRenderPort =>
+      useFactory: (
+        caller: RouterChatCaller,
+        configFactory: RenderConfigFactory,
+        config: ConfigService,
+        metrics: MetricsService,
+      ): StreamingRenderPort =>
         buildEngineRenderPort(
           caller,
           configFactory.build(),
@@ -264,8 +271,9 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
             baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
             timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
           }),
+          new RenderMetricsTelemetry(metrics),
         ),
-      inject: [RouterChatCaller, RenderConfigFactory, ConfigService],
+      inject: [RouterChatCaller, RenderConfigFactory, ConfigService, MetricsService],
     },
     // V2026-11-03 (WP37): 会话级滚动摘要服务 ——
     //   工作记忆窗口 (最近 8 轮) 挤掉旧轮次时, 内核回调它 → 攒批 → 异步调 LLM

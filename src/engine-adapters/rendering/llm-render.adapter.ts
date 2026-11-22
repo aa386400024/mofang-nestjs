@@ -73,6 +73,7 @@ import { clearTimeout, setTimeout } from 'node:timers';
 import { resolveStreamFirstDeltaTimeoutMs, type RenderAdapterConfig, type RenderCandidate } from './render-adapter.config.js';
 import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime.js';
 import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk.js';
+import type { RenderAttemptOutcome, RenderFailureCause, RenderTelemetryPort } from './render-telemetry.port.js';
 import { dropUnclosedTail, splitClosedPrefix } from './render-truncation.js';
 import {
   splitTextIntoDeltas,
@@ -181,6 +182,12 @@ export interface LlmRenderAdapterDeps {
   readonly now?: () => number;
   /** 可选计费 / 审计用户 id (流式调用透传给调用出口). */
   readonly uid?: string;
+  /**
+   * 可选渲染遥测 (AF-278).
+   *
+   * 适配器只回调事件, 不依赖具体指标实现; 未注入时全部调用点静默跳过.
+   */
+  readonly telemetry?: RenderTelemetryPort;
 }
 
 /**
@@ -198,7 +205,7 @@ interface ResolvedRenderParams {
  */
 type CallResult =
   | { readonly ok: true; readonly response: ChatCompletionResponse }
-  | { readonly ok: false; readonly retryable: boolean; readonly reason: string };
+  | { readonly ok: false; readonly retryable: boolean; readonly reason: string; readonly cause?: RenderFailureCause };
 
 /**
  * 聚合路径的一次尝试产物.
@@ -225,8 +232,8 @@ interface AggregateRender {
  */
 type AttemptOutcome<T> =
   | { readonly kind: 'success'; readonly candidateId: string; readonly value: T }
-  | { readonly kind: 'retry'; readonly reason: string }
-  | { readonly kind: 'degrade'; readonly reason: string };
+  | { readonly kind: 'retry'; readonly reason: string; readonly cause?: RenderFailureCause }
+  | { readonly kind: 'degrade'; readonly reason: string; readonly cause?: RenderFailureCause };
 
 /**
  * 流式阶段的用量累计状态 (阶段 3 边吐边累计时用).
@@ -272,6 +279,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   private readonly logger = new Logger(LlmRenderAdapter.name);
   private readonly config: RenderAdapterConfig;
   private readonly runtime: RenderFailoverRuntime;
+  /** 可选遥测 (AF-278): 只旁路回调, 不参与决策. */
+  private readonly telemetry?: RenderTelemetryPort;
   /** 兜底话术轮换游标 (实例内, 确定性). */
   private fallbackCursor = 0;
 
@@ -284,6 +293,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     }
     this.config = deps.config;
     this.runtime = new RenderFailoverRuntime(deps.config.candidates, deps.now ?? Date.now);
+    this.telemetry = deps.telemetry;
   }
 
   /**
@@ -298,7 +308,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const messages = this.buildMessages(spec);
     if (messages.length === 0) {
       this.logger.warn('[render] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
-      return this.degrade(spec);
+      return this.degrade(spec, '渲染上下文为空', 'empty');
     }
 
     const ctx: RenderCallContext = {
@@ -311,7 +321,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       usedRealismRegen: false,
     };
 
-    const { outcome, attempted } = await this.runCandidateLoop((candidate) => this.attempt(ctx, candidate));
+    const { outcome, attempted } = await this.runCandidateLoop(ctx.spec, (candidate) => this.attempt(ctx, candidate));
 
     if (outcome.kind === 'success') {
       // 成功即清零该候选的失败计数与冷却 (WP7 补): 计数只增不减的话,
@@ -343,7 +353,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     this.logger.error(
       `[render] 渲染失败, 降级兜底: ${outcome.reason} cooldown_served=${stats.cooldownServed} probe_attempts=${stats.probeAttempts}`,
     );
-    return this.degrade(spec, outcome.reason);
+    return this.degrade(spec, outcome.reason, outcome.cause ?? 'other');
   }
 
   /**
@@ -366,7 +376,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const messages = this.buildMessages(spec);
     if (messages.length === 0) {
       this.logger.warn('[streamRender] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
-      return this.degradeOutcome(spec, '渲染上下文为空');
+      return this.degradeOutcome(spec, '渲染上下文为空', 'empty');
     }
 
     // 前置静态预检: 首 delta 之前, 只看 RenderSpec, 不调模型.
@@ -374,7 +384,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const pre = this.runPrecheck(spec);
     if (pre.level === 'block') {
       this.logger.error(`[streamRender] 前置静态预检命中 block (${(pre.categories ?? []).join(',') || '-'}), 不建流直接降级`);
-      return this.degradeOutcome(spec, '前置静态预检命中 block');
+      return this.degradeOutcome(spec, '前置静态预检命中 block', 'guard');
     }
 
     if (!this.deps.caller.stream) {
@@ -383,13 +393,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       return this.streamViaAggregate(spec, handlers);
     }
 
-    const { outcome, attempted } = await this.runCandidateLoop((candidate) => this.streamAttempt(spec, candidate, messages, handlers));
+    const { outcome, attempted } = await this.runCandidateLoop(spec, (candidate) =>
+      this.streamAttempt(spec, candidate, messages, handlers),
+    );
 
     if (outcome.kind === 'success') {
       // 切过备 → fallbackUsed=true (与聚合路径同一口径: 走过备用路径).
       return attempted.length > 1 ? { ...outcome.value, fallbackUsed: true } : outcome.value;
     }
-    return this.degradeOutcome(spec, outcome.reason);
+    return this.degradeOutcome(spec, outcome.reason, outcome.cause ?? 'other');
   }
 
   /**
@@ -401,6 +413,20 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    */
   health(): Readonly<Record<string, RenderCandidateHealth>> {
     return this.runtime.health();
+  }
+
+  /**
+   * 遥测安全调用: 未注入直接跳过, 实现抛错也吞掉.
+   *
+   * 遥测必须永不改变渲染结果 —— 指标登记失败不能让这一轮变成降级.
+   */
+  private notify(action: (telemetry: RenderTelemetryPort) => void): void {
+    if (!this.telemetry) return;
+    try {
+      action(this.telemetry);
+    } catch {
+      // 忽略: 旁路观测不得影响主流程.
+    }
   }
 
   // ── 共享核心: 候选主备循环 ────────────────────────────────────────
@@ -419,21 +445,33 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * @returns 终局 + 本轮已尝试的候选 id 序列
    */
   private async runCandidateLoop<T>(
+    spec: AdaptiveRenderSpec,
     attempt: (candidate: RenderCandidate) => Promise<AttemptOutcome<T>>,
   ): Promise<{ outcome: AttemptOutcome<T>; attempted: readonly string[] }> {
     const attempted: string[] = [];
+    /** 上一候选的失败原因; 下一轮选中新候选时用它记录 fallback. */
+    let pendingFailure: { readonly from: string; readonly cause: RenderFailureCause } | null = null;
     for (let round = 0; round <= this.config.candidates.length; round += 1) {
       const candidate = this.runtime.next(attempted);
       if (!candidate) {
-        return { outcome: { kind: 'degrade', reason: '候选耗尽或全部处于冷却' }, attempted };
+        return { outcome: { kind: 'degrade', reason: '候选耗尽或全部处于冷却', cause: 'exhausted' }, attempted };
+      }
+      // 只有真正选到下一个候选才算一次回退; 候选耗尽时上面已按 exhausted 记降级.
+      if (pendingFailure !== null) {
+        const failure = pendingFailure;
+        this.notify((telemetry) => telemetry.onFallback?.(failure.from, candidate.id, failure.cause));
       }
       attempted.push(candidate.id);
+      const model = this.resolveParams(spec, candidate).model;
+      this.notify((telemetry) => telemetry.onAttempt?.(candidate.id, model));
       const outcome = await attempt(candidate);
+      this.notify((telemetry) => telemetry.onAttemptOutcome?.(candidate.id, model, toAttemptOutcome(outcome.kind)));
       if (outcome.kind !== 'retry') {
         return { outcome, attempted };
       }
+      pendingFailure = { from: candidate.id, cause: outcome.cause ?? 'other' };
     }
-    return { outcome: { kind: 'degrade', reason: '候选耗尽' }, attempted };
+    return { outcome: { kind: 'degrade', reason: '候选耗尽', cause: 'exhausted' }, attempted };
   }
 
   /**
@@ -444,14 +482,18 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * (MINIMAX_API_KEY / LLM_DOUBAO_API_KEY)，主 key 轮换或临时失效不应拖死整场。
    * 切到备候选仍失败时，候选循环自然耗尽并降级，不会无限重试。
    */
-  private classifyFailure(candidate: RenderCandidate, error: unknown): { readonly retryable: boolean; readonly reason: string } {
+  private classifyFailure(
+    candidate: RenderCandidate,
+    error: unknown,
+  ): { readonly retryable: boolean; readonly reason: string; readonly cause: RenderFailureCause } {
     this.runtime.markFailure(candidate.id, this.config);
     if (isAuthFailure(error)) {
       this.logger.error(`[render] 候选 ${candidate.id} 鉴权失败, 切下一个候选: ${errorMessage(error)}`);
-      return { retryable: true, reason: `鉴权失败: ${errorMessage(error)}` };
+      this.notify((telemetry) => telemetry.onAuthFailure?.(candidate.id));
+      return { retryable: true, reason: `鉴权失败: ${errorMessage(error)}`, cause: 'auth' };
     }
     this.logger.warn(`[render] 候选 ${candidate.id} 调用失败, 切下一个候选: ${errorMessage(error)}`);
-    return { retryable: true, reason: errorMessage(error) };
+    return { retryable: true, reason: errorMessage(error), cause: classifyErrorCause(error) };
   }
 
   // ── 聚合路径 ──────────────────────────────────────────────────────
@@ -463,12 +505,14 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const params = this.resolveParams(ctx.spec, candidate);
     if (!params.model) {
       this.logger.error(`[render] 候选 ${candidate.id} 未配置模型名 (taskKind=${ctx.spec.taskKind}), 无法发起调用`);
-      return { kind: 'degrade', reason: `候选 ${candidate.id} 未配置模型名` };
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 未配置模型名`, cause: 'config' };
     }
 
     const call = await this.callOnce(candidate, params, ctx.messages);
     if (!call.ok) {
-      return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
+      return call.retryable
+        ? { kind: 'retry', reason: call.reason, cause: call.cause ?? 'other' }
+        : { kind: 'degrade', reason: call.reason, cause: call.cause ?? 'other' };
     }
 
     // AF-106: 推理块既不是可见台词，也不能进逐字稿 / 历史 / 来访者引擎上下文。
@@ -478,7 +522,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 空内容 = 没有可用输出, 与失败同等处理 (切备), 不把空串当"成功"返回.
       this.runtime.markFailure(candidate.id, this.config);
       this.logger.warn(`[render] 候选 ${candidate.id} 返回空内容, 视为失败并切备`);
-      return { kind: 'retry', reason: `候选 ${candidate.id} 返回空内容` };
+      return { kind: 'retry', reason: `候选 ${candidate.id} 返回空内容`, cause: 'empty' };
     }
 
     // V2026-10-29 治本 (WP9-C · 截断保护): 上游按长度上限截断时, 半截句子不能出声.
@@ -488,7 +532,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 截断后一句完整话都不剩 → 本候选没产出可用内容, 与空内容同口径切备.
       this.runtime.markFailure(candidate.id, this.config);
       this.logger.warn(`[render] 候选 ${candidate.id} 内容被上游截断且无完整句, 视为失败并切备`);
-      return { kind: 'retry', reason: `候选 ${candidate.id} 截断后无完整句` };
+      return { kind: 'retry', reason: `候选 ${candidate.id} 截断后无完整句`, cause: 'truncated' };
     }
 
     return await this.handleText(ctx, candidate, params, text, call.response.usage);
@@ -728,7 +772,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       return { ok: true, response };
     } catch (error) {
       const failure = this.classifyFailure(candidate, error);
-      return { ok: false, retryable: failure.retryable, reason: failure.reason };
+      return { ok: false, retryable: failure.retryable, reason: failure.reason, cause: failure.cause };
     }
   }
 
@@ -749,7 +793,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const params = this.resolveParams(spec, candidate);
     if (!params.model) {
       this.logger.error(`[streamRender] 候选 ${candidate.id} 未配置模型名 (taskKind=${spec.taskKind}), 无法建流`);
-      return { kind: 'degrade', reason: `候选 ${candidate.id} 未配置模型名` };
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 未配置模型名`, cause: 'config' };
     }
     // R2: 流式已经出声，不重试；只在收尾审计一次，供灰度观察。
     const realism = resolveVisitorRealismRuntime(spec);
@@ -770,7 +814,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       if (opened.cancelled === true) {
         return { kind: 'degrade', reason: `候选 ${candidate.id} 外部取消` };
       }
-      return opened.retryable ? { kind: 'retry', reason: opened.reason } : { kind: 'degrade', reason: opened.reason };
+      return opened.retryable
+        ? { kind: 'retry', reason: opened.reason, cause: opened.cause ?? 'other' }
+        : { kind: 'degrade', reason: opened.reason, cause: opened.cause ?? 'other' };
     }
     // 首个**可见**增量已到达 → 本轮 TTFT 定了 (开头的预检/切备耗时算在上游等待里).
     // AF-106: 推理块不是可见台词，不能拿它当"已出声"锁定候选。
@@ -794,6 +840,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         this.runtime.markSuccess(candidate.id);
         locked = true;
         ttftMs = Date.now() - streamStartedAt;
+        this.notify((telemetry) => telemetry.onFirstDelta?.(candidate.id, params.model, ttftMs));
       }
       await handlers.onDelta(chunk);
     };
@@ -845,14 +892,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     } catch (error) {
       if (error instanceof StreamIdleTimeoutError) {
         this.runtime.markFailure(candidate.id, this.config);
+        this.notify((telemetry) => telemetry.onStreamTimeout?.(candidate.id, 'idle'));
         this.logger.warn(
           `[streamRender] 候选 ${candidate.id} 流式中途无增量超时 (phase=idle idle=${this.config.streamIdleTimeoutMs}ms), 收尾降级`,
         );
-        return { kind: 'degrade', reason: `候选 ${candidate.id} ${error.message}` };
+        return { kind: 'degrade', reason: `候选 ${candidate.id} ${error.message}`, cause: 'idle' };
       }
       // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
       this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
-      return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}` };
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}`, cause: classifyErrorCause(error) };
     } finally {
       // 正常结束 / 中断 / 消费方抛错都要释放外部取消监听；否则长会话会累积悬挂监听。
       opened.dispose();
@@ -883,7 +931,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (spoken.length === 0) {
       this.runtime.markFailure(candidate.id, this.config);
       this.logger.warn(`[streamRender] 候选 ${candidate.id} 没有可见台词 (仅推理块或被截断), 视为失败并切备`);
-      return { kind: 'retry', reason: `候选 ${candidate.id} 没有可见台词` };
+      return { kind: 'retry', reason: `候选 ${candidate.id} 没有可见台词`, cause: 'empty' };
     }
 
     // 阶段 4: 收尾 —— 后置全文 guard 只记信号 (不 regen / 不撤回).
@@ -1027,7 +1075,13 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         /** 释放外部取消监听与定时器；流结束后必须调用。 */
         readonly dispose: () => void;
       }
-    | { readonly ok: false; readonly retryable: boolean; readonly reason: string; readonly cancelled?: true }
+    | {
+        readonly ok: false;
+        readonly retryable: boolean;
+        readonly reason: string;
+        readonly cancelled?: true;
+        readonly cause?: RenderFailureCause;
+      }
   > {
     // AF-270 治本：流式 SDK 的 headersTimeout 约 300s，上游「接受连接但不回首包」时
     // 主候选会挂死，备候选永远轮不到。AF-276: 首包预算独立于聚合总超时，并按本次
@@ -1088,10 +1142,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     } catch (error) {
       if (guard.timedOut()) {
         this.runtime.markFailure(candidate.id, this.config);
+        this.notify((telemetry) => telemetry.onStreamTimeout?.(candidate.id, 'first-delta'));
         this.logger.warn(
           `[streamRender] 候选 ${candidate.id} 流式首包超时 (phase=first-delta budget=${firstDeltaTimeoutMs}ms), 切下一个候选`,
         );
-        return { ok: false, retryable: true, reason: `流式首包超时 (budget=${firstDeltaTimeoutMs}ms)` };
+        return { ok: false, retryable: true, reason: `流式首包超时 (budget=${firstDeltaTimeoutMs}ms)`, cause: 'first-delta' };
       }
       // AF-274 (P0-2): 消费方主动取消不是上游故障 —— 不记失败、不切备。
       // 否则一次 barge-in 会同时污染主备两个候选的熔断器，3 次即全场兜底。
@@ -1100,7 +1155,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         return { ok: false, retryable: false, cancelled: true, reason: '外部取消' };
       }
       const failure = this.classifyFailure(candidate, error);
-      return { ok: false, retryable: failure.retryable, reason: failure.reason };
+      return { ok: false, retryable: failure.retryable, reason: failure.reason, cause: failure.cause };
     } finally {
       if (!keepOpen) guard.cleanup();
     }
@@ -1249,7 +1304,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   /**
    * 最终降级: 返回兜底话术, 永不 reject (M4).
    */
-  private degrade(spec: AdaptiveRenderSpec, reason = '渲染失败'): RenderResult {
+  private degrade(spec: AdaptiveRenderSpec, reason = '渲染失败', cause: RenderFailureCause = 'other'): RenderResult {
+    this.notify((telemetry) => telemetry.onDegraded?.(cause));
     const utterance = this.pickFallbackUtterance();
     // degraded=true 是**日志标记**: 兜底句不是来访者真说的话, 不许冒充成真实回复.
     this.logger.error(`[render] 渲染降级兜底: degraded=true reason=${reason} utterance=${utterance}`);
@@ -1268,7 +1324,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * `degraded=true` 的含义: 这段文本**不是**来访者完整说出来的真话 (兜底句或
    * 残句), 上层据此不把它写进历史与工作记忆.
    */
-  private degradeOutcome(spec: AdaptiveRenderSpec, reason: string): StreamRenderOutcome {
+  private degradeOutcome(spec: AdaptiveRenderSpec, reason: string, cause: RenderFailureCause = 'other'): StreamRenderOutcome {
+    this.notify((telemetry) => telemetry.onDegraded?.(cause));
     const utterance = this.pickFallbackUtterance();
     this.logger.warn(`[streamRender] 降级兜底: degraded=true reason=${reason} utterance=${utterance}`);
     return {
@@ -1585,6 +1642,28 @@ function extractErrorStatus(error: unknown): number | undefined {
   const candidate = error as { status?: unknown; statusCode?: unknown; response?: { status?: unknown } };
   const raw = candidate.status ?? candidate.statusCode ?? candidate.response?.status;
   return typeof raw === 'number' ? raw : undefined;
+}
+
+/**
+ * 错误归类到封闭枚举 (仅用于遥测标签, 不参与重试决策).
+ *
+ * 结构与 `isAuthFailure` 同源: 优先结构化 status, 文案兜底; 认不出就落到 other,
+ * 不把原始 message 当标签 (基数不可控且可能夹带敏感片段).
+ */
+function classifyErrorCause(error: unknown): RenderFailureCause {
+  const status = extractErrorStatus(error);
+  if (status === 429) return 'rate-limit';
+  if (status !== undefined && status >= 500 && status < 600) return 'server';
+  if (status !== undefined && status >= 400 && status < 500) return 'other';
+  const message = errorMessage(error).toLowerCase();
+  if (/\b429\b|rate limit|too many requests/.test(message)) return 'rate-limit';
+  if (/\b5\d\d\b|server error|bad gateway|service unavailable/.test(message)) return 'server';
+  if (/timeout|timed out|etimedout|aborted|abort/.test(message)) return 'timeout';
+  return 'other';
+}
+
+function toAttemptOutcome(kind: 'success' | 'retry' | 'degrade'): RenderAttemptOutcome {
+  return kind;
 }
 
 /**

@@ -54,6 +54,7 @@ import {
   type RenderAdapterConfig,
   type RenderCandidate,
 } from '../rendering/render-adapter.config.js';
+import type { RenderTelemetryPort } from '../rendering/render-telemetry.port.js';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
 import { buildVisitorMessages } from '../rendering/turn-render-orchestrator.js';
 
@@ -424,11 +425,17 @@ export class RenderConfigFactory {
  * @param probe 可选的来访输出侧探测器 (WP11 审核后决策 #3; 缺省 = 该侧不接探测)
  * @returns 渲染适配器依赖
  */
-export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterConfig, probe?: RiskProbePort): LlmRenderAdapterDeps {
+export function buildEngineRenderDeps(
+  caller: ChatCaller,
+  config: RenderAdapterConfig,
+  probe?: RiskProbePort,
+  telemetry?: RenderTelemetryPort,
+): LlmRenderAdapterDeps {
   const logger = new Logger('EngineRenderPort');
   return {
     caller,
     config,
+    ...(telemetry ? { telemetry } : {}),
     // WP7 留给本期的 prompt 缝: 来访视角的中文 system 模板 + 角色映射.
     buildMessages: buildVisitorMessages,
     // 输出侧伦理校验: 复用内核 WP4 的 guardVisitorOutput (两侧口径永远一致).
@@ -454,6 +461,11 @@ export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterC
  * @param probe 可选的来访输出侧探测器 (WP11 审核后决策 #3; 缺省 = 该侧不接探测)
  * @returns 渲染端口 (带流式扩展)
  */
-export function buildEngineRenderPort(caller: ChatCaller, config: RenderAdapterConfig, probe?: RiskProbePort): StreamingRenderPort {
-  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config, probe));
+export function buildEngineRenderPort(
+  caller: ChatCaller,
+  config: RenderAdapterConfig,
+  probe?: RiskProbePort,
+  telemetry?: RenderTelemetryPort,
+): StreamingRenderPort {
+  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config, probe, telemetry));
 }
