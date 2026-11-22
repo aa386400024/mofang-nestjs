@@ -138,6 +138,7 @@ import {
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { buildEncounterVisitorBlock, resolveEncounter, type EncounterInput } from '../../shared/encounter/encounter-scene.js';
 import { buildVisitorRealismPromptBlock, type VisitorRealismProfile } from '../../shared/realism/index.js';
+import { SEED_V5_VISITOR_CONSTRAINTS, type VisitorPromptVariant } from '../../shared/realism/visitor-prompt-variants.js';
 import type { ModelClassifierContextPort } from '../cognition/model-event-classifier.js';
 import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
 import type { DeliberationScenarioType } from '../deliberation/deliberation-mode.config.js';
@@ -1558,10 +1559,10 @@ const EMOTION_LABEL: Readonly<Record<EmotionLabel, string>> = {
  * @param spec 渲染规格
  * @returns 消息序列
  */
-export function buildVisitorMessages(spec: AdaptiveRenderSpec): ChatMessage[] {
+export function buildVisitorMessages(spec: AdaptiveRenderSpec, promptVariant: VisitorPromptVariant = 'shared'): ChatMessage[] {
   logPromptCharacterFragment(spec);
   return [
-    { role: 'system', content: buildVisitorSystemPrompt(spec) },
+    { role: 'system', content: buildVisitorSystemPrompt(spec, promptVariant) },
     ...spec.recentTurns.map((turn) => ({
       role: turn.role === 'counselor' ? ('user' as const) : ('assistant' as const),
       content: turn.text,
@@ -2039,7 +2040,7 @@ function buildVisitorHardRules(realismActive: boolean): string[] {
   ];
 }
 
-function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
+function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: VisitorPromptVariant = 'shared'): string {
   // AF-204: 场景缺省 = 面对面咨询室。AF-187 的"未登记不渲染"在 11-20 被产品口径
   // 推翻：默认就是咨询室，只有显式登记 online 才走远程口径。
   const effectiveEncounter: EncounterInput = spec.encounter ?? { mode: 'in_person' };
@@ -2208,7 +2209,15 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
 
   const hardRules = buildVisitorHardRules(realismProfile.mode === 'active');
   lines.push('', '硬规则：', ...hardRules);
+  appendVisitorPromptVariant(lines, promptVariant);
   return lines.join('\n');
+}
+
+/** AF-281: 变体追加独立成函数，避免把 buildVisitorSystemPrompt 的复杂度再抬一档. */
+function appendVisitorPromptVariant(lines: string[], promptVariant: VisitorPromptVariant): void {
+  if (promptVariant === 'seed-v5') {
+    lines.push('', SEED_V5_VISITOR_CONSTRAINTS);
+  }
 }
 
 /**
