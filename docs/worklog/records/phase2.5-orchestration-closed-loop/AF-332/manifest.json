@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-332",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T04:10:00+08:00",
+  "updatedAt": "2026-11-22T20:00:09.635Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-332/task-sheet.md",
+    "sha256": "e419ce141069cfb8019ed5252f31cb962243834e0f72e6c9ebfe93e1f27aec99",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af332-realism-baseline-variance-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T19:51:47.634Z",
+  "generatedAt": "2026-11-22T20:00:17.511Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,48 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-332",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "verification",
+      "title": "真人度短会话基线方差与配对中位数校准",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-332/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-332",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T20:00:17.433Z",
+        "leaseDeadline": "2026-11-22T20:30:17.430Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-332.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T20:00:17.433Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-332.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1785,6 +1826,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-063",
+      "recordedAt": "2026-11-22T20:00:10.099Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-332",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-062",
       "recordedAt": "2026-11-22T19:34:33.654Z",
       "actorRef": "orchestrator",
@@ -2003,40 +2061,52 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-326-classifier-prompt-v2"
       ]
-    },
-    {
-      "auditId": "AUD-048",
-      "recordedAt": "2026-11-22T18:20:02.538Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-326",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-326",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-326.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 62,
+    "total": 63,
     "byResult": {
-      "allowed": 62,
+      "allowed": 63,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 61,
+      "TOOL-QUEUE-SCHEDULER": 62,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 62
+      "orchestrator": 63
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-332",
+        "title": "真人度短会话基线方差与配对中位数校准",
+        "type": "verification",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-331"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-332/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7629,9 +7699,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-332",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-332/task-sheet.md"
+      },
+      {
+        "taskId": "AF-332",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
