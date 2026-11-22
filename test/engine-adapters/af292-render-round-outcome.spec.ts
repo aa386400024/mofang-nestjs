@@ -174,4 +174,69 @@ describe('AF-292 · 轮次终局分母', () => {
     expect(toRoundOutcome('exhausted')).toBe('exhausted');
     expect(toRoundOutcome('rate-limit')).toBe('degrade');
   });
+
+  it('聚合路径构造消息抛错: 不 reject, 且只记一次 rounds{degrade}', async () => {
+    const recorder = new RoundRecorder();
+    const adapter = new LlmRenderAdapter({
+      caller: new SuccessCaller(),
+      config: config([{ id: 'primary' }]),
+      telemetry: recorder,
+      buildMessages: () => {
+        throw new Error('build boom');
+      },
+    });
+
+    const result = await adapter.render(spec());
+
+    expect(result.text).toBe(FALLBACK);
+    expect(result.providerHint).toBe('degraded');
+    expect(recorder.rounds).toEqual(['degrade']);
+  });
+
+  it('流式路径构造消息抛错: 不 reject, 且只记一次 rounds{degrade}', async () => {
+    const recorder = new RoundRecorder();
+    const adapter = new LlmRenderAdapter({
+      caller: new FailingCaller(),
+      config: config([{ id: 'primary' }]),
+      telemetry: recorder,
+      buildMessages: () => {
+        throw new Error('build boom');
+      },
+    });
+
+    const result = await adapter.streamRender(spec(), { onDelta: () => {} });
+
+    expect(result.degraded).toBe(true);
+    expect(result.text).toBe(FALLBACK);
+    expect(recorder.rounds).toEqual(['degrade']);
+  });
+
+  it('聚合回退形态(无流式出口)成功: 嵌套调用也只记一次 rounds{success}', async () => {
+    const recorder = new RoundRecorder();
+    const adapter = new LlmRenderAdapter({
+      caller: new SuccessCaller(),
+      config: config([{ id: 'primary' }]),
+      telemetry: recorder,
+    });
+
+    await adapter.streamRender(spec(), { onDelta: () => {} });
+
+    expect(recorder.rounds).toEqual(['success']);
+  });
+
+  it('聚合回退形态构造消息抛错: 内外层不重复, 只记一次 rounds{degrade}', async () => {
+    const recorder = new RoundRecorder();
+    const adapter = new LlmRenderAdapter({
+      caller: new SuccessCaller(),
+      config: config([{ id: 'primary' }]),
+      telemetry: recorder,
+      buildMessages: () => {
+        throw new Error('build boom');
+      },
+    });
+
+    await adapter.streamRender(spec(), { onDelta: () => {} });
+
+    expect(recorder.rounds).toEqual(['degrade']);
+  });
 });

@@ -283,6 +283,29 @@ interface RenderCallContext {
 }
 
 /**
+ * 单次 render/streamRender 调用的轮次结局上报口 (AF-297).
+ *
+ * 一次调用只允许上报一次结局: 聚合路径套流式路径时, 内层 `render()` 不能再
+ * 独立上报, 否则 `rounds_total` 分母会凭空多一份. 上报口自带 settled 标记,
+ * 异常兜底与正常结局竞争时也只留第一个.
+ */
+class RoundOutcomeSink {
+  private done = false;
+
+  constructor(private readonly emit: (outcome: RenderRoundOutcome) => void) {}
+
+  get settled(): boolean {
+    return this.done;
+  }
+
+  report(outcome: RenderRoundOutcome): void {
+    if (this.done) return;
+    this.done = true;
+    this.emit(outcome);
+  }
+}
+
+/**
  * 渲染适配器 (实现内核 RenderPort + 适配层流式扩展).
  *
  * 纯类: 可脱离 NestJS 容器 `new` 出来跑 (WP8 再做 DI 注册).
@@ -322,10 +345,22 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * @returns 渲染结果
    */
   async render(spec: AdaptiveRenderSpec): Promise<RenderResult> {
+    const rounds = this.createRoundSink();
+    try {
+      return await this.renderInner(spec, rounds);
+    } catch (error) {
+      // 构造消息 / 解析真人度运行时等前置环节抛错时会走到这里: 既不能 reject
+      // 让上层协程崩掉, 也不能让这一轮从 rounds_total 分母里凭空消失.
+      this.logger.error(`[render] 渲染异常逃逸, 走降级兜底: stage=render error=${errorName(error)}`);
+      return this.degrade(spec, '渲染异常逃逸', 'other', rounds);
+    }
+  }
+
+  private async renderInner(spec: AdaptiveRenderSpec, rounds: RoundOutcomeSink): Promise<RenderResult> {
     const messages = this.buildMessages(spec);
     if (messages.length === 0) {
       this.logger.warn('[render] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
-      return this.degrade(spec, '渲染上下文为空', 'empty');
+      return this.degrade(spec, '渲染上下文为空', 'empty', rounds);
     }
 
     const ctx: RenderCallContext = {
@@ -345,8 +380,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 一个"失败过一次、后来已经恢复"的候选会带着旧计数进冷却,
       // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
       this.runtime.markSuccess(outcome.candidateId);
-      this.notify((telemetry) => telemetry.onRoundOutcome?.('success'));
-      return {
+      const result: RenderResult = {
         text: this.projectOutput(outcome.value.text),
         taskKind: spec.taskKind,
         usage: {
@@ -364,6 +398,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         providerHint: outcome.value.providerHint,
         model: outcome.value.model,
       };
+      // 成功也在最后一步才上报: 返回对象构造中途抛错时, 外层兜底仍能记一次 degrade.
+      rounds.report('success');
+      return result;
     }
 
     // 冷却计数只打数字 (可观测; 不含任何对话内容).
@@ -371,7 +408,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     this.logger.error(
       `[render] 渲染失败, 降级兜底: ${outcome.reason} cooldown_served=${stats.cooldownServed} probe_attempts=${stats.probeAttempts}`,
     );
-    return this.degrade(spec, outcome.reason, outcome.cause ?? 'other');
+    return this.degrade(spec, outcome.reason, outcome.cause ?? 'other', rounds);
   }
 
   /**
@@ -391,10 +428,25 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * @returns 流式收尾结果
    */
   async streamRender(spec: AdaptiveRenderSpec, handlers: StreamRenderHandlers): Promise<StreamRenderOutcome> {
+    const rounds = this.createRoundSink();
+    try {
+      return await this.streamRenderInner(spec, handlers, rounds);
+    } catch (error) {
+      // 与聚合路径同一口径: 异常逃逸也要留下一次 rounds{degrade}, 且不 reject.
+      this.logger.error(`[streamRender] 流式渲染异常逃逸, 走降级兜底: stage=streamRender error=${errorName(error)}`);
+      return this.degradeOutcome(spec, '渲染异常逃逸', 'other', true, rounds);
+    }
+  }
+
+  private async streamRenderInner(
+    spec: AdaptiveRenderSpec,
+    handlers: StreamRenderHandlers,
+    rounds: RoundOutcomeSink,
+  ): Promise<StreamRenderOutcome> {
     const messages = this.buildMessages(spec);
     if (messages.length === 0) {
       this.logger.warn('[streamRender] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
-      return this.degradeOutcome(spec, '渲染上下文为空', 'empty');
+      return this.degradeOutcome(spec, '渲染上下文为空', 'empty', true, rounds);
     }
 
     // 前置静态预检: 首 delta 之前, 只看 RenderSpec, 不调模型.
@@ -402,13 +454,13 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const pre = this.runPrecheck(spec);
     if (pre.level === 'block') {
       this.logger.error(`[streamRender] 前置静态预检命中 block (${(pre.categories ?? []).join(',') || '-'}), 不建流直接降级`);
-      return this.degradeOutcome(spec, '前置静态预检命中 block', 'guard');
+      return this.degradeOutcome(spec, '前置静态预检命中 block', 'guard', true, rounds);
     }
 
     if (!this.deps.caller.stream) {
       // 调用出口没有流式能力 → 聚合取文后切段成增量 (兜底形态, 不作为主路径).
       this.logger.warn('[streamRender] 调用出口无流式能力, 回退聚合收集成流');
-      return this.streamViaAggregate(spec, handlers);
+      return this.streamViaAggregate(spec, handlers, rounds);
     }
 
     const { outcome, attempted } = await this.runCandidateLoop(spec, (candidate) =>
@@ -416,12 +468,13 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     );
 
     if (outcome.kind === 'success') {
-      this.notify((telemetry) => telemetry.onRoundOutcome?.('success'));
       // 切过备 → fallbackUsed=true (与聚合路径同一口径: 走过备用路径).
-      return attempted.length > 1 ? { ...outcome.value, fallbackUsed: true } : outcome.value;
+      const result = attempted.length > 1 ? { ...outcome.value, fallbackUsed: true } : outcome.value;
+      rounds.report('success');
+      return result;
     }
     // barge-in / 暂停是正常交互, 不是渲染降级: 不记 degraded_total.
-    return this.degradeOutcome(spec, outcome.reason, outcome.cause ?? 'other', outcome.cause !== 'cancelled');
+    return this.degradeOutcome(spec, outcome.reason, outcome.cause ?? 'other', outcome.cause !== 'cancelled', rounds);
   }
 
   /**
@@ -447,6 +500,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     } catch {
       // 忽略: 旁路观测不得影响主流程.
     }
+  }
+
+  /** 每次调用独立的轮次结局上报口 (AF-297: 恰好一次). */
+  private createRoundSink(): RoundOutcomeSink {
+    return new RoundOutcomeSink((outcome) => this.notify((telemetry) => telemetry.onRoundOutcome?.(outcome)));
   }
 
   /**
@@ -1279,8 +1337,13 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * 为什么不另写一套"假流式": 那正是本单要消灭的第二套实现. 这里复用**同一个**
    * `render()` (因此主备/冷却/guard/降级全都一致), 只是把成品文本切成段转发.
    */
-  private async streamViaAggregate(spec: RenderSpec, handlers: StreamRenderHandlers): Promise<StreamRenderOutcome> {
-    const result = await this.render(spec);
+  private async streamViaAggregate(
+    spec: RenderSpec,
+    handlers: StreamRenderHandlers,
+    rounds: RoundOutcomeSink,
+  ): Promise<StreamRenderOutcome> {
+    // 复用外层 sink: 聚合路径内部不再单独上报一次, 否则一次流式调用会被记两轮.
+    const result = await this.renderInner(spec, rounds);
     for (const chunk of splitTextIntoDeltas(result.text)) {
       await handlers.onDelta(chunk);
     }
@@ -1411,9 +1474,17 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   /**
    * 最终降级: 返回兜底话术, 永不 reject (M4).
    */
-  private degrade(spec: AdaptiveRenderSpec, reason = '渲染失败', cause: RenderFailureCause = 'other'): RenderResult {
-    this.notify((telemetry) => telemetry.onRoundOutcome?.(toRoundOutcome(cause)));
-    this.notify((telemetry) => telemetry.onDegraded?.(cause));
+  private degrade(
+    spec: AdaptiveRenderSpec,
+    reason = '渲染失败',
+    cause: RenderFailureCause = 'other',
+    rounds: RoundOutcomeSink,
+  ): RenderResult {
+    const first = !rounds.settled;
+    rounds.report(toRoundOutcome(cause));
+    if (first) {
+      this.notify((telemetry) => telemetry.onDegraded?.(cause));
+    }
     const utterance = this.pickFallbackUtterance();
     // degraded=true 是**日志标记**: 兜底句不是来访者真说的话, 不许冒充成真实回复.
     this.logger.error(`[render] 渲染降级兜底: degraded=true reason=${reason} utterance=${utterance}`);
@@ -1437,9 +1508,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     reason: string,
     cause: RenderFailureCause = 'other',
     recordDegraded = true,
+    rounds: RoundOutcomeSink,
   ): StreamRenderOutcome {
-    this.notify((telemetry) => telemetry.onRoundOutcome?.(toRoundOutcome(cause)));
-    if (recordDegraded) {
+    const first = !rounds.settled;
+    rounds.report(toRoundOutcome(cause));
+    if (recordDegraded && first) {
       this.notify((telemetry) => telemetry.onDegraded?.(cause));
     }
     const utterance = this.pickFallbackUtterance();
@@ -1800,6 +1873,14 @@ export function toRoundOutcome(cause: RenderFailureCause): RenderRoundOutcome {
  */
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * 错误类型名 (AF-297): 异常逃逸日志只留类型, 不打 message ——
+ * 上游/构造缝的 message 可能夹带 prompt 或对话原文, 不能进普通日志.
+ */
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
 }
 
 /**

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-297",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T18:20:00+08:00",
+  "updatedAt": "2026-11-22T10:18:39.973Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-297/task-sheet.md",
+    "sha256": "9adb7abe00b7ec4da5b5c1f7a468b5a13559f7ff27aa5ef4dfb79d6eeaff33bb",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-297/receipt-RC-AF-297-1.json",
+      "sha256": "10f26b444ac24ab05edbede4bcaab00936e3a39e7e39b24785fb8fda561d17a9",
+      "receiptId": "RC-AF-297-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af297-render-round-exactly-once-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af297-render-round-exactly-once-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
