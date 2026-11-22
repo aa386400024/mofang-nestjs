@@ -1,0 +1,201 @@
+{
+  "deliveredAt": "2026-11-23T06:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-341-1",
+    "taskId": "AF-341",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "1930636242b03678db2379aec736471294478fee",
+    "dependsOn": ["AF-340", "AF-335"],
+    "priorTasks": ["AF-340", "AF-339", "AF-338", "AF-337", "AF-336", "AF-335"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-341/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af341-realism-tightened-recheck-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af341-realism-tightened-recheck-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["6fb989a7ec3846e0c3af9c738fc53cb1ab547652"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af341-realism-tightened-recheck-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af341-realism-tightened-recheck-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-341/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-341/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "8 × pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --turn-set long --arms tightened --reps 1 --turns 12 --out .../reps/rep-N.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "约 130s",
+        "note": "8 次 × 2 人设 × 12 轮 = 192 次调用，0 失败"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 296,
+        "tests": 4538,
+        "machine": "同上",
+        "wallClock": "19.31s",
+        "note": "296 文件通过 / 1 跳过（297）；4538 例通过 / 4 跳过（4542）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-341 status=submitted files=4"
+      }
+    ],
+    "reproNotes": "8 次 tightened 执行 `--turn-set long --arms tightened --reps 1 --turns 12`；用 AF-332 分布 CLI 汇总；用 AF-335 敏感性 CLI 对 off 16 与 tightened 8 计算分离区间。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-341 经 CLI register / promote / run-once；分支 task/AF-341-realism-tightened-recheck"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "无代码改动；engine-core 零 diff"
+      },
+      {
+        "item": "no-production-change",
+        "result": "pass",
+        "note": "只跑离线 CLI，生产块、模式开关、阈值均未改"
+      },
+      {
+        "item": "scope-extension",
+        "result": "pass",
+        "note": "无追加；192 次调用与任务单一致"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "原始 JSON 留 gitignored 目录；报告只含数字"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "合成人设工程复核，不宣称临床真人度或疗效"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 19306362；任务单 verification；回执 finalStatus completed；提交 6fb989a7 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF341-B1",
+        "impact": "tightened 密度稳定在 2.794673/3.021134，但两格均与 off 16 完全重叠，没有可分离区间。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF341-B2",
+        "impact": "密度与分离性反向耦合：越接近 humanization-v1 窗口越与 off 不可分；off 自身就落在窗口内。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF341-B3",
+        "impact": "继续加“既进窗又分得开”的密度臂是结构性死路，应改用事件类型组成、人设声音或外部标注做判据。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF341-B4",
+        "impact": "tightened 焦虑 repair/turn 0.114583 略高于 0.10，5/8 在窗；判据本身对 12 轮样本偏紧。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "humanization-v1 是否降级为事件量监控、不再作为认证门槛",
+      "full 家族是否只保留分人设报警线 4.943817",
+      "是否引入 event-type profile 作为第二判据"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "8 次 × 2 人设 12 轮",
+        "reality": "192 次调用，0 失败",
+        "action": "完成",
+        "why": "—"
+      },
+      {
+        "taskSays": "不改代码 / 不调阈值",
+        "reality": "未改",
+        "action": "保持",
+        "why": "只补样本"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-341 补跑 8 次 tightened 复核，192 次调用 0 失败。焦虑 2.794673、回避 3.021134，与 AF-335 的 4 次同量级，密度稳定；但与 off 16 两格完全重叠，证明密度与分离性反向耦合。typecheck、lint、全量 4538 例、engine-core 零 diff 通过；未改代码与阈值。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本轮新增 192 次调用，0 失败。"
+  }
+}

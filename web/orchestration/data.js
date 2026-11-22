@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T21:58:45.715Z",
+  "generatedAt": "2026-11-22T22:14:38.690Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-087",
+      "recordedAt": "2026-11-22T22:09:54.844Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-341",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-341",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-341.json"
+      ]
+    },
+    {
+      "auditId": "AUD-086",
+      "recordedAt": "2026-11-22T22:09:47.453Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-341",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-085",
       "recordedAt": "2026-11-22T21:48:27.012Z",
       "actorRef": "orchestrator",
@@ -1988,52 +2020,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-335.json"
       ]
-    },
-    {
-      "auditId": "AUD-072",
-      "recordedAt": "2026-11-22T20:47:53.219Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-335",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-071",
-      "recordedAt": "2026-11-22T20:31:46.550Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-334",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-334-realism-long-session-ablation"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 85,
+    "total": 87,
     "byResult": {
-      "allowed": 85,
+      "allowed": 87,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 84,
+      "TOOL-QUEUE-SCHEDULER": 86,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 85
+      "orchestrator": 87
     }
   },
   "protocolView": {
@@ -7779,6 +7779,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af340-realism-shape-capped-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-341",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-341/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af341-realism-tightened-recheck-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7803,5 +7821,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 330
+  "archivedCount": 331
 };
