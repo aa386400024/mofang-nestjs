@@ -124,20 +124,25 @@
     },
     {
       "id": 10,
-      "title": "来访者渲染: 降级率 / 取消率",
+      "title": "来访者渲染: provider 降级率 / 体验失败率 / 取消占比",
       "type": "timeseries",
       "datasource": "Prometheus",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
       "targets": [
         {
-          "expr": "sum(increase(visitor_render_degraded_total{cause!=\"guard\"}[10m])) / clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)",
-          "legendFormat": "降级率 (排除 guard)",
+          "expr": "sum(increase(visitor_render_degraded_total{cause!=\"guard\"}[10m])) / clamp_min(sum(increase(visitor_render_rounds_total{outcome=~\"success|degrade|exhausted\"}[10m])), 0.001)",
+          "legendFormat": "provider 降级率 (排除 cancelled/guard)",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(visitor_render_cancelled_total[10m])) / clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)",
-          "legendFormat": "取消率 (barge-in/暂停)",
+          "expr": "sum(increase(visitor_render_degraded_total[10m])) / clamp_min(sum(increase(visitor_render_rounds_total{outcome!=\"cancelled\"}[10m])), 0.001)",
+          "legendFormat": "体验失败率 (含 guard, 排除 cancelled)",
           "refId": "B"
+        },
+        {
+          "expr": "sum(increase(visitor_render_cancelled_total[10m])) / clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)",
+          "legendFormat": "取消占比 (barge-in/暂停)",
+          "refId": "C"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 } }

@@ -34,6 +34,7 @@ const REQUIRED_METRICS = [
 /** 必须存在的告警名. */
 const REQUIRED_ALERTS = [
   'VisitorRenderDegradedRateHigh',
+  'VisitorRenderRoundInvariantMismatch',
   'VisitorRenderAuthFailure',
   'VisitorRenderFirstDeltaSlow',
   'VisitorRenderStreamTimeoutSpike',
@@ -72,17 +73,25 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     }
   });
 
-  it('降级率与回退率的分母是终局轮次, 且降级分子排除 guard', () => {
+  it('provider 降级率/回退率分母排除 cancelled 与 guard, 且降级分子排除 guard', () => {
     const text = readFileSync(ALERTS, 'utf8');
-    const degradedBlock = text.slice(text.indexOf('VisitorRenderDegradedRateHigh'), text.indexOf('VisitorRenderAuthFailure'));
-    expect(degradedBlock).toContain('visitor_render_rounds_total');
+    const degradedBlock = text.slice(text.indexOf('VisitorRenderDegradedRateHigh'), text.indexOf('VisitorRenderRoundInvariantMismatch'));
+    expect(degradedBlock).toContain('visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}');
     expect(degradedBlock).toContain('cause!="guard"');
     expect(degradedBlock).not.toContain('visitor_render_attempts_total');
     expect(degradedBlock).not.toContain('visitor_render_cancelled_total');
     const fallbackBlock = text.slice(text.indexOf('VisitorRenderFallbackRateHigh'), text.indexOf('VisitorRenderFailureCauseSpike'));
-    expect(fallbackBlock).toContain('visitor_render_rounds_total');
+    expect(fallbackBlock).toContain('visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}');
     expect(fallbackBlock).not.toContain('visitor_render_attempts_total');
     expect(fallbackBlock).not.toContain('visitor_render_cancelled_total');
+  });
+
+  it('轮次恒等式告警用 unless 守卫 degraded 与 rounds 的对应关系', () => {
+    const text = readFileSync(ALERTS, 'utf8');
+    const block = text.slice(text.indexOf('VisitorRenderRoundInvariantMismatch'), text.indexOf('VisitorRenderAuthFailure'));
+    expect(block).toContain('sum(increase(visitor_render_degraded_total[10m]))');
+    expect(block).toContain('visitor_render_rounds_total{outcome=~"degrade|guard|exhausted"}');
+    expect(block).toContain('unless');
   });
 
   it('鉴权告警按 candidate 聚合, $labels.candidate 不再为空', () => {
@@ -125,11 +134,11 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(violations.join('\n')).toBe('');
   });
 
-  it('Grafana 比率面板逐面板使用 rounds 分母, 且降级分子排除 guard', () => {
+  it('Grafana 三条比率曲线逐面板使用正确分母, 且降级分子排除 guard', () => {
     const dashboard = JSON.parse(readFileSync(DASHBOARD, 'utf8')) as {
       panels: { id?: number; title?: string; targets?: { expr?: string }[] }[];
     };
-    const ratioKeywords = ['降级率', '回退率', '取消率'];
+    const ratioKeywords = ['降级率', '回退率', '体验失败率', '取消占比'];
     const violations: string[] = [];
     for (const panel of dashboard.panels) {
       const title = panel.title ?? '';
@@ -147,10 +156,16 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     }
     expect(violations.join('\n')).toBe('');
 
-    const degradedPanel = dashboard.panels.find((panel) => (panel.title ?? '').includes('降级率'));
-    expect(degradedPanel, '看板缺少降级率面板').toBeDefined();
-    const degradedExprs = (degradedPanel?.targets ?? []).map((target) => target.expr ?? '').join('\n');
-    expect(degradedExprs).toContain('visitor_render_degraded_total{cause!="guard"}');
+    const degradedPanel = dashboard.panels.find((panel) => (panel.title ?? '').includes('provider 降级率'));
+    expect(degradedPanel, '看板缺少 provider 降级率曲线').toBeDefined();
+    const exprs = (degradedPanel?.targets ?? []).map((target) => target.expr ?? '');
+    expect(exprs).toHaveLength(3);
+    expect(exprs[0]).toContain('visitor_render_degraded_total{cause!="guard"}');
+    expect(exprs[0]).toContain('outcome=~"success|degrade|exhausted"');
+    expect(exprs[1]).toContain('sum(increase(visitor_render_degraded_total[10m]))');
+    expect(exprs[1]).toContain('outcome!="cancelled"');
+    expect(exprs[2]).toContain('visitor_render_cancelled_total');
+    expect(exprs[2]).toContain('visitor_render_rounds_total');
   });
 
   it('Grafana 看板可解析, 且包含渲染面板与真实表达式', () => {
