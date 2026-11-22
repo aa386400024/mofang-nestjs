@@ -28,7 +28,7 @@
 
 | 命令 | exit | 结果 | 备注 |
 | --- | --- | --- | --- |
-| `pnpm exec vitest run test/engine-adapters/af289-candidate-cooldown-state.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts test/config/af283-render-alerting.spec.ts` | 0 | 3 files / 11 tests passed，744ms | 日志 `data/af289-target2.log` |
+| `pnpm exec vitest run test/engine-adapters/af289-candidate-cooldown-state.spec.ts test/engine-adapters/af287-candidate-cooldown.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts test/config/af283-render-alerting.spec.ts` | 0 | 4 files / 14 tests passed，791ms | 日志 `data/af289-target3.log` |
 | `pnpm typecheck` | 0 | 0 error | 日志 `data/af289-typecheck3.log` |
 | 定向 `pnpm exec eslint <本单 8 文件>` | 0 | 0 error / 0 warning | 日志 `data/af289-eslint2.log`、`data/af289-eslint3.log` |
 | `pnpm lint`（全量） | 1 | 5 error / 4 warning，全部在未跟踪 AF-280/AF-281 半成品（`src/shared/realism/visitor-prompt-variants.ts`、`test/agent/visitor/af280-visitor-prompt-variant.spec.ts`、`test/engine-adapters/af280-render-prompt-variant.spec.ts`） | 本单文件 0；日志 `data/af289-lint-full.log` |
@@ -54,6 +54,14 @@ pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router \
 - `visitor_render_cooldown_served_total=0`：备候选可用，没有发生整轮全损，口径正确。
 
 这说明 AF-287 直方图与 AF-289 gauge 不是只在单测里存在，生产路由链 + 真实上游故障注入下都能产出正确标签与值。
+
+### 吸收 MiniMax Code 只读评审的 P0-2
+
+评审指出：生产默认 `failureThreshold=3 / cooldownBaseMs=30s / cooldownMaxMs=60s`，第 3 次失败首进冷却就顶到 60s 上限；半开探测失败后 duration 仍被 clamp 到 60s。原先用 `cooldownDurationMs` 比较“是否延长”在生产永远为 false，导致 AF-287 承诺的“冷却延长”语义不可达，AF-289 的 gauge 也会漏掉这次状态变化。
+
+本单把两处判定（`onCandidateCooldown` 与 `onCandidateCooldownState`）统一改成比较 `cooldownUntil`：只要冷却结束时刻被推后，就上报新的到期时刻。新增 1 例生产默认参数测试（3 次失败进 60s 冷却，30s 后探测失败，duration 不变但 until 从 60000 推到 90000），避免单测参数与生产参数分叉再次漏检。定向测试因此从 11 例增至 14 例。
+
+评审的其余 P0（轮次分母、鉴权告警空标签）不在本单 scope，已作为 AF-290 候选登记。
 
 ## 3. 范围
 
