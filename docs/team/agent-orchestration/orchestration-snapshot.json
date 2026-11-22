@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T05:16:34.282Z",
+  "generatedAt": "2026-11-22T05:31:33.541Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1874,6 +1874,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-464",
+      "recordedAt": "2026-11-22T05:23:03.202Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-277",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-277-rollback-concurrency-long-context"
+      ]
+    },
+    {
+      "auditId": "AUD-463",
+      "recordedAt": "2026-11-22T05:22:53.030Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-277",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-277",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-277.json"
+      ]
+    },
+    {
+      "auditId": "AUD-462",
+      "recordedAt": "2026-11-22T05:22:17.419Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-277",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-461",
       "recordedAt": "2026-11-22T05:01:20.005Z",
       "actorRef": "orchestrator",
@@ -2060,67 +2107,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-449",
-      "recordedAt": "2026-11-22T03:49:20.358Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-271",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-271-rollback-cutover-rehearsal"
-      ]
-    },
-    {
-      "auditId": "AUD-448",
-      "recordedAt": "2026-11-22T03:49:11.166Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-271",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-271",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-271.json"
-      ]
-    },
-    {
-      "auditId": "AUD-447",
-      "recordedAt": "2026-11-22T03:48:51.202Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-271",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 461,
+    "total": 464,
     "byResult": {
-      "allowed": 461,
+      "allowed": 464,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 460,
+      "TOOL-QUEUE-SCHEDULER": 463,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 461
+      "orchestrator": 464
     }
   },
   "protocolView": {
@@ -6965,6 +6965,24 @@
             "ref": "docs/worklog/completed/phase2.5/af276-stream-timeout-semantics-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-277",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-277/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af277-rollback-concurrency-long-context-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7012,5 +7030,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 277
+  "archivedCount": 278
 }

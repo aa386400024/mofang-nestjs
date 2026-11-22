@@ -1,0 +1,196 @@
+{
+  "deliveredAt": "2026-11-22T13:36:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-277-1",
+    "taskId": "AF-277",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "03a9496ab2e59c73124283590dcaf4a5dd0d0e7d",
+    "dependsOn": ["AF-276", "AF-275", "AF-271", "AF-268", "AF-265"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-277/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af277-rollback-concurrency-long-context-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af277-rollback-concurrency-long-context-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-277/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary minimax --simulate-visitor-provider minimax",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "候选 minimax,doubao；MINIMAX_API_KEY / LLM_DOUBAO_API_KEY present=true；日志 data/af277-check.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 1 --concurrency 8",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "5.51 秒",
+        "note": "回滚态并发 8：8/8 MiniMax-M3，fallback false，degraded false，stop 8/8；wall 5508ms；TTFT 1644–4968ms；日志 data/af277-concurrency8.log"
+      },
+      {
+        "command": "8 个独立进程并行：pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 1 --fail-primary --fail-primary-mode rate-limit --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上；ForEach-Object -Parallel ThrottleLimit 8",
+        "wallClock": "约 3 秒（8 进程合计）",
+        "note": "8/8 回退 doubao-seed-character-260628，fallback true，degraded false，stop 8/8；wall 531–773ms；TTFT 503–761ms；日志 data/af277-fallback-parallel-{1..8}.log 与 details"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --orchestrated --turns 40 --summary-after 20 --max-tokens 400 --timeout-ms 60000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "59.86 秒",
+        "note": "回滚态门面 40 轮：40/40 MiniMax-M3，fallback false，degraded false，stop 40/40；prompt tokens 873→1210 第 9 轮封顶→1199–1253 平台；摘要 20–40 轮进入 prompt；TTFT 594–3764ms；日志 data/af277-rollback-40-orchestrated-400.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20 秒",
+        "note": "0 error / 0 warning；日志 data/af277-lint.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 4 秒",
+        "note": "tsc -b tsconfig.check.json 通过；日志 data/af277-typecheck.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 268,
+        "machine": "同上",
+        "wallClock": "22.52 秒（复跑）",
+        "note": "首跑 1 例 admin-debug 标题 waitFor 超时（与渲染无关），定向复跑 28/28 通过；全量复跑 268 files passed + 1 skipped；4304 tests passed + 4 skipped；日志 data/af277-full-test.log、af277-full-test2.log、af277-debug-session-rerun.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-277-rollback-concurrency-long-context 自 integrate 03a9496a 切出。零代码改动，仅真实上游 smoke 取证。回滚态由 --provider minimax 驱动，候选链为 minimax,doubao。并发模式固定单轮且与 --turns、故障注入互斥，因此并发+429 组合改用 8 个独立进程并行执行同一回退用例。40 轮封顶只认 --orchestrated 门面路径；直连路径 history 无界，prompt tokens 从 821 线性涨到 2363，不作为封顶证据。MiniMax 120 预算会被 reasoning 吃穿，回滚态门面改用 400。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-277"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "归档后 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core、src/、bin/、test/"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 03a9496a；依赖 AF-276 / AF-275 / AF-271 / AF-268 / AF-265 均已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-minimax-reasoning-token-budget-floor",
+        "impact": "回滚态渲染用 120 预算时 reasoning 吃穿预算、零可见台词直接降级；需要按模型设最小 maxCompletionTokens 下限或按 reasoning 观测动态抬升"
+      },
+      {
+        "id": "visitor-stream-block-degraded-semantics",
+        "impact": "流式输出被 foreign_word 判 block 后替换兜底句，但 degraded=false、finishReason=stop，指标与告警会漏记"
+      },
+      {
+        "id": "visitor-concurrency-fault-injection",
+        "impact": "单进程内 --concurrency 与 --fail-primary 互斥，共享熔断器在并发故障下的行为仍未验证"
+      },
+      {
+        "id": "visitor-stream-idle-observability",
+        "impact": "idle / first-delta / auth / fallback / degraded 仍无 Prometheus 指标"
+      },
+      {
+        "id": "visitor-smoke-stream-timeout-flags",
+        "impact": "smoke CLI 仍无独立 idle / 首包参数"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "回滚态并发 8 × 3 轮",
+        "reality": "smoke 报 --concurrency 与 --turns 互斥：并发模式固定单轮",
+        "action": "改为 --turns 1 --concurrency 8，测 8 个并发单轮",
+        "why": "脚本不支持并发长会话；用真实 8 并发单轮取证，并在记录中限定语义"
+      },
+      {
+        "taskSays": "回滚态并发 8 下 429 全部回退",
+        "reality": "smoke 报 --concurrency 不与故障注入开关同时使用",
+        "action": "改为 8 个独立进程并行执行同一 429 回退用例",
+        "why": "覆盖真实上游并发限流下的回退，但不是单进程共享熔断器"
+      },
+      {
+        "taskSays": "回滚态 40 轮长上下文",
+        "reality": "直连路径 history 无界，不能证明窗口封顶；MiniMax 120 预算被 reasoning 吃穿",
+        "action": "改用 --orchestrated 门面 + --max-tokens 400；120 失败单独保留",
+        "why": "封顶与摘要必须走生产门面；120 是豆包时代参数，不适用于 MiniMax"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "回滚态候选链、并发 8、8 路并行 429 回退、门面 40 轮四项证据均成立；40/40 MiniMax 零回退零降级，窗口在第 9 轮封顶、摘要第 20 轮进入；全量 4304 例复跑全绿，lint/typecheck 0 错，engine-core 零改动。三条新生产风险（reasoning 预算下限、block 后 degraded 语义、并发故障注入互斥）已登记遗留项；任务单并发命令与脚本互斥已在偏差表说明。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
