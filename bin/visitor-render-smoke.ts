@@ -14,12 +14,23 @@ import { config as loadEnvFile } from 'dotenv';
 import { existsSync } from 'node:fs';
 
 import { LlmService } from '../src/agent/llm/llm.service.js';
+import type { RollingSummaryPort } from '../src/engine-adapters/persistence/rolling-session-summary.service.js';
 import type { ChatCaller } from '../src/engine-adapters/rendering/llm-render.adapter.js';
 import type { StreamingRenderPort } from '../src/engine-adapters/rendering/streaming-render.port.js';
+import { MAX_HISTORY_TURNS, TurnRenderOrchestrator } from '../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import { createLlmServiceChatCaller } from '../src/engine-adapters/wiring/llm-service-chat-caller.js';
 import { buildEngineRenderPort, RenderConfigFactory } from '../src/engine-adapters/wiring/render-config.factory.js';
 import { RouterChatCaller } from '../src/engine-adapters/wiring/router-chat-caller.js';
-import type { RenderContextTurn, RenderResult, RenderSpec } from '../src/engine-core/index.js';
+import type {
+  BdiSnapshot,
+  EngineSessionPort,
+  EngineTurnOutput,
+  MemoryStore,
+  OpenEngineSessionInput,
+  RenderContextTurn,
+  RenderResult,
+  RenderSpec,
+} from '../src/engine-core/index.js';
 import { AIProviderId, LLMCapability } from '../src/llm/common/enums/llm.enums.js';
 import type { ChatCompletionRequest } from '../src/llm/common/interfaces/chat-provider.interface.js';
 import { DoubaoChatProvider } from '../src/llm/providers/doubao.provider.js';
@@ -109,6 +120,10 @@ interface TurnSummary {
   degraded: boolean;
   guardLevel: string | null;
   preview: string;
+  /** 门面路径下的 system prompt 字符数；直连端口路径拿不到时为 null. */
+  promptChars: number | null;
+  /** system prompt 是否带了滚动摘要（门面路径）. */
+  promptHasSummary: boolean;
 }
 
 /** 最小的中性来访规格：只给渲染层足够上下文，不模拟完整内核决策。 */
@@ -149,6 +164,51 @@ interface RunTurnOptions {
   expectDegraded: boolean;
 }
 
+interface OutcomeView {
+  readonly text: string;
+  readonly degraded: boolean;
+  readonly fallbackUsed: boolean;
+  readonly providerHint: string | null;
+}
+
+/** 统一校验一轮渲染的生产边界；直连端口与门面路径共用同一套断言。 */
+function assertSmokeOutcome(
+  view: OutcomeView,
+  turnLabel: string,
+  provider: string,
+  expectFallback: boolean,
+  expectDegraded: boolean,
+): void {
+  if (view.text.trim().length === 0) {
+    fail(`${turnLabel}渲染输出为空（degraded=${String(view.degraded)} provider=${view.providerHint ?? '-'}）`, 2);
+  }
+  if (view.degraded && !expectDegraded) {
+    fail(`${turnLabel}走了降级路径：provider=${view.providerHint ?? '-'}`, 2);
+  }
+  if (expectDegraded) {
+    if (!view.degraded || view.providerHint !== 'degraded') {
+      fail(
+        `${turnLabel}期望显式降级（provider=degraded），实际 providerHint=${view.providerHint ?? '-'} degraded=${String(view.degraded)}`,
+        2,
+      );
+    }
+  } else if (expectFallback) {
+    if (view.providerHint !== 'minimax') {
+      fail(`${turnLabel}期望回退到 MiniMax，实际 providerHint=${view.providerHint ?? '-'}`, 2);
+    }
+    if (!view.fallbackUsed) {
+      fail(`${turnLabel}期望 fallbackUsed=true，实际 false（主候选失败未被识别为回退）`, 2);
+    }
+  } else {
+    if (provider === 'doubao' && view.providerHint !== 'doubao') {
+      fail(`${turnLabel}实际候选不是豆包：providerHint=${view.providerHint ?? '-'}`, 2);
+    }
+    if (view.fallbackUsed) {
+      fail(`${turnLabel}使用了备候选回退：provider=${view.providerHint ?? '-'}`, 2);
+    }
+  }
+}
+
 /** 跑一轮真实渲染并校验边界；任一条不满足直接非 0 退出。 */
 async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary; text: string }> {
   const { port, counselorText, history, turn, turns, maxTokens, provider, expectFallback, expectDegraded } = options;
@@ -165,34 +225,18 @@ async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary;
   const elapsedMs = Date.now() - startedAt;
   const turnLabel = `第 ${String(turn)}/${String(turns)} 轮`;
 
-  if (outcome.text.trim().length === 0) {
-    fail(`${turnLabel}渲染输出为空（degraded=${String(outcome.degraded)} provider=${outcome.providerHint ?? '-'}）`, 2);
-  }
-  if (outcome.degraded && !expectDegraded) {
-    fail(`${turnLabel}走了降级路径：provider=${outcome.providerHint ?? '-'} finishReason=${outcome.finishReason ?? '-'}`, 2);
-  }
-  if (expectDegraded) {
-    if (!outcome.degraded || outcome.providerHint !== 'degraded') {
-      fail(
-        `${turnLabel}期望显式降级（provider=degraded），实际 providerHint=${outcome.providerHint ?? '-'} degraded=${String(outcome.degraded)}`,
-        2,
-      );
-    }
-  } else if (expectFallback) {
-    if (outcome.providerHint !== 'minimax') {
-      fail(`${turnLabel}期望回退到 MiniMax，实际 providerHint=${outcome.providerHint ?? '-'}`, 2);
-    }
-    if (!outcome.fallbackUsed) {
-      fail(`${turnLabel}期望 fallbackUsed=true，实际 false（主候选失败未被识别为回退）`, 2);
-    }
-  } else {
-    if (provider === 'doubao' && outcome.providerHint !== 'doubao') {
-      fail(`${turnLabel}实际候选不是豆包：providerHint=${outcome.providerHint ?? '-'}`, 2);
-    }
-    if (outcome.fallbackUsed) {
-      fail(`${turnLabel}使用了备候选回退：provider=${outcome.providerHint ?? '-'}`, 2);
-    }
-  }
+  assertSmokeOutcome(
+    {
+      text: outcome.text,
+      degraded: outcome.degraded,
+      fallbackUsed: outcome.fallbackUsed,
+      providerHint: outcome.providerHint ?? null,
+    },
+    turnLabel,
+    provider,
+    expectFallback,
+    expectDegraded,
+  );
 
   const summary: TurnSummary = {
     turn,
@@ -209,8 +253,170 @@ async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary;
     degraded: outcome.degraded,
     guardLevel: outcome.guardVerdict?.level ?? null,
     preview: truncate(outcome.text, 80),
+    promptChars: null,
+    promptHasSummary: false,
   };
   return { summary, text: outcome.text };
+}
+
+/** 门面 smoke 用的固定滚动摘要：只验证“摘要进 prompt”，不调 LLM. */
+const SMOKE_SUMMARY_TEXT = '核心议题：睡眠困扰；关键事件：夜里反复醒来；情绪转折：从疲惫到愿意尝试记录。';
+
+/** 假内核固定返回的中性快照；只满足渲染规格组装所需字段. */
+const SMOKE_SNAPSHOT = {
+  trust: 0.45,
+  safety: { level: 'pass', categories: [], source: 'rule' },
+  bond: 0.5,
+  emotion: { label: 'neutral', valence: -0.1, arousal: 0.3 },
+  resistance: { verbal: 0.35, depth: 0.35, style: 0.3 },
+  transference: { positive: 0, negative: 0, dependency: 0 },
+  coreBeliefs: [],
+} as unknown as BdiSnapshot;
+
+/** 假内核会话：只推进 turnIndex，不跑 BDI 决策. */
+function buildFakeSession(): EngineSessionPort {
+  let turnIndex = 0;
+  return {
+    openSession: (input: OpenEngineSessionInput) => ({ handleId: `af268-${input.sessionId}`, sessionId: input.sessionId }),
+    turn: async (): Promise<EngineTurnOutput> => {
+      turnIndex += 1;
+      return { reply: '', snapshot: SMOKE_SNAPSHOT, turnIndex };
+    },
+    closeSession: (): void => undefined,
+  };
+}
+
+/** 只在第 N 轮起返回固定摘要的桩；验证门面读取→prompt 接线. */
+function buildSummaryStub(afterTurns: number): RollingSummaryPort {
+  let recordedTurns = 0;
+  return {
+    latestSummary: (): string | undefined => (afterTurns > 0 && recordedTurns + 1 >= afterTurns ? SMOKE_SUMMARY_TEXT : undefined),
+    recordRound: (): void => {
+      recordedTurns += 1;
+    },
+  };
+}
+
+/** 组装生产门面：真实渲染端口 + 假内核 + 可选摘要桩. */
+function buildOrchestrator(
+  session: EngineSessionPort,
+  port: StreamingRenderPort,
+  summaryAfter: number,
+  maxTokens: number,
+  contextTokens: number,
+): TurnRenderOrchestrator {
+  return new TurnRenderOrchestrator({
+    session,
+    renderer: port,
+    memories: { remember: async (): Promise<void> => undefined } as unknown as MemoryStore,
+    resolveSession: () => ({ tenantId: 'af268-smoke', sessionId: 'af268-session', visitorId: 'af268-visitor' }),
+    ...(summaryAfter > 0 ? { rollingSummary: buildSummaryStub(summaryAfter) } : {}),
+    tokenBudget: { maxCompletionTokens: maxTokens, contextTokens },
+  });
+}
+
+interface OrchestratedBatchOptions {
+  readonly port: StreamingRenderPort;
+  readonly turns: number;
+  readonly maxTokens: number;
+  readonly provider: string;
+  readonly promptOverride: string | null;
+  readonly summaryAfter: number;
+  readonly contextTokens: number;
+}
+
+/** 跑一轮生产门面渲染（历史裁剪、规格组装、摘要读取全部走门面）. */
+async function runOrchestratedTurn(
+  orchestrator: TurnRenderOrchestrator,
+  handleId: string,
+  counselorText: string,
+  turn: number,
+  turns: number,
+  provider: string,
+): Promise<{ summary: TurnSummary; text: string }> {
+  let firstDeltaAt: number | undefined;
+  let deltas = 0;
+  const startedAt = Date.now();
+  const result = await orchestrator.turnStream(
+    handleId,
+    { userText: counselorText },
+    {
+      onDelta: () => {
+        deltas += 1;
+        firstDeltaAt ??= Date.now();
+      },
+    },
+    { includePromptFull: true },
+  );
+  const elapsedMs = Date.now() - startedAt;
+  const turnLabel = `第 ${String(turn)}/${String(turns)} 轮（门面）`;
+  const providerHint = result.render.providerHint ?? null;
+  // 门面把“系统兜底句”标成 providerHint=degraded；没有单独 degraded 字段.
+  const degraded = providerHint === 'degraded';
+  assertSmokeOutcome(
+    { text: result.reply, degraded, fallbackUsed: result.render.fallbackUsed, providerHint },
+    turnLabel,
+    provider,
+    false,
+    false,
+  );
+
+  const promptFull = result.render.promptFull ?? '';
+  const usage = result.render.usage;
+  const summary: TurnSummary = {
+    turn,
+    counselor: truncate(counselorText, 40),
+    providerHint,
+    model: result.render.model ?? null,
+    elapsedMs,
+    ttftMs: firstDeltaAt === undefined ? null : firstDeltaAt - startedAt,
+    deltas,
+    chars: result.reply.length,
+    usage:
+      usage === undefined
+        ? null
+        : {
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens,
+            ...(usage.promptTokens === undefined ? {} : { promptTokens: usage.promptTokens }),
+            ...(usage.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+          },
+    finishReason: result.render.finishReason ?? null,
+    fallbackUsed: result.render.fallbackUsed,
+    degraded,
+    guardLevel: null,
+    preview: truncate(result.reply, 80),
+    promptChars: promptFull.length,
+    promptHasSummary: promptFull.includes('此前我们聊过'),
+  };
+  return { summary, text: result.reply };
+}
+
+/** 门面多轮：history / trim / summary 全由 TurnRenderOrchestrator 负责. */
+async function executeOrchestratedSessions(options: OrchestratedBatchOptions): Promise<SessionBatch> {
+  const { port, turns, maxTokens, provider, promptOverride, summaryAfter, contextTokens } = options;
+  const session = buildFakeSession();
+  const orchestrator = buildOrchestrator(session, port, summaryAfter, maxTokens, contextTokens);
+  const handle = session.openSession({ sessionId: 'af268-session', tenantId: 'af268-smoke', visitorId: 'af268-visitor' });
+  const turnResults: TurnSummary[] = [];
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let totalTokens = 0;
+  const startedAt = Date.now();
+  try {
+    for (let index = 0; index < turns; index += 1) {
+      const fallbackPrompt = MULTI_TURN_COUNSELOR_PROMPTS[index % MULTI_TURN_COUNSELOR_PROMPTS.length];
+      const counselorText = index === 0 && promptOverride !== null ? promptOverride : fallbackPrompt;
+      const { summary } = await runOrchestratedTurn(orchestrator, handle.handleId, counselorText, index + 1, turns, provider);
+      promptTokens += summary.usage?.promptTokens ?? 0;
+      completionTokens += summary.usage?.completionTokens ?? 0;
+      totalTokens += summary.usage?.totalTokens ?? 0;
+      turnResults.push(summary);
+    }
+  } finally {
+    session.closeSession(handle.handleId);
+  }
+  return { turnResults, promptTokens, completionTokens, totalTokens, wallElapsedMs: Date.now() - startedAt };
 }
 
 interface FaultFlags {
@@ -317,6 +523,9 @@ async function probePrimaryFailure(router: LlmRouterService, probeModel: string)
 interface SmokeReport {
   readonly callerPath: string;
   readonly requestedProvider: string;
+  readonly orchestrated: boolean;
+  readonly summaryAfter: number;
+  readonly historyLimitTurns: number;
   readonly faults: FaultFlags;
   readonly primaryProbe: { ok: false; model: string; error: string } | null;
   readonly turns: number;
@@ -336,6 +545,9 @@ function printReport(report: SmokeReport): void {
         ok: true,
         callerPath: report.callerPath,
         requestedProvider: report.requestedProvider,
+        orchestrated: report.orchestrated,
+        summaryAfter: report.summaryAfter,
+        historyLimitTurns: report.historyLimitTurns,
         failPrimary: report.faults.failPrimary,
         failPrimaryMode: report.faults.failPrimary ? report.faults.mode : null,
         expectFallback: report.faults.expectFallback,
@@ -358,6 +570,9 @@ function printReport(report: SmokeReport): void {
         degraded: report.turnResults.some((item) => item.degraded),
         guardLevel: first?.guardLevel ?? null,
         preview: first?.preview ?? null,
+        promptCharsSeries: report.turnResults.map((item) => item.promptChars),
+        promptTokensSeries: report.turnResults.map((item) => item.usage?.promptTokens ?? 0),
+        promptSummaryTurns: report.turnResults.filter((item) => item.promptHasSummary).map((item) => item.turn),
         turnDetails: report.turnResults,
       },
       null,
@@ -441,9 +656,22 @@ async function executeSessions(options: BatchOptions): Promise<SessionBatch> {
   return { turnResults, promptTokens, completionTokens, totalTokens, wallElapsedMs: Date.now() - startedAt };
 }
 
-async function main(): Promise<void> {
-  loadEnvOnce();
+interface RunOptions {
+  readonly provider: 'doubao' | 'minimax';
+  readonly callerPath: string;
+  readonly maxTokens: number;
+  readonly timeoutMs: number;
+  readonly turns: number;
+  readonly concurrency: number;
+  readonly orchestrated: boolean;
+  readonly summaryAfter: number;
+  readonly contextTokens: number;
+  readonly promptOverride: string | null;
+  readonly faults: FaultFlags;
+}
 
+/** 解析并校验本次 smoke 的参数组合，主流程只消费结果. */
+function resolveRunOptions(): RunOptions {
   const provider = (arg('--provider', 'doubao') ?? 'doubao').toLowerCase();
   if (provider !== 'doubao' && provider !== 'minimax') fail('--provider 只允许 doubao / minimax');
   const callerPath = (arg('--caller', 'router') ?? 'router').toLowerCase();
@@ -453,6 +681,9 @@ async function main(): Promise<void> {
   const timeoutMs = numberArg('--timeout-ms', DEFAULT_TIMEOUT_MS);
   const turns = Math.floor(numberArg('--turns', DEFAULT_TURNS));
   const concurrency = Math.floor(numberArg('--concurrency', 1));
+  const orchestrated = hasFlag('--orchestrated');
+  const summaryAfter = Math.floor(numberArg('--summary-after', 0));
+  const contextTokens = Math.floor(numberArg('--context-tokens', 512));
   const promptOverride = arg('--prompt');
   const faults = resolveFaultFlags(callerPath, provider);
 
@@ -461,6 +692,40 @@ async function main(): Promise<void> {
     fail('--concurrency 不与故障注入开关同时使用');
   }
   if (concurrency > 1 && promptOverride !== null) fail('--concurrency 模式不接受 --prompt 固定开场');
+  if (orchestrated && concurrency > 1) fail('--orchestrated 与 --concurrency 互斥');
+  if (orchestrated && (faults.failPrimary || faults.expectFallback || faults.expectDegraded)) {
+    fail('--orchestrated 暂不与故障注入开关同时使用');
+  }
+  return {
+    provider,
+    callerPath,
+    maxTokens,
+    timeoutMs,
+    turns,
+    concurrency,
+    orchestrated,
+    summaryAfter,
+    contextTokens,
+    promptOverride,
+    faults,
+  };
+}
+
+async function main(): Promise<void> {
+  loadEnvOnce();
+  const {
+    provider,
+    callerPath,
+    maxTokens,
+    timeoutMs,
+    turns,
+    concurrency,
+    orchestrated,
+    summaryAfter,
+    contextTokens,
+    promptOverride,
+    faults,
+  } = resolveRunOptions();
 
   // smoke 显式模拟生产开关；不写回 .env，也不改全局 ENGINE_RENDER_PRIMARY_PROVIDER。
   process.env['VISITOR_LLM_PROVIDER'] = provider;
@@ -519,19 +784,32 @@ async function main(): Promise<void> {
   const port = buildEngineRenderPort(caller, renderConfig);
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
 
-  const batch = await executeSessions({
-    port,
-    concurrency,
-    turns,
-    maxTokens,
-    provider,
-    promptOverride,
-    faults,
-  });
+  const batch = orchestrated
+    ? await executeOrchestratedSessions({
+        port,
+        turns,
+        maxTokens,
+        provider,
+        promptOverride,
+        summaryAfter,
+        contextTokens,
+      })
+    : await executeSessions({
+        port,
+        concurrency,
+        turns,
+        maxTokens,
+        provider,
+        promptOverride,
+        faults,
+      });
 
   printReport({
     callerPath,
     requestedProvider: provider,
+    orchestrated,
+    summaryAfter,
+    historyLimitTurns: MAX_HISTORY_TURNS,
     faults,
     primaryProbe,
     turns,
