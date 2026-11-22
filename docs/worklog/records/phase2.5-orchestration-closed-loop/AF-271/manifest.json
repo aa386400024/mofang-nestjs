@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-271",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-22T12:00:00+08:00",
+  "updatedAt": "2026-11-22T03:55:04.139Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/task-sheet.md",
+    "sha256": "023b4a3f173bc5ecef85a11d609910834e391de243de4e77db2c86b6679febfc",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/receipt-RC-AF-271-1.json",
+      "sha256": "6faa7b8c10c1312c05901249784ef03676c5024de3afbf1fb5e4800fedf49a4f",
+      "receiptId": "RC-AF-271-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af271-rollback-cutover-rehearsal-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-271-rollback-cutover-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}

@@ -202,8 +202,8 @@ function assertSmokeOutcome(
       fail(`${turnLabel}期望 fallbackUsed=true，实际 false（主候选失败未被识别为回退）`, 2);
     }
   } else {
-    if (provider === 'doubao' && view.providerHint !== 'doubao') {
-      fail(`${turnLabel}实际候选不是豆包：providerHint=${view.providerHint ?? '-'}`, 2);
+    if (view.providerHint !== provider) {
+      fail(`${turnLabel}实际候选不是 ${provider}：providerHint=${view.providerHint ?? '-'}`, 2);
     }
     if (view.fallbackUsed) {
       fail(`${turnLabel}使用了备候选回退：provider=${view.providerHint ?? '-'}`, 2);
@@ -446,6 +446,9 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
   if ((expectFallback || expectDegraded) && (callerPath !== 'router' || provider !== 'doubao')) {
     fail('--expect-fallback / --expect-degraded 只适用于 --caller router --provider doubao');
   }
+  if (failPrimary && provider !== 'doubao') {
+    fail('--fail-primary 只适用于 --provider doubao：故障注入目标是豆包主候选');
+  }
   if (expectFallback && expectDegraded) fail('--expect-fallback 与 --expect-degraded 不能同时使用');
   if (failPrimary && !expectFallback && !expectDegraded) {
     fail('--fail-primary 必须配合 --expect-fallback 或 --expect-degraded');
@@ -506,8 +509,9 @@ function buildRouterChain(
   faultMode: FaultMode,
   failPrimary: boolean,
   faultBaseUrl?: string,
+  primaryProvider: 'doubao' | 'minimax' = 'doubao',
 ): { router: LlmRouterService; caller: ChatCaller } {
-  process.env['LLM_DEFAULT_CHAT_PROVIDER'] = 'doubao';
+  process.env['LLM_DEFAULT_CHAT_PROVIDER'] = primaryProvider;
   const configuredModel = envText('LLM_DOUBAO_MODEL')?.trim();
   const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
   const providerClient = new DoubaoChatProvider({
@@ -736,7 +740,6 @@ function resolveRunOptions(): RunOptions {
   if (provider !== 'doubao' && provider !== 'minimax') fail('--provider 只允许 doubao / minimax');
   const callerPath = (arg('--caller', 'router') ?? 'router').toLowerCase();
   if (callerPath !== 'router' && callerPath !== 'llm-service') fail('--caller 只允许 router / llm-service');
-  if (callerPath === 'router' && provider !== 'doubao') fail('--caller router 目前只支持 --provider doubao');
   const timeoutMs = numberArg('--timeout-ms', DEFAULT_TIMEOUT_MS);
   const turns = Math.floor(numberArg('--turns', DEFAULT_TURNS));
   const concurrency = Math.floor(numberArg('--concurrency', 1));
@@ -747,9 +750,9 @@ function resolveRunOptions(): RunOptions {
   const rawWithin = arg('--expect-fallback-within-ms');
   const expectFallbackWithinMs = rawWithin === null ? null : Math.floor(numberArg('--expect-fallback-within-ms', 0));
   const faults = resolveFaultFlags(callerPath, provider);
-  // MiniMax M3 的 reasoning token 计入 completion 上限；回退 smoke 用 300 会在思考和
-  // 正文之间被截断，出现「有 finish_reason=length、无完整句」的假降级。回退场景默认放宽。
-  const maxTokens = numberArg('--max-tokens', faults.expectFallback ? 800 : DEFAULT_MAX_TOKENS);
+  // MiniMax M3 的 reasoning token 计入 completion 上限；回退/回滚 smoke 用 300 会在思考和
+  // 正文之间被截断，出现「有 finish_reason=length、无完整句」的假降级。这些场景默认放宽。
+  const maxTokens = numberArg('--max-tokens', faults.expectFallback || provider === 'minimax' ? 800 : DEFAULT_MAX_TOKENS);
   if (expectFallbackWithinMs !== null && !faults.expectFallback) {
     fail('--expect-fallback-within-ms 必须配合 --expect-fallback 使用');
   }
@@ -801,6 +804,7 @@ async function main(): Promise<void> {
 
   // smoke 显式模拟生产开关；不写回 .env，也不改全局 ENGINE_RENDER_PRIMARY_PROVIDER。
   process.env['VISITOR_LLM_PROVIDER'] = provider;
+  if (provider === 'minimax') process.env['ENGINE_RENDER_PRIMARY_PROVIDER'] = 'minimax';
   process.env['ENGINE_RENDER_MAX_TOKENS'] = String(maxTokens);
   process.env['ENGINE_RENDER_TIMEOUT_MS'] = String(timeoutMs);
 
@@ -826,7 +830,7 @@ async function main(): Promise<void> {
   const faultServer = needsFaultServer ? await startFaultServer(faults.mode) : null;
 
   if (callerPath === 'router') {
-    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl));
+    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl, provider));
     doubaoModelForProbe = envText('LLM_DOUBAO_MODEL')?.trim() ?? null;
   } else {
     const llm = new LlmService(config);
@@ -844,8 +848,8 @@ async function main(): Promise<void> {
 
   const renderConfig = new RenderConfigFactory(config, router).build();
 
-  if (provider === 'doubao' && renderConfig.candidates[0]?.id !== 'doubao') {
-    fail(`候选装配异常：VISITOR_LLM_PROVIDER=doubao，但主候选=${renderConfig.candidates[0]?.id ?? '(空)'}`);
+  if (renderConfig.candidates[0]?.id !== provider) {
+    fail(`候选装配异常：期望主候选=${provider}，实际=${renderConfig.candidates[0]?.id ?? '(空)'}`);
   }
   if (faults.expectFallback && renderConfig.candidates[1]?.id !== 'minimax') {
     fail(`回退 smoke 需要备候选 minimax，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
