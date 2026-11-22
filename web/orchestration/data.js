@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T07:37:33.870Z",
+  "generatedAt": "2026-11-22T07:53:24.040Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,6 +49,46 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-287",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "候选级熔断归因（冷却时长直方图 + 告警 + 面板 + 守卫文案）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-287/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af287-candidate-cooldown-attribution-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-287",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T07:53:23.976Z",
+        "leaseDeadline": "2026-11-22T08:23:23.973Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-287.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T07:53:23.976Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-287.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1826,6 +1866,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-491",
+      "recordedAt": "2026-11-22T07:53:07.376Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-287",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-490",
       "recordedAt": "2026-11-22T07:30:04.387Z",
       "actorRef": "orchestrator",
@@ -2044,35 +2101,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-476",
-      "recordedAt": "2026-11-22T06:31:02.954Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-282",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-282-render-telemetry-correctness"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 490,
+    "total": 491,
     "byResult": {
-      "allowed": 490,
+      "allowed": 491,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 489,
+      "TOOL-QUEUE-SCHEDULER": 490,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 490
+      "orchestrator": 491
     }
   },
   "protocolView": {
@@ -2101,6 +2143,32 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-287",
+        "title": "候选级熔断归因（冷却时长直方图 + 告警 + 面板 + 守卫文案）",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-286"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-287/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af287-candidate-cooldown-attribution-2026-11-22.md"
           }
         ]
       }
@@ -7077,6 +7145,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-287",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-287/task-sheet.md"
+      },
+      {
+        "taskId": "AF-287",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af287-candidate-cooldown-attribution-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
