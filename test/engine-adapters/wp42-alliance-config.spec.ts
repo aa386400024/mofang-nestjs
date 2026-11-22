@@ -31,17 +31,20 @@ function configStub(env: Readonly<Record<string, string>>): ConfigService {
 }
 
 describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
-  it('没配任何 env → 装配结果与内核种子值逐字一致 (仅 env 暴露的四字段)', () => {
+  it('没配任何 env → 装配结果与内核种子值逐字一致 (env 暴露的六字段)', () => {
     const config = resolveAllianceConfig(configStub({}));
 
     expect(config.deltas).toEqual({});
     // AF-315 新增的 explorationMinTurn / coreActivationGate / coreActivationSafetyGate
     // 不接 env；缺失时由内核 resolveAllianceThresholds 回落种子值.
+    // AF-322 起 insightMinTurn / planMinTurn 接 env（合法 1..20），缺省回落 8 / 12.
     expect(config.thresholds).toEqual({
       open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
       resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
       resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
       openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
+      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
+      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
     });
   });
 
@@ -85,6 +88,8 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
       resistanceSafety: 0.25,
       // S-1: 深度门槛不接 env, 固定透传内核种子 0.35.
       openDepth: 0.35,
+      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
+      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
     });
   });
 
@@ -106,6 +111,8 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
       resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
       resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
       openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
+      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
+      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
     });
   });
 
@@ -123,6 +130,8 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
       resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
       resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
       openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
+      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
+      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
     });
   });
 

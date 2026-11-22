@@ -49,6 +49,22 @@ function resolveHalfLife(raw: string | undefined, fallback: number): number {
 }
 
 /**
+ * 解析可选半衰期：显式 0 = 禁用；非法 / 缺省 → 种子值.
+ *
+ * @param raw env 原值
+ * @param fallback 种子值
+ * @returns 半衰期 (ms)；0 表示禁用
+ */
+function resolveOptionalHalfLife(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const trimmed = raw.trim();
+  if (trimmed === '') return fallback;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 0) return fallback;
+  return value;
+}
+
+/**
  * 装配跨会话间隔衰减端口 (3 个半衰期 = 3 个 env 键).
  *
  * 键名口径: `ENGINE_DECAY_EMOTION_HALF_LIFE_MS` /
@@ -65,5 +81,9 @@ export function resolveSessionDecayConfig(config: ConfigService): SessionDecayCo
     emotionHalfLifeMs: resolveHalfLife(config.get<string>('ENGINE_DECAY_EMOTION_HALF_LIFE_MS'), seed.emotionHalfLifeMs),
     resistanceHalfLifeMs: resolveHalfLife(config.get<string>('ENGINE_DECAY_RESISTANCE_HALF_LIFE_MS'), seed.resistanceHalfLifeMs),
     allianceHalfLifeMs: resolveHalfLife(config.get<string>('ENGINE_DECAY_ALLIANCE_HALF_LIFE_MS'), seed.allianceHalfLifeMs),
+    transferenceHalfLifeMs: resolveOptionalHalfLife(
+      config.get<string>('ENGINE_DECAY_TRANSFERENCE_HALF_LIFE_MS'),
+      seed.transferenceHalfLifeMs ?? 90 * 24 * 3600 * 1000,
+    ),
   };
 }

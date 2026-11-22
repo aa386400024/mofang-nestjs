@@ -185,10 +185,13 @@ const ALLIANCE_ENV_KEYS: readonly string[] = [
   'ENGINE_ALLIANCE_OPEN_THRESHOLD',
   'ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD',
   'ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD',
+  // AF-322：后段策略最早轮次（合法 1..20 整数，非法回种子 8 / 12）.
+  'ENGINE_ALLIANCE_INSIGHT_MIN_TURN',
+  'ENGINE_ALLIANCE_PLAN_MIN_TURN',
 ];
 
 /**
- * 跨会话间隔衰减的 3 个 env 键 (WP36).
+ * 跨会话间隔衰减的 4 个 env 键 (WP36 + AF-322).
  *
  * 与 cap 族 / 人格族 / 同盟族同一治本: 适配层**逐个字面量**读 → 已被 AST 抽取覆盖
  * (漏写一个键, 断言① 立刻变红). 这里留一份清单, 是为了断言"3 个键一个不多一个不少" ——
@@ -198,6 +201,8 @@ const SESSION_DECAY_ENV_KEYS: readonly string[] = [
   'ENGINE_DECAY_EMOTION_HALF_LIFE_MS',
   'ENGINE_DECAY_RESISTANCE_HALF_LIFE_MS',
   'ENGINE_DECAY_ALLIANCE_HALF_LIFE_MS',
+  // AF-322：移情三维半衰期（缺省 90 天；显式 0 = 禁用）.
+  'ENGINE_DECAY_TRANSFERENCE_HALF_LIFE_MS',
 ];
 
 /**
@@ -712,7 +717,7 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(kernelModKeys).toEqual([]);
   });
 
-  it('③d 25 个 ENGINE_ALLIANCE_* 键已改字面量读取, 内核树不再有同盟系数键 (WP42)', () => {
+  it('③d 27 个 ENGINE_ALLIANCE_* 键已改字面量读取, 内核树不再有同盟系数键 (WP42 · AF-322 加两口)', () => {
     // 同盟三维的系数与门槛与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
     const allianceConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/alliance-config.ts');
     expect(existsSync(allianceConfigFile)).toBe(true);
@@ -731,7 +736,7 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(kernelAllianceKeys).toEqual([]);
   });
 
-  it('③e 3 个 ENGINE_DECAY_* 键已改字面量读取, 内核树不再有衰减半衰期键 (WP36)', () => {
+  it('③e 4 个 ENGINE_DECAY_* 键已改字面量读取, 内核树不再有衰减半衰期键 (WP36 · AF-322 加移情)', () => {
     // 跨会话衰减的三个半衰期与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
     const sessionDecayConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/session-decay.config.ts');
     expect(existsSync(sessionDecayConfigFile)).toBe(true);

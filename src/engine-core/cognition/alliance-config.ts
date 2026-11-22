@@ -101,6 +101,20 @@ export interface AllianceThresholds {
    * 激活强度高时，只有 `min(trust, safety)` 达到该值才允许探索；缺省 0.75.
    */
   readonly coreActivationSafetyGate?: number;
+  /**
+   * 允许进入「整合领悟」的最早轮次 (AF-322).
+   *
+   * 领悟不是靠追问生产出来的：需要同盟已过探索门槛、深度阻抗低，且来访已经自发
+   * 形成至少一条高置信度的短期信念。缺省 8；非法 / 非整数 → 回退 8.
+   */
+  readonly insightMinTurn?: number;
+  /**
+   * 允许进入「讨论计划」的最早轮次 (AF-322).
+   *
+   * 计划讨论晚于领悟：需要在同盟稳定后，来访的掌控型愿望权重升高。缺省 12；
+   * 非法 / 非整数 → 回退 12.
+   */
+  readonly planMinTurn?: number;
 }
 
 /**
@@ -135,6 +149,9 @@ const DEFAULT_OPEN_DEPTH = 0.35;
 const DEFAULT_EXPLORATION_MIN_TURN = 2;
 const DEFAULT_CORE_ACTIVATION_GATE = 0.5;
 const DEFAULT_CORE_ACTIVATION_SAFETY_GATE = 0.75;
+/** AF-322 种子值：领悟 / 计划讨论的最早轮次（工程种子值，非临床标定）. */
+const DEFAULT_INSIGHT_MIN_TURN = 8;
+const DEFAULT_PLAN_MIN_TURN = 12;
 
 /**
  * 内核种子值 (工程种子值, **非临床标定** —— 待真实对练校准).
@@ -154,6 +171,8 @@ export const DEFAULT_ALLIANCE_CONFIG: AllianceConfig = {
     explorationMinTurn: DEFAULT_EXPLORATION_MIN_TURN,
     coreActivationGate: DEFAULT_CORE_ACTIVATION_GATE,
     coreActivationSafetyGate: DEFAULT_CORE_ACTIVATION_SAFETY_GATE,
+    insightMinTurn: DEFAULT_INSIGHT_MIN_TURN,
+    planMinTurn: DEFAULT_PLAN_MIN_TURN,
   },
 };
 
@@ -190,6 +209,8 @@ export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThre
   readonly explorationMinTurn: number;
   readonly coreActivationGate: number;
   readonly coreActivationSafetyGate: number;
+  readonly insightMinTurn: number;
+  readonly planMinTurn: number;
 } {
   const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
   const provided = config?.thresholds;
@@ -203,6 +224,8 @@ export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThre
       explorationMinTurn: DEFAULT_EXPLORATION_MIN_TURN,
       coreActivationGate: DEFAULT_CORE_ACTIVATION_GATE,
       coreActivationSafetyGate: DEFAULT_CORE_ACTIVATION_SAFETY_GATE,
+      insightMinTurn: DEFAULT_INSIGHT_MIN_TURN,
+      planMinTurn: DEFAULT_PLAN_MIN_TURN,
     };
   }
   return {
@@ -213,6 +236,8 @@ export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThre
     explorationMinTurn: sanitizeTurn(provided.explorationMinTurn, DEFAULT_EXPLORATION_MIN_TURN),
     coreActivationGate: sanitizeThreshold(provided.coreActivationGate, DEFAULT_CORE_ACTIVATION_GATE),
     coreActivationSafetyGate: sanitizeThreshold(provided.coreActivationSafetyGate, DEFAULT_CORE_ACTIVATION_SAFETY_GATE),
+    insightMinTurn: sanitizeTurn(provided.insightMinTurn, DEFAULT_INSIGHT_MIN_TURN),
+    planMinTurn: sanitizeTurn(provided.planMinTurn, DEFAULT_PLAN_MIN_TURN),
   };
 }
 
@@ -256,6 +281,8 @@ export function resolveSessionAllianceConfig(base?: AllianceConfig, override?: P
     explorationMinTurn: override.explorationMinTurn ?? baseThresholds.explorationMinTurn,
     coreActivationGate: override.coreActivationGate ?? baseThresholds.coreActivationGate,
     coreActivationSafetyGate: override.coreActivationSafetyGate ?? baseThresholds.coreActivationSafetyGate,
+    insightMinTurn: override.insightMinTurn ?? baseThresholds.insightMinTurn,
+    planMinTurn: override.planMinTurn ?? baseThresholds.planMinTurn,
   };
   // 校验 + 非法值回落种子 —— 复用既有唯一校验口, 不新写一套.
   return {

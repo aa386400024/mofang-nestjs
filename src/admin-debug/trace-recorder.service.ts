@@ -72,13 +72,32 @@ export interface TurnTrace {
   readonly turnIndex: number;
   /** 本场角色 key (`vpt_*` slug; 无角色时是中性基线 id). */
   readonly characterSlug: string;
-  /** 本轮 BDI 快照 (四值 + 情绪标签). */
+  /** 本轮 BDI 快照 (四值 + 情绪标签 + AF-322 决策层附加观测). */
   readonly bdiSnapshot: {
     readonly trust: number;
     readonly valence: number;
     readonly arousal: number;
     readonly resistance: number;
     readonly anxiousSecure: string;
+    /** 安全感 (AF-322 追加; 老 trace 没有这一项). */
+    readonly safety?: number;
+    /** 纽带感 (AF-322 追加; 老 trace 没有这一项). */
+    readonly bond?: number;
+    /** 内容深度阻抗 (AF-322 追加; 不是话量阻抗). */
+    readonly resistanceDepth?: number;
+    /** 移情三维 (AF-322 追加; 非有限值已降级为 0). */
+    readonly transference?: {
+      readonly positive: number;
+      readonly negative: number;
+      readonly dependency: number;
+    };
+    /** 核心信念激活峰值 (AF-322 追加; 空表 = 0). */
+    readonly coreBeliefActivationPeak?: number;
+  };
+  /** 本轮意图 (AF-322 追加; 策略与理由, 供线上审计 BDI 决策). */
+  readonly intention?: {
+    readonly strategy: string;
+    readonly rationale: string;
   };
   /** 本轮渲染规格摘要 (prompt 只留前 500 字预览). */
   readonly renderSpec: {

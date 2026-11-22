@@ -114,6 +114,19 @@ export function resolveLatencyBucket(latencyMs: number): string {
 }
 
 /**
+ * 构造**会话级**模型轨统计键（AF-322 · admin debug 摘要用）.
+ *
+ * 与 trace key 同款长度前缀，避免租户 / 会话拼接歧义.
+ *
+ * @param tenantId 租户
+ * @param sessionId 业务会话 id
+ * @returns 统计基键（调用方自行拼 `:total` / `:degraded` / `:model`）
+ */
+export function buildModelClassifierSessionStatsKey(tenantId: string, sessionId: string): string {
+  return `${MODEL_CLASSIFIER_TRACE_KEY_PREFIX}:stats:${tenantId.length}:${tenantId}:${sessionId.length}:${sessionId}`;
+}
+
+/**
  * Redis 版观测写入器.
  *
  * ⚠️ **写失败只打日志, 不抛** —— 观察面写不进去不是会话失败 (与审议 trace 同一纪律).
@@ -138,6 +151,34 @@ export class RedisModelClassifierObserver implements ModelClassifierObserver {
   record(observation: ModelClassifierObservation): void {
     const key = buildModelClassifierTraceKey(observation.tenantId, observation.sessionId, observation.turnIndex);
     void this.write(key, observation);
+    void this.updateStats(observation);
+  }
+
+  /**
+   * 会话级计数（fire-and-forget；失败静默）.
+   *
+   * `total` = 模型轨参与轮数；`degraded` = 其中降级轮数；`model` = 模型标识.
+   *
+   * @param observation 本轮对照记录
+   */
+  private async updateStats(observation: ModelClassifierObservation): Promise<void> {
+    try {
+      const base = buildModelClassifierSessionStatsKey(observation.tenantId, observation.sessionId);
+      await this.redis.incr(`${base}:total`);
+      await this.redis.expire(`${base}:total`, this.ttlSeconds);
+      if (observation.degraded) {
+        await this.redis.incr(`${base}:degraded`);
+        await this.redis.expire(`${base}:degraded`, this.ttlSeconds);
+      }
+      await this.redis.set(`${base}:model`, observation.modelId, this.ttlSeconds);
+    } catch (error) {
+      this.logger.warn(
+        '[model_classifier_stats_failed] session=' +
+          observation.sessionId +
+          ': ' +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    }
   }
 
   /**

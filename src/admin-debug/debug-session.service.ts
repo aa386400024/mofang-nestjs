@@ -93,6 +93,13 @@ import {
 import { labelCounselorEvent } from './event-tag-labels.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
+import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../counselor/config/counselor-llm.config.js';
+import {
+  resolveModelClassifierModeConfig,
+  resolveModelClassifierSessionMode,
+  type ModelClassifierEffectiveMode,
+} from '../engine-adapters/cognition/model-classifier-mode.config.js';
+import { buildModelClassifierSessionStatsKey } from '../engine-adapters/cognition/model-classifier-observation.js';
 import type { DeliberationScenarioType } from '../engine-adapters/deliberation/deliberation-mode.config.js';
 import {
   buildDeliberationTraceKey,
@@ -126,6 +133,18 @@ export const DEBUG_CHAT_TENANT_ID = 'debug';
  * (否则审议层会跳过这一轮, 面板就看不到审议 trace 了).
  */
 export const DEBUG_CHAT_VISITOR_ID = 'debug-admin';
+
+/**
+ * Redis 计数 → 非负整数（空 / 非数字 / 负数 → 0）.
+ *
+ * @param raw Redis 原值
+ * @returns 计数
+ */
+function parseCount(raw: string | null): number {
+  if (raw === null) return 0;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
+}
 
 /**
  * 调试会话 id 的前缀 —— 一眼能看出"这不是一场正式训练".
@@ -439,6 +458,10 @@ export class DebugSessionService {
   private readonly deliberationEnabled: boolean;
   /** 进程内异步标题生成任务（按 sessionId）；供优雅停机/测试等待副作用落定，不阻塞正常轮次. */
   private readonly titleTasks = new Map<string, Promise<void>>();
+  /** 模型轨灰度配置（AF-322；只读展示，不参与决策）. */
+  private readonly classifierModeConfig: ReturnType<typeof resolveModelClassifierModeConfig>;
+  /** 模型轨模型标识（与分类器观测口径一致）. */
+  private readonly classifierModelId: string;
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -452,6 +475,8 @@ export class DebugSessionService {
     this.enabled = resolveDebugChatEnabled(config);
     this.deliberationWaitMs = resolveDebugChatDeliberationWaitMs(config);
     this.deliberationEnabled = resolveDeliberationEnabled(config.get<string>('ENGINE_DELIBERATION_ENABLED'));
+    this.classifierModeConfig = resolveModelClassifierModeConfig(config);
+    this.classifierModelId = config.get<string>(COUNSELOR_LLM_MODEL_ENV_KEY) ?? COUNSELOR_LLM_DEFAULT_MODEL;
     if (!this.enabled) {
       this.logger.warn('[debug_chat] 调试面板接口关闭 (ENGINE_DEBUG_CHAT_ENABLED), 本次进程的调试写接口不可用');
     }
@@ -832,7 +857,37 @@ export class DebugSessionService {
     if (!record) {
       throw new BizException(BizCode.ResourceNotFound, '调试会话不存在');
     }
-    return projectDebugSessionDetail(record);
+    return {
+      ...projectDebugSessionDetail(record),
+      classifier: await this.buildClassifierStatus(record),
+    };
+  }
+
+  /**
+   * 读本场模型轨运行口径（AF-322）.
+   *
+   * @param record 落盘会话记录
+   * @returns 模式 / 模型 / 总轮数 / 降级轮数
+   */
+  private async buildClassifierStatus(record: DebugSessionRecord): Promise<DebugSessionClassifierStatus> {
+    const mode = resolveModelClassifierSessionMode(this.classifierModeConfig, record.id, record.scenarioType);
+    const base = buildModelClassifierSessionStatsKey(DEBUG_CHAT_TENANT_ID, record.id);
+    try {
+      const [totalRaw, degradedRaw, modelRaw] = await Promise.all([
+        this.redis.get(`${base}:total`),
+        this.redis.get(`${base}:degraded`),
+        this.redis.get(`${base}:model`),
+      ]);
+      return {
+        mode,
+        modelId: modelRaw ?? this.classifierModelId,
+        totalCount: parseCount(totalRaw),
+        degradedCount: parseCount(degradedRaw),
+      };
+    } catch {
+      // 观测面读失败不影响会话详情：返回 0 计数，不编造.
+      return { mode, modelId: this.classifierModelId, totalCount: 0, degradedCount: 0 };
+    }
   }
 
   /**
@@ -1313,6 +1368,17 @@ export interface DebugSessionDetailMessage {
   readonly trace: unknown;
 }
 
+export interface DebugSessionClassifierStatus {
+  /** 本场最终生效的模型轨模式（含 exam 红线与灰度名单判定）. */
+  readonly mode: ModelClassifierEffectiveMode;
+  /** 模型轨模型标识. */
+  readonly modelId: string;
+  /** 模型轨参与轮数. */
+  readonly totalCount: number;
+  /** 其中降级轮数. */
+  readonly degradedCount: number;
+}
+
 /**
  * 调试会话详情视图.
  */
@@ -1335,6 +1401,12 @@ export interface DebugSessionDetail {
   readonly scenarioType?: DeliberationScenarioType;
   /** 接触方式（AF-187；旧记录缺省）—— 供导出与排查核对. */
   readonly encounter?: EncounterInput;
+  /**
+   * 事件分类器运行口径（AF-322）—— 模式 / 模型 / 降级计数.
+   *
+   * 只读展示，不参与决策；旧记录没有观测计数时返回 0.
+   */
+  readonly classifier?: DebugSessionClassifierStatus;
 }
 
 /**

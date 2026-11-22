@@ -1,11 +1,11 @@
 // V2026-11-12 治本 (D-2 · 事件类型拆分):
 //   职责: 钉死 D-2 落地的七段行为 ——
 //     ① core 联合扩到 13 类, 三处穷尽 Record 键集合一致 (防静默漂移);
-//     ② 两类新 kind 的 DELTA_TABLE 种子 = ZERO (缺省零回归);
+//     ② 两类新 kind 的 DELTA_TABLE 种子有方向（AF-322：在场微升安全/纽带，缺席微降信任）;
 //     ③ 映射收敛: 旁路标签层取消, 两类直接映射成自己的 core kind;
 //     ④ 出参 eventDetails 往返 (kind + 命中词 + 强度), 旧 events 投影逐字不变;
 //     ⑤ 审计按输入明细落库 matchedTerms (D-1 期间「命中词归零」的已知代价解除);
-//     ⑥ 中间态零回归: 判出两类新 kind 时 BDI 快照与当轮 delta 逐字不变;
+//     ⑥ AF-322: 判出两类新 kind 时 BDI 按方向演进（不再全零）;
 //     ⑦ 规则轨**不产**两类新 kind (词表不扩 —— 任务单 §3.2).
 //   边界: 全 mock; 不起 Nest 容器; 不连 DB / 不发网络 / 不调真模型.
 //
@@ -186,7 +186,7 @@ describe('D-2 · ① core 联合扩展 (13 类 · 三处穷尽 Record 一致)', 
     //   `Readonly<Record<CounselorEventKind, DeltaVector>>` 的编译期穷尽性保证:
     //   联合加一个 kind 而表里没补 → tsc 直接报 missing property.
     //   运行时能观测的等价事实 = 两类新 kind 在 delta 管道里是**一等公民**
-    //   (走同一条覆写/聚合路径), 只是种子值为零 (见 ②).
+    //   (走同一条覆写/聚合路径), 种子值见 ②（AF-322 起非零）.
     const overridden = aggregateTurnDelta([{ kind: 'holding_present', matchedTerms: [], strength: 1 }], undefined, {
       deltas: { holding_present: { trust: 0.02 } },
     });
@@ -194,16 +194,28 @@ describe('D-2 · ① core 联合扩展 (13 类 · 三处穷尽 Record 一致)', 
   });
 });
 
-describe('D-2 · ② 两类新 kind 的种子向量 = ZERO (缺省零回归)', () => {
-  it.each(NEW_KINDS)('%s 的当轮 delta 逐维为零 (强度缩放也放大不了零向量)', (kind) => {
-    const delta = aggregateTurnDelta([{ kind, matchedTerms: [], strength: 1 }]);
-    expect(Object.values(delta).every((value) => value === 0)).toBe(true);
+describe('D-2 · ② 两类新 kind 的种子向量（AF-322 起非零，方向受控）', () => {
+  it('holding_present：安全感 / 纽带感微升，话量微降', () => {
+    const delta = aggregateTurnDelta([{ kind: 'holding_present', matchedTerms: [], strength: 1 }]);
+    expect(delta.safety).toBeCloseTo(0.004, 10);
+    expect(delta.bond).toBeCloseTo(0.002, 10);
+    expect(delta.verbal).toBeCloseTo(-0.002, 10);
+    expect(delta.trust).toBe(0);
   });
 
-  it('两类与 neutral 的 delta **逐字相同** (缺省行为 = 改造前)', () => {
+  it('cold_absent：信任 / 安全感 / 纽带感微降，阻抗微升', () => {
+    const delta = aggregateTurnDelta([{ kind: 'cold_absent', matchedTerms: [], strength: 1 }]);
+    expect(delta.trust).toBeCloseTo(-0.004, 10);
+    expect(delta.safety).toBeCloseTo(-0.002, 10);
+    expect(delta.bond).toBeCloseTo(-0.002, 10);
+    expect(delta.verbal).toBeCloseTo(0.004, 10);
+    expect(delta.depth).toBeCloseTo(0.002, 10);
+  });
+
+  it('两类不再与 neutral 逐字相同（在场 / 缺席是临床信号，不是噪声）', () => {
     const neutral = aggregateTurnDelta([{ kind: 'neutral', matchedTerms: [], strength: 1 }]);
     for (const kind of NEW_KINDS) {
-      expect(aggregateTurnDelta([{ kind, matchedTerms: [], strength: 1 }])).toEqual(neutral);
+      expect(aggregateTurnDelta([{ kind, matchedTerms: [], strength: 1 }])).not.toEqual(neutral);
     }
   });
 });
@@ -304,7 +316,7 @@ describe('D-2 · ⑤ 审计恢复词明细 (D-1 期间「归零」的已知代�
     expect(repo.saved[0]?.eventDetails[0]?.matchedTerms).toEqual(['听起来你']);
   });
 
-  it('模型轨事件的命中词是空数组 (不造词) + 两类新 kind 的 delta 仍是零', async () => {
+  it('模型轨事件的命中词是空数组 (不造词) + 两类新 kind 的 delta 有方向', async () => {
     const repo = repoStub();
     const service = new TurnDeltaAuditService(repo as never, configStub() as never);
 
@@ -317,13 +329,13 @@ describe('D-2 · ⑤ 审计恢复词明细 (D-1 期间「归零」的已知代�
     await flush();
 
     expect(repo.saved[0]?.eventDetails[0]?.matchedTerms).toEqual([]);
-    expect(repo.saved[0]?.rawDelta.trust).toBe(0);
-    expect(repo.saved[0]?.rawDelta.safety).toBe(0);
+    expect(repo.saved[0]?.rawDelta.trust).toBeCloseTo(-0.004, 10);
+    expect(repo.saved[0]?.rawDelta.safety).toBeCloseTo(-0.002, 10);
   });
 });
 
-describe('D-2 · ⑥ 中间态零回归 (种子 ZERO + 不接生效轨)', () => {
-  it('分类器判出 holding_present → BDI 快照与当轮 delta 逐字不变', async () => {
+describe('D-2 · ⑥ 新 kind 生效（AF-322：在场 / 缺席不再全零）', () => {
+  it('分类器判出 holding_present → 安全感 / 纽带感高于 neutral 当轮', async () => {
     const holding = kernelSession(fixedClassifier([{ kind: 'holding_present', matchedTerms: [], strength: 1 }]));
     const holdingHandle = holding.openSession({ sessionId: 's-hold', tenantId: 't1', visitorId: 'v1' });
     const holdingOutput = await holding.turn(holdingHandle.handleId, { userText: NEUTRAL_TEXT });
@@ -333,7 +345,8 @@ describe('D-2 · ⑥ 中间态零回归 (种子 ZERO + 不接生效轨)', () => 
     const neutralOutput = await neutral.turn(neutralHandle.handleId, { userText: NEUTRAL_TEXT });
 
     expect(holdingOutput.events).toEqual(['holding_present']);
-    expect(holdingOutput.snapshot).toEqual(neutralOutput.snapshot);
+    expect(holdingOutput.snapshot.safety).toBeGreaterThan(neutralOutput.snapshot.safety);
+    expect(holdingOutput.snapshot.bond).toBeGreaterThan(neutralOutput.snapshot.bond);
   });
 
   it('模型轨 shadow 模式: 模型判出的新 kind **不进** core events, BDI 逐字不变', async () => {

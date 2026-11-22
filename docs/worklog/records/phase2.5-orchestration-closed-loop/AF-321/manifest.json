@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-321",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T16:12:00.000Z",
+  "updatedAt": "2026-11-22T16:36:15.137Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-321/task-sheet.md",
+    "sha256": "7da5e527a5323144a3ddf4b90ad9adb8e924e86ffdd261976e49a96fd12fc6ee",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af321-bdi-residual-closure-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af321-bdi-residual-closure-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

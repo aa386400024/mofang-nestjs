@@ -138,8 +138,8 @@ describe('WP36 · 跨会话间隔自然衰减 (纯函数)', () => {
     });
   });
 
-  describe('③ 稳定人格维度逐字不变', () => {
-    it('coreBeliefs / temporaryBeliefs / memoryBeliefs / 欲望 / 移情三态 全部不动', () => {
+  describe('③ 稳定人格维度逐字不变（移情例外，AF-322）', () => {
+    it('coreBeliefs / temporaryBeliefs / memoryBeliefs / 欲望 全部不动，移情按 90 天半衰期回落', () => {
       const snapshot = makeSnapshot();
       const decayed = applySessionDecay(snapshot, 90 * DAY_MS);
 
@@ -148,16 +148,18 @@ describe('WP36 · 跨会话间隔自然衰减 (纯函数)', () => {
       expect(decayed.memoryBeliefs).toEqual(snapshot.memoryBeliefs);
       expect(decayed.underlyingDesires).toEqual(snapshot.underlyingDesires);
       expect(decayed.situationalDesires).toEqual(snapshot.situationalDesires);
-      expect(decayed.transference).toEqual(snapshot.transference);
+      expect(decayed.transference.positive).toBeCloseTo(0.15, 10);
+      expect(decayed.transference.negative).toBeCloseTo(0.25, 10);
+      expect(decayed.transference.dependency).toBeCloseTo(0.1, 10);
     });
 
-    it('移情三态在 90 天后仍逐字不变 (移情不是状态性维度)', () => {
+    it('移情三态在 90 天后恰好减半（AF-322：关系性投射，不是人格结构）', () => {
       const snapshot = makeSnapshot();
       const decayed = applySessionDecay(snapshot, 90 * DAY_MS);
 
-      expect(decayed.transference.positive).toBe(0.3);
-      expect(decayed.transference.negative).toBe(0.5);
-      expect(decayed.transference.dependency).toBe(0.2);
+      expect(decayed.transference.positive).toBeCloseTo(0.15, 10);
+      expect(decayed.transference.negative).toBeCloseTo(0.25, 10);
+      expect(decayed.transference.dependency).toBeCloseTo(0.1, 10);
     });
   });
 
@@ -536,9 +538,11 @@ describe('WP36 · 跨会话间隔自然衰减 (会话层接线)', () => {
     expect(out.snapshot.emotion.valence).toBeCloseTo(-0.8 * Math.pow(2, -30 / 7), 10);
     // 阻抗半衰期 14 天 → 30 天 ≈ 2.14 个半衰期.
     expect(out.snapshot.resistance.verbal).toBeCloseTo(0.7 * Math.pow(2, -30 / 14), 10);
-    // 稳定人格维度逐字不变.
+    // 稳定人格维度逐字不变；移情按 90 天半衰期回落（AF-322）.
     expect(out.snapshot.coreBeliefs).toEqual(makeSnapshot().coreBeliefs);
-    expect(out.snapshot.transference).toEqual(makeSnapshot().transference);
+    expect(out.snapshot.transference.positive).toBeCloseTo(0.3 * Math.pow(2, -30 / 90), 10);
+    expect(out.snapshot.transference.negative).toBeCloseTo(0.5 * Math.pow(2, -30 / 90), 10);
+    expect(out.snapshot.transference.dependency).toBeCloseTo(0.2 * Math.pow(2, -30 / 90), 10);
   });
 
   it('衰减只发生在跨场边界那一次: 本场第二轮不再衰减', async () => {

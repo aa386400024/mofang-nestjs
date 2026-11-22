@@ -359,14 +359,38 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   },
   // 中性算子: 零 delta (不推进任何维度)
   neutral: ZERO,
-  // V2026-11-12 治本 (D-2 · 事件类型拆分): 两类**在场状态**事件, 种子 = ZERO.
-  //   ⚠️ **刻意是零向量**: 临床方向与幅度属临床口径, 由**标定批次**经
-  //     `DeltaTableConfig.deltas` 覆写落地 —— 基础表不承担临床参数.
-  //     (草案候选幅度 holding_present: safety +0.002 / bond +0.001;
-  //      cold_absent: trust -0.002 —— **只登记为候选**, 不进本表.)
-  //   零回归: 缺省时两类事件的 delta 与改造前逐字一致 (= 不推进任何维度).
-  holding_present: ZERO,
-  cold_absent: ZERO,
+  // V2026-11-12 治本 (D-2 · 事件类型拆分): 两类**在场状态**事件.
+  //   AF-322 标定: 在场状态不是干预, 幅度必须小于共情/接纳（单事件约 0.004）;
+  //     但它是持续累积的背景信号，20 轮稳定在场可累积 safety +0.08 / bond +0.04.
+  //     holding_present: safety +0.004 / bond +0.002 / verbal -0.002；
+  //     cold_absent:    trust -0.004 / safety -0.002 / bond -0.002.
+  //   ⚠️ 幅度是**工程种子值, 非临床标定** —— 需督导复核“稳定陪伴”与“机械敷衍”的差值.
+  holding_present: {
+    trust: 0,
+    safety: 0.004,
+    bond: 0.002,
+    verbal: -0.002,
+    depth: 0,
+    style: 0,
+    valence: 0.004,
+    arousal: -0.002,
+    positive: 0,
+    negative: 0,
+    dependency: 0,
+  },
+  cold_absent: {
+    trust: -0.004,
+    safety: -0.002,
+    bond: -0.002,
+    verbal: 0.004,
+    depth: 0.002,
+    style: 0.002,
+    valence: -0.004,
+    arousal: 0,
+    positive: 0,
+    negative: 0.002,
+    dependency: 0,
+  },
 };
 
 /**

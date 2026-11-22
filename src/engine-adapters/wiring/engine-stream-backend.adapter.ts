@@ -1333,10 +1333,12 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * @returns 调试快照
    */
   private buildTurnTrace(sessionId: string, result: TurnRenderResult, usage: TurnRenderResult['render']['usage']): TurnTrace {
+    const intention = buildTraceIntention(result.intention);
     return {
       turnIndex: result.turnIndex,
       characterSlug: this.characterSlugs.get(sessionId) ?? '',
       bdiSnapshot: buildBdiSnapshot(result.snapshot),
+      ...(intention ? { intention } : {}),
       renderSpec: buildRenderSpecSummary(result.render),
       llmUsage: buildLlmUsage(result.render, usage),
       crisis: buildCrisisSummary(result.safety),
@@ -1561,12 +1563,39 @@ interface SessionContext {
  * @returns 留痕快照
  */
 function buildBdiSnapshot(snapshot: TurnRenderResult['snapshot']): TurnTrace['bdiSnapshot'] {
+  const transference = snapshot.transference as
+    { readonly positive?: unknown; readonly negative?: unknown; readonly dependency?: unknown } | undefined;
+  const activation = snapshot.coreBeliefActivation as Readonly<Record<string, unknown>> | undefined;
+  const activationPeak = activation ? Object.values(activation).reduce((max: number, value) => Math.max(max, numberOr(value, 0)), 0) : 0;
   return {
-    trust: snapshot.trust,
-    valence: snapshot.emotion.valence,
-    arousal: snapshot.emotion.arousal,
-    resistance: snapshot.resistance.verbal,
-    anxiousSecure: snapshot.emotion.label,
+    trust: numberOr(snapshot.trust, 0),
+    valence: numberOr(snapshot.emotion?.valence, 0),
+    arousal: numberOr(snapshot.emotion?.arousal, 0),
+    resistance: numberOr(snapshot.resistance?.verbal, 0),
+    anxiousSecure: typeof snapshot.emotion?.label === 'string' ? snapshot.emotion.label : 'unknown',
+    safety: numberOr(snapshot.safety, 0),
+    bond: numberOr(snapshot.bond, 0),
+    resistanceDepth: numberOr(snapshot.resistance?.depth, 0),
+    transference: {
+      positive: numberOr(transference?.positive, 0),
+      negative: numberOr(transference?.negative, 0),
+      dependency: numberOr(transference?.dependency, 0),
+    },
+    coreBeliefActivationPeak: activationPeak,
+  };
+}
+
+/**
+ * 内核意图 → 留痕的 `intention`（AF-322，可选）.
+ *
+ * @param intention 内核本轮意图；缺失 / 非法 → undefined（老 trace 与最小夹具保持兼容）
+ * @returns 留痕意图
+ */
+function buildTraceIntention(intention: TurnRenderResult['intention'] | undefined): TurnTrace['intention'] | undefined {
+  if (!intention || typeof intention.strategy !== 'string') return undefined;
+  return {
+    strategy: intention.strategy,
+    rationale: typeof intention.rationale === 'string' ? intention.rationale : '',
   };
 }
 
@@ -1586,7 +1615,15 @@ function buildBdiSnapshot(snapshot: TurnRenderResult['snapshot']): TurnTrace['bd
  */
 function safeBdiSnapshot(snapshot: TurnRenderResult['snapshot']): VoiceCatchUpBdiSnapshot | undefined {
   try {
-    return buildBdiSnapshot(snapshot);
+    const built = buildBdiSnapshot(snapshot);
+    // 补漏帧契约仍是 WP19-R 的五字段形状；AF-322 新字段只进生产 trace，不扩补漏帧.
+    return {
+      trust: built.trust,
+      valence: built.valence,
+      arousal: built.arousal,
+      resistance: built.resistance,
+      anxiousSecure: built.anxiousSecure,
+    };
   } catch {
     return undefined;
   }
