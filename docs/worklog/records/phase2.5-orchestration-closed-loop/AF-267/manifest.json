@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-267",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T10:20:00+08:00",
-  "updatedAt": "2026-11-22T02:18:10.423Z",
+  "updatedAt": "2026-11-22T02:20:46.275Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md",
     "sha256": "f8e7f599fb69739455f6161856164ebce3d5442ee64ecb9220db22019baac636",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/receipt-RC-AF-267-1.json",
+      "sha256": "e57c0ea706398bd3822eee635d8e1d1bcd6041a3f594127e006ea98aac6fe6b3",
+      "receiptId": "RC-AF-267-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/inbox/AF-267-model-price-env-wiring-task-2026-11-22.md"
