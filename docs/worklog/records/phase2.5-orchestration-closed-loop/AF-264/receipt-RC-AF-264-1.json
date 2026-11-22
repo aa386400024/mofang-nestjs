@@ -1,0 +1,185 @@
+{
+  "deliveredAt": "2026-11-22T09:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-264-1",
+    "taskId": "AF-264",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "478a8afbc8f37f9a76e9cf91f31e1419156bbd57",
+    "dependsOn": ["AF-263"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af264-visitor-fallback-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af264-visitor-fallback-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/task-sheet.md"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["b66da7a6"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --turns 1 --fail-primary --fail-primary-mode auth --expect-degraded --max-tokens 160 --timeout-ms 30000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 4 秒",
+        "note": "主候选探针真实 401；providerHint=degraded、degraded=true、fallbackUsed=true、chars=14、elapsed=143ms；日志 data/af264-auth-degraded.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --turns 1 --fail-primary --fail-primary-mode network --expect-fallback --max-tokens 160 --timeout-ms 60000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 6 秒",
+        "note": "主候选探针 Connection error；providerHint=minimax、model=MiniMax-M3、fallbackUsed=true、degraded=false、chars=58、elapsed=2450ms、ttft=2141ms、usage 821/147/968、guard=pass；日志 data/af264-network-fallback.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --turns 6",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 12 秒",
+        "note": "6/6 providerHint=doubao、fallbackUsed=false、degraded=false；totalUsage 4946/74/5020；TTFT 687/899/829/669/427/791ms；日志 data/af264-normal6.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；首次 7 error 已修（提取 resolveFaultFlags/buildRouterChain/probePrimaryFailure，env 读取改 envText）；日志 data/af264-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af264-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 261,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "261 files passed + 1 skipped；4264 tests passed + 4 skipped；日志 data/af264-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-264-visitor-fallback-smoke 自 integrate 478a8afb 切出。router 路径同时注册豆包与 MiniMax，备候选真实可达。故障注入只在 smoke 进程内：auth 换无效 LLM_DOUBAO_API_KEY，network 把豆包 baseUrl 指向 127.0.0.1:9 且 maxRetries=0。未改 .env，未打印原 key，未暂存 web/orchestration/data.js。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-264"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "failure-semantics",
+        "result": "pass",
+        "note": "auth 与 network 两类故障用互斥断言固化，避免把正确降级误判成回退失败"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，未改生产回退策略"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 478a8afb；依赖 AF-263 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-auth-failure-fallback-policy",
+        "impact": "401 当前直接降级、不切备候选；坏 key 时整场对练会持续输出兜底句，需产品/架构决定是否切 MiniMax"
+      },
+      {
+        "id": "visitor-failover-concurrency-smoke",
+        "impact": "未验证并发下同一 provider 冷却共享与半开探测单飞"
+      },
+      {
+        "id": "visitor-failover-5xx-timeout",
+        "impact": "未覆盖 429/5xx/读超时的候选切换与退避"
+      },
+      {
+        "id": "visitor-failover-multi-turn-recovery",
+        "impact": "未验证主候选恢复后从 MiniMax 切回豆包的多轮回切"
+      }
+    ],
+    "openQuestions": [
+      "鉴权失败应保留快速失败语义，还是切 MiniMax 保对练连续性"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "主候选 401 后应回退到 MiniMax",
+        "reality": "LlmRenderAdapter 把鉴权失败判为不可重试，记录错误后直接 degraded=true 兜底句，不进入候选切换",
+        "action": "保留生产策略不改；新增 --expect-degraded 固化该行为，真实回退证据改用传输失败模式",
+        "why": "401 是配置错误，盲目切候选会掩盖坏 key；是否改策略属于产品决策"
+      },
+      {
+        "taskSays": "只加 --fail-primary 一个开关",
+        "reality": "两类故障语义不同，一个开关无法同时表达应降级与应回退",
+        "action": "增加 --fail-primary-mode auth|network 与两个互斥断言开关",
+        "why": "smoke 要能区分预期，否则会把正确降级误判为回退失败"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "两类故障都有真实上游证据；传输回退确实调到 MiniMax 并产出非空、guard pass 回复；正常 6 轮仍全轮豆包；lint、CI 同口径 tsc、全量 4264 例全绿；engine-core 零改动。鉴权失败不回退是既有生产语义，已登记决策项，未擅改。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

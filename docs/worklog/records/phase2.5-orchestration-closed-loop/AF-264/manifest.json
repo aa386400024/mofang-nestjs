@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-264",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T09:30:00+08:00",
+  "updatedAt": "2026-11-22T01:42:58.145Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/task-sheet.md",
+    "sha256": "16e2344a8fade5acd506053daeaeee536e6da5acfec91248dbafaf092d45d1f0",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/receipt-RC-AF-264-1.json",
+      "sha256": "ce4b578a3d1755e4479fa2291c771abe23d09a08059963acd5b2b6e75c05d8d3",
+      "receiptId": "RC-AF-264-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af264-visitor-fallback-smoke-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af264-visitor-fallback-smoke-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
