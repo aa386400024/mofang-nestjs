@@ -4,10 +4,120 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1443,
+    "lastEventSeq": 1450,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-328",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T18:42:51.659Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "scope 重签发自 AF-327"
+        },
+        {
+          "at": "2026-11-22T18:43:02.823Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "文字真人度 humanization-v1 判据与离线审计 CLI",
+      "type": "implementation",
+      "baselineRef": "02c8a9ea8aad4a36420cec95930157dbcd5bca44",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-327"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T18:42:51.601Z",
+      "deadline": "2026-11-23T19:00:00+08:00",
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/auto-practice/metrics/",
+          "test/auto-practice/metrics/",
+          "bin/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "docs/worklog/records/"
+        ],
+        "modules": [
+          "auto-practice-metrics"
+        ],
+        "interfaces": [
+          "humanization-acceptance-v1"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-328/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af328-humanization-acceptance-v1-2026-11-23.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/metrics/humanization-acceptance.spec.ts",
+          "check": "定向单测全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "git diff --stat HEAD -- src/engine-core",
+          "check": "输出为空",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "新增纯模块 humanization-v1 判据，版本常量、判据表、逐条评估结果，零 IO / 零框架 / 零随机。",
+        "判据只在 realismMode=active 时参与判定；off / audit 一律返回 not_applicable 并说明原因，禁止用真人度门槛误判历史 off 批次。",
+        "新增离线审计 CLI，读取 data/debug-sessions 的 visitor 台词，按场次与总体输出六类不流利数字、判据结果和模式；支持 --mode、--ids、--json、--fail-on-violation。",
+        "在真实 7 场语料上跑出可复跑的 audit 基线报告，明确标注不是临床结论、不作为 active 验收通过。",
+        "单测覆盖版本/判据边界/模式门/空样本/CLI 数字契约，至少 10 例。",
+        "定向测试、typecheck、lint、全量测试、engine-core 零 diff 全部通过，并记录真实数字。",
+        "不修改 RENDER_REALISM_MODE 默认值，不切换生产渲染链路，不写任何台词原文到报告。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af328-humanization-acceptance-v1-2026-11-23.md",
+          "kind": "report"
+        },
+        {
+          "name": "真实语料审计报告",
+          "path": "docs/worklog/completed/phase2.5/af328-humanization-audit-2026-11-23.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-22T18:42:51.659Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2828,6 +2938,15 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af326-classifier-prompt-v2-2026-11-23.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-327",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-327/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af327-humanization-acceptance-v1-2026-11-23.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -2876,6 +2995,7 @@
     "AF-262": "scope-domain-conflict；AF-263 承接",
     "AF-279": "旁路评审任务取消归档；评审报告保留为 AF-278 生产可用性证据，P0/P1 转新返修任务",
     "AF-312": "scope 重签发 → AF-313",
-    "AF-325": "scope 重签发 → AF-326"
+    "AF-325": "scope 重签发 → AF-326",
+    "AF-327": "scope 重签发 → AF-328"
   }
 }
