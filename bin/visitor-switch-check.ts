@@ -15,6 +15,7 @@ import { existsSync } from 'node:fs';
 import { resolveVisitorRuntime } from '../src/agent/visitor/visitor.runtime.js';
 import { RenderConfigFactory } from '../src/engine-adapters/wiring/render-config.factory.js';
 import { AIProviderId, LLMTier } from '../src/llm/common/enums/llm.enums.js';
+import { resolveProviderApiKeyEnvKey } from '../src/llm/config/provider-env.js';
 import type { LlmRouterService } from '../src/llm/registry/llm-router.service.js';
 
 function fail(message: string, exitCode = 1): never {
@@ -78,6 +79,14 @@ function main(): void {
   }));
 
   const doubaoKeyPresent = (process.env['LLM_DOUBAO_API_KEY']?.trim() ?? '').length > 0;
+  const candidateApiKeys = candidates.map((candidate) => {
+    const envKey = resolveProviderApiKeyEnvKey(candidate.id as AIProviderId);
+    return {
+      id: candidate.id,
+      envKey,
+      present: (process.env[envKey]?.trim() ?? '').length > 0,
+    };
+  });
 
   console.log(
     JSON.stringify(
@@ -95,6 +104,7 @@ function main(): void {
           visitorDoubaoModel: process.env['VISITOR_DOUBAO_MODEL'] ?? null,
           engineRenderPrimaryProvider: process.env['ENGINE_RENDER_PRIMARY_PROVIDER'] ?? null,
           doubaoApiKeyPresent: doubaoKeyPresent,
+          candidateApiKeys,
         },
       },
       null,
@@ -113,6 +123,10 @@ function main(): void {
   }
   if (expectedPrimary === AIProviderId.MINIMAX && !candidates.some((candidate) => candidate.id === AIProviderId.DOUBAO)) {
     fail('回滚态没有 doubao 备候选，MiniMax 熔断后会直接落到兜底句', 2);
+  }
+  const missingKeys = candidateApiKeys.filter((item) => !item.present);
+  if (missingKeys.length > 0) {
+    fail(`候选缺 apiKey: ${missingKeys.map((item) => `${item.id}(${item.envKey})`).join(', ')}；故障切到该候选时必然失败`, 2);
   }
 }
 

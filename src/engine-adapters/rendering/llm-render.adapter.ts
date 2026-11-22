@@ -439,14 +439,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   /**
    * 调用失败的统一归类 (聚合与流式共用).
    *
-   * 鉴权失败不切备 (M7): 坏 key 对所有候选都坏, 逐个尝试只放大延迟,
-   * 而且每一次失败都在给用户叠加等待.
+   * AF-275: 鉴权失败改为**可切备**。M7 的口径是「坏 key 对所有候选都坏」，
+   * 但那个前提是全场共用同一把 key；现在主备是不同厂商、各自独立的 key
+   * (MINIMAX_API_KEY / LLM_DOUBAO_API_KEY)，主 key 轮换或临时失效不应拖死整场。
+   * 切到备候选仍失败时，候选循环自然耗尽并降级，不会无限重试。
    */
   private classifyFailure(candidate: RenderCandidate, error: unknown): { readonly retryable: boolean; readonly reason: string } {
     this.runtime.markFailure(candidate.id, this.config);
     if (isAuthFailure(error)) {
-      this.logger.error(`[render] 候选 ${candidate.id} 鉴权失败, 不再在坏 key 上循环: ${errorMessage(error)}`);
-      return { retryable: false, reason: `鉴权失败: ${errorMessage(error)}` };
+      this.logger.error(`[render] 候选 ${candidate.id} 鉴权失败, 切下一个候选: ${errorMessage(error)}`);
+      return { retryable: true, reason: `鉴权失败: ${errorMessage(error)}` };
     }
     this.logger.warn(`[render] 候选 ${candidate.id} 调用失败, 切下一个候选: ${errorMessage(error)}`);
     return { retryable: true, reason: errorMessage(error) };
@@ -1556,7 +1558,10 @@ const AUTH_ERROR_PATTERNS: readonly RegExp[] = [
 ];
 
 /**
- * 是否鉴权类失败 (不可切备, 直接降级).
+ * 是否鉴权类失败 (401/403).
+ *
+ * AF-275: 仍单独识别，但不再等于「终止」—— 主备厂商 key 独立，
+ * 主 key 坏时允许切到备候选；识别本身用于日志与 reason 口径。
  */
 function isAuthFailure(error: unknown): boolean {
   const status = extractErrorStatus(error);

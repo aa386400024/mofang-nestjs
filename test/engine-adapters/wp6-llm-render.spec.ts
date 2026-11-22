@@ -423,8 +423,26 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
     });
   });
 
-  describe('⑨ 鉴权失败不循环', () => {
-    it('401 → 直接降级, 不对后续候选逐个尝试', async () => {
+  describe('⑨ 鉴权失败按候选切备', () => {
+    it('主候选 401 → 切到备候选成功 (主备 key 独立)', async () => {
+      const caller = new StubChatCaller([
+        { ok: false, error: new Error('401 Unauthorized') },
+        { ok: true, content: SAFE_TEXT },
+      ]);
+      const adapter = new LlmRenderAdapter({
+        caller,
+        config: buildConfig([{ id: 'primary' }, { id: 'backup' }]),
+        guard: async () => ({ level: 'pass' }),
+      });
+
+      const result = await adapter.render(buildSpec('chat'));
+
+      expect(result.text).toBe(SAFE_TEXT);
+      expect(result.providerHint).toBe('backup');
+      expect(caller.calls.map((call) => call.providerId)).toEqual(['primary', 'backup']);
+    });
+
+    it('主备都 401 → 候选耗尽降级 (只按候选数尝试, 不无限重试)', async () => {
       const caller = new StubChatCaller([{ ok: false, error: new Error('401 Unauthorized') }]);
       const adapter = new LlmRenderAdapter({
         caller,
@@ -436,12 +454,14 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
       expect(result.text).toBe(FALLBACK_UTTERANCE);
       expect(result.providerHint).toBe('degraded');
-      expect(caller.calls).toHaveLength(1);
-      expect(caller.calls[0].providerId).toBe('primary');
+      expect(caller.calls).toHaveLength(2);
     });
 
-    it('缺 apiKey 的错误同样直接降级 (不逐候选重试)', async () => {
-      const caller = new StubChatCaller([{ ok: false, error: new Error('API key not found for provider deepseek') }]);
+    it('缺 apiKey 的错误同样按候选切备 (备候选 key 独立)', async () => {
+      const caller = new StubChatCaller([
+        { ok: false, error: new Error('API key not found for provider deepseek') },
+        { ok: true, content: SAFE_TEXT },
+      ]);
       const adapter = new LlmRenderAdapter({
         caller,
         config: buildConfig([{ id: 'primary' }, { id: 'backup' }]),
@@ -450,11 +470,11 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
       const result = await adapter.render(buildSpec('chat'));
 
-      expect(result.providerHint).toBe('degraded');
-      expect(caller.calls).toHaveLength(1);
+      expect(result.text).toBe(SAFE_TEXT);
+      expect(result.providerHint).toBe('backup');
+      expect(caller.calls).toHaveLength(2);
     });
   });
-
   describe('⑩ taskKind 参数注入', () => {
     it('stable → 低温参数; chat → 高温参数', async () => {
       const stableCaller = new StubChatCaller([{ ok: true, content: SAFE_TEXT }]);

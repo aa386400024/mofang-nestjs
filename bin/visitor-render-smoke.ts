@@ -433,8 +433,8 @@ interface FaultFlags {
   readonly expectDegraded: boolean;
 }
 
-const FALLBACK_FAULT_MODES = new Set<FaultMode>(['network', 'rate-limit', 'server-error', 'timeout']);
-const DEGRADED_FAULT_MODES = new Set<FaultMode>(['auth', 'midstream-stall']);
+const FALLBACK_FAULT_MODES = new Set<FaultMode>(['auth', 'network', 'rate-limit', 'server-error', 'timeout']);
+const DEGRADED_FAULT_MODES = new Set<FaultMode>(['midstream-stall']);
 
 /** 解析并校验故障注入开关；语义互斥的组合同步拒绝，避免 smoke 自相矛盾。 */
 function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
@@ -461,14 +461,10 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
     fail('--fail-primary 必须配合 --expect-fallback 或 --expect-degraded');
   }
   if (DEGRADED_FAULT_MODES.has(mode) && expectFallback) {
-    fail(
-      mode === 'auth'
-        ? '鉴权失败按生产策略直接降级、不切候选；验证真实回退请用 --fail-primary-mode network / rate-limit / server-error / timeout'
-        : '首包后停摆已经出声，不能再切候选；验证收尾降级请用 --expect-degraded',
-    );
+    fail('首包后停摆已经出声，不能再切候选；验证收尾降级请用 --expect-degraded');
   }
   if (FALLBACK_FAULT_MODES.has(mode) && expectDegraded) {
-    fail('可重试故障应触发候选回退；验证鉴权降级请用 --fail-primary-mode auth');
+    fail('鉴权 / 限流 / 服务端错误 / 超时均为可切备故障；验证降级请用 --fail-primary-mode midstream-stall');
   }
   return { failPrimary, mode, expectFallback, expectDegraded };
 }

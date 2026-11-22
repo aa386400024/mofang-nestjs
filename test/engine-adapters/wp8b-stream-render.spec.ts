@@ -183,20 +183,23 @@ describe('WP8-B · 流式渲染状态机 (单一实现)', () => {
       expect(adapter.health()['backup']?.consecutiveFailures).toBe(0);
     });
 
-    it('鉴权失败 → 不切备, 直接降级 (坏 key 对所有候选都坏)', async () => {
-      const caller = new StubStreamCaller([{ kind: 'error', error: new Error('invalid api key') }]);
+    it('主候选鉴权失败 → 切备成功 (主备 key 独立)', async () => {
+      const caller = new StubStreamCaller([
+        { kind: 'error', error: new Error('invalid api key') },
+        { kind: 'chunks', deltas: ['我在', '，慢慢说。'] },
+      ]);
       const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }, { id: 'backup' }]) });
       const { deltas, onDelta } = collector();
 
       const outcome = await adapter.streamRender(buildSpec(), { onDelta });
 
-      expect(outcome.providerHint).toBe('degraded');
+      expect(outcome.providerHint).toBe('backup');
       expect(outcome.fallbackUsed).toBe(true);
-      expect(outcome.degraded).toBe(true);
-      expect(outcome.text).toBe(FALLBACK_UTTERANCE);
-      expect(deltas).toEqual([]);
-      // 备候选**没有被试**: 逐个尝试只放大延迟.
-      expect(caller.streamCalls).toHaveLength(1);
+      expect(outcome.degraded).toBe(false);
+      expect(outcome.text).toBe('我在，慢慢说。');
+      expect(deltas).toEqual(['我在，慢慢说。']);
+      // 主候选尝试过一次失败后切备; 备候选成功后不再回主.
+      expect(caller.streamCalls.map((call) => call.opts?.providerId)).toEqual(['primary', 'backup']);
     });
 
     it('空流 (首 delta 前无内容) → 视为失败并切备', async () => {

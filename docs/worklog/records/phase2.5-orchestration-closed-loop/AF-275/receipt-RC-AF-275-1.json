@@ -1,0 +1,231 @@
+{
+  "deliveredAt": "2026-11-22T12:47:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-275-1",
+    "taskId": "AF-275",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b8e94a5b9946f1f801311957387b983eb6877d6d",
+    "dependsOn": ["AF-274", "AF-273"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-275/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af275-candidate-credential-auth-fallback-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "test/engine-adapters/af275-candidate-credential-guard.spec.ts",
+        "test/engine-adapters/af275-auth-fallback.spec.ts",
+        "docs/worklog/completed/phase2.5/af275-candidate-credential-auth-fallback-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-275/task-sheet.md"
+      ],
+      "modified": [
+        "src/engine-adapters/wiring/render-config.factory.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "bin/visitor-switch-check.ts",
+        "bin/visitor-render-smoke.ts",
+        ".env.example",
+        "test/engine-adapters/af273-rollback-failover-guard.spec.ts",
+        "test/engine-adapters/af252-visitor-render-provider.spec.ts",
+        "test/engine-adapters/wp-h-render-availability.spec.ts",
+        "test/engine-adapters/wp6-llm-render.spec.ts",
+        "test/engine-adapters/wp8b-stream-render.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af275-candidate-credential-guard.spec.ts test/engine-adapters/af275-auth-fallback.spec.ts test/engine-adapters/af273-rollback-failover-guard.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "0.93 秒",
+        "note": "19/19 passed：凭据守卫 9 + 鉴权切备 4 + AF-273 回滚回归 6；日志 data/af275-targeted.log"
+      },
+      {
+        "command": "pnpm exec vitest run wp6 wp8b wp-h af252 af275-* af273-*",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 7,
+        "machine": "同上",
+        "wallClock": "1.66 秒",
+        "note": "84/84 passed：4 个受 401 语义变更影响的既有测试文件 + AF-275 两文件 + AF-273；日志 data/af275-targeted-expanded.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "类型闭合；`AuthCaller.chat` 已按 ChatCaller 位置参数签名修正；日志 data/af275-tsc2.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35 秒",
+        "note": "0 error / 0 warning；日志 data/af275-lint2.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 3 --fail-primary --fail-primary-mode auth --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "4.9 秒",
+        "note": "真实 router：primary probe 401 201ms；3/3 providerHint=minimax、model=MiniMax-M3、fallbackUsed=true、degraded=false、finishReason=stop；wall 4918ms；TTFT 1855/1106/1116ms；日志 data/af275-auth-smoke.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "候选 doubao,minimax；candidateApiKeys 两家 present=true；日志 data/af275-check-doubao.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary minimax --simulate-visitor-provider minimax",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "候选 minimax,doubao；豆包模型 doubao-seed-character-260628；两家 present=true；日志 data/af275-check-minimax.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 267,
+        "machine": "同上；本机串行执行，未并行跑第二条全量或 watch 任务",
+        "wallClock": "22.59 秒",
+        "note": "267 files passed + 1 skipped；4297 tests passed + 4 skipped；日志 data/af275-full-test2.log。首轮 7 例失败全部是旧的「401 不切备」断言，已按新语义改写后复跑全绿"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-275-candidate-credential-auth-fallback 自 integrate b8e94a5b 切出。AF-274 合并时因工作区存在 AF-275 未提交改动导致 pr-release 切换分支失败，已用 data/af275-work.patch 迁移 6 个已跟踪文件，2 个新测试文件以 untracked 保留；恢复后 AF-274 工作区干净，integrate fast-forward 到 b8e94a5b。AF-275 在装配期对自动补出的对端候选做 apiKey 硬门，401/403 改为 retryable；smoke auth 用真实 401 主候选失败，3 轮全部切到 MiniMax。首轮全量测试暴露 7 个旧断言，涉及 wp6 2 例、wp8b 1 例、wp-h 1 例、af252 3 例；均按新语义改写或补假 key 后复跑全绿。未写 .env；未暂存 data/ 取证日志、data/af275-work.patch 与 web/orchestration/data.js。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-275"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "定向 19 例、受影响既有 84 例、全量 4297 例全绿；正常候选链与回滚候选链均自检通过"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，仅改 engine-adapters 装配/流式适配、bin 自检工具与测试"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 b8e94a5b；依赖 AF-274 / AF-273 均已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-stream-idle-timeout-key",
+        "impact": "块间空闲仍复用 ENGINE_RENDER_TIMEOUT_MS，一个键承担聚合总超时、首包超时、块间空闲三种语义；需独立 ENGINE_RENDER_STREAM_IDLE_TIMEOUT_MS 并同步 .env.example"
+      },
+      {
+        "id": "visitor-stream-first-delta-budget",
+        "impact": "首包固定 30s，高 maxTokens 的慢首包可能被误杀；建议按 max(8000, maxTokens*8) 放宽"
+      },
+      {
+        "id": "visitor-rollback-concurrency-long-context",
+        "impact": "回滚态并发 + 超时组合、40 轮长上下文仍未验证"
+      },
+      {
+        "id": "minimax-httpclient-transport-timing",
+        "impact": "MiniMax HttpClient 的 headersTimeout 是否仍会先于适配器触发未单独验证"
+      },
+      {
+        "id": "visitor-stream-idle-observability",
+        "impact": "无 stream_idle_timeout_total / auth_fallback_total / phase / candidate 指标"
+      },
+      {
+        "id": "visitor-stream-client-auto-retry",
+        "impact": "流式断流时客户端可能自动重试并拿到 raw Error；WS 层需转标准 error/end 事件"
+      },
+      {
+        "id": "visitor-cost-breakdown-persistence",
+        "impact": "providerBreakdown 未在 auto-practice 落库与管理后台成本看板消费"
+      },
+      {
+        "id": "minimax-official-pricing",
+        "impact": "MiniMax M3 官方单价仍未核对，成本继续走全局回落价"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "401 可切备",
+        "reality": "既有 wp6 / wp8b 断言编码的是旧前提「坏 key 对所有候选都坏」",
+        "action": "改写为「主候选 401 切备成功」「主备都 401 耗尽降级」「缺 apiKey 按候选切备」",
+        "why": "旧前提已不适用；同时保留候选耗尽与单候选只试一次的边界"
+      },
+      {
+        "taskSays": "自动补备候选缺 key 硬失败",
+        "reality": "wp-h 与 af252 的装配用例没有准备候选 key",
+        "action": "补两把假 key，保持原用例只测候选数与模型映射",
+        "why": "避免凭据硬门把非凭据用例误伤"
+      },
+      {
+        "taskSays": "候选先去重再补对端",
+        "reality": "buildCandidates 返回值从数组改为 { candidates, autoFallbackId }",
+        "action": "同步更新 build() 与两个调用点",
+        "why": "需要把「哪个候选是自动补的」传给凭据守卫；纯数组无法区分"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "自动补备候选缺 key 从运行期故障前移到装配期硬失败；401/403 在独立 key 前提下可切备，真实 401 smoke 3/3 切到 MiniMax 且零降级；主备都失败仍按候选数耗尽降级，不无限重试。正向与回滚候选链自检均证明两家 key 可见。定向 19 例、受影响既有 84 例、全量 4297 例全绿，tsc/lint 0 错，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

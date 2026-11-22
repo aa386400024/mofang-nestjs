@@ -26,6 +26,12 @@ class StubRouter {
   }
 }
 
+// AF-275: 自动补出来的备候选必须有 key；本单测只测候选链，给两把假 key 让装配通过。
+const PROVIDER_KEYS = {
+  LLM_DOUBAO_API_KEY: 'test-doubao-key',
+  MINIMAX_API_KEY: 'test-minimax-key',
+} as const;
+
 function build(env: Readonly<Record<string, string>>): ReturnType<RenderConfigFactory['build']> {
   return new RenderConfigFactory(stubConfig(env), new StubRouter() as unknown as LlmRouterService).build();
 }
@@ -37,6 +43,7 @@ function modelOf(config: ReturnType<RenderConfigFactory['build']>, id: string, k
 describe('AF-273 · 回滚态候选链保底守卫', () => {
   it('① 显式回滚 minimax 且未配 fallback 时自动补 doubao', () => {
     const config = build({
+      ...PROVIDER_KEYS,
       VISITOR_LLM_PROVIDER: 'minimax',
       ENGINE_RENDER_PRIMARY_PROVIDER: 'minimax',
     });
@@ -45,6 +52,7 @@ describe('AF-273 · 回滚态候选链保底守卫', () => {
 
   it('② 回滚态豆包备候选仍走来访者 Seed Character 模型', () => {
     const config = build({
+      ...PROVIDER_KEYS,
       VISITOR_LLM_PROVIDER: 'minimax',
       ENGINE_RENDER_PRIMARY_PROVIDER: 'minimax',
     });
@@ -73,6 +81,7 @@ describe('AF-273 · 回滚态候选链保底守卫', () => {
   it('⑤ 回滚态自动补备后 REQUIRE_FAILOVER 不再启动失败', () => {
     expect(() =>
       build({
+        ...PROVIDER_KEYS,
         VISITOR_LLM_PROVIDER: 'minimax',
         ENGINE_RENDER_PRIMARY_PROVIDER: 'minimax',
         ENGINE_RENDER_REQUIRE_FAILOVER: 'true',
@@ -82,6 +91,7 @@ describe('AF-273 · 回滚态候选链保底守卫', () => {
 
   it('⑥ 正向 doubao 切流仍自动补 minimax', () => {
     const config = build({
+      ...PROVIDER_KEYS,
       VISITOR_LLM_PROVIDER: 'doubao',
       ENGINE_RENDER_PRIMARY_PROVIDER: 'minimax',
     });
