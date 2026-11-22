@@ -111,6 +111,9 @@ function main(): void {
   if (expectedPrimary === AIProviderId.DOUBAO && !candidates.some((candidate) => candidate.id === AIProviderId.MINIMAX)) {
     fail('引擎渲染没有 minimax 备候选，切流后缺回退', 2);
   }
+  if (expectedPrimary === AIProviderId.MINIMAX && !candidates.some((candidate) => candidate.id === AIProviderId.DOUBAO)) {
+    fail('回滚态没有 doubao 备候选，MiniMax 熔断后会直接落到兜底句', 2);
+  }
 }
 
 try {

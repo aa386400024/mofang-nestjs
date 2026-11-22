@@ -152,9 +152,15 @@ export class RenderConfigFactory {
       .map((id) => id.trim())
       .filter((id) => id.length > 0);
 
-    // 切到豆包时若没有显式备候选，自动补 MiniMax：单候选一熔断就是整场兜底句。
-    if (visitorProvider === AIProviderId.DOUBAO && fallbacks.length === 0) {
-      fallbacks.push(AIProviderId.MINIMAX);
+    // 切到豆包时若没有显式备候选，自动补 MiniMax；切回 MiniMax 时同理自动补豆包。
+    // 单候选一熔断就是整场兜底句 —— 回滚方案不能只做到“能切”，还要“切了有备胎”。
+    // 只在 `VISITOR_LLM_PROVIDER` 显式指定时生效，未配置的既有部署保持原候选链零回归。
+    if (fallbacks.length === 0) {
+      if (visitorProvider === AIProviderId.DOUBAO) {
+        fallbacks.push(AIProviderId.MINIMAX);
+      } else if (visitorProvider === AIProviderId.MINIMAX) {
+        fallbacks.push(AIProviderId.DOUBAO);
+      }
     }
 
     const ids = [...new Set([primary, ...fallbacks])];
@@ -169,19 +175,22 @@ export class RenderConfigFactory {
   }
 
   /**
-   * 来访者总开关 `VISITOR_LLM_PROVIDER` (缺省 / minimax = 不覆盖).
+   * 来访者总开关 `VISITOR_LLM_PROVIDER` 的显式值 (未配置 → null).
    *
    * 只允许两个值，非法值启动期抛错 —— 与 `resolveVisitorRuntime()` 同一口径，
    * 不静默回落（否则部署方以为切了豆包，实际还在 MiniMax）。
    *
-   * @returns doubao = 强制主候选豆包；null = 保持既有候选配置
+   * 返回 `minimax` 而不是 null，是为了让候选派生能区分“显式回滚”与“未配置”：
+   * 前者需要自动补豆包备候选，后者必须保持既有候选链零回归。
+   *
+   * @returns doubao / minimax = 强制主候选；null = 保持既有候选配置
    */
-  private visitorProviderOverride(): AIProviderId.DOUBAO | null {
+  private visitorProviderOverride(): AIProviderId.DOUBAO | AIProviderId.MINIMAX | null {
     const raw = this.text('VISITOR_LLM_PROVIDER');
     if (!raw) return null;
     const normalized = raw.toLowerCase();
     if (normalized === AIProviderId.DOUBAO) return AIProviderId.DOUBAO;
-    if (normalized === AIProviderId.MINIMAX) return null;
+    if (normalized === AIProviderId.MINIMAX) return AIProviderId.MINIMAX;
     throw new Error(`VISITOR_LLM_PROVIDER=${raw} 非法，只允许 minimax / doubao`);
   }
 
@@ -244,7 +253,9 @@ export class RenderConfigFactory {
     // AF-252: visitor 总开关切豆包时，模型默认走 Seed Character，而不是渲染档位表里的
     // 通用豆包型号；`VISITOR_DOUBAO_MODEL` 与 `ENGINE_RENDER_<KIND>_MODEL_DOUBAO`
     // 都显式配置时前者先让位（provider 维度键优先）。
-    if (providerId === AIProviderId.DOUBAO && this.visitorProviderOverride() === AIProviderId.DOUBAO) {
+    // AF-273: 回滚到 MiniMax 时豆包是备候选，仍属于来访者链路，模型口径必须一致，
+    // 否则故障切到豆包会拿到通用豆包型号，角色表现与主路径不同。
+    if (providerId === AIProviderId.DOUBAO && this.visitorProviderOverride() !== null) {
       return this.text('VISITOR_DOUBAO_MODEL') ?? DEFAULT_VISITOR_DOUBAO_MODEL;
     }
     return this.router.getDefaultModelForTier(LLMTier.RAG, providerId as AIProviderId);

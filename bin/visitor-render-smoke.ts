@@ -195,8 +195,9 @@ function assertSmokeOutcome(
       );
     }
   } else if (expectFallback) {
-    if (view.providerHint !== 'minimax') {
-      fail(`${turnLabel}期望回退到 MiniMax，实际 providerHint=${view.providerHint ?? '-'}`, 2);
+    const fallbackProvider = provider === 'doubao' ? 'minimax' : 'doubao';
+    if (view.providerHint !== fallbackProvider) {
+      fail(`${turnLabel}期望回退到 ${fallbackProvider}，实际 providerHint=${view.providerHint ?? '-'}`, 2);
     }
     if (!view.fallbackUsed) {
       fail(`${turnLabel}期望 fallbackUsed=true，实际 false（主候选失败未被识别为回退）`, 2);
@@ -443,11 +444,14 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
   }
   const mode = rawMode as FaultMode;
 
-  if ((expectFallback || expectDegraded) && (callerPath !== 'router' || provider !== 'doubao')) {
-    fail('--expect-fallback / --expect-degraded 只适用于 --caller router --provider doubao');
+  if ((expectFallback || expectDegraded) && (callerPath !== 'router' || (provider !== 'doubao' && provider !== 'minimax'))) {
+    fail('--expect-fallback / --expect-degraded 只适用于 --caller router 的 doubao / minimax 主候选');
   }
-  if (failPrimary && provider !== 'doubao') {
-    fail('--fail-primary 只适用于 --provider doubao：故障注入目标是豆包主候选');
+  if (failPrimary && callerPath !== 'router') {
+    fail('--fail-primary 只适用于 --caller router：故障注入目标是生产路由链的主候选');
+  }
+  if (failPrimary && provider !== 'doubao' && provider !== 'minimax') {
+    fail('--fail-primary 只适用于 --provider doubao / minimax');
   }
   if (expectFallback && expectDegraded) fail('--expect-fallback 与 --expect-degraded 不能同时使用');
   if (failPrimary && !expectFallback && !expectDegraded) {
@@ -480,12 +484,12 @@ async function startFaultServer(mode: FaultMode): Promise<FaultServer> {
   const server: Server = createServer((_request, response) => {
     if (mode === 'rate-limit') {
       response.writeHead(429, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ error: { message: 'af269 simulated rate limit', type: 'rate_limit_error' } }));
+      response.end(JSON.stringify({ error: { message: 'af273 simulated rate limit', type: 'rate_limit_error' } }));
       return;
     }
     if (mode === 'server-error') {
       response.writeHead(500, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ error: { message: 'af269 simulated server error', type: 'server_error' } }));
+      response.end(JSON.stringify({ error: { message: 'af273 simulated server error', type: 'server_error' } }));
     }
     // timeout：故意不写响应，让客户端触发 requestTimeoutMs；请求对象保留到进程收尾。
   });
@@ -503,7 +507,7 @@ async function startFaultServer(mode: FaultMode): Promise<FaultServer> {
   };
 }
 
-/** 构造生产路由链：豆包主候选 + MiniMax 备候选，两者都真实注册。 */
+/** 构造生产路由链：主候选 + 备候选（doubao / minimax），两者都真实注册。 */
 function buildRouterChain(
   config: ConfigService,
   faultMode: FaultMode,
@@ -514,15 +518,17 @@ function buildRouterChain(
   process.env['LLM_DEFAULT_CHAT_PROVIDER'] = primaryProvider;
   const configuredModel = envText('LLM_DOUBAO_MODEL')?.trim();
   const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
-  const providerClient = new DoubaoChatProvider({
-    defaultChatModel: doubaoModel,
-    ...(failPrimary && (faultMode === 'network' || faultBaseUrl !== undefined)
+  const faultOptions: { baseUrl?: string; maxRetries?: number; requestTimeoutMs?: number } =
+    failPrimary && (faultMode === 'network' || faultBaseUrl !== undefined)
       ? {
           baseUrl: faultBaseUrl ?? 'http://127.0.0.1:9/v1',
           maxRetries: 0,
           requestTimeoutMs: faultMode === 'timeout' ? 2000 : 5000,
         }
-      : {}),
+      : {};
+  const providerClient = new DoubaoChatProvider({
+    defaultChatModel: doubaoModel,
+    ...(primaryProvider === 'doubao' ? faultOptions : {}),
   });
   const registry = new ProviderRegistryService();
   registry.registerChat(providerClient, {
@@ -540,8 +546,14 @@ function buildRouterChain(
   // 回退 smoke 就只能看到一次假回退。
   const minimaxModel = process.env.MINIMAX_LLM_MODEL?.trim() ?? 'MiniMax-M3';
   const minimaxClient = new MinimaxChatProvider({
-    baseUrl: process.env.MINIMAX_BASE_URL,
+    baseUrl: primaryProvider === 'minimax' && faultOptions.baseUrl !== undefined ? faultOptions.baseUrl : process.env.MINIMAX_BASE_URL,
     defaultChatModel: minimaxModel,
+    ...(primaryProvider === 'minimax'
+      ? {
+          ...(faultOptions.maxRetries === undefined ? {} : { maxRetries: faultOptions.maxRetries }),
+          ...(faultOptions.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: faultOptions.requestTimeoutMs }),
+        }
+      : {}),
   });
   registry.registerChat(minimaxClient, {
     id: AIProviderId.MINIMAX,
@@ -561,6 +573,7 @@ function buildRouterChain(
 async function probePrimaryFailure(
   router: LlmRouterService,
   probeModel: string,
+  providerId: AIProviderId,
 ): Promise<{ ok: false; model: string; error: string; elapsedMs: number }> {
   const probeRequest: ChatCompletionRequest = {
     model: probeModel,
@@ -569,8 +582,8 @@ async function probePrimaryFailure(
   };
   const startedAt = Date.now();
   try {
-    await router.chat(probeRequest, { providerId: AIProviderId.DOUBAO });
-    fail('预期主候选失败，但请求成功了：故障注入未生效', 3);
+    await router.chat(probeRequest, { providerId });
+    fail(`预期主候选 ${providerId} 失败，但请求成功了：故障注入未生效`, 3);
   } catch (error: unknown) {
     return {
       ok: false,
@@ -785,6 +798,12 @@ function resolveRunOptions(): RunOptions {
   };
 }
 
+/** 进程内注入无效鉴权 key；只用于 smoke，不写 `.env`、不打印原 key。 */
+function injectAuthFailure(provider: 'doubao' | 'minimax'): void {
+  const authEnvKey = provider === 'doubao' ? 'LLM_DOUBAO_API_KEY' : 'MINIMAX_API_KEY';
+  process.env[authEnvKey] = provider === 'doubao' ? 'af264-invalid-key-for-smoke' : 'af273-invalid-key-for-smoke';
+}
+
 async function main(): Promise<void> {
   loadEnvOnce();
   const {
@@ -814,7 +833,7 @@ async function main(): Promise<void> {
   envRequired('MINIMAX_LLM_MODEL');
   if (provider === 'doubao') envRequired('LLM_DOUBAO_API_KEY');
   // 只在本进程注入故障，不写 .env、不打印原 key：auth 用无效 key，network 用不可达基址。
-  if (faults.failPrimary && faults.mode === 'auth') process.env['LLM_DOUBAO_API_KEY'] = 'af264-invalid-key-for-smoke';
+  if (faults.failPrimary && faults.mode === 'auth') injectAuthFailure(provider);
 
   const config = {
     get: <T>(key: string): T | undefined => process.env[key] as T | undefined,
@@ -822,16 +841,14 @@ async function main(): Promise<void> {
 
   let router: LlmRouterService;
   let caller: ChatCaller;
-  let doubaoModelForProbe: string | null = null;
 
-  // 429 / 500 / 超时：起本机故障上游，把豆包候选 baseUrl 指过来。
+  // 429 / 500 / 超时：起本机故障上游，把主候选 baseUrl 指过来。
   const needsFaultServer =
     faults.failPrimary && (faults.mode === 'rate-limit' || faults.mode === 'server-error' || faults.mode === 'timeout');
   const faultServer = needsFaultServer ? await startFaultServer(faults.mode) : null;
 
   if (callerPath === 'router') {
     ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl, provider));
-    doubaoModelForProbe = envText('LLM_DOUBAO_MODEL')?.trim() ?? null;
   } else {
     const llm = new LlmService(config);
     router = {
@@ -851,14 +868,18 @@ async function main(): Promise<void> {
   if (renderConfig.candidates[0]?.id !== provider) {
     fail(`候选装配异常：期望主候选=${provider}，实际=${renderConfig.candidates[0]?.id ?? '(空)'}`);
   }
-  if (faults.expectFallback && renderConfig.candidates[1]?.id !== 'minimax') {
-    fail(`回退 smoke 需要备候选 minimax，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
+  if (faults.expectFallback) {
+    const expectedFallback = provider === 'doubao' ? 'minimax' : 'doubao';
+    if (renderConfig.candidates[1]?.id !== expectedFallback) {
+      fail(`回退 smoke 需要备候选 ${expectedFallback}，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
+    }
   }
 
   const primaryProbe = faults.failPrimary
     ? await probePrimaryFailure(
         router,
-        renderConfig.candidates[0]?.overrides?.chat?.model ?? doubaoModelForProbe ?? 'doubao-seed-character-260628',
+        renderConfig.candidates[0]?.overrides?.chat?.model ?? (provider === 'doubao' ? 'doubao-seed-character-260628' : 'MiniMax-M3'),
+        provider === 'doubao' ? AIProviderId.DOUBAO : AIProviderId.MINIMAX,
       )
     : null;
 
