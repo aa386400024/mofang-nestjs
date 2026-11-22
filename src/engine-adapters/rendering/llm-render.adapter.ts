@@ -70,7 +70,7 @@
 import { Logger } from '@nestjs/common';
 import { clearTimeout, setTimeout } from 'node:timers';
 
-import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config.js';
+import { resolveStreamFirstDeltaTimeoutMs, type RenderAdapterConfig, type RenderCandidate } from './render-adapter.config.js';
 import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime.js';
 import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk.js';
 import { dropUnclosedTail, splitClosedPrefix } from './render-truncation.js';
@@ -830,9 +830,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       await feed(opened.firstDelta);
       for (;;) {
         // AF-274: 首包之后每块都带空闲超时。上游「吐了一句就断流/停摆」时，
-        // SDK 仍可能挂到传输层超时（约 300s）；这里以 config.timeoutMs 为单块等待上限，
-        // 到点 abort 上游并收尾降级——已经出声，不能切备。
-        const next = await nextStreamChunk(opened.iterator, this.config.timeoutMs, opened.abort);
+        // SDK 仍可能挂到传输层超时（约 300s）；AF-276: 块间空闲用独立键，
+        // 不再跟聚合总超时绑在一起，到点 abort 上游并收尾降级——已经出声，不能切备。
+        const next = await nextStreamChunk(opened.iterator, this.config.streamIdleTimeoutMs, opened.abort);
         if (next.done) break;
         const chunk = next.value;
         // 用量在**最后一块**才到齐 (上游的 usage 是收尾时补的), 所以这里必须读
@@ -845,7 +845,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     } catch (error) {
       if (error instanceof StreamIdleTimeoutError) {
         this.runtime.markFailure(candidate.id, this.config);
-        this.logger.warn(`[streamRender] 候选 ${candidate.id} 流式中途无增量超时 (${this.config.timeoutMs}ms), 收尾降级`);
+        this.logger.warn(
+          `[streamRender] 候选 ${candidate.id} 流式中途无增量超时 (phase=idle idle=${this.config.streamIdleTimeoutMs}ms), 收尾降级`,
+        );
         return { kind: 'degrade', reason: `候选 ${candidate.id} ${error.message}` };
       }
       // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
@@ -1028,10 +1030,13 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     | { readonly ok: false; readonly retryable: boolean; readonly reason: string; readonly cancelled?: true }
   > {
     // AF-270 治本：流式 SDK 的 headersTimeout 约 300s，上游「接受连接但不回首包」时
-    // 主候选会挂死，备候选永远轮不到。这里用 config.timeoutMs 建首包超时并主动 abort
-    // 上游流；首 delta 一到就清定时器，正常长回复不受影响。
-    const timeoutMs = Math.max(1, this.config.timeoutMs);
-    const guard = createStreamGuard(handlers, timeoutMs);
+    // 主候选会挂死，备候选永远轮不到。AF-276: 首包预算独立于聚合总超时，并按本次
+    // `maxCompletionTokens` 放大，避免固定 30s 误杀高上限的慢首包；首 delta 一到就清定时器。
+    const firstDeltaTimeoutMs = resolveStreamFirstDeltaTimeoutMs(
+      this.config.streamFirstDeltaTimeoutMs,
+      request.maxCompletionTokens ?? request.maxTokens,
+    );
+    const guard = createStreamGuard(handlers, firstDeltaTimeoutMs);
     // AF-274: 首 delta 到达后不能立刻 cleanup —— 外部取消监听必须保留到流结束，
     // 否则长流阶段的 barge-in 无法真正中止上游；首包定时器则单独清掉。
     let keepOpen = false;
@@ -1083,8 +1088,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     } catch (error) {
       if (guard.timedOut()) {
         this.runtime.markFailure(candidate.id, this.config);
-        this.logger.warn(`[streamRender] 候选 ${candidate.id} 流式首包超时 (${timeoutMs}ms), 切下一个候选`);
-        return { ok: false, retryable: true, reason: `流式首包超时 (${timeoutMs}ms)` };
+        this.logger.warn(
+          `[streamRender] 候选 ${candidate.id} 流式首包超时 (phase=first-delta budget=${firstDeltaTimeoutMs}ms), 切下一个候选`,
+        );
+        return { ok: false, retryable: true, reason: `流式首包超时 (budget=${firstDeltaTimeoutMs}ms)` };
       }
       // AF-274 (P0-2): 消费方主动取消不是上游故障 —— 不记失败、不切备。
       // 否则一次 barge-in 会同时污染主备两个候选的熔断器，3 次即全场兜底。

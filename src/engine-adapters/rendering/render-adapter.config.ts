@@ -74,8 +74,22 @@ export interface RenderAdapterConfig {
   readonly candidates: readonly RenderCandidate[];
   /** 各 taskKind 的默认参数 (可被候选 overrides 覆盖). */
   readonly taskDefaults: Record<RenderTaskKind, RenderTaskDefaults>;
-  /** 单次调用超时 ms. */
+  /** 单次调用超时 ms (聚合路径总超时; 不再约束流式首包与块间空闲). */
   readonly timeoutMs: number;
+  /**
+   * 首 delta 之后「等待下一块」的空闲上限 ms.
+   *
+   * AF-276: 与聚合总超时、首包等待解耦。上游吐一句后停摆时，按本键 abort 上游并降级；
+   * 每条 chunk（含空 delta 的用量 / 心跳块）都会重置计时，限制的是块间停摆，不是整轮总时长。
+   */
+  readonly streamIdleTimeoutMs: number;
+  /**
+   * 流式首包等待的**下限** ms.
+   *
+   * AF-276: 实际预算由 `resolveStreamFirstDeltaTimeoutMs(本键, maxCompletionTokens)` 计算，
+   * 高输出上限的慢生成按 `maxTokens*8` 自动放宽，避免固定 30s 误杀合法慢首包。
+   */
+  readonly streamFirstDeltaTimeoutMs: number;
   /** 连续失败多少次进入冷却. */
   readonly failureThreshold: number;
   /** 冷却时长基数 ms (实际冷却 = cooldownBaseMs * 2^(连续失败-1)). */
@@ -132,6 +146,42 @@ export const DEFAULT_RENDER_REASONING_EFFORT: ChatReasoningEffort = 'low';
 
 /** 单次调用超时种子值 (ms). */
 export const DEFAULT_RENDER_TIMEOUT_MS = 30_000;
+
+/**
+ * 首 delta 之后块间空闲上限种子值 (ms).
+ *
+ * AF-276: 与 `DEFAULT_RENDER_TIMEOUT_MS` 拆开。停摆兜底要的是「多久没新块算异常」，
+ * 与「整次聚合调用最多等多久」不是同一个决策；共用一个键会让调大聚合超时同时拖慢停摆兜底。
+ */
+export const DEFAULT_RENDER_STREAM_IDLE_TIMEOUT_MS = 30_000;
+
+/**
+ * 流式首包等待下限种子值 (ms).
+ *
+ * AF-276: 8s 是「正常聊天模型首字延迟」的上沿；实际预算还会按输出上限放大，
+ * 见 `resolveStreamFirstDeltaTimeoutMs`。保留 env 覆盖，便于上游长期偏慢的部署单独调大。
+ */
+export const DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS = 8000;
+
+/** 首包预算随输出上限放大的系数 (每 1 个 completion token 折算多少毫秒). */
+export const RENDER_STREAM_FIRST_DELTA_MS_PER_TOKEN = 8;
+
+/**
+ * 计算流式首包等待预算.
+ *
+ * 为什么不是固定值: 上游可能在首包前先吐大段思考 token，首包延迟与 `maxCompletionTokens`
+ * 正相关。固定 30s 会误杀「合法但慢」的高上限请求；只按下限又会让低上限请求等太久。
+ * 取 `max(下限, maxTokens * 8)`：低上限走部署下限，高上限按输出量自动放宽。
+ *
+ * @param baseMs 部署配置的首包等待下限 ms
+ * @param maxCompletionTokens 本次请求的输出上限 (缺省/非法时只取下限)
+ * @returns 生效的首包等待预算 ms
+ */
+export function resolveStreamFirstDeltaTimeoutMs(baseMs: number, maxCompletionTokens?: number): number {
+  const base = Number.isFinite(baseMs) && baseMs > 0 ? baseMs : DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS;
+  if (maxCompletionTokens === undefined || !Number.isFinite(maxCompletionTokens) || maxCompletionTokens <= 0) return base;
+  return Math.max(base, Math.ceil(maxCompletionTokens * RENDER_STREAM_FIRST_DELTA_MS_PER_TOKEN));
+}
 
 /** 连续失败进入冷却的阈值种子值. */
 export const DEFAULT_RENDER_FAILURE_THRESHOLD = 3;
@@ -215,6 +265,8 @@ export function createRenderAdapterConfig(
       advanced: mergeTaskDefaults(DEFAULT_RENDER_TASK_DEFAULTS.advanced, overrides.taskDefaults?.advanced),
     },
     timeoutMs: overrides.timeoutMs ?? DEFAULT_RENDER_TIMEOUT_MS,
+    streamIdleTimeoutMs: overrides.streamIdleTimeoutMs ?? DEFAULT_RENDER_STREAM_IDLE_TIMEOUT_MS,
+    streamFirstDeltaTimeoutMs: overrides.streamFirstDeltaTimeoutMs ?? DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS,
     failureThreshold: overrides.failureThreshold ?? DEFAULT_RENDER_FAILURE_THRESHOLD,
     cooldownBaseMs: overrides.cooldownBaseMs ?? DEFAULT_RENDER_COOLDOWN_BASE_MS,
     cooldownMaxMs: overrides.cooldownMaxMs ?? DEFAULT_RENDER_COOLDOWN_MAX_MS,

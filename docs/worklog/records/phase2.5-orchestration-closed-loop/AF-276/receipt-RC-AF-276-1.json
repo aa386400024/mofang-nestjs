@@ -1,0 +1,220 @@
+{
+  "deliveredAt": "2026-11-22T13:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-276-1",
+    "taskId": "AF-276",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "e2250741cbd081d93888e692c1fc4ca4a404d4be",
+    "dependsOn": ["AF-275", "AF-274"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-276/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af276-stream-timeout-semantics-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "test/engine-adapters/af276-stream-timeout-semantics.spec.ts",
+        "docs/worklog/completed/phase2.5/af276-stream-timeout-semantics-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-276/task-sheet.md"
+      ],
+      "modified": [
+        "src/engine-adapters/rendering/render-adapter.config.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/wiring/render-config.factory.ts",
+        ".env.example",
+        "test/engine-adapters/af270-stream-timeout.spec.ts",
+        "test/engine-adapters/af274-stream-idle-timeout.spec.ts",
+        "test/engine-adapters/wp8-wiring.spec.ts",
+        "test/engine-adapters/wp11-psyguard-probe.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af276-stream-timeout-semantics.spec.ts test/engine-adapters/af274-stream-idle-timeout.spec.ts test/engine-adapters/af270-stream-timeout.spec.ts test/config/wp25-env-example-coverage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "4.51 秒",
+        "note": "26/26 passed：AF-276 新例 7 + AF-274 5 + AF-270 3 + wp25 11；日志 data/af276-targeted2.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "新增配置字段类型闭合；首次暴露 wp8 / wp11 两处字面量 stub 缺必填字段，补齐后通过；日志 data/af276-tsc3.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35 秒",
+        "note": "0 error / 0 warning；首次 4 处 numeric-separator / prettier / no-useless-undefined 已修；日志 data/af276-lint2.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 1 --fail-primary --fail-primary-mode midstream-stall --expect-degraded --timeout-ms 1000 --expect-degraded-within-ms 5000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上；命令前注入 ENGINE_RENDER_STREAM_IDLE_TIMEOUT_MS=1000",
+        "wallClock": "1.07 秒",
+        "note": "真实 router：wall 1070ms；TTFT 52ms；deltas 1；degraded true；日志 phase=idle idle=1000ms；证明块间停摆只按独立 idle 键降级，聚合 timeout 不再顺带生效；日志 data/af276-gate-midstream.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 3 --timeout-ms 30000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.15 秒",
+        "note": "正常路径零回归：3/3 doubao、model doubao-seed-character-260628、finishReason stop、fallback false、degraded false；TTFT 530/795/651ms；prompt tokens 745/780/813；日志 data/af276-normal-smoke.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "候选 doubao,minimax；两家 candidateApiKeys present=true；日志 data/af276-switch-check.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 268,
+        "machine": "同上；本机串行执行",
+        "wallClock": "22.83 秒",
+        "note": "268 files passed + 1 skipped；4304 tests passed + 4 skipped；较 AF-275 基线 +1 file / +7 tests；日志 data/af276-full-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-276-stream-timeout-semantics 自 integrate e2250741 切出。配置层新增 streamIdleTimeoutMs / streamFirstDeltaTimeoutMs 与 resolveStreamFirstDeltaTimeoutMs；适配器首包预算改读 maxCompletionTokens，块间空闲改读独立键；工厂用 config.get 直读让 wp25 AST 守卫可见。真实 smoke 通过进程 env 注入 ENGINE_RENDER_STREAM_IDLE_TIMEOUT_MS=1000，验证停摆只按 idle 键收尾；正常 3 轮无回归。未改 .env；未暂存 data/ 取证日志与 web/orchestration/data.js。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-276"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "归档后 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，仅改 engine-adapters 配置/适配/装配与测试、模板"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 e2250741；依赖 AF-275 / AF-274 均已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-stream-idle-observability",
+        "impact": "已能区分 phase=first-delta / phase=idle 日志，但无 stream_idle_timeout_total / auth_fallback_total / candidate 指标；AF-277 承接"
+      },
+      {
+        "id": "visitor-smoke-stream-timeout-flags",
+        "impact": "visitor-render-smoke 的 --timeout-ms 只写 ENGINE_RENDER_TIMEOUT_MS，无法单独压 idle/首包；真实停摆 smoke 目前靠进程 env，建议新任务给 bin 增加 --idle-timeout-ms / --first-delta-timeout-ms"
+      },
+      {
+        "id": "visitor-rollback-concurrency-long-context",
+        "impact": "回滚态并发 + 超时组合、40 轮长上下文仍未验证"
+      },
+      {
+        "id": "minimax-httpclient-transport-timing",
+        "impact": "MiniMax HttpClient 的 headersTimeout 是否仍会先于适配器触发未单独验证"
+      },
+      {
+        "id": "visitor-stream-client-auto-retry",
+        "impact": "流式断流时客户端可能自动重试并拿到 raw Error；WS 层需转标准 error/end 事件"
+      },
+      {
+        "id": "visitor-cost-breakdown-persistence",
+        "impact": "providerBreakdown 未在 auto-practice 落库与管理后台成本看板消费"
+      },
+      {
+        "id": "minimax-official-pricing",
+        "impact": "MiniMax M3 官方单价仍未核对，成本继续走全局回落价"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "smoke 闸门命令只用 --timeout-ms 1000 就应 5s 内降级",
+        "reality": "本任务目标 3 就是让 ENGINE_RENDER_TIMEOUT_MS 不再影响块间空闲；--timeout-ms 只写聚合超时，idle 会走独立键默认 30s",
+        "action": "命令前注入 ENGINE_RENDER_STREAM_IDLE_TIMEOUT_MS=1000，再按原参数跑 --expect-degraded-within-ms 5000",
+        "why": "这样验证的是「停摆只按独立 idle 键降级」；保留 --timeout-ms 1000 同时证明聚合超时不再顺带生效"
+      },
+      {
+        "taskSays": "首包固定下限内超时应很快切备",
+        "reality": "首包预算按 maxCompletionTokens×8 放宽后，测试 spec 的 160 上限对应 1280ms，不再是 100ms",
+        "action": "af270 首包挂起用例断言改为 <1600ms，并按新预算解释",
+        "why": "这是本任务要放开的合法慢首包窗口；若仍断言 400ms 等于否定新语义"
+      },
+      {
+        "taskSays": "新增配置字段即可",
+        "reality": "wp8 / wp11 直接构造 RenderAdapterConfig 字面量，新增必填字段后 tsc 报缺字段",
+        "action": "两个 stub 补 streamIdleTimeoutMs / streamFirstDeltaTimeoutMs 默认值",
+        "why": "保持最小渲染配置完整，避免用 as 断言绕过类型闭合"
+      },
+      {
+        "taskSays": "在 .env.example 声明两个新键",
+        "reality": "wp25 的 AST 守卫看不到 positiveNumber('KEY') 的变量入参，生效行会被判 orphan",
+        "action": "工厂改用 config.get<string>('KEY') + positiveNumberFromRaw 直读",
+        "why": "让模板生效行在代码里有可被静态识别的读取点，不放宽守卫"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "聚合总超时、块间空闲、首包等待三种语义已拆成三个键；首包预算按输出上限放大并有纯函数与集成用例；真实停摆 smoke 用独立 idle 键 1s 收尾（wall 1070ms），正常 3 轮零回归；定向 26 例、全量 4304 例全绿，tsc/lint 0 错，engine-core 零改动。任务单 gate 命令与「解耦」目标存在固有冲突，已用 env 注入独立键执行并在交付记录与偏差表说明。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

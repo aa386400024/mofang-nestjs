@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-276",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T13:10:00+08:00",
+  "updatedAt": "2026-11-22T05:16:34.216Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-276/task-sheet.md",
+    "sha256": "916586dfb80b86c1503d428556838432e6eb3cea1900f8c41d31d38f9a0d1de1",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-276/receipt-RC-AF-276-1.json",
+      "sha256": "0a83c2ae714277f86b3a44d6c21b79b0b28e6121dd52e509904c5681919df0f6",
+      "receiptId": "RC-AF-276-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af276-stream-timeout-semantics-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-276-stream-timeout-semantics-2026-11-22.md"
+  ],
+  "tombstone": null
+}
