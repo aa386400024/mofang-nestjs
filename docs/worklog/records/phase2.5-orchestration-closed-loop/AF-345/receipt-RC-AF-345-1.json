@@ -1,0 +1,230 @@
+{
+  "deliveredAt": "2026-11-23T07:28:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-345-1",
+    "taskId": "AF-345",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "e91497412a3f0c6d1245f49ef206e4df75229b47",
+    "dependsOn": [],
+    "priorTasks": ["AF-342", "AF-344"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-345/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af344-realism-signature-judge-evidence-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-report-2026-11-23.md",
+        "src/shared/realism/realism-humanization-judge.ts",
+        "bin/visitor-realism-humanization-judge.ts",
+        "test/shared/realism/realism-humanization-judge.spec.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["1c04505f119676ee8fa734b8fb60f5248788a67f"],
+      "added": [
+        "bin/visitor-realism-humanization-judge.ts",
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-report-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af344-realism-signature-judge-evidence-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/receipt-RC-AF-342-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/task-sheet.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-343/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-343/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-344/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-344/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-345/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-345/task-sheet.md",
+        "src/shared/realism/realism-humanization-judge.ts",
+        "test/shared/realism/realism-humanization-judge.spec.ts"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "约 8s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 297,
+        "tests": 4554,
+        "machine": "同上",
+        "wallClock": "19.60s",
+        "note": "297 文件通过 / 1 跳过（298）；4554 例通过 / 4 跳过（4558）"
+      },
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-humanization-judge.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 16,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "16/16 通过"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "Husky 提交时执行通过（AF-345，提交 1c04505f）"
+      }
+    ],
+    "reproNotes": "112 样本回验：pnpm exec tsx bin/visitor-realism-humanization-judge.ts --samples \"off=.../af336-realism-off-baseline-extension/reps,full=.../af337-realism-paired-arm-extension/full,minimal=.../af337.../minimal,typed=.../af339.../typed,typed-noshape=.../af339.../typed-noshape,shape-capped=.../af340.../reps,tightened=.../af341.../reps\" --out data/phase25-exit/af342-realism-signature-judge/report.json。零模型调用，只读 rep-*.json。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-345 经 CLI register / promote / run-once；单提交 1c04505f"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-345 登记与提级由 CLI 完成"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "engine-core 零 diff"
+      },
+      {
+        "item": "no-production-change",
+        "result": "pass",
+        "note": "纯函数与离线 CLI，生产渲染块、模式开关、humanization-v1 阈值均未改"
+      },
+      {
+        "item": "scope-extension",
+        "result": "pass",
+        "note": "代码沿用 AF-342，无范围外重构"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "原始 JSON 留 data/phase25-exit 未提交；报告只含数字"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "合成人设工程复核，不宣称临床真人度或疗效"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef e9149741；任务单 implementation；回执 finalStatus completed；提交 1c04505f 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF345-B1",
+        "impact": "三个签名阈值样本量偏小，需 off 扩到 32 后重估。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF345-B2",
+        "impact": "焦虑 repair/turn ≥ 0.05 偏宽，考虑提高到 0.08–0.10。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF345-B3",
+        "impact": "判据尚未接入流水线，当前为离线 CLI。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF345-B4",
+        "impact": "无真人听感验证，仅有工程签名。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF345-B5",
+        "impact": "密度上限 4.943817 是报警线，不是产品验收线。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "humanization-v1 是否正式降级为事件量监控、不再认证",
+      "full 家族是否只保留分人设报警线 4.943817",
+      "签名判据是否接入影子评测并与 humanization-v1 并行记录 2–4 周",
+      "产品验收采用三态，还是只保留 off-like / overloaded 报警"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-342 原单返修",
+        "reality": "AF-342 归档 rejected 后 reissue 不可用；AF-343 依赖 rejected 无法提级；AF-344 分支历史含 AF-342 提交无法过逐提交门",
+        "action": "收敛为 AF-345 单提交",
+        "why": "保证逐提交门与 PR 终态门同时满足，且保留 priorTasks 审计链"
+      },
+      {
+        "taskSays": "不改逻辑",
+        "reality": "代码逐字沿用 7d1d200c 实现",
+        "action": "保持",
+        "why": "只重组交付身份与证据"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "签名判据 v1 与 112 样本零调用回验落地：off 误报 0/16、full 签名覆盖 16/16，typecheck/lint/全量 4554 例/engine-core 零 diff 全通过。条件为仅影子可用、不得作为临床有效性证据，且上线前需完成 B1–B4。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本单零新增模型调用。"
+  }
+}

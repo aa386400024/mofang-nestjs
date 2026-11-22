@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-346",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T07:35:00+08:00",
+  "updatedAt": "2026-11-22T23:21:13.608Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-346/task-sheet.md",
+    "sha256": "79f8250e9aa8012d0210b28f925f8f04d648984f4d9bc875bf420f9930df9c50",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-346/receipt-RC-AF-346-1.json",
+      "sha256": "e488983113d18629b1c2607fe7c11077a973dbcd2be034abf073841c3d4310e8",
+      "receiptId": "RC-AF-346-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af343-realism-signature-judge-evidence-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af346-worklog-cancel-records.md"
+  ],
+  "tombstone": null
+}
