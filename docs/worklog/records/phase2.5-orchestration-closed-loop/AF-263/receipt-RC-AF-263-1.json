@@ -1,0 +1,193 @@
+{
+  "deliveredAt": "2026-11-22T09:22:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-263-1",
+    "taskId": "AF-263",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "377c7ffc5ff32f83d2b4a5cc1867ee6181cd9189",
+    "dependsOn": ["AF-261"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-263/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af263-visitor-cutover-local-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/doubao-visitor-cutover-runbook-2026-11-22.md",
+        "docs/worklog/completed/phase2.5/af262-visitor-cutover-local-2026-11-22.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "bin/visitor-switch-check.ts",
+        "docs/worklog/completed/phase2.5/doubao-visitor-cutover-runbook-2026-11-22.md",
+        "docs/worklog/completed/phase2.5/af263-visitor-cutover-local-2026-11-22.md",
+        "docs/worklog/completed/phase2.5/af262-visitor-cutover-local-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-262/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-262/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-263/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-263/manifest.json"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/archived-notes.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["b3ac94a8"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts（切换前）",
+        "exitCode": 2,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 2 秒",
+        "note": "按预期失败：llmProvider=minimax、engineRender.primary=minimax、候选仅 MiniMax；日志 data/af263-switch-before.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts（切换后）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 秒",
+        "note": "visitorRuntime.llmProvider=doubao、doubaoModel=doubao-seed-character-260628、primary=doubao、fallbackProviders=[minimax]；日志 data/af263-switch-after.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --turns 20 --max-tokens 160 --timeout-ms 45000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35 秒",
+        "note": "20/20 命中 doubao、doubao-seed-character-260628、stop、pass；fallbackUsed=false、degraded=false；totalUsage prompt=20980 completion=279；prompt 745→1356；日志 data/af263-smoke20.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；首次 1 error（dot-notation + 未用参数）已修正后重跑；日志 data/af263-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af263-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 261,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "261 files passed + 1 skipped；4264 tests passed + 4 skipped；日志 data/af263-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-263-visitor-cutover-local 自 integrate 377c7ffc 切出。.env 为 gitignored 运行态文件，未进提交；切换前备份 data/env-backup-af263-20261122.env。只加 VISITOR_LLM_PROVIDER=doubao 与 VISITOR_DOUBAO_MODEL 两行，ENGINE_RENDER_PRIMARY_PROVIDER 保持 minimax，由 visitor 总开关覆盖。未重启服务；未打印密钥；web/orchestration/data.js 并行本地改动未暂存。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-263"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "AF-262 cancel/archive 与 AF-263 register/promote/run-once/branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "env-boundary",
+        "result": "pass",
+        "note": ".env 只做本地运行态切换并备份，未入库、未改 .gitignore"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 377c7ffc；依赖 AF-261 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-price-source",
+        "impact": "仓库无核对过的豆包官方单价，LLM_PRICE_*_PER_1K_DOUBAO 为空，成本仍按全局价估算"
+      },
+      {
+        "id": "visitor-render-concurrency-smoke",
+        "impact": "未覆盖并发、429/5xx、超时与主候选失败切备候选的注入场景"
+      },
+      {
+        "id": "visitor-render-long-context-smoke",
+        "impact": "20 轮 prompt 到 1356 token，仍未覆盖 sessionSummary 触发点与窗口裁剪"
+      },
+      {
+        "id": "doubao-cutover-restart",
+        "impact": "本地 .env 已切但服务未重启；重启后需再做一次真实对练抽检"
+      }
+    ],
+    "openQuestions": [
+      "豆包 Seed Character 当期单价应由部署方从火山方舟账单填入，还是建立独立定价表"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "切流预案放 docs/runbooks/",
+        "reality": "executor 文件域不含 docs/runbooks/，run-once 报 scope-domain-conflict",
+        "action": "预案改写到 docs/worklog/completed/phase2.5/；AF-262 取消并由 AF-263 承接",
+        "why": "不让任务绕开文件域校验，也不手工改 Agent Card"
+      },
+      {
+        "taskSays": ".env 进任务 scope",
+        "reality": ".env 是 gitignored 运行态文件，executor 资源域不含它",
+        "action": "仍执行备份与切换，但只在交付记录留痕，不进 git",
+        "why": "环境变更要留证据，但不该把密钥文件提交进仓库"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "scope 与提交事实一致；六组机读字段齐全；切流前后自检行为符合预期；20 轮真实 smoke 全轮豆包、无降级无回退；lint、CI 同口径 tsc、全量 4264 例全绿；engine-core 零改动；.env 已备份且回滚只需一行。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
