@@ -64,6 +64,8 @@ export class MetricsService implements OnModuleInit {
   private visitorRenderFirstDelta!: Histogram<string>;
   private visitorRenderStreamTimeout!: Counter<string>;
   private visitorRenderAuthFailure!: Counter<string>;
+  private visitorRenderFailure!: Counter<string>;
+  private visitorRenderCancelled!: Counter<string>;
   private visitorRenderFallback!: Counter<string>;
   private visitorRenderDegraded!: Counter<string>;
 
@@ -180,6 +182,18 @@ export class MetricsService implements OnModuleInit {
     this.visitorRenderAuthFailure = new Counter({
       name: 'visitor_render_auth_failure_total',
       help: '渲染候选鉴权失败次数 (按 candidate 标签)',
+      labelNames: ['candidate'],
+      registers: [this.registry],
+    });
+    this.visitorRenderFailure = new Counter({
+      name: 'visitor_render_failure_total',
+      help: '候选级渲染失败次数 (按 candidate/model/cause 标签, 含末次候选)',
+      labelNames: ['candidate', 'model', 'cause'],
+      registers: [this.registry],
+    });
+    this.visitorRenderCancelled = new Counter({
+      name: 'visitor_render_cancelled_total',
+      help: '渲染外部取消次数 (barge-in/暂停, 按 candidate 标签; 不是降级)',
       labelNames: ['candidate'],
       registers: [this.registry],
     });
@@ -307,6 +321,20 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.visitorRenderAuthFailure.inc({ candidate });
+  }
+
+  incVisitorRenderFailure(candidate: string, model: string, cause: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderFailure.inc({ candidate, model, cause });
+  }
+
+  incVisitorRenderCancelled(candidate: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderCancelled.inc({ candidate });
   }
 
   incVisitorRenderFallback(from: string, to: string, cause: string): void {

@@ -32,6 +32,14 @@ export class RenderMetricsTelemetry implements RenderTelemetryPort {
     this.safe(() => this.metrics.incVisitorRenderAuthFailure(candidateId));
   }
 
+  onFailure(candidateId: string, model: string, cause: RenderFailureCause): void {
+    this.safe(() => this.metrics.incVisitorRenderFailure(candidateId, model, cause));
+  }
+
+  onCancelled(candidateId: string): void {
+    this.safe(() => this.metrics.incVisitorRenderCancelled(candidateId));
+  }
+
   onFallback(from: string, to: string, cause: RenderFailureCause): void {
     this.safe(() => this.metrics.incVisitorRenderFallback(from, to, cause));
   }

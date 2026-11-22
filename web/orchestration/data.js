@@ -1,12 +1,12 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T22:41:01.708Z",
+  "generatedAt": "2026-11-22T06:33:10.760Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 2,
+    "ready": 1,
     "submitted": 1,
     "working": 0,
     "completed": 0,
@@ -17,57 +17,6 @@ window.ORCH_SNAPSHOT = {
     "deadLetter": 0
   },
   "tasks": [
-    {
-      "taskId": "AF-229",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
-      "status": "ready",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-229",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-21T17:31:39.753Z",
-        "leaseDeadline": "2026-11-21T18:01:39.749Z",
-        "attempt": 2,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-229.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-21T17:31:39.753Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-229.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": [
-            {
-              "state": "pending",
-              "preparedAt": "2026-11-21T10:02:46.187Z",
-              "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-229.brief.md",
-              "sessionPath": null,
-              "locateLayer": null,
-              "evidenceRef": null,
-              "consecutiveFailures": 0,
-              "history": []
-            }
-          ]
-        }
-      }
-    },
     {
       "taskId": "AF-231",
       "contextId": "phase2.5-orchestration-closed-loop",
@@ -109,10 +58,10 @@ window.ORCH_SNAPSHOT = {
       }
     },
     {
-      "taskId": "AF-248",
+      "taskId": "AF-282",
       "contextId": "phase2.5-orchestration-closed-loop",
       "type": "implementation",
-      "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
+      "title": "渲染遥测语义修正（barge-in 不计降级 + 候选失败原因指标 + 安全拦截 cause 统一）",
       "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
@@ -120,26 +69,26 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md",
         "reply": null
       },
       "manualReview": [],
       "dispatch": {
-        "taskId": "AF-248",
+        "taskId": "AF-282",
         "contextId": "phase2.5-orchestration-closed-loop",
         "channel": "gui-relay",
         "targetRole": "executor",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-21T22:41:01.640Z",
-        "leaseDeadline": "2026-11-21T23:11:01.637Z",
+        "dispatchedAt": "2026-11-22T06:33:10.687Z",
+        "leaseDeadline": "2026-11-22T07:03:10.682Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-248.json",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-282.json",
         "delivery": {
           "state": "pending",
-          "preparedAt": "2026-11-21T22:41:01.640Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-248.brief.md",
+          "preparedAt": "2026-11-22T06:33:10.687Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-282.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1915,10 +1864,10 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
-      "auditId": "AUD-381",
-      "recordedAt": "2026-11-21T22:40:54.960Z",
+      "auditId": "AUD-477",
+      "recordedAt": "2026-11-22T06:32:48.012Z",
       "actorRef": "orchestrator",
-      "correlationId": "promote:AF-248",
+      "correlationId": "cancel:AF-229",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1932,25 +1881,25 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-380",
-      "recordedAt": "2026-11-21T22:34:19.003Z",
+      "auditId": "AUD-476",
+      "recordedAt": "2026-11-22T06:31:02.954Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-247",
+      "correlationId": "branch:create:AF-282",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-247",
+      "taskId": null,
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-247.json"
+        "task/AF-282-render-telemetry-correctness"
       ]
     },
     {
-      "auditId": "AUD-379",
-      "recordedAt": "2026-11-21T22:34:12.146Z",
+      "auditId": "AUD-475",
+      "recordedAt": "2026-11-22T06:31:02.709Z",
       "actorRef": "orchestrator",
-      "correlationId": "promote:AF-247",
+      "correlationId": "promote:AF-282",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1964,25 +1913,10 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-378",
-      "recordedAt": "2026-11-21T22:25:16.068Z",
+      "auditId": "AUD-474",
+      "recordedAt": "2026-11-22T06:18:41.658Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-246",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-246",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-246.json"
-      ]
-    },
-    {
-      "auditId": "AUD-377",
-      "recordedAt": "2026-11-21T22:25:09.082Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-246",
+      "correlationId": "archive:AF-279",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1996,40 +1930,10 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-376",
-      "recordedAt": "2026-11-21T22:13:51.538Z",
+      "auditId": "AUD-473",
+      "recordedAt": "2026-11-22T06:18:31.440Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-245",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-245-af245-persona-delta"
-      ]
-    },
-    {
-      "auditId": "AUD-375",
-      "recordedAt": "2026-11-21T22:13:47.944Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-245",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-245",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-245.json"
-      ]
-    },
-    {
-      "auditId": "AUD-374",
-      "recordedAt": "2026-11-21T22:13:41.017Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-245",
+      "correlationId": "cancel:AF-279",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -2043,10 +1947,10 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-373",
-      "recordedAt": "2026-11-21T22:02:10.407Z",
+      "auditId": "AUD-472",
+      "recordedAt": "2026-11-22T06:13:26.241Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-244",
+      "correlationId": "branch:create:AF-281",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -2054,76 +1958,29 @@ window.ORCH_SNAPSHOT = {
       "result": "allowed",
       "reason": null,
       "resources": [
-        "task/AF-244-af244-seed-v51"
+        "task/AF-281-visitor-v5-parity"
       ]
     },
     {
-      "auditId": "AUD-372",
-      "recordedAt": "2026-11-21T22:02:06.649Z",
+      "auditId": "AUD-471",
+      "recordedAt": "2026-11-22T06:13:18.072Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-244",
+      "correlationId": "dispatch:AF-281",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-244",
+      "taskId": "AF-281",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-244.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-281.json"
       ]
     },
     {
-      "auditId": "AUD-371",
-      "recordedAt": "2026-11-21T22:01:59.853Z",
+      "auditId": "AUD-470",
+      "recordedAt": "2026-11-22T06:12:47.315Z",
       "actorRef": "orchestrator",
-      "correlationId": "promote:AF-244",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-370",
-      "recordedAt": "2026-11-21T21:49:54.697Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-243",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-243-af243-seed-v5-contact"
-      ]
-    },
-    {
-      "auditId": "AUD-369",
-      "recordedAt": "2026-11-21T21:49:46.879Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-243",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-243",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-243.json"
-      ]
-    },
-    {
-      "auditId": "AUD-368",
-      "recordedAt": "2026-11-21T21:49:40.065Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-243",
+      "correlationId": "reissue:AF-280:AF-281",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -2137,10 +1994,25 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-367",
-      "recordedAt": "2026-11-21T21:41:24.485Z",
+      "auditId": "AUD-469",
+      "recordedAt": "2026-11-22T06:05:37.641Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-242",
+      "correlationId": "dispatch:AF-279",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-279",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-279.json"
+      ]
+    },
+    {
+      "auditId": "AUD-468",
+      "recordedAt": "2026-11-22T06:05:05.681Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-279",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -2148,53 +2020,106 @@ window.ORCH_SNAPSHOT = {
       "result": "allowed",
       "reason": null,
       "resources": [
-        "task/AF-242-af242-plot-zero-fix"
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-467",
+      "recordedAt": "2026-11-22T05:37:33.484Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-278",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-278-render-telemetry-metrics"
+      ]
+    },
+    {
+      "auditId": "AUD-466",
+      "recordedAt": "2026-11-22T05:37:24.846Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-278",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-278",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-278.json"
+      ]
+    },
+    {
+      "auditId": "AUD-465",
+      "recordedAt": "2026-11-22T05:36:52.037Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-278",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-464",
+      "recordedAt": "2026-11-22T05:23:03.202Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-277",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-277-rollback-concurrency-long-context"
+      ]
+    },
+    {
+      "auditId": "AUD-463",
+      "recordedAt": "2026-11-22T05:22:53.030Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-277",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-277",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-277.json"
       ]
     }
   ],
   "auditSummary": {
-    "total": 381,
+    "total": 477,
     "byResult": {
-      "allowed": 381,
+      "allowed": 477,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 380,
+      "TOOL-QUEUE-SCHEDULER": 476,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 381
+      "orchestrator": 477
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
     "tasks": [
-      {
-        "taskId": "AF-229",
-        "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
-        "type": "implementation",
-        "status": {
-          "framework": "ready",
-          "protocol": null,
-          "stage": "orchestration"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-227"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
-          }
-        ]
-      },
       {
         "taskId": "AF-231",
         "title": "R6-D3 Lite 原生评分 prompt V1 与 12 packet 开发集",
@@ -2222,8 +2147,8 @@ window.ORCH_SNAPSHOT = {
         ]
       },
       {
-        "taskId": "AF-248",
-        "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
+        "taskId": "AF-282",
+        "title": "渲染遥测语义修正（barge-in 不计降级 + 候选失败原因指标 + 安全拦截 cause 统一）",
         "type": "implementation",
         "status": {
           "framework": "submitted",
@@ -2233,18 +2158,17 @@ window.ORCH_SNAPSHOT = {
         "groupId": "phase2.5-orchestration-closed-loop",
         "requiredSkills": [],
         "dependsOn": [
-          "AF-243",
-          "AF-247"
+          "AF-278"
         ],
         "agentRole": "executor",
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
+            "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
           }
         ]
       }
@@ -6567,6 +6491,546 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-248",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-249",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-249/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af249-doubao-prod-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-250",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-250/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af250-doubao-stream-usage-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-251",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-251/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af251-unknown-emotion-projection-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-252",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-252/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af252-visitor-render-provider-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-253",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-256",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-256/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af256-af254-cancel-record-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-257",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-257/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af257-cancel-task-archive-notes-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-258",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-259",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-260",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af260-render-multi-turn-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-261",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-262",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-262/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af262-visitor-cutover-local-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-263",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-263/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af263-visitor-cutover-local-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-264",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af264-visitor-fallback-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-265",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-265/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af265-visitor-concurrency-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-266",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-266/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af266-model-cost-pricing-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-267",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-268",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-269",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-270",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-271",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af271-rollback-cutover-rehearsal-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-273",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-273/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af273-rollback-failover-guard-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-274",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-274/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af274-stream-midstream-idle-timeout-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-275",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-275/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af275-candidate-credential-auth-fallback-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-276",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-276/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af276-stream-timeout-semantics-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-277",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-277/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af277-rollback-concurrency-long-context-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-278",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-278/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af278-render-telemetry-metrics-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-279",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-279/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af279-af278-render-telemetry-review-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-229",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6583,16 +7047,6 @@ window.ORCH_SNAPSHOT = {
     },
     "artifacts": [
       {
-        "taskId": "AF-229",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
-      },
-      {
-        "taskId": "AF-229",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
-      },
-      {
         "taskId": "AF-231",
         "kind": "taskSheet",
         "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-231/task-sheet.md"
@@ -6603,14 +7057,14 @@ window.ORCH_SNAPSHOT = {
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
       },
       {
-        "taskId": "AF-248",
+        "taskId": "AF-282",
         "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-282/task-sheet.md"
       },
       {
-        "taskId": "AF-248",
+        "taskId": "AF-282",
         "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
+        "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6624,5 +7078,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 251
+  "archivedCount": 281
 };
