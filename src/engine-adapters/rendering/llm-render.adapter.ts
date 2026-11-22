@@ -73,7 +73,7 @@ import { clearTimeout, setTimeout } from 'node:timers';
 import { resolveStreamFirstDeltaTimeoutMs, type RenderAdapterConfig, type RenderCandidate } from './render-adapter.config.js';
 import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime.js';
 import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk.js';
-import type { RenderAttemptOutcome, RenderFailureCause, RenderTelemetryPort } from './render-telemetry.port.js';
+import type { RenderAttemptOutcome, RenderFailureCause, RenderRoundOutcome, RenderTelemetryPort } from './render-telemetry.port.js';
 import { dropUnclosedTail, splitClosedPrefix } from './render-truncation.js';
 import {
   splitTextIntoDeltas,
@@ -328,6 +328,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 一个"失败过一次、后来已经恢复"的候选会带着旧计数进冷却,
       // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
       this.runtime.markSuccess(outcome.candidateId);
+      this.notify((telemetry) => telemetry.onRoundOutcome?.('success'));
       return {
         text: outcome.value.text,
         taskKind: spec.taskKind,
@@ -398,6 +399,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     );
 
     if (outcome.kind === 'success') {
+      this.notify((telemetry) => telemetry.onRoundOutcome?.('success'));
       // 切过备 → fallbackUsed=true (与聚合路径同一口径: 走过备用路径).
       return attempted.length > 1 ? { ...outcome.value, fallbackUsed: true } : outcome.value;
     }
@@ -1393,6 +1395,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * 最终降级: 返回兜底话术, 永不 reject (M4).
    */
   private degrade(spec: AdaptiveRenderSpec, reason = '渲染失败', cause: RenderFailureCause = 'other'): RenderResult {
+    this.notify((telemetry) => telemetry.onRoundOutcome?.(toRoundOutcome(cause)));
     this.notify((telemetry) => telemetry.onDegraded?.(cause));
     const utterance = this.pickFallbackUtterance();
     // degraded=true 是**日志标记**: 兜底句不是来访者真说的话, 不许冒充成真实回复.
@@ -1418,6 +1421,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     cause: RenderFailureCause = 'other',
     recordDegraded = true,
   ): StreamRenderOutcome {
+    this.notify((telemetry) => telemetry.onRoundOutcome?.(toRoundOutcome(cause)));
     if (recordDegraded) {
       this.notify((telemetry) => telemetry.onDegraded?.(cause));
     }
@@ -1759,6 +1763,19 @@ function classifyErrorCause(error: unknown): RenderFailureCause {
 
 function toAttemptOutcome(kind: 'success' | 'retry' | 'degrade'): RenderAttemptOutcome {
   return kind;
+}
+
+/**
+ * 轮次终局映射: guard 与 exhausted 必须与普通 degrade 分开.
+ *
+ * guard 是"正确拦截", 不是上游坏; exhausted 是"候选全不可用", 是最该报警的一类.
+ * 如果都塌缩成 degrade, 降级率既会被守卫污染, 又无法区分全损.
+ */
+export function toRoundOutcome(cause: RenderFailureCause): RenderRoundOutcome {
+  if (cause === 'guard') return 'guard';
+  if (cause === 'exhausted') return 'exhausted';
+  if (cause === 'cancelled') return 'cancelled';
+  return 'degrade';
 }
 
 /**

@@ -245,6 +245,21 @@
       "fieldConfig": { "defaults": { "unit": "s", "min": 0 } }
     },
     {
+      "id": 18,
+      "title": "来访者渲染: 轮次结局 (10m)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 68 },
+      "targets": [
+        {
+          "expr": "sum(increase(visitor_render_rounds_total[10m])) by (outcome)",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0 } }
+    },
+    {
       "id": 7,
       "title": "系统资源 (CPU / 内存)",
       "type": "timeseries",

@@ -61,6 +61,7 @@ export class MetricsService implements OnModuleInit {
   //   限流或候选耗尽. 这些此前只有日志, 看板无法聚合. 指标只带候选/模型/封闭原因,
   //   不带任何 prompt / 台词 / 会话内容.
   private visitorRenderAttempts!: Counter<string>;
+  private visitorRenderRounds!: Counter<string>;
   private visitorRenderFirstDelta!: Histogram<string>;
   private visitorRenderStreamTimeout!: Counter<string>;
   private visitorRenderAuthFailure!: Counter<string>;
@@ -167,6 +168,12 @@ export class MetricsService implements OnModuleInit {
       name: 'visitor_render_attempts_total',
       help: '候选尝试次数 (按 candidate/model/outcome 标签, outcome: success / retry / degrade)',
       labelNames: ['candidate', 'model', 'outcome'],
+      registers: [this.registry],
+    });
+    this.visitorRenderRounds = new Counter({
+      name: 'visitor_render_rounds_total',
+      help: '整轮渲染终局次数 (按 outcome 标签: success / degrade / guard / exhausted / cancelled); 降级率/回退率/取消率的统一分母',
+      labelNames: ['outcome'],
       registers: [this.registry],
     });
     this.visitorRenderFirstDelta = new Histogram({
@@ -322,6 +329,13 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.visitorRenderAttempts.inc({ candidate, model, outcome });
+  }
+
+  incVisitorRenderRound(outcome: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderRounds.inc({ outcome });
   }
 
   observeVisitorRenderFirstDelta(candidate: string, model: string, seconds: number): void {

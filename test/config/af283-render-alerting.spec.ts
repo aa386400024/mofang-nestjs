@@ -18,6 +18,7 @@ const METRICS = path.join(REPO_ROOT, 'src/shared/infra/metrics/metrics.service.t
 /** 渲染链路必须被告警覆盖的指标基名. */
 const REQUIRED_METRICS = [
   'visitor_render_attempts_total',
+  'visitor_render_rounds_total',
   'visitor_render_first_delta_seconds',
   'visitor_render_stream_timeout_total',
   'visitor_render_auth_failure_total',
@@ -43,7 +44,7 @@ const REQUIRED_ALERTS = [
 ] as const;
 
 /** 看板必须包含的渲染面板标题关键词. */
-const REQUIRED_PANELS = ['降级率', '首包 P95', '失败原因', '回退率', '熔断', '冷却剩余'] as const;
+const REQUIRED_PANELS = ['降级率', '首包 P95', '失败原因', '回退率', '熔断', '冷却剩余', '轮次结局'] as const;
 
 describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
   it('告警文件新增 visitor-render 组, 且关键告警齐全', () => {
@@ -71,14 +72,57 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     }
   });
 
-  it('降级率与回退率的分母不含 cancelled, 避免 barge-in 污染', () => {
+  it('降级率与回退率的分母是终局轮次, 且降级分子排除 guard', () => {
     const text = readFileSync(ALERTS, 'utf8');
     const degradedBlock = text.slice(text.indexOf('VisitorRenderDegradedRateHigh'), text.indexOf('VisitorRenderAuthFailure'));
-    expect(degradedBlock).toContain('outcome=~"success|degrade"');
+    expect(degradedBlock).toContain('visitor_render_rounds_total');
+    expect(degradedBlock).toContain('cause!="guard"');
+    expect(degradedBlock).not.toContain('visitor_render_attempts_total');
     expect(degradedBlock).not.toContain('visitor_render_cancelled_total');
     const fallbackBlock = text.slice(text.indexOf('VisitorRenderFallbackRateHigh'), text.indexOf('VisitorRenderFailureCauseSpike'));
-    expect(fallbackBlock).toContain('outcome=~"success|degrade"');
+    expect(fallbackBlock).toContain('visitor_render_rounds_total');
+    expect(fallbackBlock).not.toContain('visitor_render_attempts_total');
     expect(fallbackBlock).not.toContain('visitor_render_cancelled_total');
+  });
+
+  it('鉴权告警按 candidate 聚合, $labels.candidate 不再为空', () => {
+    const text = readFileSync(ALERTS, 'utf8');
+    const authBlock = text.slice(text.indexOf('VisitorRenderAuthFailure'), text.indexOf('VisitorRenderFirstDeltaSlow'));
+    expect(authBlock).toContain('sum(increase(visitor_render_auth_failure_total[5m])) by (candidate)');
+    expect(authBlock).toContain('$labels.candidate');
+  });
+
+  it('告警 annotation 里的每个 $labels.X 都出现在 expr 的 by(...) 中', () => {
+    const text = readFileSync(ALERTS, 'utf8');
+    const blocks: { name: string; lines: string[] }[] = [];
+    let current: { name: string; lines: string[] } | null = null;
+    for (const line of text.split('\n')) {
+      const start = /^\s*-\s+alert:\s+([A-Za-z0-9_]+)/.exec(line);
+      if (start) {
+        if (current) blocks.push(current);
+        current = { name: start[1], lines: [] };
+      } else if (current) {
+        current.lines.push(line);
+      }
+    }
+    if (current) blocks.push(current);
+
+    const violations: string[] = [];
+    for (const block of blocks) {
+      const exprStart = block.lines.findIndex((line) => line.trim().startsWith('expr:'));
+      if (exprStart === -1) continue;
+      const labelsStart = block.lines.findIndex((line, index) => index > exprStart && line.trim().startsWith('labels:'));
+      const exprEnd = labelsStart === -1 ? block.lines.length : labelsStart;
+      const expr = block.lines.slice(exprStart, exprEnd).join('\n');
+      const annotation = block.lines.slice(labelsStart === -1 ? exprStart : labelsStart).join('\n');
+      const labels = new Set([...annotation.matchAll(/\$labels\.([a-zA-Z_][a-zA-Z0-9_]*)/g)].map((match) => match[1]));
+      const labelGroups = [...expr.matchAll(/by\s*\(([^)]*)\)/g)].map((match) => match[1]);
+      const byLabels = new Set(labelGroups.flatMap((group) => group.split(',').map((item) => item.trim())));
+      for (const label of labels) {
+        if (!byLabels.has(label)) violations.push(`${block.name}: $labels.${label} 不在 expr 的 by(...) 里`);
+      }
+    }
+    expect(violations.join('\n')).toBe('');
   });
 
   it('Grafana 看板可解析, 且包含渲染面板与真实表达式', () => {
@@ -94,6 +138,7 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     }
     const exprs = renderPanels.flatMap((panel) => (panel.targets ?? []).map((target) => target.expr ?? '')).join('\n');
     expect(exprs).toContain('visitor_render_degraded_total');
+    expect(exprs).toContain('visitor_render_rounds_total');
     expect(exprs).toContain('visitor_render_cancelled_total');
     expect(exprs).toContain('visitor_render_failure_total');
     expect(exprs).toContain('visitor_render_fallback_total');

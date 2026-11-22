@@ -104,11 +104,14 @@ groups:
   # Visitor Render / 来访者渲染链路 (AF-283)
   # ============================================================
   #
-  # 口径前提 (AF-282 已修):
-  #   ① barge-in / 暂停走 visitor_render_cancelled_total, **不进**降级率分母也不进分子;
-  #   ② degraded_total{cause} 是"轮次最终降级"语义, cause=exhausted 只表示候选耗尽;
-  #   ③ 候选级真实失败原因在 failure_total{candidate,model,cause}, 单候选 429/5xx
-  #      不再被 exhausted 吞掉.
+  # 口径前提 (AF-292 修正):
+  #   ① 降级率/回退率的分母是 visitor_render_rounds_total (每个终局轮次恰好 +1),
+  #      不再是候选尝试次数; 全员冷却/guard 提前返回也进分母.
+  #   ② barge-in / 暂停记 rounds{cancelled} 与 cancelled_total, 不是降级;
+  #      它进统一分母, 但不进降级分子.
+  #   ③ degraded_total{cause=guard} 不计入降级率: 守卫命中的正确拦截不指向 provider,
+  #      另有 rounds{guard} 单列.
+  #   ④ 候选级真实失败原因在 failure_total{candidate,model,cause}.
   #
   # 阈值依据: AF-268/AF-277/AF-278 实测 TTFT 0.5–1.3s, 回滚态 0.6–5.0s; 灰度初期
   #   生产样本不足, 阈值宁可先宽后紧, Runbook 里标注了调整入口.
@@ -116,13 +119,15 @@ groups:
     interval: 30s
     rules:
       - alert: VisitorRenderDegradedRateHigh
-        # 分母只用"终局轮次"= success + degrade, 不含 retry 中间尝试, 也不含 cancelled.
-        # 这样 barge-in 再多也不会把降级率顶上去.
+        # 分母 = 所有终局轮次 (success/degrade/guard/exhausted/cancelled), 不是候选尝试.
+        # 候选尝试会随重试膨胀, 且"全员冷却直接返回"不产生任何尝试 —— 用 attempts
+        # 做分母会系统性高估降级率, 最该报警的全损轮次反而进不了分母.
+        # 分子排除 cause=guard: 守卫命中是正确拦截, 不指向 provider.
         expr: |
-          sum(increase(visitor_render_degraded_total[10m]))
+          sum(increase(visitor_render_degraded_total{cause!="guard"}[10m]))
             /
           clamp_min(
-            sum(increase(visitor_render_attempts_total{outcome=~"success|degrade"}[10m])),
+            sum(increase(visitor_render_rounds_total[10m])),
             0.001
           )
             > 0.03
@@ -132,12 +137,13 @@ groups:
           team: ai-engine
         annotations:
           summary: "来访者渲染降级率过高"
-          description: "10 分钟真实降级率 {{ $value | humanizePercentage }} (>3%, 已排除 barge-in); 查看 visitor_render_degraded_total 的 cause 与 failure_total"
+          description: "10 分钟真实降级率 {{ $value | humanizePercentage }} (>3%, 分母为终局轮次, 已排除 barge-in 与 guard); 查看 visitor_render_degraded_total 的 cause 与 failure_total"
 
       - alert: VisitorRenderAuthFailure
         # 鉴权失败没有"可接受频率": 任何一次都说明密钥/配额/账号配置坏了.
+        # 必须 by (candidate): 否则大括号会丢掉标签, annotation 的 $labels.candidate 永远为空.
         expr: |
-          sum(increase(visitor_render_auth_failure_total[5m])) > 0
+          sum(increase(visitor_render_auth_failure_total[5m])) by (candidate) > 0
         for: 1m
         labels:
           severity: critical
@@ -173,11 +179,13 @@ groups:
           description: "10 分钟内 {{ $labels.phase }} 超时 {{ $value }} 次 (>5); 首包超时看上游冷启动, idle 看上游断流"
 
       - alert: VisitorRenderFallbackRateHigh
+        # 与降级率同一分母: 终局轮次. 分子是回退事件, 一轮最多一次主备切换.
+        # 用 attempts 做分母会让"重试越多分母越大", 回退率被稀释.
         expr: |
           sum(increase(visitor_render_fallback_total[10m]))
             /
           clamp_min(
-            sum(increase(visitor_render_attempts_total{outcome=~"success|degrade"}[10m])),
+            sum(increase(visitor_render_rounds_total[10m])),
             0.001
           )
             > 0.10

@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
-import type { RenderAttemptOutcome, RenderFailureCause, RenderStreamTimeoutPhase, RenderTelemetryPort } from './render-telemetry.port.js';
+import type {
+  RenderAttemptOutcome,
+  RenderFailureCause,
+  RenderRoundOutcome,
+  RenderStreamTimeoutPhase,
+  RenderTelemetryPort,
+} from './render-telemetry.port.js';
 import type { MetricsService } from '../../shared/infra/metrics/metrics.service.js';
 
 /**
@@ -17,6 +23,10 @@ export class RenderMetricsTelemetry implements RenderTelemetryPort {
 
   onAttemptOutcome(candidateId: string, model: string, outcome: RenderAttemptOutcome): void {
     this.safe(() => this.metrics.incVisitorRenderAttempt(candidateId, model, outcome));
+  }
+
+  onRoundOutcome(outcome: RenderRoundOutcome): void {
+    this.safe(() => this.metrics.incVisitorRenderRound(outcome));
   }
 
   onFirstDelta(candidateId: string, model: string, ttftMs: number): void {
