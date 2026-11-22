@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T19:51:47.634Z",
+  "generatedAt": "2026-11-22T20:08:29.710Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-065",
+      "recordedAt": "2026-11-22T20:00:21.360Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-332",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-332-realism-baseline-variance"
+      ]
+    },
+    {
+      "auditId": "AUD-064",
+      "recordedAt": "2026-11-22T20:00:17.588Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-332",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-332",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-332.json"
+      ]
+    },
+    {
+      "auditId": "AUD-063",
+      "recordedAt": "2026-11-22T20:00:10.099Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-332",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-062",
       "recordedAt": "2026-11-22T19:34:33.654Z",
       "actorRef": "orchestrator",
@@ -1971,67 +2018,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-050",
-      "recordedAt": "2026-11-22T18:42:10.712Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-327",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-049",
-      "recordedAt": "2026-11-22T18:32:59.168Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-326",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-326-classifier-prompt-v2"
-      ]
-    },
-    {
-      "auditId": "AUD-048",
-      "recordedAt": "2026-11-22T18:20:02.538Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-326",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-326",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-326.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 62,
+    "total": 65,
     "byResult": {
-      "allowed": 62,
+      "allowed": 65,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 61,
+      "TOOL-QUEUE-SCHEDULER": 64,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 62
+      "orchestrator": 65
     }
   },
   "protocolView": {
@@ -7615,6 +7615,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af331-realism-prompt-tightening-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-332",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-332/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7639,5 +7657,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 321
+  "archivedCount": 322
 };
