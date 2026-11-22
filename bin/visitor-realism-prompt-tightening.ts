@@ -26,7 +26,8 @@ import {
   evaluateHumanization,
   type HumanizationEvaluation,
 } from '../src/auto-practice/metrics/humanization-acceptance.js';
-import { buildCounselorMessage, REALISM_AB_COUNSELOR_TURNS, stripEmotionTags } from '../src/shared/realism/realism-prompt-ab.js';
+import { getCounselorTurns, parseCounselorTurnSet, type CounselorTurnSet } from '../src/shared/realism/realism-long-session.js';
+import { buildCounselorMessage, stripEmotionTags } from '../src/shared/realism/realism-prompt-ab.js';
 import {
   TIGHTENING_ARMS,
   TIGHTENING_PERSONAS,
@@ -49,6 +50,7 @@ interface Options {
   readonly maxTokens: number;
   readonly timeoutMs: number;
   readonly turns: number;
+  readonly turnSet: CounselorTurnSet;
   readonly reps: number;
   readonly personas: readonly TighteningPersonaId[];
   readonly arms: readonly TighteningArm[];
@@ -96,6 +98,7 @@ interface Report {
   readonly maxTokens: number;
   readonly timeoutMs: number;
   readonly turns: number;
+  readonly turnSet: CounselorTurnSet;
   readonly reps: number;
   readonly personas: readonly TighteningPersonaId[];
   readonly arms: readonly TighteningArm[];
@@ -133,7 +136,8 @@ function listArg<T extends string>(name: string, fallback: readonly T[], allowed
 
 function parseOptions(argv: readonly string[]): Options {
   const model = arg('--model') ?? process.env['VISITOR_DOUBAO_MODEL']?.trim() ?? DEFAULT_VISITOR_DOUBAO_MODEL;
-  const maxTurns = REALISM_AB_COUNSELOR_TURNS.length;
+  const turnSet = parseCounselorTurnSet(arg('--turn-set'));
+  const maxTurns = getCounselorTurns(turnSet).length;
   const reps = Math.floor(numberArg('--reps', 2));
   const outArg = arg('--out');
   return {
@@ -141,7 +145,8 @@ function parseOptions(argv: readonly string[]): Options {
     temperature: numberArg('--temperature', 0.6),
     maxTokens: numberArg('--max-tokens', 160),
     timeoutMs: numberArg('--timeout-ms', 45_000),
-    turns: Math.min(maxTurns, Math.max(1, numberArg('--turns', 6))),
+    turns: Math.min(maxTurns, Math.max(1, numberArg('--turns', maxTurns))),
+    turnSet,
     reps: Math.min(5, Math.max(1, reps)),
     personas: listArg('--personas', TIGHTENING_PERSONAS, TIGHTENING_PERSONAS),
     arms: listArg('--arms', TIGHTENING_ARMS, TIGHTENING_ARMS),
@@ -172,7 +177,7 @@ async function runArm(
   personaId: TighteningPersonaId,
   arm: TighteningArm,
   generate: Generate,
-  maxTurns: number,
+  counselorTurns: readonly string[],
 ): Promise<{ reps: RepResult[]; calls: number }> {
   const persona = getTighteningPersona(personaId);
   const systemPrompt = buildTighteningSystemPrompt(persona, arm);
@@ -181,8 +186,8 @@ async function runArm(
   let failed = false;
   let failure: string | null = null;
 
-  for (let index = 0; index < maxTurns; index += 1) {
-    messages.push({ role: 'user', content: buildCounselorMessage(REALISM_AB_COUNSELOR_TURNS[index]) });
+  for (const prompt of counselorTurns) {
+    messages.push({ role: 'user', content: buildCounselorMessage(prompt) });
     try {
       const raw = await generate([...messages]);
       const text = stripEmotionTags(raw);
@@ -205,7 +210,7 @@ async function runArm(
   const humanization = arm === 'off' ? null : evaluateHumanization(metrics, { realismMode: 'active', turns: turns.length });
 
   return {
-    calls: maxTurns,
+    calls: counselorTurns.length,
     reps: [
       {
         completedTurns: turns.length,
@@ -226,10 +231,11 @@ async function runCell(
   generate: Generate,
 ): Promise<{ cell: CellResult; calls: number; failures: number }> {
   const reps: RepResult[] = [];
+  const counselorTurns = getCounselorTurns(options.turnSet).slice(0, options.turns);
   let calls = 0;
   let failures = 0;
   for (let index = 0; index < options.reps; index += 1) {
-    const run = await runArm(personaId, arm, generate, options.turns);
+    const run = await runArm(personaId, arm, generate, counselorTurns);
     calls += run.calls;
     const rep = run.reps[0];
     reps.push(rep);
@@ -312,7 +318,7 @@ function printHuman(report: Report): void {
   console.log('来访者真人度 prompt 减层与候选收紧');
   console.log(
     `模型 ${report.model} | 温度 ${report.temperature} | ${report.personas.length} 人设 | ${report.arms.length} 分支 | ` +
-      `${report.turns} 轮/分支 | ${report.reps} 重复 | 调用 ${report.calls} | 失败 ${report.failures}`,
+      `${report.turnSet} ${report.turns} 轮/分支 | ${report.reps} 重复 | 调用 ${report.calls} | 失败 ${report.failures}`,
   );
   for (const persona of report.personas) {
     const cells = report.cells.filter((cell) => cell.persona === persona);
@@ -372,6 +378,7 @@ async function main(): Promise<void> {
     maxTokens: options.maxTokens,
     timeoutMs: options.timeoutMs,
     turns: options.turns,
+    turnSet: options.turnSet,
     reps: options.reps,
     personas: options.personas,
     arms: options.arms,

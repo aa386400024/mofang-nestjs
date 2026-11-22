@@ -1,0 +1,279 @@
+{
+  "deliveredAt": "2026-11-23T04:32:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-333-1",
+    "taskId": "AF-333",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "80734563375195e3156e3ef82e0bc376ca1b9114",
+    "dependsOn": ["AF-332"],
+    "priorTasks": ["AF-332", "AF-331", "AF-330"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-333/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af333-realism-long-session-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af333-realism-long-session-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["878fec0762a5f58d8188bb3c4663ad20cc420ae4"],
+      "added": [
+        "src/shared/realism/realism-long-session.ts",
+        "test/shared/realism/realism-long-session.spec.ts",
+        "docs/worklog/completed/phase2.5/af333-realism-long-session-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af333-realism-long-session-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-333/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-333/task-sheet.md"
+      ],
+      "modified": [
+        "bin/visitor-realism-prompt-tightening.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-long-session.spec.ts test/shared/realism/realism-metric-distribution.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "tests": 20,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "0.22s",
+        "note": "长会话 8 例 + 分布 12 例，20/20 通过；覆盖长短集合、前 6 轮逐字一致、12 轮唯一、默认 short、显式 long、未知值抛错"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 294,
+        "tests": 4510,
+        "machine": "同上",
+        "wallClock": "18.99s",
+        "note": "294 文件通过 / 1 跳过（295）；4510 例通过 / 4 跳过（4514）"
+      },
+      {
+        "command": "4 × pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --turn-set long --arms off,full,minimal --reps 1 --turns 12 --out .../rep-N.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 150s",
+        "note": "4 次独立重复，每次 2 人设 × 3 分支 × 12 轮 = 72 次调用；合计 288 次、0 失败；每份 turnSet=long / turns=12"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-baseline-variance.ts --dir data/phase25-exit/af333-realism-long-session/reps --out .../summary.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.3s",
+        "note": "4 份 12 轮报告汇总；anxious off 中位数 2.607085（1/4 在窗口）、full 6.498835（0/4）、minimal 2.791573（1/4）；guarded off 2.344401（2/4）、full 6.886633（0/4）、minimal 3.008199（0/4）"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --turn-set long --personas anxious --arms off --reps 1 --turns 12 --out .../smoke.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35s",
+        "note": "12 次真实调用 smoke，输出显示 long 12 轮/分支、失败 0；确认 CLI 的 --turn-set long 落盘"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-333 status=submitted files=11 covered=3"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入前事件链一致：1475 条，schema 与哈希链通过；归档后复跑"
+      }
+    ],
+    "reproNotes": "复现顺序：先执行 AF-333 CLI 的 long smoke（--turn-set long --personas anxious --arms off --reps 1 --turns 12）；再执行 4 次 --turn-set long --arms off,full,minimal --reps 1 --turns 12，分别输出 rep-1..4.json；再执行 pnpm exec tsx bin/visitor-realism-baseline-variance.ts --dir .../reps --out .../summary.json；最后跑定向 20 例、typecheck、lint、全量 4510 例与 engine-core 零 diff。原始 JSON 含合成台词与 prompt，留 gitignored 取证目录，不入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-333 经 CLI register / promote / run-once / branch create；分支名与提交标题只含一个任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过（1475 条）"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "turn-set-compat",
+        "result": "pass",
+        "note": "--turn-set 默认 short，不传时仍跑原 6 轮；long 的前 6 轮由 REALISM_AB_COUNSELOR_TURNS 展开，单测保证逐字一致"
+      },
+      {
+        "item": "hypothetical-gate-label",
+        "result": "pass",
+        "note": "off 的假设性 active 判定在报告与 CLI 中标注为校准，不冒充生产 gate"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "仓库报告只含数字；原始 JSON 含合成台词，留在 gitignored 取证目录"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "2 合成人设 × 4 重复的文本分布事实；无真实咨询语料、无真人督导；不宣称临床真人度、疗效或统计显著性"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 80734563 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 878fec07 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF333-B1",
+        "impact": "12 轮未修好基线：anxious off 中位数 2.607085（1/4 在窗口）、范围 1.718213–2.953586；guarded off 2.344401（2/4）、范围 0.952381–3.940887。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF333-B2",
+        "impact": "full 在 12 轮 8 个样本全部超上限：anxious 5.940594–7.560137、guarded 6.060606–7.142857；生产块不得启用。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF333-B3",
+        "impact": "minimal 在长会话仍无优势：anxious 中位数 2.791573 > off 2.607085；guarded 3.008199 > off 2.344401 且 0/4 在窗口内。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF333-B4",
+        "impact": "12 轮只降低 full 极差、未降低 off 方差；gate 仍需多重复 + 中位数 + 按人设基线，不能单用 12 轮。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF333-B5",
+        "impact": "4 次重复不足统计显著性：需要 ≥8 重复或更多合成人设收窄 off 中位数置信区间。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF333-B6",
+        "impact": "长会话里事件层仍是最大放大器假设未复验：AF-330 的 event 结论需在 12 轮口径下做 no-event / no-quota 消融。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "评测窗口是否统一扩到 12 轮，还是保持 6 轮但强制多重复取中位数",
+      "是否按人设分开设基线/阈值（anxious 长会话中位数 2.61，guarded 2.34）",
+      "minimal 是否只作为去 full 过量的中间态保留，不进入生产候选",
+      "是否需要补 AF-329 的独立 errata"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "12 个不重复合成轮次，前 6 与短会话一致；--turn-set short|long",
+        "reality": "已实现；单测保证 12 轮唯一且前 6 轮逐字一致；long smoke 落盘 turnSet=long",
+        "action": "按任务单交付",
+        "why": "长短会话可直接对比"
+      },
+      {
+        "taskSays": "4 重复 × 2 人设 × 3 分支 × 12 轮 = 288 调用",
+        "reality": "完全执行，288 次调用、0 失败",
+        "action": "无偏差",
+        "why": "逐重复密度都入库为报告数字"
+      },
+      {
+        "taskSays": "报告与 AF-332 6 轮并列",
+        "reality": "已增加 6 轮 vs 12 轮中位数对比表",
+        "action": "按任务单交付",
+        "why": "明确回答 12 轮是否收敛"
+      },
+      {
+        "taskSays": "不改生产 prompt / 阈值",
+        "reality": "只新增长会话模块并给离线 CLI 加开关；生产文件与 humanization-v1 均未改",
+        "action": "保持生产 off",
+        "why": "本单只做长会话校准，不做阈值调参"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-333 交付可复跑的 12 轮长会话模块、8 例单测与 CLI --turn-set 开关；4 次独立重复共 288 次调用 0 失败，明确回答 12 轮未修好 off 基线（anxious 中位数 2.607085、1/4；guarded 2.344401、2/4），full 仍稳定过量（6.62/6.74，0/4），minimal 仍非修复。定向 20 例、全量 4510 例、lint 0/0、typecheck exit 0、engine-core 零 diff。没有改生产 prompt、没有调阈值、没有把工程数字包装成临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
