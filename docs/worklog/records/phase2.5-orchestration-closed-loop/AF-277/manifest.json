@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-277",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T13:24:00+08:00",
+  "updatedAt": "2026-11-22T05:31:33.456Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-277/task-sheet.md",
+    "sha256": "4d24d68f8e5c822ab774eec232ac533c475432e482c998b1862aefd41e927970",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-277/receipt-RC-AF-277-1.json",
+      "sha256": "39ac833b4f217b2053bf7786497e860c269e8a70c1e7e9654bf9f99eb3b21b1f",
+      "receiptId": "RC-AF-277-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af277-rollback-concurrency-long-context-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-277-rollback-concurrency-long-context-2026-11-22.md"
+  ],
+  "tombstone": null
+}
