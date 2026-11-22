@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { collectDefaultMetrics, Counter, Histogram, Registry, type HistogramConfiguration } from 'prom-client';
+import { collectDefaultMetrics, Counter, Gauge, Histogram, Registry, type HistogramConfiguration } from 'prom-client';
 
 // ⚠️ 必须直接 import 文件, 详见 redis.service.ts 治本注释.
 import { ConfigService } from '../../../common/providers/config.service.js';
@@ -68,6 +68,7 @@ export class MetricsService implements OnModuleInit {
   private visitorRenderCancelled!: Counter<string>;
   private visitorRenderCooldownServed!: Counter<string>;
   private visitorRenderCandidateCooldown!: Histogram<string>;
+  private visitorRenderCandidateCooldownUntil!: Gauge<string>;
   private visitorRenderFallback!: Counter<string>;
   private visitorRenderDegraded!: Counter<string>;
 
@@ -210,6 +211,12 @@ export class MetricsService implements OnModuleInit {
       labelNames: ['candidate', 'model', 'cause'],
       // 冷却从 cooldownBaseMs 起步, 按指数退避封顶 cooldownMaxMs; 桶覆盖秒级到 30 分钟.
       buckets: [1, 2, 5, 10, 20, 30, 60, 120, 300, 600, 1200, 1800],
+      registers: [this.registry],
+    });
+    this.visitorRenderCandidateCooldownUntil = new Gauge({
+      name: 'visitor_render_candidate_cooldown_until_seconds',
+      help: '候选当前冷却到期 Unix 秒 (按 candidate/model 标签); 0 表示已恢复/不在冷却, `值 - time() > 0` 表示此刻仍在冷却',
+      labelNames: ['candidate', 'model'],
       registers: [this.registry],
     });
     this.visitorRenderFallback = new Counter({
@@ -364,6 +371,13 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.visitorRenderCandidateCooldown.observe({ candidate, model, cause }, seconds);
+  }
+
+  setVisitorRenderCandidateCooldownUntil(candidate: string, model: string, untilSeconds: number): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderCandidateCooldownUntil.set({ candidate, model }, untilSeconds);
   }
 
   incVisitorRenderFallback(from: string, to: string, cause: string): void {

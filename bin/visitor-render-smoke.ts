@@ -19,6 +19,7 @@ import { LlmService } from '../src/agent/llm/llm.service.js';
 import type { RollingSummaryPort } from '../src/engine-adapters/persistence/rolling-session-summary.service.js';
 import type { ChatCaller } from '../src/engine-adapters/rendering/llm-render.adapter.js';
 import type { RenderAdapterConfig } from '../src/engine-adapters/rendering/render-adapter.config.js';
+import { RenderMetricsTelemetry } from '../src/engine-adapters/rendering/render-metrics.telemetry.js';
 import type { StreamingRenderPort } from '../src/engine-adapters/rendering/streaming-render.port.js';
 import { MAX_HISTORY_TURNS, TurnRenderOrchestrator } from '../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import { createLlmServiceChatCaller } from '../src/engine-adapters/wiring/llm-service-chat-caller.js';
@@ -40,6 +41,7 @@ import { DoubaoChatProvider } from '../src/llm/providers/doubao.provider.js';
 import { MinimaxChatProvider } from '../src/llm/providers/minimax.provider.js';
 import { LlmRouterService } from '../src/llm/registry/llm-router.service.js';
 import { ProviderRegistryService } from '../src/llm/registry/provider-registry.service.js';
+import { MetricsService } from '../src/shared/infra/metrics/metrics.service.js';
 
 const DEFAULT_MAX_TOKENS = 160;
 const DEFAULT_TIMEOUT_MS = 45_000;
@@ -617,6 +619,12 @@ async function probePrimaryFailure(
   }
 }
 
+interface SmokeMetricSample {
+  readonly name: string;
+  readonly type: string;
+  readonly values: readonly { readonly labels: Record<string, string | number>; readonly value: number }[];
+}
+
 interface SmokeReport {
   readonly callerPath: string;
   readonly requestedProvider: string;
@@ -633,6 +641,8 @@ interface SmokeReport {
   readonly candidates: readonly { id: string; chatModel: string | null }[];
   readonly turnResults: readonly TurnSummary[];
   readonly usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  readonly renderMetrics?: readonly SmokeMetricSample[];
+  readonly renderMetricsObservedAt?: number;
 }
 
 /** 统一输出机读摘要：逐路明细 + 汇总，供人工与后续脚本消费。 */
@@ -675,6 +685,8 @@ function printReport(report: SmokeReport): void {
         promptTokensSeries: report.turnResults.map((item) => item.usage?.promptTokens ?? 0),
         promptSummaryTurns: report.turnResults.filter((item) => item.promptHasSummary).map((item) => item.turn),
         turnDetails: report.turnResults,
+        ...(report.renderMetrics === undefined ? {} : { renderMetrics: report.renderMetrics }),
+        ...(report.renderMetricsObservedAt === undefined ? {} : { renderMetricsObservedAt: report.renderMetricsObservedAt }),
       },
       null,
       2,
@@ -771,6 +783,7 @@ interface RunOptions {
   readonly expectFallbackWithinMs: number | null;
   readonly expectDegradedWithinMs: number | null;
   readonly faults: FaultFlags;
+  readonly dumpRenderMetrics: boolean;
 }
 
 /** 解析并校验本次 smoke 的参数组合，主流程只消费结果. */
@@ -791,6 +804,7 @@ function resolveRunOptions(): RunOptions {
   const rawDegradedWithin = arg('--expect-degraded-within-ms');
   const expectDegradedWithinMs = rawDegradedWithin === null ? null : Math.floor(numberArg('--expect-degraded-within-ms', 0));
   const faults = resolveFaultFlags(callerPath, provider);
+  const dumpRenderMetrics = hasFlag('--dump-render-metrics');
   // MiniMax M3 的 reasoning token 计入 completion 上限；回退/回滚 smoke 用 300 会在思考和
   // 正文之间被截断，出现「有 finish_reason=length、无完整句」的假降级。这些场景默认放宽。
   const maxTokens = numberArg('--max-tokens', faults.expectFallback || provider === 'minimax' ? 800 : DEFAULT_MAX_TOKENS);
@@ -830,6 +844,7 @@ function resolveRunOptions(): RunOptions {
     expectFallbackWithinMs,
     expectDegradedWithinMs,
     faults,
+    dumpRenderMetrics,
   };
 }
 
@@ -887,6 +902,7 @@ async function main(): Promise<void> {
     expectFallbackWithinMs,
     expectDegradedWithinMs,
     faults,
+    dumpRenderMetrics,
   } = resolveRunOptions();
 
   // smoke 显式模拟生产开关；不写回 .env，也不改全局 ENGINE_RENDER_PRIMARY_PROVIDER。
@@ -933,7 +949,19 @@ async function main(): Promise<void> {
   assertCandidateChain(renderConfig, provider, faults);
   const primaryProbe = await probePrimary(router, renderConfig, provider, faults);
 
-  const port = buildEngineRenderPort(caller, renderConfig);
+  // 只有显式 --dump-render-metrics 才接遥测；默认路径保持原样，不为 smoke 改生产装配.
+  let renderMetrics: MetricsService | undefined;
+  let renderTelemetry: RenderMetricsTelemetry | undefined;
+  if (dumpRenderMetrics) {
+    const metricsConfig = {
+      get: (key: string): unknown => (key === 'metrics' ? { enabled: true, httpDurationBuckets: [0.1, 1] } : undefined),
+    } as unknown as ConfigService;
+    renderMetrics = new MetricsService(metricsConfig);
+    renderMetrics.onModuleInit();
+    renderTelemetry = new RenderMetricsTelemetry(renderMetrics);
+  }
+
+  const port = buildEngineRenderPort(caller, renderConfig, undefined, renderTelemetry);
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
 
   const batch = orchestrated
@@ -961,6 +989,14 @@ async function main(): Promise<void> {
     fail('midstream-stall 未产生任何可见增量，首包未到达，不能证明块间停摆治理', 2);
   }
 
+  const renderMetricObservedAt = renderMetrics === undefined ? undefined : Date.now() / 1000;
+  const renderMetricSamples =
+    renderMetrics === undefined
+      ? undefined
+      : ((await renderMetrics.getRegistry().getMetricsAsJSON()) as unknown as SmokeMetricSample[]).filter((sample) =>
+          sample.name.startsWith('visitor_render_'),
+        );
+
   printReport({
     callerPath,
     requestedProvider: provider,
@@ -984,6 +1020,8 @@ async function main(): Promise<void> {
       completionTokens: batch.completionTokens,
       totalTokens: batch.totalTokens,
     },
+    ...(renderMetricSamples === undefined ? {} : { renderMetrics: renderMetricSamples }),
+    ...(renderMetricObservedAt === undefined ? {} : { renderMetricsObservedAt: renderMetricObservedAt }),
   });
   if (expectFallbackWithinMs !== null && batch.wallElapsedMs > expectFallbackWithinMs) {
     fail(`回退耗时 ${String(batch.wallElapsedMs)}ms 超过上限 ${String(expectFallbackWithinMs)}ms`, 2);

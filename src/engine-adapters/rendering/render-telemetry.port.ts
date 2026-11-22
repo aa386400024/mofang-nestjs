@@ -76,6 +76,14 @@ export interface RenderTelemetryPort {
    * `cooldownMs` 是本次生效的冷却墙钟时长 (指数退避后的值), 不是剩余时间.
    */
   onCandidateCooldown?(candidateId: string, model: string, cause: RenderFailureCause, cooldownMs: number): void;
+  /**
+   * 候选冷却状态变化后的当前到期时刻 (AF-289).
+   *
+   * `cooldownUntilMs` 是 Unix 毫秒时间戳, 不是剩余时长; 0 表示已恢复/不在冷却.
+   * 用绝对值而非 1/0 gauge, 是因为冷却会随时间自然到期: 看板用
+   * `cooldown_until_seconds - time() > 0` 判“此刻仍在冷却”, 不依赖后台定时清零.
+   */
+  onCandidateCooldownState?(candidateId: string, model: string, cooldownUntilMs: number): void;
   /** 从 from 候选切到 to 候选. */
   onFallback?(from: string, to: string, cause: RenderFailureCause): void;
   /** 本轮最终降级兜底. */

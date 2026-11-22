@@ -230,6 +230,21 @@
       "fieldConfig": { "defaults": { "unit": "s", "min": 0 } }
     },
     {
+      "id": 17,
+      "title": "来访者渲染: 候选冷却剩余 (实时)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 62 },
+      "targets": [
+        {
+          "expr": "max by (candidate) (clamp_min(visitor_render_candidate_cooldown_until_seconds - time(), 0))",
+          "legendFormat": "{{candidate}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0 } }
+    },
+    {
       "id": 7,
       "title": "系统资源 (CPU / 内存)",
       "type": "timeseries",

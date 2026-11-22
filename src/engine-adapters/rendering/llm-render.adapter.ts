@@ -430,6 +430,26 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     }
   }
 
+  /**
+   * 候选冷却状态变化时上报当前到期时刻 (AF-289).
+   *
+   * 只在“新进冷却 / 冷却延长 / 从冷却恢复”三种变化时调用; 普通失败与未达阈值
+   * 不制造高频回调. `after` 不在冷却时上报 0, 由 gauge 自行随时间失效.
+   */
+  private notifyCandidateCooldownState(
+    candidateId: string,
+    model: string,
+    before: RenderCandidateHealth | undefined,
+    after: RenderCandidateHealth | undefined,
+  ): void {
+    const changed =
+      after?.inCooldown === true ? !before?.inCooldown || after.cooldownUntil > (before?.cooldownUntil ?? 0) : before?.inCooldown === true;
+    if (!changed) return;
+    this.notify((telemetry) =>
+      telemetry.onCandidateCooldownState?.(candidateId, model, after?.inCooldown === true ? after.cooldownUntil : 0),
+    );
+  }
+
   // ── 共享核心: 候选主备循环 ────────────────────────────────────────
 
   /**
@@ -480,13 +500,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         this.notify((telemetry) => telemetry.onCancelled?.(candidate.id, model));
         return { outcome, attempted };
       }
+      // 当前冷却状态: 新进/延长时上报到期时刻; 从冷却恢复 (含半开探测成功) 上报 0.
+      // 冷却自然到期且之后没有请求时, 绝对值 gauge 由 `until - time() > 0` 自然失效.
       // 候选级冷却归因: 只有本次尝试让候选"新进冷却"或"冷却时长被延长"才记;
       // 未达失败阈值的普通失败、以及成功路径 (markSuccess 清零) 都不记.
       const healthAfter = this.runtime.health()[candidate.id];
+      this.notifyCandidateCooldownState(candidate.id, model, healthBefore, healthAfter);
       if (
         healthAfter?.inCooldown &&
         healthAfter.cooldownDurationMs > 0 &&
-        (!healthBefore?.inCooldown || healthAfter.cooldownDurationMs > (healthBefore?.cooldownDurationMs ?? 0))
+        (!healthBefore?.inCooldown || healthAfter.cooldownUntil > (healthBefore?.cooldownUntil ?? 0))
       ) {
         this.notify((telemetry) =>
           telemetry.onCandidateCooldown?.(
