@@ -25,6 +25,7 @@ const REQUIRED_METRICS = [
   'visitor_render_cancelled_total',
   'visitor_render_cooldown_served_total',
   'visitor_render_candidate_cooldown_seconds',
+  'visitor_render_candidate_cooldown_until_seconds',
   'visitor_render_fallback_total',
   'visitor_render_degraded_total',
 ] as const;
@@ -42,7 +43,7 @@ const REQUIRED_ALERTS = [
 ] as const;
 
 /** 看板必须包含的渲染面板标题关键词. */
-const REQUIRED_PANELS = ['降级率', '首包 P95', '失败原因', '回退率', '熔断'] as const;
+const REQUIRED_PANELS = ['降级率', '首包 P95', '失败原因', '回退率', '熔断', '冷却剩余'] as const;
 
 describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
   it('告警文件新增 visitor-render 组, 且关键告警齐全', () => {
@@ -99,6 +100,7 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(exprs).toContain('visitor_render_first_delta_seconds_bucket');
     expect(exprs).toContain('visitor_render_candidate_cooldown_seconds_count');
     expect(exprs).toContain('visitor_render_candidate_cooldown_seconds_bucket');
+    expect(exprs).toContain('visitor_render_candidate_cooldown_until_seconds');
   });
 
   it('Runbook 写清 barge-in 口径、回滚线与回滚命令', () => {
@@ -110,6 +112,8 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(text).toContain('visitor-switch-check.ts');
     expect(text).toContain('>5%');
     expect(text).toContain('VisitorRenderAuthFailure');
+    expect(text).toContain('candidate_cooldown_until_seconds');
+    expect(text).toContain('此刻是否仍在冷却');
     expect(text).toContain('Alertmanager');
   });
 });
