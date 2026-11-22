@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-333",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-23T04:30:00+08:00",
-  "updatedAt": "2026-11-22T20:16:57.519Z",
+  "updatedAt": "2026-11-22T20:26:18.223Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-333/task-sheet.md",
     "sha256": "defee9c7ecb6ef020a96db9b7dadf77ad77d38312e8101663d14cbf4bc8cb963",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-333/receipt-RC-AF-333-1.json",
+      "sha256": "f1628b6aaa16d06bc8b4a3ad7740033616ab038c1ec826736cfc0f145a2f560a",
+      "receiptId": "RC-AF-333-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af333-realism-long-session-2026-11-23.md",
   "legacyPaths": [
     "docs/worklog/pending/af333-realism-long-session-task-2026-11-23.md"
