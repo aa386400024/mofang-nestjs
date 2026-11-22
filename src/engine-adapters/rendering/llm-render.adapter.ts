@@ -473,11 +473,29 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       attempted.push(candidate.id);
       const model = this.resolveParams(spec, candidate).model;
       this.notify((telemetry) => telemetry.onAttempt?.(candidate.id, model));
+      const healthBefore = this.runtime.health()[candidate.id];
       const outcome = await attempt(candidate);
       if (outcome.kind !== 'success' && outcome.cause === 'cancelled') {
         // 外部取消不是候选失败: 不记 attempts{degrade}, 不触发 fallback, 单独计数.
         this.notify((telemetry) => telemetry.onCancelled?.(candidate.id, model));
         return { outcome, attempted };
+      }
+      // 候选级冷却归因: 只有本次尝试让候选"新进冷却"或"冷却时长被延长"才记;
+      // 未达失败阈值的普通失败、以及成功路径 (markSuccess 清零) 都不记.
+      const healthAfter = this.runtime.health()[candidate.id];
+      if (
+        healthAfter?.inCooldown &&
+        healthAfter.cooldownDurationMs > 0 &&
+        (!healthBefore?.inCooldown || healthAfter.cooldownDurationMs > (healthBefore?.cooldownDurationMs ?? 0))
+      ) {
+        this.notify((telemetry) =>
+          telemetry.onCandidateCooldown?.(
+            candidate.id,
+            model,
+            outcome.kind === 'success' ? 'other' : (outcome.cause ?? 'other'),
+            healthAfter.cooldownDurationMs,
+          ),
+        );
       }
       this.notify((telemetry) => telemetry.onAttemptOutcome?.(candidate.id, model, toAttemptOutcome(outcome.kind)));
       if (outcome.kind !== 'success') {

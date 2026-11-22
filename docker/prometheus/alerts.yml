@@ -211,7 +211,19 @@ groups:
           team: ai-engine
         annotations:
           summary: "来访者渲染熔断全损激增"
-          description: "10 分钟内 {{ $value }} 轮因全员冷却无候选可用 (>3); 先看 health 快照与冷却时长, 再决定是否人工回滚"
+          description: "10 分钟内 {{ $value }} 轮因全员冷却无候选可用 (>3); 先看 candidate_cooldown_seconds 的归因与时长, 再决定是否人工回滚"
+
+      - alert: VisitorRenderCandidateCooldownSpike
+        # 候选级归因: 哪个候选被熔、因为什么; 频率异常时先看单候选是否在反复进退冷却.
+        expr: |
+          sum(increase(visitor_render_candidate_cooldown_seconds_count[10m])) by (candidate, cause) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: ai-engine
+        annotations:
+          summary: "来访者渲染候选熔断激增 (candidate={{ $labels.candidate }}, cause={{ $labels.cause }})"
+          description: "10 分钟内候选 {{ $labels.candidate }} 因 cause={{ $labels.cause }} 进入冷却 {{ $value }} 次 (>5); 对照 candidate_cooldown_seconds 的 P95 时长与 failure_total 判读"
 
   # ============================================================
   # Audit / 审计

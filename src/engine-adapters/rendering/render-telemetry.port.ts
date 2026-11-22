@@ -68,6 +68,14 @@ export interface RenderTelemetryPort {
    * "上游真的都挂了" 与 "刚才连续失败把候选全关了".
    */
   onCooldownServed?(): void;
+  /**
+   * 单个候选新进入冷却，或半开探测失败导致冷却时长延长.
+   *
+   * 与 `onCooldownServed` 的区别: 那个只记“整轮一个候选都不可用”的全损；
+   * 这个记“哪个候选被熔了、熔多久、因什么原因”，候选级归因靠它.
+   * `cooldownMs` 是本次生效的冷却墙钟时长 (指数退避后的值), 不是剩余时间.
+   */
+  onCandidateCooldown?(candidateId: string, model: string, cause: RenderFailureCause, cooldownMs: number): void;
   /** 从 from 候选切到 to 候选. */
   onFallback?(from: string, to: string, cause: RenderFailureCause): void;
   /** 本轮最终降级兜底. */

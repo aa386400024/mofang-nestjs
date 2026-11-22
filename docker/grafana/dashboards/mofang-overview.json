@@ -201,6 +201,35 @@
       ]
     },
     {
+      "id": 15,
+      "title": "来访者渲染: 候选熔断次数 (10m)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 54 },
+      "targets": [
+        {
+          "expr": "sum(increase(visitor_render_candidate_cooldown_seconds_count[10m])) by (candidate, cause)",
+          "legendFormat": "{{candidate}} / {{cause}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "来访者渲染: 候选熔断时长 P95 (10m)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 54 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(visitor_render_candidate_cooldown_seconds_bucket[10m])) by (le, candidate))",
+          "legendFormat": "p95 {{candidate}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0 } }
+    },
+    {
       "id": 7,
       "title": "系统资源 (CPU / 内存)",
       "type": "timeseries",

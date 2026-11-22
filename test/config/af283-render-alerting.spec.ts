@@ -23,6 +23,8 @@ const REQUIRED_METRICS = [
   'visitor_render_auth_failure_total',
   'visitor_render_failure_total',
   'visitor_render_cancelled_total',
+  'visitor_render_cooldown_served_total',
+  'visitor_render_candidate_cooldown_seconds',
   'visitor_render_fallback_total',
   'visitor_render_degraded_total',
 ] as const;
@@ -35,13 +37,15 @@ const REQUIRED_ALERTS = [
   'VisitorRenderStreamTimeoutSpike',
   'VisitorRenderFallbackRateHigh',
   'VisitorRenderFailureCauseSpike',
+  'VisitorRenderCooldownServedSpike',
+  'VisitorRenderCandidateCooldownSpike',
 ] as const;
 
 /** 看板必须包含的渲染面板标题关键词. */
-const REQUIRED_PANELS = ['降级率', '首包 P95', '失败原因', '回退率'] as const;
+const REQUIRED_PANELS = ['降级率', '首包 P95', '失败原因', '回退率', '熔断'] as const;
 
 describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
-  it('告警文件新增 visitor-render 组, 且六个告警齐全', () => {
+  it('告警文件新增 visitor-render 组, 且关键告警齐全', () => {
     const text = readFileSync(ALERTS, 'utf8');
     expect(text).toContain('- name: visitor-render');
     for (const alert of REQUIRED_ALERTS) {
@@ -76,7 +80,7 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(fallbackBlock).not.toContain('visitor_render_cancelled_total');
   });
 
-  it('Grafana 看板可解析, 且包含四类渲染面板与真实表达式', () => {
+  it('Grafana 看板可解析, 且包含渲染面板与真实表达式', () => {
     expect(existsSync(DASHBOARD)).toBe(true);
     const dashboard = JSON.parse(readFileSync(DASHBOARD, 'utf8')) as {
       panels: { title?: string; targets?: { expr?: string }[] }[];
@@ -93,6 +97,8 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(exprs).toContain('visitor_render_failure_total');
     expect(exprs).toContain('visitor_render_fallback_total');
     expect(exprs).toContain('visitor_render_first_delta_seconds_bucket');
+    expect(exprs).toContain('visitor_render_candidate_cooldown_seconds_count');
+    expect(exprs).toContain('visitor_render_candidate_cooldown_seconds_bucket');
   });
 
   it('Runbook 写清 barge-in 口径、回滚线与回滚命令', () => {
