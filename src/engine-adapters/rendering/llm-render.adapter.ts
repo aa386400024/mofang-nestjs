@@ -102,7 +102,12 @@ import type {
   ChatReasoningEffort,
 } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { safeVisiblePrefix, stripReasoningBlocks } from '../../shared/llm/reasoning-text.js';
-import { buildRealismRetryInstruction, inspectVisitorRealism, type RealismAuditResult } from '../../shared/realism/index.js';
+import {
+  buildRealismRetryInstruction,
+  inspectVisitorRealism,
+  stripVisitorStageDirections,
+  type RealismAuditResult,
+} from '../../shared/realism/index.js';
 import { inspectGeneratedOutput } from '../../shared/text/output-integrity.js';
 
 /**
@@ -188,6 +193,13 @@ export interface LlmRenderAdapterDeps {
    * 适配器只回调事件, 不依赖具体指标实现; 未注入时全部调用点静默跳过.
    */
   readonly telemetry?: RenderTelemetryPort;
+  /**
+   * AF-281: 是否启用舞台说明投影 (仅 seed-v5 开启).
+   *
+   * 缺省关闭，保证 shared 路径输出与改动前逐字节一致；开启后最终返回/落历史
+   * 的文本会剥离括号、星号舞台说明，TTS 不会念出动作旁白。
+   */
+  readonly stripStageDirections?: boolean;
 }
 
 /**
@@ -296,6 +308,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     this.telemetry = deps.telemetry;
   }
 
+  /** AF-281: 仅 seed-v5 开启舞台说明投影；shared 保持原始文本。 */
+  private projectOutput(text: string): string {
+    return this.deps.stripStageDirections === true ? stripVisitorStageDirections(text) : text;
+  }
+
   /**
    * 按规格渲染一段文本.
    *
@@ -329,7 +346,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
       this.runtime.markSuccess(outcome.candidateId);
       return {
-        text: outcome.value.text,
+        text: this.projectOutput(outcome.value.text),
         taskKind: spec.taskKind,
         usage: {
           completionTokens: outcome.value.usage.completionTokens ?? 0,
@@ -1030,7 +1047,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       kind: 'success',
       candidateId: candidate.id,
       value: this.buildStreamOutcome({
-        text: spoken,
+        text: this.projectOutput(spoken),
         taskKind: spec.taskKind,
         tokenCount: usage.tokenCount,
         reasoningTokens: usage.reasoningTokens,

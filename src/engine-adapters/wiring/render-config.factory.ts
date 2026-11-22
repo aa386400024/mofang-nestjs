@@ -33,6 +33,7 @@ import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums.js';
 import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { resolveProviderApiKeyEnvKey } from '../../llm/config/provider-env.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { parseVisitorPromptVariant, type VisitorPromptVariant } from '../../shared/realism/visitor-prompt-variants.js';
 import {
   LlmRenderAdapter,
   createVisitorOutputGuard,
@@ -86,6 +87,7 @@ const KIND_ENV_SUFFIX: Readonly<Record<RenderTaskKind, string>> = {
 export const ENGINE_RENDER_FALLBACK_PROVIDERS_ENV_KEY = 'ENGINE_RENDER_FALLBACK_PROVIDERS';
 export const ENGINE_RENDER_REQUIRE_FAILOVER_ENV_KEY = 'ENGINE_RENDER_REQUIRE_FAILOVER';
 export const ENGINE_RENDER_HALF_OPEN_AFTER_MS_ENV_KEY = 'ENGINE_RENDER_HALF_OPEN_AFTER_MS';
+export const VISITOR_PROMPT_VARIANT_ENV_KEY = 'VISITOR_PROMPT_VARIANT';
 
 /**
  * 渲染配置工厂: env → `RenderAdapterConfig`.
@@ -152,6 +154,17 @@ export class RenderConfigFactory {
       ),
       fallbackUtterances: this.fallbackUtterances(),
     });
+  }
+
+  /**
+   * 来访者 prompt 变体（AF-281）.
+   *
+   * 为什么在这里读、而不是在 buildVisitorSystemPrompt 里读 env:
+   *   渲染层要保持可测纯函数；env → 纯对象只在装配层做一次。
+   *   非法值在这里 fail fast，避免线上静默落回 shared 掩盖配置错误。
+   */
+  visitorPromptVariant(): VisitorPromptVariant {
+    return parseVisitorPromptVariant(this.config.get<string>(VISITOR_PROMPT_VARIANT_ENV_KEY));
   }
 
   /**
@@ -430,6 +443,7 @@ export function buildEngineRenderDeps(
   config: RenderAdapterConfig,
   probe?: RiskProbePort,
   telemetry?: RenderTelemetryPort,
+  promptVariant: VisitorPromptVariant = 'shared',
 ): LlmRenderAdapterDeps {
   const logger = new Logger('EngineRenderPort');
   return {
@@ -437,7 +451,10 @@ export function buildEngineRenderDeps(
     config,
     ...(telemetry ? { telemetry } : {}),
     // WP7 留给本期的 prompt 缝: 来访视角的中文 system 模板 + 角色映射.
-    buildMessages: buildVisitorMessages,
+    // AF-281: 变体只在这一层注入；默认 shared 保持原函数引用与旧行为逐字一致.
+    buildMessages: promptVariant === 'shared' ? buildVisitorMessages : (spec) => buildVisitorMessages(spec, promptVariant),
+    // AF-281: 舞台说明投影只在 seed-v5 开启；shared 路径输出逐字节不变.
+    stripStageDirections: promptVariant === 'seed-v5',
     // 输出侧伦理校验: 复用内核 WP4 的 guardVisitorOutput (两侧口径永远一致).
     // ⚠️ **不显式传 timeoutMs**: 让它继承内核 DEFAULT_PROBE_TIMEOUT_MS ——
     //   M3 内测把那个常量改回 150ms 时, 这一侧自动跟着回, 只有一个回改点.
@@ -466,6 +483,7 @@ export function buildEngineRenderPort(
   config: RenderAdapterConfig,
   probe?: RiskProbePort,
   telemetry?: RenderTelemetryPort,
+  promptVariant: VisitorPromptVariant = 'shared',
 ): StreamingRenderPort {
-  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config, probe, telemetry));
+  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config, probe, telemetry, promptVariant));
 }

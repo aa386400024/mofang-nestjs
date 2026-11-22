@@ -11,11 +11,10 @@
 //     test/config/wp25-env-example-coverage.spec.ts 才能用 AST 守住
 //     ".env.example 与代码读取点一一对应"；回调形式会让这些键在 AST 里不可见.
 
+import { parseVisitorPromptVariant, type VisitorPromptVariant } from '../../shared/realism/visitor-prompt-variants.js';
+
 /** 来访者生成模型提供方. */
 export type VisitorLlmProvider = 'minimax' | 'doubao';
-
-/** 来访者 prompt 变体. */
-export type VisitorPromptVariant = 'shared' | 'seed-v5';
 
 /** visitor 运行时所需的 env 原始值快照（未 trim、未校验）. */
 export interface VisitorRuntimeSource {
@@ -33,7 +32,6 @@ export interface VisitorRuntimeConfig {
 }
 
 const PROVIDERS: readonly VisitorLlmProvider[] = ['minimax', 'doubao'];
-const VARIANTS: readonly VisitorPromptVariant[] = ['shared', 'seed-v5'];
 
 export const DEFAULT_VISITOR_DOUBAO_MODEL = 'doubao-seed-character-260628';
 
@@ -59,7 +57,12 @@ function parseEnum<T extends string>(raw: string | undefined, allowed: readonly 
  */
 export function resolveVisitorRuntime(source: VisitorRuntimeSource): VisitorRuntimeConfig {
   const llmProvider = parseEnum(trimmed(source.provider), PROVIDERS, 'VISITOR_LLM_PROVIDER', 'minimax');
-  const promptVariant = parseEnum(trimmed(source.promptVariant), VARIANTS, 'VISITOR_PROMPT_VARIANT', 'shared');
+  let promptVariant: VisitorPromptVariant;
+  try {
+    promptVariant = parseVisitorPromptVariant(source.promptVariant);
+  } catch (error: unknown) {
+    throw new Error(`VisitorRuntimeConfig: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   if (llmProvider === 'doubao' && trimmed(source.doubaoApiKey) === undefined) {
     throw new Error(

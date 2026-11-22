@@ -272,6 +272,7 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
             timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
           }),
           new RenderMetricsTelemetry(metrics),
+          configFactory.visitorPromptVariant(),
         ),
       inject: [RouterChatCaller, RenderConfigFactory, ConfigService, MetricsService],
     },
