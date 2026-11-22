@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-268",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-22T10:40:00+08:00",
+  "updatedAt": "2026-11-22T02:42:02.010Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
+    "sha256": "ff1cbe9d02fe2c2f202523dd2afa827aad70261f374d06ac03635d71a6c83c90",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/receipt-RC-AF-268-1.json",
+      "sha256": "f59eb2e3cc840e48e71030f867c0b33642a2bf24513c86fd70238493b331d7bc",
+      "receiptId": "RC-AF-268-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-268-long-context-40-turn-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}

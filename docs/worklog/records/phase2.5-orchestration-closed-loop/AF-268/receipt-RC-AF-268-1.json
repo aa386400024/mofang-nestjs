@@ -1,0 +1,154 @@
+{
+  "deliveredAt": "2026-11-22T10:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-268-1",
+    "taskId": "AF-268",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "0453068e35367bfcd7f75cbbe2a06cbf1ad84c96",
+    "dependsOn": ["AF-267"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/manifest.json"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30 秒",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af268-tsc.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af268-lint.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --orchestrated --turns 40 --summary-after 20 --max-tokens 120 --timeout-ms 60000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "29.6 秒",
+        "note": "40/40 providerHint=doubao，model=doubao-seed-character-260628，fallbackUsed=false，degraded=false，40/40 finishReason=stop；totalUsage=42145/573；TTFT 517–1255ms；promptTokens 第 9 轮起在 ~1049–1059 封顶，第 20 轮摘要注入后 ~1093–1124 稳定；promptSummaryTurns=20–40；日志 data/af268-smoke40.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 262,
+        "machine": "同上",
+        "wallClock": "约 24 秒",
+        "note": "262 files passed + 1 skipped；4269 tests passed + 4 skipped；日志 data/af268-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-268-long-context-40-turn 自 integrate 0453068e 切出。仅改 bin/visitor-render-smoke.ts 新增 --orchestrated / --summary-after / --context-tokens 与机读报告字段；真实 .env 未改，仍为 VISITOR_LLM_PROVIDER=doubao / VISITOR_DOUBAO_MODEL=doubao-seed-character-260628。未暂存 web/orchestration/data.js 与 data/ 取证日志、环境备份。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-268"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "AF-263/264/265 直连 smoke 开关与报告字段保持兼容；全量 4269 例零回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 0453068e；依赖 AF-267 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-long-session-summary-loss",
+        "impact": "40 轮只覆盖一次摘要注入，>100 轮多次压缩后是否丢失关键信息尚无证据"
+      },
+      {
+        "id": "visitor-upstream-fault-fallback",
+        "impact": "限流 / 5xx / 超时三类上游故障的候选切换尚未实测；401 仍走快速降级"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "每轮记录 prompt 字符数，prompt 在窗口封顶后不再线性增长",
+        "reality": "生产 buildPromptFull 只返回 system 消息，promptChars 不含 history/user 消息，不能单独证明历史窗口封顶",
+        "action": "保留 promptChars，另增 promptTokensSeries 记录真实上游 usage.promptTokens，用完整请求体证明第 9 轮起封顶",
+        "why": "避免用只量 system prompt 的指标冒充整包上下文证据，保证验收可机读且可复现"
+      },
+      {
+        "taskSays": "全轮不降级",
+        "reality": "TurnRenderResult.render 无 degraded 字段，只有 providerHint",
+        "action": "门面模式 degraded = providerHint === 'degraded'；直连模式仍用原 degraded 字段",
+        "why": "与生产门面语义对齐，避免为 smoke 改生产返回体"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "真实门面 40 轮全走豆包角色模型、零回退零降级；promptTokens 第 9 轮在 16 半轮窗口处封顶，摘要第 20 轮进入 system prompt 并使 promptChars 由 1091 跳到 1149；tsc、lint、全量 4269 例全绿；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
