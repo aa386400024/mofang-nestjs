@@ -63,6 +63,10 @@ pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router \
 
 评审的其余 P0（轮次分母、鉴权告警空标签）不在本单 scope，已作为 AF-290 候选登记。
 
+### 验收返修事实
+
+本单任务单 frontmatter 漏写 `scope.files`，登记后索引 scope 为空。`run-once` 摄入回执时按 commit 事实比对，11 个实现文件全部判为越界，AF-289 被归档为 `rejected` 并生成 `RW-AF-289-1` 返修提案。实现本身未回退；按编排规范 §4，后续由 AF-291（executor）从 `c453f05a` 切 stacked 分支，保留 `b05cb718` / `2ca2432f` / `c453f05a` 三个原始提交，只补正确 scope 与合并记录后重新验收。AF-291 的结论以该任务交付记录为准。
+
 ## 3. 范围
 
 scopeCheck：`in-scope`。只改 `src/engine-adapters/rendering`、`src/shared/infra/metrics`、`bin/visitor-render-smoke.ts`、`docker/grafana`、`docs/runbooks`、`test` 与 worklog；未改 `src/engine-core/**`，未改告警阈值，未新增告警规则，未碰 `admin-dashboard/` 或 Flutter。
