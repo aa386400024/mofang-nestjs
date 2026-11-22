@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1116,
+    "lastEventSeq": 1126,
     "rebuiltAt": null
   },
   "tasks": [
@@ -2535,6 +2535,24 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-251/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af251-unknown-emotion-projection-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-252",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-252/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af252-visitor-render-provider-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-253",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
         "reply": null
       }
     }
