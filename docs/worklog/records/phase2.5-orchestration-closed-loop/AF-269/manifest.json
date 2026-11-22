@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-269",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-22T11:00:00+08:00",
+  "updatedAt": "2026-11-22T03:26:35.559Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
+    "sha256": "9580b6da71ef2a062542abc8e6ca5f83559a92e1a6a7f67c5b51e9c15a395123",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/receipt-RC-AF-269-1.json",
+      "sha256": "b4ac752a64736e6d511dc48a29934a4af9d68312822493771416117165dbc9f8",
+      "receiptId": "RC-AF-269-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-269-fault-fallback-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
