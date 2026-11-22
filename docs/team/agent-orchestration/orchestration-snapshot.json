@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T00:21:42.676Z",
+  "generatedAt": "2026-11-22T00:22:42.704Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,46 +99,6 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-257",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "补齐取消任务的归档说明",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-257/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af257-cancel-task-archive-notes-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-257",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T00:21:42.609Z",
-        "leaseDeadline": "2026-11-22T00:51:42.605Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-257.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T00:21:42.609Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-257.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1914,6 +1874,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-406",
+      "recordedAt": "2026-11-22T00:21:50.651Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-257",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-257-cancel-task-archive-notes"
+      ]
+    },
+    {
+      "auditId": "AUD-405",
+      "recordedAt": "2026-11-22T00:21:42.778Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-257",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-257",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-257.json"
+      ]
+    },
+    {
       "auditId": "AUD-404",
       "recordedAt": "2026-11-22T00:21:35.854Z",
       "actorRef": "orchestrator",
@@ -2119,50 +2109,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-391",
-      "recordedAt": "2026-11-21T23:21:47.476Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-251",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-251-unknown-emotion-projection"
-      ]
-    },
-    {
-      "auditId": "AUD-390",
-      "recordedAt": "2026-11-21T23:21:39.383Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-251",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-251",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-251.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 404,
+    "total": 406,
     "byResult": {
-      "allowed": 404,
+      "allowed": 406,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 403,
+      "TOOL-QUEUE-SCHEDULER": 405,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 404
+      "orchestrator": 406
     }
   },
   "protocolView": {
@@ -2217,30 +2177,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-257",
-        "title": "补齐取消任务的归档说明",
-        "type": "documentation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-257/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af257-cancel-task-archive-notes-2026-11-22.md"
           }
         ]
       }
@@ -6689,6 +6625,24 @@
             "ref": "docs/worklog/completed/phase2.5/af256-af254-cancel-record-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-257",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-257/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af257-cancel-task-archive-notes-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6723,16 +6677,6 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-257",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-257/task-sheet.md"
-      },
-      {
-        "taskId": "AF-257",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af257-cancel-task-archive-notes-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6746,5 +6690,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 258
+  "archivedCount": 259
 }
