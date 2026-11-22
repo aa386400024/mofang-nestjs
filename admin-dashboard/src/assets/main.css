@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Dark theme (default) ─── */
+:root {
+  --bg-base: #0f1115;
+  --bg-surface: #161922;
+  --bg-elevated: #1e222d;
+  --bg-border: #2a2f3d;
+  --accent: #c890a8;
+  --accent-soft: #e8c8d4;
+  --accent-muted: #8a6078;
+  --ok: #7ec9a0;
+  --warn: #e8c87a;
+  --danger: #e87a7a;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+}
+
+/* ─── Light theme ─── */
+.light {
+  --bg-base: #f5f5f7;
+  --bg-surface: #ffffff;
+  --bg-elevated: #e8e8ed;
+  --bg-border: #d1d1d6;
+  --accent: #a8557a;
+  --accent-soft: #c88aa8;
+  --accent-muted: #9a6a82;
+  --ok: #3d9a6e;
+  --warn: #b88a3a;
+  --danger: #c85a5a;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+}
+
+@layer base {
+  html { @apply bg-bg-base; color: var(--text-primary); }
+  body { @apply bg-bg-base antialiased; color: var(--text-primary); }
+}
+
+@layer components {
+  .card { @apply bg-bg-surface border border-bg-border rounded-lg; }
+  .chip { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-mono; }
+}
+
+@layer utilities {
+  .text-muted { color: var(--text-muted); }
+}
+
+/* ─── Light theme text overrides ─── */
+.light .text-gray-100 { color: var(--text-primary) !important; }
+.light .text-gray-200 { color: var(--text-primary) !important; }
+.light .text-gray-300 { color: var(--text-secondary) !important; }
+.light .text-gray-400 { color: var(--text-secondary) !important; }
+.light .text-gray-500 { color: var(--text-muted) !important; }
+.light .text-muted { color: var(--text-muted) !important; }
+
+/* ─── 全局滚动条样式 ─── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-border) transparent;
+}
+
+/* ─── 浏览器自动填充样式覆盖（深色主题） ─── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text-primary) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-elevated) inset !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* 浅色主题 */
+.light input:-webkit-autofill,
+.light input:-webkit-autofill:hover,
+.light input:-webkit-autofill:focus,
+.light input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+}
+
+/* ─── 路由切换过渡动画 ─── */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* ─── 主题切换平滑过渡 ─── */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}

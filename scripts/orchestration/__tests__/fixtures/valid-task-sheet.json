@@ -1,0 +1,12 @@
+{
+  "taskId": "AF-006",
+  "contextId": "CTX-ORCH",
+  "type": "documentation",
+  "title": "机读校验固化（中性样例）",
+  "status": "backlog",
+  "createdAt": "2026-11-15T09:30:00+08:00",
+  "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+  "objective": "对齐框架 schema 的机读校验入口",
+  "successCriteria": ["四份 schema 可校验", "非法样例被拒绝"],
+  "requiredSkills": ["schema-validation"]
+}

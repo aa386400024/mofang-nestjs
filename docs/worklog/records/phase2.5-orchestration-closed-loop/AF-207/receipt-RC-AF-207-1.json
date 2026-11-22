@@ -1,0 +1,195 @@
+{
+  "deliveredAt": "2026-11-20T22:16:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-207-1",
+    "taskId": "AF-207",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "f8bb141d4015cc8537c40afcc0d2a7dd268a3b37",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-207/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af207-visitor-realism-r0-r1-2026-11-20.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "src/shared/realism/turn-shape-selector.ts",
+        "src/shared/realism/visitor-realism-profile.ts",
+        "src/shared/realism/index.ts",
+        "test/auto-practice/af204-output-integrity-shape.spec.ts",
+        "test/auto-practice/af204-realism.spec.ts",
+        "docs/worklog/completed/phase2.5/af207-visitor-realism-r0-r1-2026-11-20.md"
+      ],
+      "modified": [
+        ".env.example",
+        "docs/team/agent-orchestration/agent-cards/executor.json",
+        "src/auto-practice/metrics/disfluency-analyzer.ts",
+        "src/auto-practice/metrics/disfluency-lexicon.ts",
+        "src/shared/text/output-integrity.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "test/auto-practice/metrics/disfluency-analyzer.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/metrics/disfluency-analyzer.spec.ts test/auto-practice/af204-output-integrity-shape.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1s",
+        "note": "50 tests passed（严格/宽松 repair 口径 + 输出完整性 shape）"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af204-realism.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "10 tests passed（真人度 profile / 话轮形态 / 场景默认 / 边界角色）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm exec eslint --no-cache \"{src,test}/**/*.ts\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 226,
+        "machine": "同上",
+        "wallClock": "21.05s",
+        "note": "226 passed + 1 skipped files；3995 passed + 4 skipped tests"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "提交 341b359f 同时包含 R0/R1 实现、部署契约 .env.example、执行侧 Agent Card 资源域元数据、AF-207 任务单、交付记录；全量 pnpm test 与 lint/typecheck 在提交前同一工作树执行。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-207 贯穿任务单、分支、提交、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "AF-204/AF-205/AF-206 cancel、AF-207 register/promote/claim 全部经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-204 → AF-205 → AF-206 → AF-207 审计链连续"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "RENDER_REALISM_MODE 已登记 .env.example；executor 资源域已显式纳入该文件"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF207-01",
+        "impact": "R2—R5 生成侧能力、场景矩阵扩展、临床规则与 AI 双盲验收未实施",
+        "severity": "medium",
+        "schedule": "后续任务单"
+      },
+      {
+        "id": "BL-AF207-02",
+        "impact": "repair 口径由宽松改为严格，新旧批次 repair_per_turn 不可直接对比；历史快照未回溯",
+        "severity": "medium",
+        "schedule": "指标看板加口径版本字段后再对比"
+      },
+      {
+        "id": "BL-AF207-03",
+        "impact": "输出闸门会把“让我想想……”判为未闭合推理并回退安全句，误伤率需真实批次观察",
+        "severity": "low",
+        "schedule": "R2 验收批次统计"
+      },
+      {
+        "id": "BL-AF207-04",
+        "impact": "RENDER_REALISM_MODE 默认 off，active 需验收批次显式开启",
+        "severity": "low",
+        "schedule": "验收任务单显式配置"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务标识",
+        "taskSays": "AF-204",
+        "reality": "AF-207",
+        "action": "AF-204/205/206 因 scope 与执行侧资源域漏项被 cancel，AF-207 重签发",
+        "why": "scope 不原地修改；AF-207 显式纳入 .env.example 与 agent-cards/executor.json"
+      },
+      {
+        "item": "部署契约",
+        "taskSays": "R1 prompt 与 profile",
+        "reality": "新增 RENDER_REALISM_MODE 并写 .env.example",
+        "action": "纳入 AF-207 scope，补 executor 资源域",
+        "why": "否则 .env.example 覆盖测试必然失败"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "R0 严格 repair 口径与四类输出闸门落地；R1 真人度 profile、12 种话轮形态、场景默认面对面与边界咨询师矩阵落地；定向 60 tests、全量 3995 tests、lint/typecheck 全绿；engine-core 零 diff；R2—R5 与口径断代已登记 backlog，不影响本单交付。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

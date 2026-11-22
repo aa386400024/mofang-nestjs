@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-050",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.626Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-050/task-sheet.md",
+    "sha256": "cc0e078bd945b9c0c84cbf0db966bd26fa5ab1b8665a9599782116c861032743",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af050-v7-parallel-artifact-acceptance-fix-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

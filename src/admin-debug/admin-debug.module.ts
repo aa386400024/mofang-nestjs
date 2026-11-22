@@ -1,0 +1,78 @@
+// V2026-10-29 (WP19 · AdminDebugModule):
+//   职责: 调试器 SPA 的只读 API + 每轮 trace 记录服务.
+//
+//   V2026-10-30 治本 (WP19-R · admin/api 收口):
+//     · 接入 `AdminBasicAuthMiddleware` (basic auth + 学员身份) —— 整条路由
+//       不再零鉴权 (原来 module 头明写"不做鉴权", 是 audit D2 的实锤);
+//     · 注册 `character_profiles` 实体 —— `characters` 端点改查引擎角色池;
+//     · 引入 UserModule —— 复用仓库既有 `JwtAuthGuard` 解析学员身份
+//       (不自己解 JWT, 不造第 4 套鉴权).
+//
+//   V2026-11-03 治本 (WP26 §1 P2-4 · admin/api 加角色校验):
+//     · 引入 `AdminRoleGuard` (class 级挂在 controller) —— 判"是不是管理员":
+//       查 DB 真值 `users.admin_role` = 'admin', 非 admin → 403.
+//       为什么 basic 运维凭据不受角色约束: 它不对应 users 表里的任何一行,
+//       是独立身份 (详见 guard 文件头).
+//     · 注册 `User` 实体 (TypeOrmModule.forFeature) —— 守卫要用
+//       `@InjectRepository(User)` 直读 `users.admin_role` 一列.
+//       UserModule 虽然内部注册了 User 实体, 但没导出 TypeOrmModule,
+//       本模块要自己注册一次才能注入 Repository<User>.
+//
+//   V2026-11-09 治本 (Phase2.5 WP-F · 成本看板合并两个数据源):
+//     · 注册两个来源适配器 (`FormalCostSource` / `AutoPracticeCostSource`) ——
+//       看板只做"取两个源的行 → 交给纯函数合并 → 返回", 口径换算不在 controller 里.
+//     · 注册 `PracticeSession` 实体 (自动对练场次表) —— 只注册实体, 不 import
+//       `AutoPracticeModule` (会与 EngineWiringModule 形成循环依赖).
+//
+//   反双胞胎:
+//     - 不新造鉴权体系: 管理员 = basic auth (env), 学员 = 既有 JWT;
+//       不引入角色表 / 权限系统.
+//     - 不把 TraceRecorder 只留在本模块里: 它**导出**给引擎装配层
+//       (EngineWiringModule 注入进 EngineStreamBackend) —— 否则"留痕"又是一条
+//       恒 undefined 的断链 (WP19 交付时的实锤).
+
+import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AdminBasicAuthMiddleware } from './admin-basic-auth.middleware.js';
+import { AdminDebugController } from './admin-debug.controller.js';
+import { AutoPracticeCostSource } from './cost-source.auto-practice.js';
+import { FormalCostSource } from './cost-source.formal.js';
+import { AdminRoleGuard } from './guards/admin-role.guard.js';
+import { TraceRecorder } from './trace-recorder.service.js';
+import { PracticeSession } from '../auto-practice/entities/practice-session.entity.js';
+import { TrainingSession } from '../counselor/entities/training-session.entity.js';
+import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
+import { User } from '../user/entities/user.entity.js';
+import { UserModule } from '../user/index.js';
+
+@Module({
+  imports: [
+    // User 实体注册 (autoLoadEntities 已开) —— 供 AdminRoleGuard 注入 Repository<User>.
+    // PracticeSession (自动对练场次表) —— WP-F 成本看板的第二个数据源.
+    // ⚠️ **只注册实体, 不 import AutoPracticeModule**: AutoPracticeModule →
+    //   AdminDebugChatModule → ... → AdminDebugModule, import 回去会成循环依赖.
+    //   看板只需要"读这张表", forFeature 就够 (实体注册不是模块依赖).
+    TypeOrmModule.forFeature([TrainingSession, CharacterProfileEntity, User, PracticeSession]),
+    // 学员身份解析依赖 (JwtAuthGuard → JwtService / JwtBlacklistService).
+    UserModule,
+  ],
+  controllers: [AdminDebugController],
+  // WP-F: 两个来源适配器 (普通 provider, 构造函数注入 —— 不用 @Global 注册表).
+  providers: [TraceRecorder, AdminBasicAuthMiddleware, AdminRoleGuard, FormalCostSource, AutoPracticeCostSource],
+  exports: [TraceRecorder],
+})
+export class AdminDebugModule implements NestModule {
+  /**
+   * 给 `/admin/api/*` 挂访问控制中间件.
+   *
+   * 用 `forRoutes(AdminDebugController)` 而不是路径通配: Express 5 的通配符
+   * 语法变了 ('*' 不再合法), 路径写法容易在启动期炸; 按控制器挂载则**新增端点
+   * 自动继承**, 不会漏.
+   *
+   * @param consumer 中间件消费者
+   */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(AdminBasicAuthMiddleware).forRoutes(AdminDebugController);
+  }
+}

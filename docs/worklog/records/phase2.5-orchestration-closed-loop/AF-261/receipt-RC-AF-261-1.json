@@ -1,0 +1,171 @@
+{
+  "deliveredAt": "2026-11-22T09:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-261-1",
+    "taskId": "AF-261",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "785a60f436d6f6781064e20726179c1c24124261",
+    "dependsOn": ["AF-260"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "test/engine-adapters/af261-provider-cost.spec.ts",
+        "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/manifest.json"
+      ],
+      "modified": [
+        "src/engine-adapters/observability/session-cost.ts",
+        "src/engine-adapters/wiring/engine-stream-backend.adapter.ts",
+        "src/engine-adapters/wiring/engine.providers.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        ".env.example",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["36db876d"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af261-provider-cost.spec.ts test/engine-adapters/wp24-session-cost-log.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "24/24 通过：AF-261 6 + WP24 18；日志 data/af261-vitest.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；日志 data/af261-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af261-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 261,
+        "machine": "同上",
+        "wallClock": "约 25 秒",
+        "note": "261 files passed + 1 skipped；4264 tests passed + 4 skipped；日志 data/af261-test.log"
+      },
+      {
+        "command": "git diff HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-261-provider-cost-breakdown 自 integrate 785a60f4 切出；provider 覆盖价做成 4 个 env 键并留空，未配置时回落全局旧价并标 pricingSource=fallback；constructor 新参数放末尾避免位置参数错位；未打印 key；web/orchestration/data.js 并行本地改动未暂存。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-261"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "backward-compat",
+        "result": "pass",
+        "note": "byProvider 可选；旧调用不报 provider 时保持单一价口径，WP24 18 例全绿"
+      },
+      {
+        "item": "cost-honesty",
+        "result": "pass",
+        "note": "未配置 provider 覆盖价标 fallback；缺输入侧桶只计输出侧并落 output_only"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 785a60f4；依赖 AF-260 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-price-source",
+        "impact": "仓库无核对过的豆包官方单价，env 只给空键；未填写前仍按全局 MiniMax 价估算"
+      },
+      {
+        "id": "cost-board-provider-dimension",
+        "impact": "session_cost_summary 已带 providerBreakdown，但管理后台看板仍按整场汇总展示"
+      },
+      {
+        "id": "auto-practice-cost-provider",
+        "impact": "自动对练落库路径仍只看单场总成本，未消费 providerBreakdown"
+      }
+    ],
+    "openQuestions": [
+      "豆包 Seed Character 当期单价应由部署方从火山方舟账单填入，还是建立独立定价表"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "按 provider 分账需要 provider 单价",
+        "reality": "仓库没有核对过的豆包报价，不能凭空内置",
+        "action": "做成 provider 覆盖 env 键，留空回落全局价；明细标 pricingSource",
+        "why": "宁可显式标注未配置覆盖价，也不把未核对数字当真实账单"
+      },
+      {
+        "taskSays": "成本看板复用 estimateSessionCost",
+        "reality": "本任务只改会话汇总与函数签名，看板聚合仍按整场口径",
+        "action": "看板 provider 维度另列 backlog",
+        "why": "保持任务边界，避免扩散到管理后台 UI"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "scope 与提交事实一致；六组机读字段齐全；定向 24 例、lint、CI 同口径 tsc、全量 4264 例全绿；两家 provider 不同单价分别计费且合计等于分桶之和；缺输入侧仍落 output_only；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

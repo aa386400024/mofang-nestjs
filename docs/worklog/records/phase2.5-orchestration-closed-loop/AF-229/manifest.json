@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-229",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-21T17:40:00+08:00",
+  "updatedAt": "2026-11-21T10:02:32.785Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md",
+    "sha256": "15b78ab9ef61b1cb099aeb860ce5a926fabac3ee006f0b1478679c03f65af0d3",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-229-ai-calibration-thinking-task-2026-11-21.md"
+  ],
+  "tombstone": null
+}

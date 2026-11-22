@@ -1,0 +1,119 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { HomeCompanionOverviewController } from './controllers/home-companion-overview.controller.js';
+import { CompanionBinding } from '../profile/entities/companion-binding.entity.js';
+import { UserProfile } from '../profile/entities/user-profile.entity.js';
+import { ProfileModule } from '../profile/profile.module.js';
+import { User } from '../user/entities/user.entity.js';
+import { UserModule } from '../user/user.module.js';
+
+import { HomeCompanionController } from './controllers/home-companion.controller.js';
+import { HomeMessagesController } from './controllers/home-messages.controller.js';
+import { HomeMicroInterventionController } from './controllers/home-micro-intervention.controller.js';
+import { HomeOverviewController } from './controllers/home-overview.controller.js';
+import { HomeMessageRepositoryTypeorm } from './data/home-message.repository.typeorm.js';
+import { MoodLogRepositoryTypeorm } from './data/mood-log.repository.typeorm.js';
+import { HOME_MESSAGE_REPOSITORY } from './domain/repositories/home-message.repository.js';
+import { MOOD_LOG_REPOSITORY } from './domain/repositories/mood-log.repository.js';
+import { HomeMessage } from './entities/home-message.entity.js';
+import { MicroInterventionConfig } from './entities/micro-intervention-config.entity.js';
+import { MicroInterventionHistory } from './entities/micro-intervention-history.entity.js';
+import { MicroInterventionScenario } from './entities/micro-intervention-scenario.entity.js';
+import { MoodLog } from './entities/mood-log.entity.js';
+import { HomeCompanionService } from './providers/home-companion.service.js';
+import { HomeMessagesService } from './providers/home-messages.service.js';
+import { HomeMicroInterventionScenarioService } from './providers/home-micro-intervention-scenario.service.js';
+import { HomeMicroInterventionStatsService } from './providers/home-micro-intervention-stats.service.js';
+import { HomeMicroInterventionService } from './providers/home-micro-intervention.service.js';
+import { HomeMoodLogService } from './providers/home-mood-log.service.js';
+import { HomeOverviewService } from './providers/home-overview.service.js';
+import { HomeRecommendationEngine } from './providers/home-recommendation.engine.js';
+
+/**
+ * Home module — 心塑「首页」V2.0 模块 (大厂企业级).
+ *
+ * 范围:
+ *   - 成长用户端 Tab1 (greeting / 情绪 / 微干预 / 推荐 / 陪伴者 / 消息)
+ *   - 陪伴者端 Tab1 (小贴士 / 被陪伴者状态 / 工具箱 / 自我关怀 / 双人协同)
+ *   - 共享后端基建 (recommendation engine / mood logs / message count)
+ *
+ * 设计要点:
+ *   - 1 module 容纳双角色首页 (大厂: 业务相关性 > 角色分类)
+ *   - 全 entity 走 TypeOrmModule.forFeature (V3 升级零结构改动)
+ *   - ProfileModule / UserModule 提供 binding + user + profile 数据
+ *   - 12 endpoint 全部 JwtAuthGuard + @CurrentUser 注入 uid
+ *   - 决策树 100% 服务端 (微干预触发 / 推荐匹配 / 权限过滤)
+ *
+ * V3 计划:
+ *   - 接入 LLM 个性化推荐 + 微干预文案
+ *   - 接 WS 推送: 双人协同 ready 握手 / 微干预实时同步
+ *   - 频控去重: 1 分钟内同 trigger 不重复弹
+ *   - A/B test: 多套 recommendation engine 切换
+ */
+@Module({
+  imports: [
+    /**
+     * 大厂治本 (NestJS DI 关键点):
+     *   `TypeOrmModule.forFeature()` 注册的 repository 是 **模块私有** 的 —
+     *   即使 HomeModule imports 了 ProfileModule, ProfileModule 内的 repository
+     *   也不能直接注入到 HomeModule 的 service 里.
+     *
+     *   解法 2 选 1:
+     *     (A) 在本模块 `forFeature` 里重新声明需要的 entity (本代码采用)
+     *     (B) ProfileModule `exports` 这些 entity 的 service (但这层封装过重)
+     *
+     *   大厂 standard (NestJS 官方): 选 A — 显式声明本模块依赖的 entity,
+     *   让 DI 关系明确, 方便后续单独测试.
+     *
+     *   注意: `User` entity 也得加, 因为 HomeOverviewService 用 `UserRepository`
+     *   拿 user.phone / user.email 兜底昵称.
+     */
+    TypeOrmModule.forFeature([
+      // 本模块自有 entity (5 张表 — V2026-09-11 加 MicroInterventionScenario)
+      MoodLog,
+      MicroInterventionConfig,
+      MicroInterventionHistory,
+      MicroInterventionScenario,
+      HomeMessage,
+      // 跨模块 entity — 必须显式 forFeature, NestJS DI 不会跨模块传递 repository
+      CompanionBinding,
+      UserProfile,
+      User,
+    ]),
+    UserModule,
+    ProfileModule,
+  ],
+  controllers: [
+    HomeOverviewController,
+    HomeMicroInterventionController,
+    HomeMessagesController,
+    HomeCompanionOverviewController,
+    HomeCompanionController,
+  ],
+  providers: [
+    // V2026-11-15 治本 (TD-20 · C2 第四批仓储端口化 · home 域 · P-DEBT-11 / L-1):
+    //   两个仓储端口的 TypeORM 实现接线 —— 仓储 token **不 export** (对齐 TD-13 ~ TD-19).
+    { provide: HOME_MESSAGE_REPOSITORY, useClass: HomeMessageRepositoryTypeorm },
+    { provide: MOOD_LOG_REPOSITORY, useClass: MoodLogRepositoryTypeorm },
+    HomeOverviewService,
+    HomeMoodLogService,
+    HomeMicroInterventionService,
+    HomeMicroInterventionStatsService,
+    HomeMicroInterventionScenarioService,
+    HomeMessagesService,
+    HomeCompanionService,
+    HomeRecommendationEngine,
+  ],
+  exports: [
+    HomeOverviewService,
+    HomeMoodLogService,
+    HomeMicroInterventionService,
+    HomeMicroInterventionStatsService,
+    HomeMicroInterventionScenarioService,
+    HomeMessagesService,
+    HomeCompanionService,
+    HomeRecommendationEngine,
+  ],
+})
+export class HomeModule {}

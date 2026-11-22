@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-016",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.588Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-016/task-sheet.md",
+    "sha256": "1b7dcb06e9356c14dace88cd0007d31ef62d7dae6a18007e65765c5aab6ad34e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

@@ -1,0 +1,185 @@
+{
+  "deliveredAt": "2026-11-20T09:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-163-1",
+    "taskId": "AF-163",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "3c8a859b855189848fb99056b59fe9135f7bfb1c",
+    "dependsOn": [],
+    "priorTasks": ["AF-161", "AF-162"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/TOMBSTONES.md",
+        "docs/worklog/records/legacy/AF-060/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af065-batch-scenario-type-passthrough-2026-11-17.md",
+        "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md"
+      ],
+      "modified": [
+        "scripts/orchestration/worklog.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/__tests__/worklog.spec.mjs",
+        "docs/worklog/README.md",
+        "docs/worklog/records/README.md",
+        "docs/team/agent-orchestration/README.md",
+        "docs/worklog/records/legacy/AF-065/manifest.json",
+        "docs/worklog/records/legacy/AF-060/manifest.json"
+      ],
+      "deleted": [],
+      "commits": ["1c2d2e1c4e651aaf50e864b072e766350cb8a316"]
+    },
+    "gateResults": [
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "errors": 0,
+        "warnings": 0,
+        "note": "PASS 活跃=1 归档=177 记录包=178 inbox=0 legacy指针=133 无任务单=14"
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs worklog stats",
+        "errors": 0,
+        "warnings": 0,
+        "note": "活跃=1 归档=177 记录包=178 墓碑=14 pending=21 inbox=0 记录体积=1731.7KB"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/worklog.spec.mjs scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "errors": 0,
+        "warnings": 0,
+        "note": "279 passed（worklog 22 + orchestration 257）"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm lint",
+        "errors": 0,
+        "warnings": 0,
+        "note": "TS 与 scripts/**/*.mjs 两段 ESLint 全绿"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm typecheck",
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json 零错误"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm test",
+        "errors": 0,
+        "warnings": 0,
+        "note": "222 files passed / 1 skipped；3914 tests passed / 4 skipped"
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "errors": 0,
+        "warnings": 0,
+        "note": "713 条事件；schema、哈希链与索引投影一致"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm orchestration:preflight",
+        "errors": 0,
+        "warnings": 0,
+        "note": "PASS task=AF-163 status=submitted files=191 covered=7"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单 / 回执 / 交付记录 / commit 均为 AF-163"
+      },
+      {
+        "item": "immutable-task-sheet",
+        "result": "pass",
+        "note": "AF-163 任务单登记即入 records，manifest 记录 SHA-256，未原地改写"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面仅经 CLI register、run-once 与 worklog 工具写入；无手改索引/事件"
+      },
+      {
+        "item": "scope",
+        "result": "pass",
+        "note": "commit 1c2d2e1 的 191 个文件均在 scripts/orchestration/、docs/worklog/、docs/team/agent-orchestration/；web/orchestration/data.js 为状态面投影；无 src/ 改动"
+      },
+      {
+        "item": "engine-core",
+        "result": "pass",
+        "note": "git diff --stat HEAD -- src/engine-core 空输出"
+      }
+    ],
+    "backlogItems": [
+      {
+        "id": "IM-AF163-01",
+        "title": "14 个终态任务任务单在全部 git 历史不可恢复",
+        "detail": "AF-002、AF-039、AF-064、AF-065、AF-066、AF-096、AF-099、AF-106、AF-110、AF-114、AF-115、AF-118、AF-142、AF-160 以 tombstone 证据块与 TOMBSTONES.md 台账固化；AF-060 已恢复，不再计入。",
+        "impact": "无伪造任务单；verify --strict 以「无任务单=14」透明计数"
+      },
+      {
+        "id": "IM-AF163-02",
+        "title": "133 个 archived 索引旧指针保持原样",
+        "detail": "历史索引仍指 docs/worklog/pending/，读取侧走 manifest 回退。",
+        "impact": "归档投影不可变，不影响读取与校验"
+      },
+      {
+        "id": "IM-AF163-03",
+        "title": "pending/ 保留 21 个历史参考",
+        "detail": "Phase2/2.5 母版、backlog、relay 回交文件按 pending/README.md 保留，不搬迁。",
+        "impact": "避免打断约 550KB 历史文档与看板引用"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "AF-060 恢复来源",
+        "taskSays": "任务单在历史提交 8ed0a10 可达",
+        "reality": "全历史检索到该路径最早提交为 82e4a733992ea7c137ea881bd45498300d16e1fd",
+        "why": "任务单背景提交号与可复现事实不一致",
+        "action": "以可复现的 git show 82e4a73:path 原样收养，manifest 记录 recoveredFrom 与 SHA-256"
+      },
+      {
+        "item": "迁移幂等",
+        "taskSays": "一次迁移补齐全部 manifest",
+        "reality": "首轮对 AF-161/AF-162 因归档投影缺 contextId 重复创建 legacy 记录包",
+        "why": "records 指针分支未复用现有 bundle context",
+        "action": "修正 migrateWorklog 复用现有 bundle context，删除误建包并补回归测试；二次迁移 movedSheets=0"
+      },
+      {
+        "item": "墓碑台账",
+        "taskSays": "任务单未列 TOMBSTONES.md",
+        "reality": "新增统一墓碑清册",
+        "why": "14 个墓碑需要可读审计台账，不能只有机读 manifest",
+        "action": "生成 docs/worklog/records/TOMBSTONES.md，并写入 records/README.md 维护规则"
+      }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md",
+      "others": [
+        "docs/worklog/records/TOMBSTONES.md",
+        "docs/worklog/records/legacy/AF-060/task-sheet.md"
+      ]
+    },
+    "reproNotes": "worklog verify --strict 输出 PASS；events verify 713 条一致；全量测试 3914 passed / 4 skipped；engine-core diff 为空。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "仅编排工具链、worklog 记录包数据与编排文档；未改生产 src/ 或前端代码"
+    },
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-060 已原样恢复且哈希可复现；14 个墓碑有 manifest 证据与统一台账；AF-065 交付指针指向真实合并记录；verify --strict 已覆盖 completed 交付记录存在性并通过。"
+  }
+}

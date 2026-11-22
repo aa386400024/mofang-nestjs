@@ -1,0 +1,7013 @@
+# 源文件: 案例分析 期刊-177\女性尿失禁患者心理社会适应评估工具的研制及概念模型的构建与验证.pdf
+# 状态: ok
+# 原始字符数: 165392
+
+<!-- page 1 -->
+分类号：
+R47
+单位代码：10159
+密
+级：公开
+学
+号：2019140354
+博士学位论文
+（同等学力人员申请博士学位）
+论文作者：
+唐惠艳
+指导教师：
+李小寒
+教授
+学科专业：
+护理学
+完成时间：
+2022 年5 月
+中文题目：
+女性尿失禁患者心理社会适应评估工具的研制及概念
+模型的构建与验证
+英文题目：
+Development
+of
+the
+assessment
+tool
+and
+construction
+and
+verification of conceptual mode for psychosocial adaptation of
+female patients with urinary incontinence
+
+<!-- page 2 -->
+I
+女性尿失禁患者心理社会适应评估工具的研制及概念
+模型的构建与验证
+Development of the assessment tool and construction and
+verification of conceptual mode for psychosocial adaptation of
+female patients with urinary incontinence
+论文作者
+唐惠艳
+指导教师
+李小寒
+教授
+申请学位
+医学博士
+培养单位
+护理学院
+一级学科
+护理学
+二级学科
+临床护理学
+研究方向
+妇产科护理学
+论文起止时间
+2020 年3 月—2022 年3 月
+论文完成时间
+2022 年5 月
+中国医科大学（辽宁）
+2022 年5 月
+
+<!-- page 3 -->
+II
+中国医科大学学位论文独创性声明
+本人郑重声明：本论文是我个人在导师指导下独立进行的研究工
+作及取得的研究成果，论文中除加以标注的内容外，不包含其他人或
+机构已经发表或撰写过的研究成果，也不包含本人为获得其他学位而
+使用过的成果。对本研究提供贡献的其他个人和集体均已在文中进行
+了明确的说明并表示谢意。本人完全意识到本声明的法律结果由本人
+承担。
+论文作者签名：
+日
+期：
+年
+月
+日
+中国医科大学学位论文版权使用授权书
+本学位论文作者完全了解学校有关保留、使用学位论文的规定，
+同意学校保留并向国家有关部门或机构送交学位论文的原件、复印件
+和电子版，允许学位论文被查阅和借阅。本人授权中国医科大学可以
+将本学位论文的全部或部分内容编入有关数据库进行检索，可以采用
+影印、缩印或扫描等复制手段保存和汇编学位论文。
+保密（
+），在
+年后解密适用本授权书。（保密：请在括号
+内划“√”）
+论文作者签名：
+指导教师签名：
+日期：
+年
+月
+日
+日期：
+年
+月
+日
+
+<!-- page 4 -->
+III
+摘要
+目的：应用概念分析方法明确女性尿失禁患者心理社会适应概念属性、先决
+条件、影响因素及后果，基于概念分析结果，以Roy 适应模式为指导，初步构
+建女性尿失禁患者心理社会适应概念模型；采用描述现象学方法，了解我国女性
+尿失禁患者心理社会适应的真实体验和历程；研制适合我国文化背景的女性尿失
+禁患者心理社会适应评估工具；分析女性尿失禁患者心理社会适应水平及影响因
+素，探讨心理社会适应对女性尿失禁患者生活质量影响的作用机制和路径，并验
+证女性尿失禁患者心理社会适应概念模型，为制定女性尿失禁患者心理社会适应
+的干预方案提供理论依据。
+方法：第一部分：女性尿失禁患者心理社会适应的概念分析及模型的初步构
+建
+采用Rodgers 演化概念分析法，检索从1997 年1 月至2021 年6 月Pubmed、
+Web of Science、CINAHL、PsycINFO、CBM、中国知网、万方数据知识服务平
+台收录的相关文献，根据纳入标准选取文献，从尿失禁患者心理社会适应的演变
+历程、概念属性、先决条件、影响因素、后果、相关概念及典型案例等方面，对
+尿失禁患者心理社会适应概念进行分析。基于概念分析结果，以Roy 适应模式
+为指导，初步构建女性尿失禁患者心理社会适应的概念模型。
+第二部分：女性尿失禁患者心理社会适应的质性研究
+应用描述现象学方法，于2021 年3 月至2021 年7 月期间，对15 名女性尿
+失禁患者进行半结构式深度访谈，通过录音等形式收集资料，采用Colaizzi 七步
+分析法对资料进行分析后提炼主题，深入挖掘我国文化背景下女性尿失禁患者心
+理社会适应的真实体验和历程。
+第三部分：女性尿失禁患者心理社会适应评估工具的研制
+基于概念分析和质性研究结果形成女性尿失禁患者心理社会适应初始化量
+表。经过2 轮专家咨询对量表进行修订和完善，选取30 名研究对象进行预调查，
+评价初始化量表的内容效度和表面效度；2021 年8 月至2021 年10 月采用便利
+抽样法连续选取570 名研究对象进行横断面调查，调查工具包括一般资料调查表、
+国际尿失禁咨询委员会尿失禁问卷简表、本研究研制的女性尿失禁患者心理社会
+适应量表、中文版应对适应过程量表。采用临界比值法和相关系数法筛选条目；
+
+<!-- page 5 -->
+IV
+采用探索性和验证性因子分析法评价量表的结构效度；采用中文版应对适应过程
+量表作为校标评价量表的校标关联效度；采用内部一致性信度和重测信度对量表
+的信度进行检验，形成女性尿失禁患者心理社会适应量表（终版）。
+第四部分：女性尿失禁患者心理社会适应模型的验证
+2021 年11 月至2021 年12 月采用便利抽样法连续选取220 名研究对象进行
+横断面调查，依据初步构建的女性尿失禁患者心理社会适应概念模型选取研究工
+具，包括一般资料调查表、国际尿失禁咨询委员会尿失禁问卷简表、女性尿失禁
+患者心理社会适应量表、尿失禁疾病认知问卷、女性尿失禁应对方式量表及尿失
+禁生活质量量表。通过对女性尿失禁患者心理社会适应进行单因素、多元线性回
+归分析及结构方程模型检验，明确女性尿失禁患者心理社会适应的影响因素及作
+用路径；通过对生活质量进行单因素、多元线性回归分析及结构方程模型检验，
+验证女性尿失禁患者心理社会适应概念模型。
+结果：第一部分：系统检索后筛选纳入43 篇文献，获得的文献中没有对女
+性尿失禁患者心理社会适应进行明确界定。女性尿失禁患者心理社会适应概念是
+一个不断发展的过程，概念属性包括情绪状态、自我认知、角色功能及社会支持，
+先决条件是尿失禁的患病事实，影响因素是人口社会学因素、疾病相关因素、疾
+病认知及应对方式，后果是生活质量。女性尿失禁患者心理社会适应概念模型是
+个体经历尿失禁的患病事实后，通过疾病认知和应对方式，影响患者心理社会适
+应水平，最终影响患者生活质量的过程。
+第二部分：女性尿失禁患者心理社会适应体验包括6 个一级主题、28 个二
+级主题，分别为生理体验（生理不适、饮水受限、运动受限、睡眠质量下降、性
+功能障碍）、心理适应（焦虑、抑郁、尴尬、病耻感、低自尊、恐惧、担心、压
+力、痛苦、身体心像、自责、希望、信心）、社会适应（社会角色弱化、社交退
+缩、社会支持）、疾病认知（疾病知识缺乏、健康观念）、应对策略（掩饰症状、
+消极回避、接受与调整）、自我管理（生活方式、治疗依从性）；女性尿失禁患
+者心理社会适应经历包括2 个主题，分别为持续变化的过程、受多种因素的影响，
+女性尿失禁患者心理社会适应受患者的个性特征、疾病认知、社会支持、感知的
+健康状况等因素的影响。
+第三部分：1.量表的构建：基于概念分析和质性研究结果形成女性尿失禁患
+者心理社会适应初始量表，包括4 个维度、41 个条目。根据2 轮专家函询结果，
+将初始量表修订为4 个维度、44 个条目，4 个维度包括情绪状态（11 个条目）、
+
+<!-- page 6 -->
+V
+自我认知（12 个条目）、社会角色（10 个条目）及社会支持（11 个条目）。量
+表的内容效度指数为0.995，4 个维度的内容效度指数为0.970~1.000。预调查结
+果显示，女性尿失禁患者心理社会适应量表条目的难易度和准确性适宜。2.项目
+分析：根据条目的临界比值和相关系数删除区分度或相关性不符合标准的条目共
+计16 个。3.量表的信效度分析结果：①效度分析：利用主成分分析法提取公因
+子，抽取特征值大于1.0 的公因子，经最大方差法正交旋转后，设定因子载荷值
+大于0.5 进行因子分析，提取出3 个公因子，累积方差贡献率为66.952%；通过
+AMOS 软件进行验证性因子分析，最终形成包含17 个条目的女性尿失禁患者心
+理社会适应量表。基于Roy 适应模式理论，结合前期概念分析和质性研究结果，
+将3 个维度分别命名为自我概念、角色功能和社会支持；女性尿失禁患者心理社
+会适应量表与应对适应过程量表的相关系数是0.600（P<0.01）。②信度分析：
+女性尿失禁患者心理社会适应总量表的Cronbach’s a 系数为0.893，3 个维度的
+Cronbach’s a 系数为0.835~0.910；量表重测前后总分的相关系数是0.803（P<0.01）。
+第四部分：调查共回收有效问卷203 份（有效回收率为92.27%）。女性尿
+失禁患者心理社会适应总得分为（39.06±15.49）分，得分最高的维度是角色功能，
+得分最低的维度是自我概念。女性尿失禁患者心理社会适应得分与疾病认知得分
+呈正相关（P<0.01）、与应对方式得分呈负相关（P<0.01）；生活质量得分与心
+理社会适应得分呈正相关（P<0.01）。
+女性尿失禁患者心理社会适应的单因素分析结果显示，患者的年龄、学历、
+家庭月收入、职业、医疗付费方式、体重指数、生育次数、病程、尿失禁类型及
+严重程度不同，其心理社会适应水平不同，差异均有统计学意义（P<0.05）；多
+因素分析结果显示医疗付费方式、病程、尿失禁严重程度、疾病认知、应对方式
+进入多元线性回归方程（P<0.05）。应用结构方程进行心理社会适应影响因素的
+路径分析结果显示，疾病认知、应对方式和心理社会适应3 个内衍变量能够有效
+的被解释，解释变异量分别是心理社会适应的85%、疾病认知的49%、应对方
+式的64%。证实9 条路径与构想路径一致，1 条路径未被证实。修正后的模型拟
+合较理想，模型适配度检验结果为χ2/df=1.191，RMSEA=0.031，GFI=0.994，
+CFI=0.999，NFI=0.995。心理社会适应影响因素的中介效应分析结果显示，疾病
+认知和应对方式在医疗付费方式、病程及严重程度与心理社会适应之间起多重中
+介作用；医疗付费方式、病程及严重程度与心理社会适应之间存在间接效应；医
+疗付费方式和严重程度还与心理社会适应之间存在直接效应。
+
+<!-- page 7 -->
+VI
+女性尿失禁患者生活质量的单因素分析结果显示，患者的年龄、居住地、学
+历、家庭月收入、职业、工作状态、医疗付费方式、生育次数、病程、尿失禁类
+型及严重程度不同，其生活质量水平不同，差异均有统计学意义（P<0.05）；多
+因素分析结果显示年龄、工作状态、尿失禁严重程度、疾病认知、应对方式、心
+理社会适应进入多元线性回归方程（P<0.05）。应用结构方程进行生活质量影响
+因素的路径分析结果显示，疾病认知、应对方式、心理社会适应及生活质量4
+个内衍变量能够有效的被解释，解释变异量分别是生活质量的86%，心理社会适
+应的84%，疾病认知的44%，应对方式的64%。证实10 条路径与构想路径一致，
+4 条路径未被证实。修正后的模型拟合较理想，模型适配度检验结果为χ2/df=2.176，
+RMSEA=0.076，GFI=0.986，CFI=0.996，NFI=0.992。心理社会适应概念模型的
+中介效应分析结果显示，疾病认知、应对方式及心理社会适应在年龄、严重程度
+与生活质量之间起多重中介作用；年龄、严重程度与生活质量之间存在间接效应；
+严重程度还与生活质量之间存在直接效应。
+结论：1.本研究在应用概念分析法明确女性尿失禁患者心理社会适应概念属
+性、先决条件、影响因素及后果的基础上，基于Roy 适应模式初步构建了女性
+尿失禁患者心理社会适应概念模型，为开发女性尿失禁患者特异性的心理社会适
+应评估工具提供了理论依据。
+2.通过质性研究结果得出，女性尿失禁患者心理社会适应体验包括生理体验、
+心理适应、社会适应、疾病认知、应对策略及自我管理，女性尿失禁患者情绪复
+杂多变，以负性情绪占主导。女性尿失禁患者心理社会适应历程是一个持续变化
+的过程，受个性特征、疾病认知、社会支持、感知的健康状况等因素的影响。提
+示医务工作者可从心理社会适应角度持续关注女性尿失禁患者的整体健康状况。
+3.基于概念分析和质性研究结果研制的女性尿失禁患者心理社会适应量表，
+经检验证实具有良好的信度和效度，能客观、准确地评估女性尿失禁患者的心理
+社会适应状况，为进一步临床评估和护理研究提供了科学的工具。
+4.医疗付费方式、病程、疾病严重程度、疾病认知及应对方式是女性尿失禁
+患者心理社会适应的影响因素。女性尿失禁患者的人口社会学因素和疾病相关因
+素可通过疾病认知和应对方式对心理社会适应产生直接和/或间接影响。年龄、
+工作状态、疾病严重程度、疾病认知、应对方式、心理社会适应是女性尿失禁患
+者生活质量的影响因素。验证后的女性尿失禁患者心理社会适应概念模型与原构
+想基本一致，女性尿失禁患者的心理社会适应在疾病认知和应对方式与生活质量
+
+<!-- page 8 -->
+VII
+之间发挥中介作用。提示医务工作者可通过提高女性尿失禁患者的心理社会适应
+水平，改善患者的生活质量。
+关键词：女性；尿失禁；心理社会适应；概念分析；概念模型；量表
+
+<!-- page 9 -->
+VIII
+Abstract
+Objective: Conceptual analysis was used to clarify the conceptual attributes,
+preconditions, influencing factors and consequences of psychosocial adaptation of
+urinary incontinence, based on the results of conceptual analysis and guided by Roy
+adaptation model, a conceptual model of psychosocial adaptation of female urinary
+incontinence was preliminarily constructed; descriptive phenomenology was used to
+understand the real experience and process of psychosocial adaptation of female
+patients with urinary incontinence in China; developed a psychosocial adaptation
+assessment tool for female urinary incontinence suitable for China's cultural
+background; analyzed the psychosocial adaptation level and influencing factors of
+female patients with urinary incontinence, explored the mechanism and path of
+psychosocial adaptation on the quality of life of female patients with urinary
+incontinence, Verified the psychosocial adaptation model of female patients with
+urinary incontinence, and provided a theoretical basis for formulating the intervention
+plan of psychosocial adaptation of female patients with urinary incontinence.
+Methods:
+Part
+I:
+conceptual
+analysis
+and
+preliminary
+construction
+of
+psychosocial adaptation model of female patients with urinary incontinence
+Using the Rodgers evolutionary concept analysis method, the relevant literatures
+collected by PubMed, web of science, CINAHL, PsycINFO, CBM, CNKI and
+Wanfang Data knowledge service platform from January 1997 to June 2021 were
+retrieved, according to the inclusion criteria, the literature was selected to analyze the
+concept of psychosocial adaptation of patients with urinary incontinence from the
+aspects of the evolution process, conceptual attributes, preconditions, influencing
+factors, consequences, related concepts and typical cases of psychosocial adaptation
+of patients with urinary incontinence. Based on the results of conceptual analysis and
+guided by Roy adaptation model, a conceptual model of psychosocial adaptation of
+female urinary incontinence was preliminarily constructed.
+Part II: qualitative study on psychosocial adaptation of female patients with
+urinary incontinence
+
+<!-- page 10 -->
+IX
+Using descriptive phenomenological method, 15 female patients with urinary
+incontinence were interviewed in depth from March 2021 to July 2021, collected data
+through recording and other forms, Colaizzi seven step analysis method was used to
+analyze the data and refine the theme, deeply explore the real experience and process
+of psychosocial adaptation of female patients with urinary incontinence under the
+cultural background of China.
+Part III: the development of psychosocial adaptation assessment tool for female
+patients with urinary incontinence
+Based on the results of conceptual analysis and qualitative research, a
+psychosocial
+adaptation
+initialization
+scale
+for
+female
+patients
+with
+urinary
+incontinence was formed. After two rounds of expert consultation, the scale was
+revised and improved. 30 subjects were selected for pre investigation to evaluate the
+content validity and surface validity of the initialization scale. From August 2021 to
+October 2021, 570 subjects were selected by convenient sampling method for
+cross-sectional survey, the survey tools included general information questionnaire,
+ICIQ-UI SF, the psychosocial adaptation scale for female patients with urinary
+incontinence developed in this study, and CAPS-SF-C. The critical ratio method and
+correlation coefficient method were used to screen the items, exploratory and
+confirmatory factor analysis were used to evaluate the structural validity of the scale,
+CAPS-SF-C was used as the calibration evaluation scale to evaluate the calibration
+relevance validity, internal consistency reliability and test-retest reliability were used
+to test the reliability of the scale, and the psychosocial adaptation scale for female
+patients with urinary incontinence (final version) was formed.
+Part IV: validation of psychosocial adaptation model of female urinary
+incontinence
+From November 2021 to December 2021, a cross-sectional survey was
+conducted on 220 subjects by convenient sampling method, according to the initially
+constructed psychosocial adaptation model of female urinary incontinence, research
+tools were selected, including general information questionnaire, ICIQ-UI SF,
+psychosocial adaptation scale of female urinary incontinence, cognitive questionnaire
+of urinary incontinence, coping style scale of female urinary incontinence and quality
+
+<!-- page 11 -->
+X
+of life scale of urinary incontinence. Through single factor, multiple linear regression
+analysis and structural equation model test of psychosocial adaptation of female
+patients with urinary incontinence, the influencing factors and action path of
+psychosocial adaptation of female patients with urinary incontinence were clarified;
+The conceptual model of psychosocial adaptation of female patients with urinary
+incontinence was verified by single factor, multiple linear regression analysis and
+structural equation model test of quality of life in female patients with urinary
+incontinence.
+Results: Part I: 43 literatures were screened and included after systematic
+retrieval. The obtained literatures did not clearly define the psychosocial adaptation of
+patients with urinary incontinence. The concept of psychosocial adaptation of female
+patients with urinary incontinence is a developing process. The conceptual attributes
+include emotional state, self cognition, role function and social support. The
+prerequisite is the prevalence of urinary incontinence. The influencing factors are
+demographic sociological factors, disease-related factors, disease cognition and
+coping style, and the consequence is the quality of life. The conceptual model of
+psychosocial adaptation of female patients with urinary incontinence is the fact that
+individuals experience urinary incontinence, affect the psychosocial adaptation level
+of patients through disease cognition and coping style, and finally affect the quality of
+life of patients.
+Part II: the psychosocial adaptation experience of female patients with urinary
+incontinence includes 6 first-class themes and 28 second-class themes, which are
+physiological experience (physiological discomfort, limited drinking water, limited
+exercise, decreased sleep quality and sexual dysfunction), psychological adaptation
+(anxiety, depression, embarrassment, shame, low self-esteem, fear, worry, pressure,
+pain, body image, self blame, hope and confidence), social adaptation (social role
+weakening, social withdrawal, social support), disease cognition (lack of disease
+knowledge, health concept), coping strategies (concealing symptoms, passive
+avoidance, acceptance and adjustment), self management (lifestyle, treatment
+compliance). The psychosocial adaptation experience of female patients with urinary
+incontinence includes two themes: the process of continuous adjustment and the
+
+<!-- page 12 -->
+XI
+influence of many factors. The psychosocial adaptation of female patients with
+urinary incontinence is affected by the patient's personality characteristics, disease
+cognition, social support, perceived health status and other factors.
+Part III: 1. Construction of scale: based on conceptual analysis and qualitative
+research results, an initial scale of psychosocial adaptation for female patients with
+urinary incontinence was formed, including 4 dimensions and 41 items. According to
+the results of two rounds of expert correspondence, the initial scale was revised into 4
+dimensions and 44 items, including emotional state (11 items), self cognition (12
+items), role function (10 items) and social support (11 items). The content validity
+index of the scale was 0.995, and the content validity index of the four dimensions
+was 0.970~1.000. The pre survey results showed that the difficulty and accuracy of
+the items of psychosocial adaptation scale for female patients with urinary
+incontinence were appropriate. 2. Item analysis: according to the critical ratio and
+correlation coefficient of items, a total of 16 items whose discrimination or correlation
+does not meet the standard are deleted. 3. Reliability and validity analysis results of
+the scale: ①Validity Analysis: The common factors were extracted by principal
+component analysis, and the common factors with eigenvalues greater than 1.0 were
+extracted. After orthogonal rotation by the maximum variance method, the factor load
+value was set to be greater than 0.5 for factor analysis, and three common factors wrer
+extracted, and the cumulative variance contribution rate was 66.952%; The
+confirmatory factor analysis was carried out by AMOS software, and the psychosocial
+adaptation scale of female urinary incontinence with 17 items was finally formed.
+Based on Roy's adaptation model theory, combined with previous conceptual analysis
+and qualitative research results, the three dimensions are named self-concept, role
+function and social support respectively; The correlation coefficient between
+psychosocial adaptation scale and coping adaptation process scale for female patients
+with urinary incontinence was 0.600 (P<0.01). ②Reliability analysis: the Cronbach's
+a coefficient of the total psychosocial adaptation scale of female urinary incontinence
+was 0.893, and the Cronbach's a coefficient of three dimensions was 0.835~0.910;
+The correlation coefficient of the total score before and after the retest of the scale
+was 0.803 (P<0.01).
+
+<!-- page 13 -->
+XII
+Part IV: 203 valid questionnaires were collected (the effective recovery rate was
+92.27%). The total score of psychosocial adaptation of female patients with urinary
+incontinence was (39.06±15.49). The dimension with the highest score was role
+function, and the dimension with the lowest score was self-concept.The score of
+psychosocial adaptation in female patients with urinary incontinence was positively
+correlated with the score of disease cognition (P<0.01), and negatively correlated with
+the score of coping style (P<0.01); The score of quality of life was positively
+correlated with the score of psychosocial adaptation(P<0.01).
+The results of univariate analysis of psychosocial adaptation of female patients
+with urinary incontinence showed that the psychosocial adaptation level of patients
+was different with different age, educational background, family monthly income,
+occupation, medical payment mode, body mass index, number of births, course of
+disease, type and severity of urinary incontinence (P<0.05); Multivariate analysis
+showed that the mode of medical payment, course of disease, severity of urinary
+incontinence, disease cognition and coping style entered the multiple linear regression
+equation (P<0.05). The path analysis of the influencing factors of psychosocial
+adaptation using structural equation showed that the three endogenous variables of
+disease cognition, coping style and psychosocial adaptation could be effectively
+explained. The explanatory variables were 85% of psychosocial adaptation, 49% of
+disease cognition and 64% of coping style respectively. Nine paths were confirmed to
+be consistent with the envisaged path, and one path was not confirmed. The fitting of
+the modified model was ideal, and the test result of model fitness was χ2/df=1.191，
+RMSEA=0.031，GFI=0.994，CFI=0.999，NFI=0.995。The mediating effect analysis
+of the influencing factors of psychosocial adaptation showed that disease cognition
+and coping style played multiple mediating roles between medical payment mode,
+course, severity and psychosocial adaptation; There are indirect effects between
+medical payment mode, course, severity and psychosocial adaptation; There is also a
+direct effect between medical payment mode, severity and psychosocial adaptation.
+The results of univariate analysis on the quality of life of female patients with
+urinary incontinence showed that there were significant differences in the level of
+quality of life among patients with different age, place of residence, educational
+
+<!-- page 14 -->
+XIII
+background, monthly family income, occupation, working status, medical payment
+mode, number of births, course of disease, type and severity of urinary incontinence
+(P<0.05); Multivariate analysis showed that age, working status, severity of urinary
+incontinence, disease cognition, coping style and psychosocial adaptation entered the
+multiple linear regression equation (P<0.05). Using structural equation to analyze the
+path of influencing factors of quality of life, the results show that the four endogenous
+variables of disease cognition, coping style, psychosocial adaptation and quality of
+life can be effectively explained. The explanatory variables are 86% of quality of life,
+84% of psychosocial adaptation, 44% of disease cognition and 64% of coping style. It
+was confirmed that 10 paths were consistent with the envisaged path, and 4 paths
+were not confirmed. The fitting of the modified model is ideal, and the test result of
+model fitness was χ2/df=2.176，RMSEA=0.076，GFI=0.986，CFI=0.996，NFI=0.992。
+The mediating effect analysis of the conceptual model of psychosocial adaptation
+showed that disease cognition, coping style and psychosocial adaptation played
+multiple mediating roles between age, severity and quality of life; There are indirect
+effects between age, severity and quality of life; There is also a direct effect between
+severity and quality of life.
+Conclusion: 1. Based on the application of conceptual analysis to clarify the
+conceptual attributes,
+preconditions,
+influencing factors
+and consequences
+of
+psychosocial adaptation of female patients with urinary incontinence, this study
+preliminarily constructs the conceptual model of psychosocial adaptation of female
+patients with urinary incontinence based on Roy adaptation model, which provides a
+theoretical basis for the development of specific psychosocial adaptation evaluation
+tools for female patients with urinary incontinence.
+2. Through the qualitative research results, it is concluded that the psychosocial
+adaptation experience
+of female
+patients with urinary
+incontinence includes
+physiological
+experience,
+psychological
+adaptation,
+social
+adaptation,
+disease
+cognition, coping strategies and self management. The emotions of female patients
+with urinary incontinence are complex and changeable, dominated by negative
+emotions. The psychosocial adaptation process of female patients with urinary
+incontinence is a continuous changing process, which is affected by personality
+
+<!-- page 15 -->
+XIV
+characteristics, disease cognition, social support, perceived health status and other
+factors. It is suggested that medical workers can continue to pay attention to the
+overall health status of female patients with urinary incontinence from the perspective
+of psychosocial adaptation.
+3. The psychosocial adaptation scale of female urinary incontinence developed
+based on conceptual analysis and qualitative research results has good reliability and
+validity. It can objectively and accurately evaluate the psychosocial adaptation of
+female urinary incontinence patients, and provides a scientific tool for further clinical
+evaluation and nursing research.
+4. Medical payment mode, course of disease, disease severity, disease cognition
+and coping style are the influencing factors of psychosocial adaptation of female
+patients
+with
+urinary
+incontinence.
+Demographic
+sociological
+factors
+and
+disease-related factors of female patients with urinary incontinence can have a direct
+and / or indirect impact on psychosocial adaptation through disease cognition and
+coping style. Age, work status, disease severity, disease cognition, coping style and
+psychosocial adaptation are the influencing factors of the quality of life of female
+patients with urinary incontinence. The validated conceptual model of psychosocial
+adaptation of female patients with urinary incontinence is basically consistent with the
+original
+idea.
+The
+psychosocial
+adaptation
+of
+female
+patients
+with
+urinary
+incontinence plays an intermediary role between disease cognition, coping style and
+quality of life. It is suggested that medical workers can improve the quality of life of
+female patients with urinary incontinence by improving their psychosocial adaptation
+level.
+Key words: female; urinary incontinence; psychosocial adaptation; conceptual
+analysis; conceptual model; scale
+
+<!-- page 16 -->
+XV
+英文缩略语
+英文缩写
+英文全称
+中文全称
+ICS
+International Continence Society
+国际尿控协会
+UI
+urinary incontinence
+尿失禁
+NICE
+National Institute for Health and
+Clinical Excellence
+英国国家卫生和临床医疗优选
+研究所
+SUI
+stress urinary incontinence
+压力性尿失禁
+MUI
+mixed urinary incontinence
+混合性尿失禁
+UUI
+urge urinary incontinence
+急迫性尿失禁
+PFMT
+pelvic floor muscle training
+盆底肌功能训练
+PAIS-SR
+self-report psychosocial adjustment 疾病心理社会适应量表
+COREQ
+consolidated criteria for reporting
+qualitative research
+定性研究统一报告标准
+CR
+critical ratio
+临界比
+EFA
+exploratory factor analysis
+探索性因子分析
+CFA
+confirmatory factor analysis
+验证性因子分析
+SEM
+structural equation model
+结构方程模型
+ICIQ-UI SF
+International Consultation on
+Incontinence Questionnaire-Urinary
+Incontinence Short Form
+国际尿失禁咨询委员会尿失禁
+问卷简表
+CAPS-SF-C
+the Chinese version of coping and
+adaptation processing scale-short
+form
+中文版应对适应过程量表（简
+表）
+I-QOL
+incontinence quality of life
+尿失禁生活质量量表
+S-CVI
+I-CVI on the Scale
+问卷的内容效度
+
+<!-- page 17 -->
+XVI
+目录
+摘要............................................................ III
+Abstract ........................................................ VIII
+英文缩略语........................................................ XV
+前言.............................................................. 1
+1
+研究背景.....................................................1
+2
+研究目的及意义...............................................3
+2.1 研究目的................................................ 4
+2.2 研究意义................................................ 4
+3
+相关概念及操作性定义.........................................4
+3.1 尿失禁.................................................. 4
+3.2 心理社会适应............................................ 4
+3.3 女性尿失禁患者心理社会适应.............................. 5
+4
+理论基础.....................................................5
+4.1 Roy 适应模式.............................................5
+4.2 慢性病适应中域理论...................................... 6
+5
+技术路线.....................................................7
+第一部分：女性尿失禁患者心理社会适应的概念分析及模型构建........... 9
+1
+概述............................................................ 9
+2
+方法........................................................... 10
+2.1 检索文献...................................................11
+2.2 纳入文献...................................................11
+
+<!-- page 18 -->
+XVII
+2.3 分析文献...................................................11
+3
+结果........................................................... 13
+3.1 女性尿失禁患者心理社会适应概念的演化.......................13
+3.2 女性尿失禁患者心理社会适应的概念属性.......................14
+3.2.1 情绪状态............................................. 14
+3.2.2 自我认知............................................. 15
+3.2.3 角色功能............................................. 15
+3.2.4 社会支持............................................. 16
+3.3 尿失禁患者心理社会适应的先决条件和影响因素.................16
+3.3.1 先决条件............................................. 16
+3.3.2 影响因素............................................. 16
+3.4 尿失禁患者心理社会适应的后果...............................17
+3.5 尿失禁患者心理社会适应的相关概念...........................18
+3.5.1 适应................................................. 18
+3.5.2 应对................................................. 18
+3.5.3 生活质量............................................. 18
+3.6 女性尿失禁患者心理社会适应的概念框架.......................19
+3.7 典型案例...................................................19
+3.7.1 案例介绍............................................. 19
+3.7.2 案例分析............................................. 20
+3.8 构建女性尿失禁患者心理社会适应概念模型.....................21
+4
+讨论........................................................... 22
+4.1 女性尿失禁患者心理社会适应是一个动态变化的过程.............22
+
+<!-- page 19 -->
+XVIII
+4.2 女性尿失禁患者心理社会适应概念属性之间互相影响.............22
+4.3 女性尿失禁患者心理社会适应概念模型的构建及意义.............22
+5
+结论........................................................... 24
+第二部分：女性尿失禁患者心理社会适应的质性研究.................... 25
+1
+概述........................................................... 25
+2
+对象与方法..................................................... 26
+2.1 研究方法...................................................26
+2.2 研究对象...................................................26
+2.2.1 纳入标准............................................. 26
+2.2.2 排除标准............................................. 27
+2.2.3 抽样方法及样本量的确定............................... 27
+2.3 研究工具...................................................27
+2.4 资料的收集.................................................28
+2.4.1 访谈场所............................................. 28
+2.4.2 正式访谈............................................. 28
+2.5 资料的整理与分析...........................................28
+2.5.1 资料的整理........................................... 28
+2.5.2 资料的分析........................................... 28
+2.6 伦理考量...................................................29
+2.7 质量控制...................................................29
+3
+结果........................................................... 30
+3.1 研究对象的基本情况.........................................30
+3.2 女性尿失禁患者心理社会适应主题.............................30
+
+<!-- page 20 -->
+XIX
+3.2.1 女性尿失禁患者心理社会适应的体验主题................. 30
+3.2.2 女性尿失禁患者心理社会适应的经历主题..................39
+4
+讨论........................................................... 41
+4.1 女性尿失禁患者心理社会适应体验.............................41
+4.1.1 生理体验............................................. 41
+4.1.2 心理适应............................................. 41
+4.1.3 社会适应............................................. 41
+4.1.4 疾病认知............................................. 42
+4.1.5 应对策略............................................. 42
+4.1.6 自我管理............................................. 43
+4.2 女性尿失禁患者心理社会适应经历.............................43
+4.2.1 女性尿失禁患者心理社会适应是一个持续变化的过程....... 43
+4.2.2 女性尿失禁患者心理社会适应受多种因素的影响........... 43
+5
+结论........................................................... 44
+第三部分：女性尿失禁患者心理社会适应评估工具的研制................ 45
+1
+概述........................................................... 45
+2
+对象与方法..................................................... 46
+2.1 研究对象...................................................46
+2.1.1 纳入标准............................................. 46
+2.1.2 排除标准............................................. 46
+2.1.3 样本量的计算......................................... 46
+2.2 研究工具...................................................46
+2.2.1 一般资料调查表（附录C）..............................47
+
+<!-- page 21 -->
+XX
+2.2.2 国际尿失禁咨询委员会尿失禁问卷简表（附录D）..........47
+2.2.3 女性尿失禁患者心理社会适应量表（附录E）..............47
+2.2.4 应对适应过程量表（简表）（附录F）....................47
+2.3 研究过程...................................................48
+2.3.1 女性尿失禁患者心理社会适应初始量表的形成............. 49
+2.3.2 项目分析............................................. 50
+2.3.3 信效度检验........................................... 50
+2.4 资料收集...................................................51
+2.5 资料的整理与分析...........................................52
+2.6 伦理问题...................................................52
+2.7 质量控制...................................................52
+3
+结果........................................................... 53
+3.1 初始量表条目池的建立.......................................53
+3.2 德尔菲专家函询结果.........................................53
+3.2.1 专家一般资料......................................... 53
+3.2.2 专家的积极系数....................................... 54
+3.2.3 专家的权威系数....................................... 54
+3.2.4 专家意见的集中程度和协调程度......................... 54
+3.2.5 专家意见及量表修改................................... 54
+3.3 预调查.....................................................55
+3.4 研究对象的一般资料.........................................55
+3.5 项目分析结果...............................................57
+3.5.1 临界比值法结果....................................... 57
+
+<!-- page 22 -->
+XXI
+3.5.2 相关分析结果......................................... 58
+3.6 量表的信效度检验结果.......................................59
+3.6.1 效度检验结果......................................... 59
+3.6.2 信度检验结果......................................... 64
+4
+讨论........................................................... 66
+4.1 女性尿失禁患者心理社会适应初始量表条目池的建立.............66
+4.2 项目分析...................................................66
+4.3 信效度分析.................................................66
+4.3.1 效度分析............................................. 66
+4.3.2 信度分析............................................. 68
+5
+结论........................................................... 69
+第四部分：女性尿失禁患者心理社会适应概念模型的验证................ 70
+1
+概述........................................................... 70
+2
+对象与方法..................................................... 71
+2.1 研究方法...................................................71
+2.2 研究对象...................................................71
+2.2.1 纳入标准............................................. 71
+2.2.2 排除标准............................................. 71
+2.2.3 样本量计算........................................... 71
+2.3 研究工具...................................................72
+2.3.1 一般资料调查表（附录C）..............................72
+2.3.2 国际尿失禁咨询委员会尿失禁问卷简表（附录D）..........72
+2.3.3 女性尿失禁患者心理社会适应量表（附录I）..............72
+
+<!-- page 23 -->
+XXII
+2.3.4 尿失禁疾病认知问卷（附录J）..........................72
+2.3.5 女性尿失禁应对方式量表（附录K）......................72
+2.3.6 尿失禁生活质量量表（附录L）..........................73
+2.4 资料收集...................................................73
+2.5 资料整理与分析.............................................73
+2.6 伦理考量...................................................74
+2.7 质量控制...................................................74
+2.8 技术路线...................................................75
+3
+结果........................................................... 76
+3.1 女性尿失禁患者的一般资料...................................76
+3.2 女性尿失禁患者心理社会适应得分情况.........................77
+3.3 女性尿失禁患者心理社会适应的单因素分析.....................78
+3.4 女性尿失禁患者心理社会适应与疾病认知、应对方式、生活质量的相关
+性分析.........................................................80
+3.5 女性尿失禁患者心理社会适应的多因素分析.....................80
+3.6 女性尿失禁患者心理社会适应影响因素的路径分析...............82
+3.7 女性尿失禁患者心理社会适应影响因素的中介效应分析...........83
+3.8 女性尿失禁患者生活质量的单因素分析.........................84
+3.9 女性尿失禁患者生活质量的多因素分析.........................86
+3.10 女性尿失禁患者心理社会适应概念模型的验证分析..............88
+3.11 女性尿失禁患者心理社会适应概念模型的中介效应分析..........89
+4
+讨论........................................................... 91
+4.1 女性尿失禁患者心理社会适应现状.............................91
+
+<!-- page 24 -->
+XXIII
+4.2 女性尿失禁患者心理社会适应与疾病认知、应对方式、生活质量的相关
+性.............................................................91
+4.3 女性尿失禁患者心理社会适应影响因素及路径分析...............92
+4.4 女性尿失禁患者心理社会适应影响因素的中介效应分析...........92
+4.5 女性尿失禁患者心理社会适应概念模型的验证分析...............93
+4.6 女性尿失禁患者心理社会适应概念模型的中介效应分析...........94
+5
+结论........................................................... 95
+本研究创新性的自我评价............................................ 96
+本研究对临床工作和未来研究的启示.................................. 97
+本研究的局限性.................................................... 98
+参考文献.......................................................... 99
+附录............................................................ 111
+综述............................................................ 132
+攻读学位期间取得的研究成果....................................... 152
+致谢............................................................ 153
+个人简历......................................................... 154
+
+<!-- page 25 -->
+1
+女性尿失禁患者心理社会适应评估工具的研制及概念
+模型的构建与验证
+前言
+1
+研究背景
+国际尿控协会（International Continence Society，ICS）将尿失禁（urinary
+incontinence，UI）定义为“任何尿液不自主流出的现象”[1]。英国国家卫生和临
+床医疗优选研究所（National Institute for Health and Clinical Excellence，NICE）
+指南将尿失禁分为压力性尿失禁（stress urinary incontinence，SUI）、混合性尿
+失禁（mixed urinary incontinence，MUI）及急迫性尿失禁（urge urinary incontinence，
+UUI）[2]。ICS 将SUI 定义为患者在运动、打喷嚏或咳嗽等腹压突然增加的情况
+下，出现不自主的尿液溢出[3]。UUI 是指突然和强烈的排尿感后发生尿漏，患者
+的排尿感可由疼痛、下腹部不适感、听到水流声等触发[4]。MUI 患者同时具有
+SUI 和UUI 的症状，相比于单纯的SUI 和UUI 的情况复杂，是初诊患者中最常
+见的尿失禁类型之一[4]。SUI 是尿失禁中最常见的类型，50%以上的尿失禁与女
+性SUI 有关[5]。
+尿失禁已成为威胁女性身心健康的五种主要健康问题之一，受到全世界的广
+泛关注[6]。大多数国家和地区报告女性尿失禁的患病率在25%~45%之间[7]，2007
+年我国的一项大规模流行病调查数据显示，女性尿失禁发生率达30.9%[8]。有研
+究报道，女性尿失禁的发生与年龄、种族、阴道分娩、多产、体重指数、慢性肺
+部疾病等因素相关[9-11]。Komesu 等[12]纵向研究显示，美国白人女性相比于黑人
+女性尿失禁的发生风险更高。阴道分娩、特别是困难阴道分娩的女性尿失禁的发
+生率较高[13]。肥胖患者由于腹内压力和膀胱压力增高，也是尿失禁发生的高危人
+群[14]。
+女性尿失禁的治疗方式包括非手术治疗和手术治疗。国内外尿失禁的相关指
+南[2,15-19]指出，在手术治疗前均需采取保守治疗方式，如改变生活方式、行为治
+疗及物理治疗等。生活方式的改变包括减少咖啡因的摄入、降低肥胖女性的体重、
+控制便秘、限制液体的摄入和戒烟等[18]。膀胱功能训练和盆底肌功能训练（pelvic
+
+<!-- page 26 -->
+2
+floor muscle training，PFMT）是最常见的行为和物理治疗方式。手术治疗对于改
+善压力性尿失禁的症状疗效较好，但对于急迫性症状的改善尚存在争议[20]。
+女性尿失禁的预后受尿失禁的类型、严重程度、治疗方式及患者自身特征等
+多种因素的影响，因此相关研究关于女性尿失禁治愈率的报道并不一致。患者患
+病后积极改变生活方式，能有效改善疾病预后[21]。PFMT 是轻中度女性尿失禁患
+者的一线治疗方案，但患者对PFMT 治疗的依从性影响了其预后[21]。一项女性
+SUI 的对照研究显示，手术治疗的患者1 年后主、客观治愈率显著高于盆底康复
+治疗组[22]。但手术治疗由于术后可能出现出血、盆底神经痛和尿潴留等并发症，
+非手术治疗被大多数患者所选择[21]。
+尿失禁虽然不是致命性疾病，但其具有长期性和不易治愈的特点，其症状给
+患者的生理、心理、日常生活、社交活动和性生活等造成困扰，严重影响了患者
+的身心健康水平和生活质量[23-25]。研究显示，尿失禁患者因为经常发生漏尿，可
+引起会阴部疼痛、会阴部及骶尾部皮炎、妇科炎症等生理问题，甚至影响睡眠[26,27]。
+另外，因不自主漏尿及身体异味，患者易产生焦虑、抑郁及羞耻感等负性情绪[28]。
+尿失禁被俗称为“社交癌”，其对患者的日常生活和社会交往也产生消极影响。
+美国学者Hajjor 认为尿失禁对患者的影响不仅在于身体上的痛苦，还在于它
+给患者造成的社会、情感方面的巨大影响[29]。以往研究显示，护士在慢性病管理
+中，常常以疾病护理为主，如对患者进行疾病知识的健康教育、症状管理及药物
+护理等，而较少关注患者的应对技能、情绪管理和角色适应[30]。因此，在关注尿
+失禁患者生物学功能的同时，有必要从心理社会学角度评估患者的心理和社会功
+能。近年来，心理社会适应成为护理学关注的焦点，2015 年Londono 等[31]从多
+学科的角度对心理社会适应进行的概念分析认为，心理社会适应的属性包括变化、
+过程、连续性、互动和影响。心理社会适应有助于个人面对正在经历的健康问题、
+角色变化和其他生活变化[31]。研究显示，女性尿失禁患者症状的严重程度与其心
+理困扰程度并不完全一致，原因可能是由于不同患者对疾病适应水平存在差异[32]。
+大量研究表明良好的心理社会适应有助于患者更好地面对疾病、提高治疗的依从
+性，改善患者的生活质量和生活满意度[33,34]。女性尿失禁患者心理社会问题突出，
+良好的心理社会适应将有助于提高患者的身心健康水平和改善患者的生活质量。
+尿失禁的疾病症状及所引发的心理负担，干扰了患者的正常生活，常造成患
+者社会交往受限。以往针对女性尿失禁患者心理社会因素的量性研究多集中在抑
+郁、焦虑、病耻感、社会隔离、应对方式、自我效能、家庭及社会支持等方面[24,35-38]，
+
+<!-- page 27 -->
+3
+质性研究多集中在患病体验、疾病认知及就医态度等方面[39,40]。
+尿失禁导致的生理不适以及对日常活动的影响，使多数患者存在不同程度的
+抑郁和焦虑情绪。Kwak 等[24]的研究结果显示，患有尿失禁的老年女性的压力和
+抑郁风险分别是无尿失禁患者的2 倍和1.5 倍。尿失禁患者易产生尴尬、羞耻和
+自卑等不良情绪，患者常常选择掩饰自己的病情和消极的就医行为[35,41]。因害怕
+受到歧视和嘲笑，导致患者减少社会交往活动，甚至出现社会隔离。女性尿失禁
+患者大多采用回避和消极的应对方式，由于尴尬、羞于启齿，多数女性不愿意因
+尿失禁寻求医疗帮助，导致女性就诊率较男性低[42,43]。自我效能感可作为评估患
+者家庭锻炼和盆底肌肉锻炼治疗依从性的预测指标[44]。通过提高尿失禁患者盆底
+肌锻炼自我效能，能帮助患者建立积极应对策略，从而提高其治疗的依从性和生
+活质量[37]。社会支持已被证明有助于尿失禁患者对疾病的适应[38]。Zhang 等[45]
+研究显示，尿失禁与孤独感具有相关性，提示医务人员应特别关注老年尿失禁患
+者的孤独情绪，并给予必要的家庭和社会支持。
+研究表明，女性尿失禁患者采取有效的心理社会干预策略，有助于改善患者
+负性情绪和自我管理水平，提高盆底肌训练的依从性，促进患者的心理社会适应，
+改善患者的生活质量[46,47]。有研究证实的干预策略包括认知行为干预[46,48]、自我
+管理干预[47,49-51]、基于达标理论的干预[52]、基于保护动机理论的干预[53]、小组模
+式干预[54,55]、基于应用程序的音频引导盆底肌训练干预[56]及支持性心理疗法[57]
+等。
+Roy 适应模式[58]提出人作为一个整体，具有生物、心理和社会多重属性，同
+时区分了生理适应和心理社会适应，心理社会适应通过自我概念、角色功能及相
+互依赖的适应方式来表现。女性尿失禁患者心理社会问题突出，有必要从心理社
+会适应角度持续关注女性尿失禁患者的整体健康状况。但现阶段未发现心理社会
+适应概念在女性尿失禁患者人群中的应用，未形成有针对性的女性尿失禁患者心
+理社会适应的干预方案，女性尿失禁患者心理社会适应的概念模型及心理社会适
+应在身心健康调适过程的作用机制尚未阐明。
+因此，本研究以Roy 适应模式为指导，在概念分析的基础上，构建并验证
+女性尿失禁患者心理社会适应的概念模型，研制女性尿失禁患者心理社会适应评
+估工具，明确女性尿失禁患者心理社会适应水平及其对生活质量影响的作用机制
+及路径，以期为女性尿失禁患者心理社会适应干预方案的制定提供理论依据。
+
+<!-- page 28 -->
+4
+2.1 研究目的
+（1）明确女性尿失禁患者心理社会适应概念属性、先决条件、影响因素及
+后果，初步构建女性尿失禁患者心理社会适应概念模型；
+（2）了解我国女性尿失禁患者心理社会适应的真实体验和历程；
+（3）研制适合我国文化背景的女性尿失禁患者心理社会适应评估工具；
+（4）分析女性尿失禁患者心理社会适应水平及影响因素，验证女性尿失禁
+患者心理社会适应概念模型。
+2.2 研究意义
+（1）理论意义
+以Roy 适应模式为指导，应用Rodgers 演化概念分析法对尿失禁患者心理社
+会适应进行概念分析，进行女性尿失禁患者心理社会适应的质性研究，构建和验
+证女性尿失禁患者心理社会适应概念模型，不仅补充和拓展了心理社会适应概念
+的应用范围，亦为女性尿失禁患者照护方案的制定提供理论参考依据。
+（2）实践意义
+研制适合我国文化背景的女性尿失禁患者心理社会适应量表，探讨女性尿失
+禁患者心理社会适应对生活质量影响的作用机制和路径，不仅为女性尿失禁患者
+心理社会适应研究提供特异性评估工具，也为女性尿失禁患者心理社会适应模型
+的应用和推广提供科学的参考依据，从而提高女性尿失禁患者的心理社会适应水
+平和生活质量。
+3
+相关概念及操作性定义
+3.1 尿失禁
+国际尿控协会（ICS）将尿失禁（UI）定义为“任何尿液不自主流出的现象”，
+分为压力性尿失禁、急迫性尿失禁及混合性尿失禁[1]。本研究中的女性尿失禁患
+者为经国际尿失禁咨询委员会尿失禁问卷简表（International Consultation on
+Incontinence Questionnaire-Urinary Incontinence Short Form，ICIQ-UI SF）面对面
+评估明确有尿失禁症状的女性患者。
+3.2 心理社会适应
+2015 年Londono 等[31]对心理社会适应进行的概念分析认为，心理社会适应
+2
+研究目的及意义
+
+<!-- page 29 -->
+5
+为一个持续的过程，在这个过程中，内部和外部的相互作用反映了个体在适应自
+己的情况时所经历的变化，这一过程受个体或环境特征的影响。
+3.3 女性尿失禁患者心理社会适应
+女性尿失禁患者心理社会适应是指个体经历尿失禁的患病事实后，通过疾病
+认知和应对，不断调整情绪状态、自我认知、角色功能及社会支持进而影响生活
+质量的过程，通过本研究所研制的女性尿失禁患者心理社会适应量表测量所得。
+4
+理论基础
+4.1 Roy 适应模式
+（1）Roy 适应模式简介：Roy 适应模式由美国理论家卡利斯塔·罗伊（Callista
+Roy）于1970 年创建，在系统论、适应水平理论、压力理论及应对理论的影响
+下形成。Roy 适应模式[58]探究的是人-环境-健康的关系，以及护理对个体或者群
+体健康的促进作用，个体对环境刺激的应对形成的适应系统，包括输入、控制、
+效应器、输出及反馈5 个部分，如图1[58]所示。
+图1
+罗伊适应模式框架图
+在输入端，刺激是指能引起个体反应，是个体系统与环境产生交互作用的点。
+分为：①主要刺激：个体当下面对的最重要问题，需要引起关注；②相关刺激：
+围绕着主要刺激的相关因素，能决定主要刺激对个体的影响程度；③固有刺激：
+
+<!-- page 30 -->
+6
+其他能影响个体的因素。
+在中间控制过程，人的应对机制包含认知系统和调节系统两方面，由刺激（压
+力）触发，迫使个体发生改变。调节系统涉及人的生理机制的改变，表现在神经、
+生理化学及内分泌系统。认知系统涉及认知部分和情感部分，包括唤醒、注意、
+感觉、感知、编码、概念形成、记忆、语言及运动反应。
+在行为反应阶段，适应反应为维护和增进人的完整性所产生的反应。具体表
+现在四种适应方式上，分别为：①生理方式，反映生命体基本的生理需求，如氧
+合反应、营养需求、排泄活动、活动及休息等。②自我概念，反映个体在某一特
+定时间内对自己的信仰和感受，由自我感知和对他人反应的感知形成。③角色功
+能，反映了个体在社会中的存在方式，个体须履行每个角色所赋予的职责。④相
+互依赖，反映个体为了满足情感的需要和关系发展而去建立人际间的亲密关系。
+（2）Roy 适应模式对本研究的启示：Roy 适应模式适用于急慢性疾病、生
+活应激事件及生命发展事件的相关研究，有较为丰富的实证资料[59,60]。作为概念
+模式，Roy 适应模式反映了个体适应环境的一般性规律，从逻辑上明确了各概念
+间的关系，为女性尿失禁患者心理社会适应概念模型的构建提供了保证，同时为
+质性研究提供指导，探究女性尿失禁患者患病后心理社会适应体验和历程。
+4.2 慢性病适应中域理论
+（1）慢性病适应中域理论简介：该理论是由王喜益等[61]基于Roy 适应模式
+形成，描述了护理的目标是促进个体系统的整体适应，与Roy 适应模式的概念
+框架存在一一对应关系，理论图示如图2[61]所示。在刺激输入过程中，主要刺激
+（慢性病和健康促进干预）、相关刺激（社会人口学因素、社会支持要素、疾病
+治疗进程、疾病相关要素）及固有刺激（生命阶段和社会文化）对信息处理过程
+中的认知/调节系统产生影响，具体表现在个体的认知适应过程。个体内环境的
+疾病感知（压力感知、情绪表达、患病接受度）和应对适应过程（应对方式和适
+应策略）相互作用，使机体处于动态调整，进而以生理功能（生理指标和生理症
+状）、自我概念（躯体自我、心理症状、灵性健康）、角色功能（角色内容和胜
+任力）和互相依赖（社会支持和人际关系）方式输出个体对刺激的处理情况，其
+结果表现为适应行为或不适应行为。
+（2）慢性病适应中域理论对本研究的启示：该理论基于Roy 适应模式形成，
+在中域理论水平上对个体的慢性病适应现象进行了描述、说明及解释，具有一定
+的普适性。通过整合以往的研究结果，确定了概念的操作性定义和具体的观察变
+
+<!-- page 31 -->
+7
+量，对实践具有较强的指导性，为女性尿失禁患者心理社会适应概念分析、评估
+工具的研制及影响因素的筛选提供理论依据。
+图2
+慢性病适应中域理论图示
+
+<!-- page 32 -->
+8
+图3
+本研究的技术路线图
+确定研究课题
+研究背景
+研究综述
+理论基础
+研究目的和意义
+女性尿失禁患者心理
+社会适应量表的研制
+基于概念分析和质
+性研究构建条目池
+2 轮专家咨询
+预调查
+按纳入和排除标
+准选取研究对象
+正式调查
+评价内容效度
+项目分析
+结构效度、效标关联
+效度、内部一致性信
+度、重测信度
+量表信效
+度评价
+女性尿失禁患者心理
+社会适应概念模型验证
+便利抽样法
+纳入排除标准
+选取研究对象
+调查工具：一般资料调
+查表、女性尿失禁患者
+心理社会适应量表、
+ICIQ-UI SF、尿失禁疾
+病认知问卷、女性尿失
+禁应对方式量表、
+I-QOL
+问卷调查
+数据整理与
+统计分析
+描述性分析、t 检
+验、方差分析、
+相关性分析、多
+元线性回归分析
+分析女性尿失禁患者心理
+社会适应水平及影响因素
+基于女性尿失
+禁患者心理社
+会适应模型选
+取调查工具
+验证女性尿失禁患者
+心理社会适应概念模型
+应用AMOS24.0
+对构建的模型
+进行路径分析
+并验证模型
+女性尿失禁患者心理
+社会适应质性研究
+基于Roy 适应模
+式制定访谈提纲
+目的抽样法选取
+研究对象
+半结构式
+访谈
+Colaizzi分析法
+明确女性尿失禁患者心
+理社会适应体验和历程
+女性尿失禁患者心理社会适
+应概念分析与模型初步构建
+检索文献
+纳入文献
+确定概念属性、先决条
+件、影响因素及结果
+应用
+Rodgers 概
+念分析法
+区分相关概念
+构建典型案例
+初步构建女性尿失禁患者
+心理社会适应概念模型
+临界比值法和
+相关系数法
+5
+技术路线
+
+<!-- page 33 -->
+9
+第一部分：女性尿失禁患者心理社会适应的概念分析
+及模型构建
+1
+概述
+心理社会适应概念被广泛应用于医学、护理学、心理学、社会学及教育学等
+领域。2001 年Livneh 博士提出慢性病和残疾的心理社会适应概念框架，该框架
+指出，慢性病和残疾的心理社会适应是一个动态的、发展的和复杂的过程，强调
+个体的主观能动性和积极品质[62,63]。2015 年Londono 等[31]从多学科的角度对心
+理社会适应进行了概念分析，心理社会适应的属性包括变化、过程、连续性、互
+动和影响。在医学领域，心理社会适应的重点主要是健康状况、角色变化和生活
+条件的改变。
+尿失禁作为一个世界性的卫生问题，被认为是威胁女性身心健康的五种主要
+健康问题之一[6]。大多数研究报告女性尿失禁的患病率在25%~45%之间[7]。我国
+大规模流行病调查数据显示，女性尿失禁发生率达30.9%[8]。由于尿失禁具有长
+期性和不易治愈的疾病特点，女性尿失禁患者心理社会问题突出，常表现为抑郁
+和焦虑、病耻感和社会隔离、消极和回避的应对方式等[64]，严重影响了患者的身
+心健康和生活质量[23-25]。心理社会适应作为护理学的一个重要概念，大量研究表
+明，在护理实践中提高患者的心理社会适应，有助于改善其生活质量和生活满意
+度[33,34,65]。
+慢性疾病的心理社会适应内涵随疾病种类而不同，有必要在疾病背景下，对
+尿失禁患者心理社会适应的概念内涵进行全面、深入地分析，发展心理社会适应
+理论在具体情境中的应用，同时为开发女性尿失禁患者特异性的心理社会适应的
+评估工具、促进积极心理社会适应干预措施的制定提供理论依据，从而提高患者
+的生活质量。
+
+<!-- page 34 -->
+10
+2
+方法
+概念是构成理论的基石，包括护理学科在内的各个学科都有自己特有的概念。
+概念分析法可以确定概念内涵和外延、构建理论、促进研究，对提升护理实践有
+重要的意义[66]。Walker 和Avant 的经典概念分析法（classical concept analysis）[66]、
+Rodgers 的演化概念分析法（evolutionary concept analysis）[67]是两种常用的概念
+分析方法。Walker 和Avant 以分析概念的操作性定义为重点，强调概念分析要区
+别概念的定义属性和无关属性[66]。Rodgers 等则强调把概念属性作为发展基础，
+澄清概念及其目前的用法，分析概念随着时间和情境的改变而发生的动态变化[67]。
+本研究借助Rodgers演化概念分析法对女性尿失禁患者心理社会适应的概念和内
+涵进行分析，以期为深层次理解女性尿失禁患者心理社会适应、研制相关评估工
+具和探讨其影响因素提供参考。具体技术路线图如图4 所示。
+图4
+女性尿失禁患者心理社会适应概念分析技术路线图
+区分相关概念
+构建典型案例
+初步构建女性尿失禁
+患者心理社会适应模型
+选择概念
+检索文献、纳入文献
+确定概念属性
+确定概念先决条件和
+影响因素
+确定概念的后果
+应用Rodgers 概念分析法
+分析文献
+
+<!-- page 35 -->
+11
+2.1 检索文献
+以“尿失禁”（urinary incontinence）和“心理社会适应/适应”（psychosocial
+adaptation or psychosocial adjustment or adaptation or adjustment）为主题词或关键
+词，检索Pubmed、Web of Science、CINAHL、PsycINFO、CBM、中国知网、万
+方数据知识服务平台。1997 年Roy 更新了适应模式的理论假说，因此本研究检
+索时限从1997 年1 月至2021 年6 月。检索结果显示，“心理社会适应”与“应
+对”（coping）相关，扩大检索词进一步检索。
+2.2 纳入文献
+文献纳入标准：以尿失禁患者的心理社会适应为主要研究内容，涉及尿失禁
+患者心理社会适应的演变历程、概念属性、先决条件、影响因素、后果及相关概
+念的文献；中英文文献。排除标准：无法获取全文的文献。
+初步检索共获得2092 篇文献，剔除重复文献752 篇，根据纳入标准阅读文
+献题目和摘要剔除文献1178 篇，深入阅读全文，根据研究主题等情况剔除119
+篇文献，最终保留符合纳入标准的43 篇文献，其中英文文献35 篇，中文文献8
+篇，符合Rodgers 演化概念分析法[67]文献数量要求。检索获得文献中没有直接对
+尿失禁患者心理社会适应进行研究的文献，且没有对尿失禁患者心理社会适应进
+行明确界定。文献筛选流程见图5。
+图5
+文献筛选流程图
+通过数据库初步检索获得文献（n=2092）
+阅读文题及摘要初筛（n=1340）
+阅读全文复筛（n=162）
+纳入文献（n=43）
+使用Endnote 及人工剔
+除重复文献（n=752）
+剔除文献（n=1178）
+剔除不符合研究主题、
+无法获取全文的文献
+（n=119）
+
+<!-- page 36 -->
+12
+2.3 分析文献
+应用Rodgers 概念分析框架,从尿失禁患者心理社会适应概念的演变、概念
+属性、先决条件、影响因素、后果及相关概念等方面对尿失禁患者心理社会适应
+的相关内容进行分析和整合。2 名研究人员独立完成资料的收集与分析工作，意
+见不一致时由第3 名研究人员进行评判。
+
+<!-- page 37 -->
+13
+3
+结果
+3.1 女性尿失禁患者心理社会适应概念的演化
+心理社会适应概念是在更宽泛的“适应”的概念基础上发展而来的，应在充
+分理解“适应”概念的背景下分析心理社会适应的概念。据牛津英语词典记载，
+适应（adaptation）概念最早起源于1610 年。1859 年达尔文在《物种起源》一书
+中用适应来解释生物进化，后经社会学家和心理学家等学者的不断研究，适应概
+念在社会学、心理学、医学及环境学等领域被广泛应用[31]。
+在护理领域，Roy[68]于1970 年提出了适应模式，对适应的核心内容进行了
+初步的探索。Murray 和Zentner[69]将适应等同于健康，认为健康是个体为保持稳
+态和舒适感，在身体、精神和情感上对内外刺激做出的适应性反应。在Levine
+的守恒模式中适应也被作为核心概念，适应被视为个人与环境之间相互作用的产
+物。Levine 强调适应是一个涉及变化的过程，每个人都可以有各种生理和行为的
+适应性反应，适应是以个人为重点，行为反应包括心理适应的各个方面[70]。1997
+年Roy 更新了适应模式的理论假说[71]，提出人是具有生物、心理和社会多重属
+性的一个整体，个体行为具有较强的目的性，受感觉和思维的调节；适应方式有
+物理/生理、群体身份/自我概念、角色功能和相互依赖4 种方式。2009 年Roy 再
+次将适应定义为个体思考和感受的过程或结果，或者是在群体中通过有意识的觉
+察和选择实现个体与环境的融合[72]。虽然Roy 的适应模式没有提供心理社会适
+应的定义，但适应的定义包括了反映心理社会适应方面的要素，如思维、感觉、
+意识等，区分了生理适应和心理社会适应，心理社会适应通过自我概念、角色功
+能及相互依赖的适应方式来表现。
+Pollock[73]基于个体对慢性病的反应，指出个体对慢性疾病的适应是一个复
+杂的过程，受内外环境因素的影响，生理适应和心理社会适应分别属于两个不同
+的领域。1986 年Leonard[74]采用半结构化深度访谈的形式开发了疾病心理社会适
+应量表（self-report psychosocial adjustment，PAIS-SR），在肺癌、肾脏透析、急
+性烧伤、高血压、心脏疾病等患者中进行验证，具有良好的信效度。2013 年姚
+静静等[75]对PAIS-SR 进行汉化，汉化后量表包括7 个维度共44 个条目，7 个维
+度分别为卫生保健、工作能力、家庭关系、性能力、交流情况、娱乐情况及心理
+状况。2001 年Livneh[62]的慢性病和残疾的心理社会适应概念框架指出，在触发
+事件的作用下，处于不同情景影响中的个体其适应过程是自发产生的，受疾病相
+
+<!-- page 38 -->
+14
+关因素、人口社会学因素、人格特征、应对方式及外部环境等情景变量所影响。
+2015 年Londono 等[31]通过对心理社会适应相关文献进行分析发现，尽管心理社
+会适应概念已被广泛应用于医学、护理学、心理学、社会学等领域，但缺乏对心
+理社会适应概念进行清晰界定的研究。因此，Londono 等[31]采用Rodgers 演化概
+念分析法，从多学科角度对心理社会适应进行概念分析，将心理社会适应的概念
+描述为一个持续的过程，在这个过程中，内部和外部的相互作用反映了个体在适
+应自己的情况时所经历的变化，这一过程受个体或环境特征的影响。心理社会适
+应的属性包括变化、过程、连续性、互动和影响。在医学领域，心理社会适应的
+重点主要是健康状况、角色变化及生活条件的改变。
+女性尿失禁患者心理社会适应的相关文献分析后发现，尚无针对女性尿失禁
+患者进行心理社会适应的研究，且没有对女性尿失禁患者心理社会适应概念进行
+明确界定的研究。以往研究表明[64]，女性尿失禁患者面对疾病时，多数患者表现
+出抑郁和焦虑等负性情绪，患者因漏尿，害怕受到歧视和嘲笑，常常存在病耻感
+和社会隔离现象，经常选择掩饰自己的病情和消极的就医行为。女性尿失禁患者
+心理社会干预研究多采用基于行为改变理论的干预策略，如认知行为干预[46,48]、
+自我管理干预[47,49-51]、小组模式干预[54,55]等。
+3.2 女性尿失禁患者心理社会适应的概念属性
+一个概念所具备的特征或现象称作此概念的属性[76]。Londono 等[31]对心理社
+会适应的概念分析认为，心理社会适应的概念属性包括变化、过程、连续性、互
+动及影响五部分。Stanton 等[77]提出，慢性病适应涉及多个生活领域，具有个体
+差异性，且随着时间的变化而不断变化。在多数研究中，适应指标关注的重点为
+状态和水平，即应对反应之后的适应水平，这种类似结局的指标常用来说明适应
+过程的有效性。本研究依据Roy 适应模式，将心理社会适应的表现形式定位在
+自我概念、角色功能和相互依赖，同时参考慢性病适应中域理论中对自我概念、
+角色功能及相互依赖的具体操作性定义和观察变量，结合心理社会适应在其他疾
+病的相关研究和尿失禁患者心理社会特征进行深入分析，反复比较、综合、归纳，
+找出女性尿失禁患者心理社会适应的4 个概念属性。
+3.2.1 情绪状态
+心理适应是个体心理机制上的积极反应，与情绪和认知有关。Levesque 等[78]
+于1998 年基于Roy 适应模式发展了心理适应的中域理论，该理论认为知觉压力
+
+<!-- page 39 -->
+15
+的焦点刺激、社会支持的冲突情境刺激以及应对机制的一个组成部分（被动/回
+避应对策略）与情绪困扰呈直接或间接的正相关，这是自我概念模式下的适应指
+标。Helgeson 等[79]将心理适应表现描述为高水平的生活满意度与低水平的抑郁和
+焦虑情绪。Kwak 等[24]的研究结果显示，患有尿失禁的老年女性的压力和抑郁风
+险分别是无尿失禁患者的2 倍和1.5 倍。Lim 等[28]对韩国的1116 名中老年尿失
+禁女性的纵向研究表明，尿失禁的发生与抑郁密切相关，抑郁评分随着尿失禁症
+状的恶化而变得更差。挪威的一项长期随访研究报告，挪威妇女的抑郁和焦虑都
+与尿失禁有关[80]。女性尿失禁患者情绪变化复杂多样，如焦虑、抑郁、恐惧、担
+心、痛苦等，其中以抑郁和焦虑报道最多[24,28]，因此患者存在情绪调节的适应性
+任务。
+3.2.2 自我认知
+自我作为社会心理学的研究热点，包括自我认知、自我体验及自我控制三部
+分[81]。自我认知是对自我的认识和评价；自我体验是主体对自身的认识而引发的
+内心情感体验，如自信、自卑、自尊、自满、内疚、羞耻等；自我控制是自己对
+自身行为的调节。自我认知直接影响自我体验和自身行为。尿失禁患者因漏尿，
+常产生错误的自我认知，表现为羞耻、尴尬、自尊低下及自卑等自我体验[35,43]。
+在慢性病适应中域理论适应水平的概念检验研究中，采用自我效能作为行为改变
+的测量指标，刺激通过影响个体的适应水平，导致疾病管理的行为改变。在女性
+尿失禁患者中，自我效能感可作为评估患者家庭锻炼和盆底肌肉锻炼治疗依从性
+的预测指标[44]。通过提高女性尿失禁患者盆底肌锻炼自我效能，能帮助患者建立
+积极应对策略，提高其治疗的依从性和生活质量[37]。另外，在尿失禁患者心理社
+会适应干预策略方面，认知行为干预和自我管理干预是目前应用较多且比较成熟
+的干预方式，有助于患者持续的行为改变和自我管理，提高患者的生活质量[47-51]。
+3.2.3 角色功能
+Roy 适应模式中的角色功能属于社会适应的范畴，角色功能涉及慢性病患者
+的基本角色、家庭角色及社会角色，以及不同角色所需要承担的职能。尿失禁患
+者常由于疾病影响其在家庭和社会中的角色胜任能力，表现出自责和内疚等情绪
+体验。Siu 等[82]对压力性尿失禁的女性进行质性访谈时发现，尿失禁影响了患者
+的角色功能。来自家庭和医护人员的支持能帮助患者的情绪和人际关系方面的适
+应，减少患者的自我责备和内疚感[83]。另外，尿失禁病人因漏尿，易产生病耻感
+
+<!-- page 40 -->
+16
+和自卑等不良情绪，导致患者减少社会交往活动甚至出现社会隔离[35,41]，社会交
+往受限在一定程度也会影响患者的社会角色和功能。
+3.2.4 社会支持
+Roy 适应模式中的相互依赖表现为发展与家庭和社会的关系并获得支持。社
+会支持已被证明有助于对慢性病的适应[38]。由于慢性病本身造成了压力，寻求社
+会支持往往被认为是人们用来应对疾病相关压力的策略之一。Beutel[84]认为适应
+在概念上包含了防御机制、应对过程及社会支持三部分内容，社会支持表现为向
+外部获取资源，初期有可能表现出无意识反应，后期则进入有意识的学习阶段。
+患者通过向家人、朋友、同伴寻求帮助，以及主动帮助他人等方式积极利用社会
+资源，可以缓解疾病造成的社交孤立状态。家庭亲密度和适应性作为应对生活应
+激事件的中间变量，也是个体心理应激反应过程的重要影响因素[85]。研究表明，
+较低的家庭亲密度和适应性与回避和屈服的应对方式呈正相关[86]。Zhang 等[45]
+研究显示尿失禁与孤独感具有相关性，提示医务人员应特别关注老年尿失禁患者
+的孤独感情绪，并给予必要的家庭和社会支持。
+3.3 尿失禁患者心理社会适应的先决条件和影响因素
+3.3.1 先决条件
+先决条件是指概念产生之前，应先存在的事件或情况[67]。尿失禁患者的心理
+社会适应的先决条件为尿失禁的患病事实。依据Roy 适应模式[58]，个体作为一
+个适应系统，刺激是人和环境交互作用的点，主要刺激作为个体当下面对的最重
+要问题，是适应的先决条件；相关刺激和固有刺激决定主要刺激对个体的影响程
+度，是适应的影响因素。慢性病适应中域领域[61]提出个体主要刺激为慢性疾病和
+健康促进干预。Londono 等[31]指出心理社会适应的重点主要是健康状况、角色变
+化及生活条件的改变。
+3.3.2 影响因素
+（1）人口社会学因素：慢性病适应中域领域[61]提出人口社会学因素是适应
+的相关刺激，影响个人的适应水平。研究表明，年龄和婚姻状况是女性尿失禁患
+者抑郁的影响因素，抑郁在高龄、离婚及丧偶的女性尿失禁患者中检出率更高[87]。
+年龄和文化程度影响女性尿失禁患者应对方式的选择。关于老年女性尿失禁患者
+的调查显示，年龄越轻、文化程度越高的老年女性尿失禁患者更倾向于采取积极
+
+<!-- page 41 -->
+17
+的应对方式[88]。此外，大多老年尿失禁患者表现为疾病认知水平严重低下[89]。
+（2）疾病相关因素：尿失禁的类型和严重程度直接影响患者心理社会功能
+和生活质量，尿失禁症状严重程度正向预测患者的生活质量，混合性尿失禁对患
+者心理社会功能影响最大[90]。一项韩国的纵向研究显示[91]，中老年女性尿失禁
+状态的变化与抑郁有关，尿失禁转变为“更好”或“恢复”状态的女性表现出抑
+郁症状降低的趋势。Nicosia 等[37]对中老年尿失禁女性实施瑜伽干预的研究表明，
+患者瑜伽训练的自我效能与其自述的机体功能状态呈正相关。
+（3）疾病认知：疾病认知被认为是慢性病适应的重要因素[38]。Roy 适应模
+式中，人的应对过程包含认知系统和调节系统。当刺激或压力输入时，个体通过
+认知系统触发不同的行为反应。在慢性病适应中域理论中，应对过程被看作认知
+适应过程，包括疾病感知和应对适应。Taylor[92]提出的认知适应理论认为适应过
+程包含寻找疾病和生命的意义，获得个人控制感和提升自尊感。当尿失禁患者发
+生漏尿后，将面临如何看待疾病的问题，对该疾病的认识不足和歪曲认知是影响
+患者求医和治疗效果的重要因素[39,40,43,93]。我国有关成年女性尿失禁的研究中，
+患者就诊率低的原因一方面是受传统观念和道德规范的影响、思想比较保守、感
+到尴尬和害羞；另一方面的原因是因为缺乏医学知识，大多数患者认为该疾病是
+机体自然老化和生育不可避免的结果，并不知道是可以医治的疾病。
+（4）应对方式：Roy 认为个体对环境刺激的应对形成适应系统。慢性病适
+应中域理论指出，个体内环境的疾病感知和应对适应过程相互作用，使机体处于
+动态调整状态，以生理功能、自我概念、角色功能及互相依赖方式表现个体的适
+应性行为。Lazarus[94]认为有效应对形成的良好适应会使个体产生情绪满足感，
+表现在机体状态和健康行为上。Londono 等[31]在对心理社会适应的概念分析时指
+出，应对常被作为心理社会适应的替代词出现，这也说明了应对方式在心理社会
+适应过程中的重要性。女性尿失禁患者大多采用回避和消极的应对方式，大多女
+性不愿意因尿失禁寻求医疗帮助[42]。Livneh[95]对心理社会适应的一项系统综述结
+果显示，回避型应对方式与较差的心理社会适应能力具有相关性。
+3.4 尿失禁患者心理社会适应的后果
+后果指概念产生之后所导致的事件或情况[67]。尿失禁患者心理社会适应的后
+果为生活质量。大量研究表明，在护理实践中提高患者的心理社会适应水平，有
+助于改善其生活质量[36,46,90]。Londono 等[31]的心理社会适应的概念分析指出，心
+
+<!-- page 42 -->
+18
+理社会适应的后果可表现为适应和不适应两种状况，除了生活质量外，心理社会
+适应的后果还涵盖疾病感知、情绪反应及行为变化等。基于前期的文献分析，本
+研究更倾向于将疾病感知、情绪反应及行为变化等看作应对适应过程中的表现形
+式，而非心理社会适应的后果。
+3.5 尿失禁患者心理社会适应的相关概念
+3.5.1 适应
+2009 年Roy 将适应定义为个体思考和感受的过程或结果，或者是在群体中
+通过有意识的觉察和选择实现个体与环境的融合[72]。虽然Roy 没有提供心理社
+会适应的定义，但适应的定义包括了反映心理社会适应方面的要素，如思维、感
+觉、意识等，心理社会适应通过自我概念、角色功能及相互依赖的适应方式来表
+现，区分了生理适应和心理社会适应的不同。但在以往研究中，有些学者倾向于
+使用“适应”来暗示“心理社会适应”[31]，导致了概念使用不准确。
+3.5.2 应对
+Lazarus[94]提出的压力与应对模式认为，应对是个体应用认知或行为的方法，
+努力处理环境与人内部之间关系的需求，解决二者之间的冲突。Roy 应对适应理
+论[96]认为应对策略是处于某种特定情境下的个体在适应过程中解决问题的行为
+方式，以生理功能、自我概念、角色功能及互相依赖方式输出个体对刺激的处理
+情况，使机体处于动态调整状态。应对能力和适应过程是人们应对环境变化的能
+力，人们利用自己的应对方式和策略有效地适应挑战。Londono 等[31]对心理社会
+适应的概念分析时指出，应对常被作为心理社会适应的替代词出现。
+3.5.3 生活质量
+生活质量是个体根据其所处的文化背景、价值体系对自身生活的主观感受，
+受个体的目标、期望值、标准及个体的关注的影响[97]。生活质量作为一个多维度
+概念，是健康涵义的深化，既包括个体或群体的身体机能、心理功能、社会功能
+等健康质量的评估，也包括物质生活的质量。Roy 的适应模式探究人-环境-健康
+的关系，适应方式包括生理、心理及社会适应。由此可见，生活质量定义与适应
+概念的本质内涵是类似的。在医学、社会学及心理学等领域的研究中，积极心理
+社会适应常与生活质量相关联，有些学者采用了生活质量问卷对心理社会适应进
+行测评[98-100]。
+
+<!-- page 43 -->
+19
+3.6 女性尿失禁患者心理社会适应的概念框架
+通过对女性尿失禁患者心理社会适应内涵进行深入分析，本研究将女性尿失
+禁患者心理社会适应定义为个体经历尿失禁的患病事实后，通过疾病认知和应对，
+不断调整情绪状态、自我认知、角色功能及社会支持进而影响生活质量的过程。
+女性尿失禁患者心理社会适应的先决条件是尿失禁的患病事实，概念属性为情绪
+状态、自我认知、角色功能及社会支持，影响因素是患者的人口社会学因素、疾
+病相关因素、疾病认知及应对方式，后果是生活质量。女性尿失禁患者心理社会
+适应概念框架图如图6 所示。
+图6
+女性尿失禁患者心理社会适应概念框架图
+3.7 典型案例
+3.7.1 案例介绍
+王女士，35 岁，已婚，本科学历，职业为公司职员，三年前阴道分娩一女
+孩，半年前在咳嗽、打喷嚏及蹦跳等剧烈运动后出现漏尿，漏尿量少，约每周漏
+尿1 次。王女士自述自己第一次漏尿后，大哭了一场，特别恐惧和害怕，因为自
+己的母亲出现漏尿已二十多年，漏尿一直困扰母亲的生活，担心自己像母亲一样。
+王女士觉得漏尿这件事非常羞于启齿，因此不愿意跟任何人谈论这件事，包括自
+己的丈夫、母亲及朋友。王女士觉得这个病无法治愈，没有去医院就诊，而是开
+始避免蹦跳等剧烈运动，有尿意时及时上厕所，经常清洗内裤，在需要长时间外
+出活动时减少饮水。这种状况持续了数月，王女士感觉漏尿症状没有好转，情绪
+影响因素
+人口社会学因素
+疾病相关因素
+疾病认知
+应对方式
+尿失禁
+患病事实
+情绪状态
+自我认知
+角色功能
+社会支持
+生活质量
+先决条件
+女性尿失禁患者心理社会适应
+后果
+
+<!-- page 44 -->
+20
+变得很不稳定，时常感觉自己没有价值，经常因为生活琐事跟丈夫生气，工作时
+也经常走神。王女士的丈夫发现她的情绪问题，不仅没有责备她，还关切地询问
+是不是身体有什么不舒服，主动帮王女士分担家务。王女士在丈夫的关爱下，终
+于鼓起勇气向丈夫讲述了自己漏尿的情况。丈夫耐心地安慰她，并且告诉王女士，
+她还很年轻，现在医疗技术水平已经非常发达了，鼓励她去正规医院诊治，医生
+会有办法治疗疾病的。在丈夫的鼓励下，王女士来到了一家三级甲等医院妇科门
+诊就诊，被诊断为轻度压力性尿失禁。在医生的指导下，王女士开始在医院盆底
+康复门诊进行盆底肌功能锻炼结合生物反馈和电刺激治疗，治疗一个疗程后，王
+女士明显感觉漏尿症状好转。医生告诉王女士，疾病症状已基本控制，在医院的
+治疗可以结束了，为巩固治疗效果，避免再发生漏尿症状，应每日在家自行进行
+盆底肌功能锻炼，坚持得越好，治疗效果越好。现在王女士已在家自行盆底肌功
+能锻炼数月，基本每日都做，偶尔忘记锻炼时，丈夫还经常提醒她，目前王女士
+症状控制得很好，很少发生漏尿，生活质量和生活满意度大大提高。王女士感觉
+漏尿不那么可怕了，情绪也稳定平和了，跟丈夫关系更加亲密了，工作表现也很
+优秀，重新感受到自我价值。王女士还跟母亲讲述了自己漏尿及治疗的经过，鼓
+励母亲去医院治疗。
+3.7.2 案例分析
+王女士应对患病影响的过程属于典型的女性尿失禁患者心理社会适应。王女
+士患尿失禁的事实是女性尿失禁患者心理社会适应的先决条件。王女士从开始患
+病时对尿失禁的担心、恐惧、情绪不稳定，调整为情绪积极稳定，属于女性尿失
+禁患者心理社会适应情绪状态的变化；从开始患病时感到羞耻、不愿意让别人知
+道此事、感觉没有自我价值，转变为重获自我价值感、主动跟母亲讲述患病经过，
+属于女性尿失禁患者心理社会适应自我认知的变化；从开始患病时不跟家人和朋
+友沟通、疾病影响家庭生活和工作，患者的基本角色、家庭角色及社会角色功能
+不足，发展为主动和家人沟通、家庭关系和工作满意，患者的基本角色、家庭角
+色及社会角色功能完善，属于女性尿失禁患者心理社会适应角色功能的调整；从
+开始患病时对丈夫和家人隐瞒疾病、未主动就医、缺乏疾病治疗信息转变为丈夫
+主动承担家务、掌握疾病治疗信息和盆底肌锻炼方法、丈夫督促锻炼，属于女性
+尿失禁患者心理社会适应社会支持的改变。在心理社会适应过程中，王女士的疾
+病认知和应对方式对心理社会适应产生重要的影响。王女士开始患病时，认为疾
+病无法治愈，采取了回避的应对方式，如避免蹦跳、外出时减少饮水等，导致心
+
+<!-- page 45 -->
+21
+理社会适应不良。王女士通过就医获得了正确的疾病认知，积极面对疾病，坚持
+盆底肌康复训练，达到了心理社会适应的良好状态。另外，年龄轻、已婚有配偶、
+文化水平高、轻度尿失禁、随疾病治疗进程患者感知健康状况好等因素是尿失禁
+患者良好心理社会适应的影响因素。生活质量和生活满意度的提高是尿失禁患者
+心理社会适应的后果。
+3.8 构建女性尿失禁患者心理社会适应概念模型
+Roy 适应模式认为，个体输入刺激后，通过认知调节和应对，影响个体的适
+应行为。女性尿失禁患者心理社会适应概念分析得出，尿失禁的患病事实是其先
+决条件，影响因素是人口社会学因素、疾病相关因素、疾病认知及应对方式，后
+果是生活质量。本研究以Roy 适应模式理论为指导，在女性尿失禁患者心理社
+会适应概念分析的基础上，初步构建女性尿失禁患者心理社会适应概念模型，如
+图7 所示。在概念模型中，疾病认知和应对方式在人口社会学因素和疾病相关因
+素与心理社会适应之间具有中介作用；心理社会适应在疾病认知和应对方式与生
+活质量之间具有中介作用；疾病认知、应对方式及心理社会适应在人口社会学因
+素和疾病相关因素与生活质量之间具有中介作用。
+图7
+女性尿失禁患者心理社会适应概念模型
+生活质量
+人口社会学因素
+疾病相关因素
+疾病认知
+应对方式
+心理社会适应
+
+<!-- page 46 -->
+22
+4
+讨论
+4.1 女性尿失禁患者心理社会适应是一个动态变化的过程
+Roy 的适应模式指出，个体对环境刺激的应对形成的适应系统包括输入、控
+制、效应器、输出及反馈5 个部分[58]，通过输出适应行为和/或无效行为反馈个
+体开始新的适应过程。Londono 等[31]对心理社会适应的概念分析认为，心理社会
+适应的属性包括变化、过程、连续性、互动及影响。本研究通过深入的概念分析，
+将女性尿失禁患者的心理社会适应定义为个体经历尿失禁的患病事实后，通过疾
+病认知和应对，不断调整情绪状态、自我认知、角色功能及社会支持进而影响生
+活质量的过程。从女性尿失禁患者心理社会适应的定义和典型案例可以看出，女
+性尿失禁患者的心理社会适应同样是一个动态变化的过程，患者在心理社会适应
+过程中，其情绪状态、自我认知、角色功能及社会支持不是一成不变的，而是不
+断变化、不断发展的。在典型案例中，患者在面临尿失禁疾病后，为应对由疾病
+造成的生活影响，不断进行自我调整，开始表现为负性情绪、自我认知受损、社
+会角色冲突及社会支持缺乏，逐步转变为乐观情绪、自我认知完好、角色功能完
+善及社会支持良好。
+4.2 女性尿失禁患者心理社会适应概念属性之间互相影响
+女性尿失禁患者的心理社会适应的概念属性包括情绪状态、自我认知、角色
+功能及社会支持，概念属性之间互相影响。研究表明，慢性病适应的概念涵盖躯
+体、认知、情感、人际及行为等多个因素，且各因素间存在潜在的相互作用[84]。
+慢性病适应中域理论认为，个体内环境的疾病感知和应对适应过程相互作用，使
+机体处于动态调整状态，进而以生理功能、自我概念、角色功能及互相依赖方式
+输出个体对刺激的处理情况[61]。Levesque 等[78]的心理适应中域理论认为，患者
+的社会支持和应对机制与情绪困扰呈直接或间接的正相关。Folkman 等[101]的情
+感调节应对理论指出，当个体面对压力源时情感和应对之间的关系是双向的，互
+相影响。Lazarus[94]认为应对是对情绪的回应，有效应对形成的良好适应会使个
+体有情绪满足感，表现在机体状态和健康行为上。
+
+<!-- page 47 -->
+23
+Roy 适应模式理论认为适应系统包括输入、控制、效应器、输出及反馈5 个
+部分[58]。尿失禁的患病事实作为主要刺激，患者人口社会学因素和疾病相关因素
+作为相关刺激，个体输入刺激后，在中间控制过程，通过疾病认知和应对方式进
+行调节，表现为个体的心理社会适应或不适应。女性尿失禁患者心理社会适应的
+概念分析显示，尿失禁的患病事实是概念的先决条件，人口社会学因素、疾病相
+关因素、疾病认知及应对方式是概念的影响因素，生活质量是概念的后果。因此，
+可以将女性尿失禁患者心理社会适应的概念模型解释为，具有不同人口社会学和
+疾病特点的患有尿失禁的个体，通过疾病认知和应对方式的调节，影响患者的心
+理社会适应水平，进而影响其生活质量的过程。女性尿失禁患者心理社会适应概
+念模型的构建，可为筛选女性尿失禁患者心理社会适应的影响因素、分析女性尿
+失禁患者心理社会适应对生活质量影响的作用机制和路径、制定女性尿失禁患者
+心理社会适应干预方案提供理论依据。
+4.3 女性尿失禁患者心理社会适应概念模型的构建及意义
+
+<!-- page 48 -->
+24
+5
+结论
+女性尿失禁患者的心理社会适应是一个动态变化的复杂过程。本部分研究借
+助Rodgers 演化概念分析法明确了女性尿失禁患者心理社会适应的概念属性、先
+决条件、影响因素、后果及相关概念等。女性尿失禁患者心理社会适应的概念属
+性为情绪状态、自我认知、角色功能及社会支持，先决条件是尿失禁的患病事实，
+影响因素是人口社会学因素、疾病相关因素、疾病认知及应对方式，后果是生活
+质量。本研究基于Roy 适应模式构建女性尿失禁患者心理社会适应概念模型，
+可以为深层次理解女性尿失禁患者心理社会适应、研制相关评估工具及探讨其影
+响因素提供科学的参考。
+
+<!-- page 49 -->
+25
+第二部分：女性尿失禁患者心理社会适应的质性研究
+1
+概述
+女性尿失禁患者心理社会问题突出，以往研究显示，心理社会适应侧重于患
+者自身对心理社会问题的调适，有助于激发患者内在潜能和积极能量面对正在经
+历的健康问题、角色变化及其他生活变化[31]。Ambrosio 等[102]研究显示，患者通
+过接受、应对、自我管理、整合及调整可达到适应疾病后的积极生活状态。有研
+究表明，女性尿失禁患者症状严重程度与其心理困扰程度并不完全一致，其原因
+可能是由于不同患者对疾病适应水平存在差异[32]。大量研究表明心理社会适应与
+生活质量和生活满意度具有相关性，良好的心理社会适应有助于患者更好地面对
+疾病、提高治疗的依从性，改善患者的生活质量和生活满意度[33,34,65]。
+国内外尚缺乏针对女性尿失禁患者心理社会适应的研究，有关女性尿失禁患
+者心理社会因素的量性研究大多为现状及影响因素的研究，通过应用相关量表测
+评患者的心理社会功能，如抑郁、焦虑、病耻感、社会隔离、应对方式、自我效
+能、家庭和社会支持等方面[24,35-38]；质性研究多集中在患病体验、疾病认知及就
+医态度等方面[39,40]。女性尿失禁患者心理社会问题复杂，疾病导致的病耻感常常
+使患者隐瞒病情，因此对患者的心理社会状况的研究仅仅使用量表测评不能全面
+地、深刻地反映患者的内心感受和体验，而以往质性研究较少关注患者心理社会
+适应的体验和历程。因此，本部分研究旨在通过质性访谈深入挖掘女性尿失禁患
+者心理社会适应的真实体验和身心调适历程，为研制适合我国文化背景的女性尿
+失禁患者心理社会适应评估工具及心理社会适应干预方案的构建提供参考依据。
+
+<!-- page 50 -->
+26
+2
+对象与方法
+2.1 研究方法
+本研究采用质性研究中的描述现象学方法，深入挖掘我国文化背景下女性尿失
+禁患者心理社会适应的真实体验和历程，具体技术路线详见图8。根据定性研究统
+一报告标准（consolidated criteria for reporting qualitative research，COREQ）进行研
+究结果整理和报告，包括研究团队和过程反映、研究设计、分析和结果[103]。
+图8
+女性尿失禁患者心理社会适应的质性研究
+2.2 研究对象
+本部分研究选取2021 年3 月至2021 年7 月期间在河北省唐山市两所三甲医院
+盆底康复门诊就诊的女性尿失禁患者为研究对象，研究者和研究对象之前并不相识。
+研究者严格按照纳入和排除标准确定研究对象。
+2.2.1 纳入标准
+（1）女性患者；
+（2）经国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）面对面评估明确
+有尿失禁症状；
+（3）年龄≥18 岁；
+基于Roy 适应模式制定
+访谈提纲
+目的抽样法选取
+研究对象
+半结构式访谈
+收集资料
+Colaizzi 七步分析法
+明确女性尿失禁患者心理社会
+适应体验和历程
+资料饱和原则
+知情同意
+纳入标准
+排除标准
+
+<!-- page 51 -->
+27
+（4）病程≥1 个月；
+（5）知情并愿意参加本研究。
+2.2.2 排除标准
+（1）病情严重，无法配合30 分钟左右的访谈者；
+（2）存在精神疾患或认知障碍者；
+（3）存在听力或语言沟通障碍者；
+（4）合并其他严重的躯体疾患；
+（5）妊娠期尿失禁患者；
+（6）产后3 个月内的尿失禁患者。
+2.2.3 抽样方法及样本量的确定
+采用目的抽样法选取研究对象，遵循样本最大差异化原则，选取不同人口学特
+征（如年龄、教育程度、居住地）和疾病特征（如类型、严重程度）的研究对象，
+进而获得患者心理社会适应的感受、体验及历程。本研究中采用ICIQ-UI SF 量表评
+估患者的类型和严重程度。样本量的确定以资料饱和（即无新编码出现）为标准。
+2.3 研究工具
+（1）研究者：研究者本人接受过质性研究相关培训，具备质性研究的经验。
+（2）访谈提纲：本研究在文献回顾基础上，基于Roy 适应模式拟定半结构式
+访谈提纲，并征求专家意见，通过预访谈2 名研究对象和小组讨论后，形成正式的
+半结构式访谈提纲。预访谈结果不纳入质性研究资料分析。访谈提纲如表2.1 所示。
+表2.1 半结构式访谈提纲
+项目
+问题
+1
+您能谈谈被诊断为尿失禁以及治疗的经过吗？
+2
+您患尿失禁后在生活中遇到了哪些问题和困扰，最强烈的担心和感受是什么？
+3
+您做了哪些努力调节或适应疾病的改变？
+4
+您和家人（丈夫，父母，孩子）以及其他人（同学、同事、朋友等）的关系如何？
+5
+您认为自身哪些因素影响了您对疾病的适应？
+6
+您能自我评价一下您在心理方面和社会方面适应的情况吗？（适应得好还是适应得不
+好？或者中等水平？）
+7
+在您面对尿失禁以及由此给您带来的各种影响时，您希望得到哪些帮助？
+8
+您还有其他的补充吗？
+
+<!-- page 52 -->
+28
+2.4 资料的收集
+2.4.1 访谈场所
+研究者在征求研究对象的意见后，将研究对象安排在医院门诊单独的房间进行
+访谈，访谈期间只有研究者和研究对象两人在场。为确保访谈过程顺利进行，访谈
+过程中房间门上悬挂“请勿打扰”标识。
+2.4.2 正式访谈
+研究者本人负责所有访谈，采用半结构式深度访谈法对研究对象进行面对面访
+谈。访谈前向研究对象介绍研究的目的和意义，取得研究对象的理解和信任，预约
+访谈时间和地点。正式访谈开始前，使研究对象充分理解本研究并签署知情同意书
+后开始访谈，在征求研究对象同意后，使用录音笔对访谈内容进行录音。访谈过程
+中研究者充分运用有效的沟通技巧，适时引导和鼓励研究对象如实表达自己的情感
+体验和经历，根据研究对象回答问题的情况对访谈内容和顺序进行灵活地调整，同
+时仔细观察研究对象的非语言行为，将访谈时产生的想法和感受等信息及时记录，
+以利于资料分析时对现象进行还原。每例研究对象访谈1~2 次，每次访谈时间大约
+20~30 分钟。
+2.5 资料的整理与分析
+2.5.1 资料的整理
+访谈结束后将录音文件存贮于电脑中，并进行编号，于访谈结束24 小时内对
+访谈资料逐字进行转录，对访谈对象语气、语调（如叹气、停顿等）、表情、哭泣
+等进行注明。针对访谈过程中存在的不足之处，做好反思记录，以防止下次访谈出
+现同样的问题。
+2.5.2 资料的分析
+由研究者本人和一位接受过质性研究培训的研究生将转录后资料及时导入
+NVivo 11.0 软件，采用Colaizzi 关于现象学资料的7 步分析法[104,105]为指导对转录文
+本进行双人资料分析。具体步骤包括：①记录并仔细阅读访谈资料；②摘录并标记
+有意义的陈述；③归纳和提炼有意义的单元；④通过比较提炼有意义单元的共同点，
+形成主题；⑤将主题联系到研究现象进行完整的叙述；⑥陈述构成该现象的本质性
+结构；⑦将所有结果返回被访者，求证内容的真实性。
+
+<!-- page 53 -->
+29
+2.6 伦理考量
+本研究已向中国医科大学医学伦理委员会提交伦理申请并获得批准（伦审
+[2021]94 号），伦理批件见附录A。研究者严格遵守《赫尔辛基宣言》，对研究对
+象的信息严格保密，将涉及到患者个人信息的资料与其他类型资料分开放置与保管，
+在整个研究结束后将研究对象的所有信息销毁。
+研究正式开始前，研究者向研究对象介绍本研究的目的和意义，解释研究的注
+意事项、保密协议及资料的销毁流程等，研究对象知情同意后签署知情同意书（附
+录B）；研究者选择不被打扰、能够保护研究对象隐私的地点进行访谈；研究过程
+中研究对象可随时终止研究，并有权要求销毁研究资料；资料整理分析过程中涉及
+研究对象个人隐私的信息统一用编号“N”表示。对全程参与并完成访谈的研究对
+象给予小礼品表示感谢。
+2.7 质量控制
+（1）在质性研究部分开始前，研究者完成了CMB 项目《高级质性研究》护理
+博士核心课程的学习，同时阅读《质性研究方法》[105]等书籍，掌握质性研究方法学
+中关于现象学的研究方法。研究者具有多年妇产科临床护理工作经验，熟悉患者的
+心理特点，善于与患者进行沟通，具备进行质性访谈的能力和技巧。
+（2）为获得研究对象的信任，在质性研究开始前，取得盆底康复中心主任和
+护士长的支持，研究者以临床护理工作者身份进入科室，帮助患者解答就诊流程和
+盆底康复等方面的问题，与研究对象建立良好的信任关系。
+（3）在文献回顾基础上制定访谈提纲，请专家进行审阅与指导，进行预访谈
+予以修订。
+（4）采用目的抽样法选取研究对象，遵循样本差异最大化原则，尽量选取有
+代表性的研究对象。
+（5）访谈开始前，向研究对象解释本研究的目的和意义，取得其充分理解和
+配合。访谈过程中，适时引导，鼓励研究对象表达自己真实的情感体验。研究者注
+意悬置，尽可能从研究对象角度出发，充分理解其感受和体验。
+（6）访谈结束后24 小时内完成文本的转录，确保信息的准确和完整。
+（7）由两位研究人员对原始转录文本进行分析，同时将转录后文本和研究结
+果返回给研究对象进行核实，如有必要进行二次访谈。
+
+<!-- page 54 -->
+30
+3
+结果
+3.1 研究对象的基本情况
+本研究共计纳入15 名符合纳入和排除标准的女性尿失禁患者。研究对象年
+龄在21~69 岁之间，平均年龄（42.53±14.62）岁。其中已婚13 人，未婚1 人，
+离异1 人；12 人有医疗保险，3 人无医疗保险；压力性尿失禁8 人，混合性尿失
+禁5 人，急迫性尿失禁2 人；轻度尿失禁6 人，中度尿失禁6 人，重度尿失禁3
+人；保守治疗13 人，手术治疗2 人。研究对象一般资料如表2.2 所示。
+3.2 女性尿失禁患者心理社会适应主题
+3.2.1 女性尿失禁患者心理社会适应的体验主题
+通过对15 例研究对象的访谈资料进行反复比较、归纳、提炼，归纳出女性
+尿失禁患者的心理社会适应体验包括6 个一级主题、28 个二级主题，6 个一级主
+题分别为生理体验、心理适应、社会适应、疾病认知、应对策略及自我管理，如
+图9 所示。
+（1）生理体验：女性尿失禁患者患病后，对生理功能产生不同程度的影响，
+其生理体验表现为生理不适、饮水受限、运动受限、睡眠质量下降及性功能障碍。
+1）生理不适：尿失禁所导致的会阴局部潮湿，常常引起患者的不适，经常
+使用护垫等防护用品也会引发患者的不适感，有些患者甚至出现会阴局部的瘙痒、
+疼痛及皮疹等症状。
+N2：“每次尿失禁时，下面（会阴部）会很湿，在外面或者在单位上班又不
+能马上换（内裤），特别不舒服。”
+N4：“为了不把衣服弄湿，我经常垫卫生巾，非常不透气，下面（会阴部）
+有时会很痒，有时还疼（沮丧）。”
+N12：“尿液总是浸透我的护垫，我的皮肤变红，走路时会很痛。”
+2）饮水受限：女性尿失禁患者为避免漏尿，常常会限制饮水量，特别是在
+外出前和晚上临睡前，并避免饮用茶水、咖啡等液体。有些患者会认为出现尿失
+禁是由于自己饮水过多所致。
+
+<!-- page 55 -->
+31
+表2.2 研究对象一般资料（n=15）
+编号
+年龄（岁）
+文化程度
+婚姻状况
+BMI
+职业
+家庭月收入
+（万元）
+医保
+分娩次数
+疾病类型严重程度
+病程
+（年）
+治疗方法
+N1
+26
+本科
+已婚
+22.5
+护士
+2
+有
+1
+压力性
+轻
+0.5
+A
+N2
+31
+本科
+已婚
+21.9
+职员
+3
+有
+2
+压力性
+轻
+3
+A
+N3
+35
+本科
+已婚
+22.8
+教师
+1.5
+有
+2
+压力性
+中
+6
+A
+N4
+42
+初中
+已婚
+25.5
+无
+1
+无
+3
+混合性
+中
+11
+A
+N5
+55
+初中
+已婚
+26.8
+个体
+2
+有
+1
+压力性
+重
+25
+A
+N6
+21
+大专
+未婚
+21.6
+销售
+1
+有
+0
+压力性
+轻
+1
+A
+N7
+65
+初中
+已婚
+27.7
+退休
+0.4
+无
+2
+混合性
+中
+20
+A
+N8
+29
+本科
+已婚
+25.1
+职员
+2
+有
+1
+混合性
+轻
+4
+A
+N9
+28
+大专
+已婚
+23.3
+个体
+5
+有
+1
+急迫性
+轻
+1.5
+A
+N10
+38
+高中
+已婚
+24.4
+会计
+3
+有
+1
+压力性
+轻
+8
+A
+N11
+57
+高中
+已婚
+24.9
+退休
+0.6
+有
+2
+混合性
+中
+18
+B
+N12
+50
+初中
+已婚
+23.8
+工人
+1.2
+有
+1
+急迫性
+中
+9
+A
+N13
+69
+小学
+已婚
+27.2
+无
+0.5
+无
+2
+压力性
+重
+30
+B
+N14
+45
+高中
+已婚
+26.0
+个体
+8
+有
+2
+混合性
+中
+16
+A
+N15
+47
+高中
+离异
+25.3
+工人
+1
+有
+1
+压力性
+重
+15
+A
+注：治疗方法A 为非手术治疗；B 为手术治疗
+
+<!-- page 56 -->
+32
+图9
+女性尿失禁患者心理社会适应体验主题
+生理不适
+生理体验
+饮水受限
+运动受限
+睡眠质量下降
+性功能障碍
+焦虑
+心理适应
+抑郁
+尴尬
+病耻感
+低自尊
+恐惧
+担心
+压力
+痛苦
+身体心像
+自责
+希望
+信心
+社会适应
+社会角色弱化
+社交退缩
+社会支持
+疾病知识缺乏
+疾病认知
+健康观念
+掩饰症状
+应对策略
+消极回避
+接受与调整
+生活方式
+自我管理
+治疗依从性
+女性尿失禁患者心理社会适应体验主题
+
+<!-- page 57 -->
+33
+N3：“自从开始漏尿后，我每次出门时都刻意不喝水，就算有时候很渴，我
+也忍着，生怕找不到厕所而漏尿。有一次出门时，就是喝水比较多，厕所也不方
+便，就没控制住（尿失禁）。”
+N14：“我是一个特别爱喝水的人，以前每天喝几大杯，还经常喝茶水，自
+从漏尿后，我就不敢喝茶水了，喝完茶水后往厕所跑得太厉害了，稍微晚点就漏
+尿，实在是受不了（叹气）。”
+3）运动受限：漏尿限制了女性尿失禁患者的运动，特别是压力性和混合性
+尿失禁的患者。很多患者为避免漏尿，拒绝进行跑跳等剧烈运动。
+N3：“每当我做蹦跳这些运动时，我都会忍不住漏尿，所以我尽量避免做这
+些运动。”
+N11：“我以前特别喜欢跳舞的，现在我连一支舞都跳不完就想去厕所（叹
+气）。”
+4）睡眠质量下降：为避免夜间睡眠时发生漏尿，多数女性尿失禁患者会增
+加夜间入厕次数，从而导致睡眠质量下降。
+N9：“我晚上睡觉时会上几次厕所，一有尿意就得上厕所，只要感觉到有尿
+就睡不踏实，特别影响睡眠。”
+N12：“因为担心睡着了漏尿，我晚上睡觉都睡不沉，大概2-３个小时左右
+醒一次，只要醒了就想上厕所。”
+5）性功能障碍：女性盆底肌肉具有泌尿生殖的双重功能，多数尿失禁的女
+性存在着不同程度的性功能障碍。但在我国文化背景下，性是忌讳的话题，因此
+多数女性不会主动谈及尿失禁对性功能的影响，本研究中仅有2 位（2/15）研究
+对象谈及此话题。
+N4：“我害怕在夫妻生活时发生漏尿，想快点结束，这真的让我很不安（沉
+默）。”
+N14：“自从我知道了自己有这个情况（尿失禁），明显感觉到性生活是有
+障碍的，有时候会找理由拒绝丈夫的要求，每次夫妻生活都很紧张，担心什么时
+候会漏尿。”
+（2）心理适应：多数女性尿失禁患者在身心调适过程中存在不同程度的负
+性情绪，情绪反应非常复杂，然而部分患者通过一系列心理调适，可以达到心理
+适应的良好状态。心理适应体验表现为焦虑、抑郁、尴尬、病耻感、低自尊、恐
+惧、担心、压力、痛苦、身体心像、自责、希望及信心。
+
+<!-- page 58 -->
+34
+1）焦虑：女性尿失禁患者因不自主漏尿、身体异味及疾病的不确定性，易
+产生焦虑的不良情绪。
+N8：“因为这件事（尿失禁），我常常感到特别心烦，经常因为一点小事跟
+家人发脾气，情绪特别不稳定。”
+N10：“我刚开始漏尿时觉得自己特别倒霉，怎么摊上这个病，上班工作时
+也会不自主地胡思乱想，经常走神，不知如何是好（无奈）。”
+2）抑郁：尿失禁与抑郁密切相关，尿失禁患者具有较高的抑郁发生风险，
+尤其是长期失禁的女性患者。
+N15：“尿失禁打乱了我的生活，我以前特别喜欢旅游，现在根本出不了远
+门，对什么事也提不起兴趣。”
+N13：“尿失禁长期困扰着我，有时候我不知道自己活着的意义是什么（沉
+默）。”
+3）尴尬：由于尿失禁涉及女性的隐私部位，患者常常不愿主动提及，发生
+尿失禁被认为是一件非常尴尬的事情。有些患者因为尿失禁的诊疗涉及隐私部位
+而延误治疗。
+N3：“我觉得尿失禁属于个人隐私，很多女性都有这个问题，但没人愿意让
+别人知道，大家都不说，我从来不会和朋友、同事去谈论这件事。”
+N4：“如果漏尿被别人看到了，那太尴尬了。”
+N2：“去医院检查和治疗，医生让脱裤子，我觉得挺难为情的，我内心非常
+拒绝，但又没办法。”
+4）病耻感：尿失禁涉及女性隐私部位，女性尿失禁患者对于漏尿常羞于启
+齿，同时害怕漏尿被别人发现，受到歧视和嘲笑，常表现出病耻感。
+N3：“我是一名教师，我特别担心在学校时漏尿让我的学生和同事发现，如
+果让他们知道了，那太丢人了。”
+N12：“这毛病让我难以启齿，我怕别人会瞧不起我，我不愿意让别人知道，
+包括我的丈夫。”
+5）低自尊：尿失禁的患病事实常常使患者产生自卑的负性情绪，从而导致
+患者自尊低下。
+N11：“我有时觉得自己是有缺陷的人，觉得自己一点价值也没有（沉默）。”
+N7：“尿失禁让我无法控制自己的身体，无法阻止漏了的感觉，我有时候觉
+得自己特别没用（叹气）。
+
+<!-- page 59 -->
+35
+6）恐惧：女性尿失禁患者对尿失禁的错误认知可导致其对疾病的恐惧感，
+有些患者认为尿失禁是衰老的表现，有些患者认为尿失禁无法治愈。
+N6：“第一次漏尿的时候感觉特别崩溃,哇的一下哭了出来，我还这么年轻，
+我觉得这件事太可怕了。”
+N8：“我的母亲受尿失禁的困扰很多年了，当我发现自己漏尿了，我特别害
+怕像我母亲一样。”
+7）担心：女性尿失禁患者患病后，出现担心的心理，表现为担心尿失禁的
+治疗效果、担心弄脏衣服、担心身上有异味被人发现等。
+N6：“我还这么年轻，我特别担心这病治不好，如果以后总这样漏尿，我都
+不敢想象这日子怎么过。”
+N5：“夏天的时候我一天要洗几次澡，我生怕别人闻到我身上的尿味。”
+N15：“即使在家，我也不能很放松地坐在任何地方...我害怕我会突然打喷
+嚏，然后我会弄湿沙发，出现一些气味。”
+8）压力：尿失禁疾病症状所引发的躯体不适以及对日常生活的影响，作为
+一种应激源，会导致患者出现不同程度的心理压力。
+N5：“我经常感觉到有种无形的压力，我是一个非常爱干净的人，我真的受
+够了一直要洗自己和换衣服，我觉得自己很难保持真正干净。”
+N13：“我家本来收入就不高，在医院看病治疗花钱也不少，会有经济方面
+的压力，如果病一时半会治不好，后面治病肯定还会花不少钱。”
+9）痛苦：女性尿失禁患者因疾病导致的生理不适、心理及社会方面的负性
+影响，种种复杂因素交织在一起，常常引发患者内心的痛苦感受。
+N5：“只有亲身经历漏尿的人，才知道这是一种什么样的感受，我常常感到
+很痛苦。”
+N10：“这毛病对我来说是一种难言之隐，我有时很难受，情绪也不好，但
+又不想跟别人说，包括我的家人，只能默默忍受，真的很痛苦。”
+10）身体心像：压力性尿失禁是盆底功能障碍的常见表现，多数患者同时存
+在会阴部松弛感，从而影响自身的体像感知。
+N14：“生完孩子后我的体型变了，下面（会阴部）也变松了，我感觉自己
+老了，没有吸引力了，也没有女人味了。”
+11）自责：女性尿失禁患者常将漏尿的责任归咎于自身，认为漏尿是可以避
+免或减少的。
+
+<!-- page 60 -->
+36
+N1：“是我喝水太多了，一时没控制住，才发生的意外（尿失禁）。”
+N9：“我经常犯错误，没能以最快的速度去洗手间，现在我只要一有尿意就
+去洗手间。”
+N13：“我应该早点来医院，这毛病我总拖着，托了很多年了，拖到现在这
+么重，不好治了。”
+12）希望：女性尿失禁患者在心理适应过程中，并不是一直表现为消极的情
+绪状态，伴随着疾病治疗的进程及自我感知健康状况的变化，患者会出现疾病认
+知的改变，逐渐表现出积极的情绪以面对疾病，如对疾病治疗充满希望。
+N8：“虽然这病很可怕，但现在医疗水平很发达了，很多癌症都能治，我相
+信我这病肯定有办法的。”
+N1：“医生说我这个漏尿属于轻度的，在医院做完康复后，只要回家坚持进
+行盆底肌锻炼，治疗效果很好的。”
+13）信心：女性尿失禁患者在疾病治疗的过程中，随着漏尿症状的好转，患
+者会表现出对疾病的良好心态和信心，如对疾病治疗的信心、对控尿能力的信心、
+对坚持康复锻炼的信心及对未来生活充满信心等。
+N3：“我现在做盆底康复，1 个疗程马上就结束了，效果很好，基本不漏尿
+了，我又可以控制排尿了，我可以跟以前一样了，我很开心，我对未来的生活充
+满信心（微笑）。”
+N6：“医生告诉我，虽然做完盆底康复，现在效果很好，但回家还需要坚持
+进行盆底肌锻炼，如果不能坚持做锻炼，漏尿现象还会反复出现，我回家后一定
+按照医生教的做，我有信心坚持锻炼，我也有信心控制好漏尿。”
+（3）社会适应：女性尿失禁患者由于漏尿会出现不同程度的病耻感、社会
+角色弱化、社交退缩等社会功能受损的表现，患者通过寻求家人以及专业人员的
+支持与帮助从而不断地调整，以实现疾病的社会适应状态。女性尿失禁患者的社
+会适应体验表现为社会角色弱化、社交退缩及社会支持。
+1）社会角色弱化：女性尿失禁患者由于漏尿对日常生活的影响，常常表现
+为角色功能受损，不能很好地胜任家庭角色和社会角色所需要承担的职能。
+N9：“我想陪我的孩子们一起玩耍，但我不能像他们那样跑呀或者跳呀，有
+时候孩子们让我追他们，我只能找借口拒绝他们，说:‘我累了’。我觉得这样
+错过了很多和孩子相处的美好时光（叹气）。”
+2）社交退缩：女性尿失禁患者因担心在社会交往及活动中出现漏尿，害怕
+
+<!-- page 61 -->
+37
+因此受到歧视和嘲笑，导致患者减少社会交往活动，出现社交退缩。
+N9：“有时我姐姐叫我一起去逛街，我担心如果我需要去厕所，我不能马上
+找到，所以我不去。”
+N2：“有时候朋友约我出去，我总是想找个借口拒绝他们。我觉得很麻烦，
+因为那个地方可能没有厕所。你知道我得找个厕所，如果我总要问人家厕所的事，
+那就不太好了。”
+3）社会支持：女性尿失禁患者在社会适应过程中会主动发展与家庭和社会
+的关系并获得支持。来自家庭和医护人员的支持能帮助患者人际关系方面的适应，
+减少患者的负性情绪以更好地应对疾病压力。
+N8：“我得病后，心情特别低落，我丈夫总是耐心地安慰我，还主动承担家
+务，这让我特别感动，他还鼓励我积极治疗，这些都给了我很大的力量。”
+N11：“我的家人鼓励我做盆底肌肉锻炼。有时候当我坐着看电视的时候，
+我女儿会提醒我去做，她们非常支持我。”
+N3：“我在做盆底治疗时，医生和护士会耐心地给我讲疾病知识，还教我如
+何做盆底肌锻炼，怎么收缩盆底肌，我有什么问题，她们都会耐心地为我解答，
+我觉得给了我很大的帮助。”
+（4）疾病认知：疾病认知被认为是影响女性尿失禁患者积极应对疾病及主
+动就医的重要因素。多数女性尿失禁患者在心理社会适应过程中存在疾病知识缺
+乏现象，进而产生错误的疾病认知，伴随着患者的治疗进程及感知健康状况的变
+化，患者的疾病认知逐渐转变为正确的健康观念。患者的疾病认知体验表现为疾
+病知识缺乏和健康观念。
+1）疾病知识缺乏：多数患者在患病初期缺乏疾病相关知识，不了解疾病诊
+断、治疗、康复等相关知识。有些患者认为尿失禁是机体自然老化和生育不可避
+免的结果，并不知道是可以医治的疾病。
+N7：“我在来医院看病之前，我真的不知道这个病可以治，甚至在第一次来
+医院时，我都不知道应该挂哪个科的号。”
+N1：“我以前根本不知道盆底肌的存在，起初听说要做盆底肌锻炼，我都不
+知道应该怎么收缩盆底肌才是对的。”
+N13：“人老了，漏尿是不可避免的，也治不好。”
+2）健康观念：女性尿失禁患者的疾病认知缺乏和错误认知导致其错误的健
+康观念。通过各种途径获取疾病相关信息，使患者逐渐树立积极的健康观念。
+
+<!-- page 62 -->
+38
+N3：“这一路走过来，才知道这病并没有想的可怕，有病就得去医院。”
+N8：“我现在盆底康复快做完了，基本不漏尿了。我母亲漏尿也好多年了，
+我跟她说了，让她也去医院做治疗，会好起来的。”
+（5）应对策略：女性尿失禁患者在心理社会适应过程中，会采取不同的应
+对策略应对疾病。应对策略体验包括掩饰症状、消极回避及接受与调整。
+1）掩饰症状：女性尿失禁患者在面对疾病时，常常采取掩饰性应对策略，
+如对衣服选择的特殊要求，从而达到掩饰的目的。
+N4：“我不会穿素色的衣服，因为如果我弄湿了，它会非常明显，但是如果
+它是有图案的，它就不会那么明显了。”
+N12：“我对衣服的颜色非常挑剔。大部分都是深色的，因为我担心尿湿了
+裤子，别人看到。在那种情况下，我会感到非常尴尬。”
+2）消极回避：由于尴尬、羞于启齿及错误的疾病认知，多数女性患者采取
+消极回避的方式应对疾病。
+N15：“这件事（尿失禁）让我很尴尬，我总是拖着不想去医院，这也是为
+什么问题（尿失禁）变得这么糟糕的原因。”
+N7：“人老了都会漏尿，这病岁数大了也治不好，要不是我女儿让我来医院
+看，我还不想来呢。”
+3）接受与调整：患病过程中，女性尿失禁患者在经历了消极回避的应对策
+略后，通过调动各种资源，树立了积极的健康观念，逐渐地进行调整，进而采取
+积极的应对策略，逐步地接受疾病并调整自己，从而达到心理社会适应的良好状
+态。
+N5：“这病时间长了，慢慢就学会跟它共处了，不能总被它左右，凡事往好
+的地方想。”
+N1：“我现在已经学会收缩盆底肌了，当我大笑、咳嗽时，我会有意识地收
+缩盆底肌控制漏尿。”
+（6）自我管理：女性尿失禁患者通过正确的疾病认知、积极的应对策略，
+达到心理社会适应的良好状态，患者表现为持续的健康行为和自我管理，生活质
+量得到提高。
+1）生活方式：根据尿失禁国内外相关指南，推荐保守治疗作为首选治疗方
+法，生活方式的改变是保守治疗方法的重要组成部分。生活方式的改变包括减少
+咖啡因的摄入、降低肥胖女性的体重、控制便秘、限制液体的摄入和戒烟等。女
+
+<!-- page 63 -->
+39
+性尿失禁患者积极地应对疾病，会自觉改变生活方式，形成健康行为，避免加重
+疾病的因素，从而帮助控制疾病症状，改善生活质量。
+N14：“医生告诉我体重超标了，这可能是让我出现漏尿的一个原因。我最
+近减掉了一些体重，我也注意到了我现在控制漏尿比以前变好了，现在我更有信
+心了，这也是我会继续坚持减肥的一个动力。”
+N3：“我现在能合理计划我的饮水量，并且尽量不饮用咖啡、茶叶这些饮料，
+这样能减少漏尿。”
+2）治疗依从性：女性尿失禁患者盆底肌锻炼的依从性直接关系到疾病的预
+后。疾病自我管理水平较高的患者会表现为较高的治疗依从性。
+N10：“现在我变得好了，如果我坚持做盆底肌肉锻炼，我会更好。我已经
+几个星期没有尿失禁了。轻微咳嗽，我也没有尿失禁。我真的进步了很多，我对
+这种生活状态很满意。”
+N12：“我已经按照医生建议做了盆底肌锻炼，我可以感受到盆底肌，它可
+以帮助我控制漏尿，我每天都记得进行锻炼，因为我不想总是弄湿裤子，不想总
+带厚的护垫。”
+N5：“我年纪大了，有时会漏尿。当我学会如何进行盆底肌锻炼时，我发现
+这是一项简单的日常锻炼。只要你想着，你就可以在平时干其他活时进行锻炼，
+比如你洗菜的时候可以，你等公交车时也可以。”
+3.2.2 女性尿失禁患者心理社会适应的经历主题
+（1）持续变化的过程：女性尿失禁患者心理社会适应是一个持续变化的过
+程，在这一过程中，需要患者不断调整，患者的心理社会体验也随之不断变化。
+N10：“刚开始漏尿时，不严重，偶尔会漏，不知道是正常还是出毛病了，
+总有侥幸心理，觉得是喝水喝多了，上厕所去晚了，然后出门就少喝水，一觉得
+有尿就马上上厕所，后来还是会湿，就很烦躁，情绪时好时坏，一漏尿就忍不住
+跟我老公发脾气，还不愿意告诉我老公这事。”
+N3：“在网上看盆底康复可以治这毛病，抱着试一试的想法去的，医生说只
+要有控制不住的漏尿就是尿失禁，需要及时治疗，越早治疗效果越好。我做盆底
+康复后效果很好，情绪也平和了，跟老公关系也很好。”
+N8：“我很庆幸自己没有拖太久，能及时去治。这个毛病也算是给自己提了
+个醒，要注意身体的保健了，我现在除了每天都做盆底肌锻炼外，还坚持跑步，
+锻炼身体，体重也减了好几斤，整个人比以前精神多了，做啥事都更有信心了。
+
+<!-- page 64 -->
+40
+我对自己目前的状态挺满意的，这也算是因祸得福吧。”
+（2）受多种因素的影响：女性尿失禁患者心理社会适应过程错综复杂，受
+多种因素影响，包括个性特征、疾病认知、社会支持及感知的健康状况等。
+1）个性特征：女性尿失禁患者的个性特征影响其对事物的看法和态度，积
+极乐观的性格有助于患者的心理社会适应。
+N1：“我这人性格比较开朗，大大咧咧的，遇到啥事还都比较乐观，凡事都
+容易想开。”
+N3：“我比较要强，属于完美主义者，刚开始漏尿时，我特别接受不了。”
+2）疾病认知：疾病认知在女性尿失禁患者心理社会适应过程具有重要的影
+响，正确的疾病认知有助于患者采取积极的应对措施。
+N1：“我是护士，对尿失禁比较了解，没想到这事发生在我身上，我及时找
+了医生，现在在做盆底康复，效果还是很好的。”
+N10：“我姐姐有漏尿，她在你们这里治好的，所以我对这方面有一些了解，
+就是这个病需要坚持锻炼，但我相信我能坚持。”
+3）社会支持：强有力的社会支持有助于女性尿失禁患者的心理社会适应，
+除了家庭成员的支持外，医务人员的专业帮助也发挥了重要的作用。
+N2：“我希望不管是医院还是社会媒体，应该多做一些有关尿失禁的疾病知
+识宣传，让广大妇女都知道它是怎么回事。我以前就是不知道它是怎么回事，我
+如果知道它可以治好，我早就来了。”
+N8：“我希望医生看病时，能跟我们多说一些多问一些，其实我生完孩子就
+有漏尿，但医生没问我，我也没说，也不知道产后可以做盆底康复。”
+4）感知的健康状况：女性尿失禁患者的心理社会适应受患者感知的健康状
+况的影响，当患者感知健康状况良好时，其心理社会适应也处于良好状态。
+N2：“我现在（尿失禁）变好了，我的心情也变好了，跟家人之间的关系也
+更亲密了。”
+N10：“漏尿控制得越好，我做（盆底肌）锻炼就越有信心，坚持得就越好。”
+
+<!-- page 65 -->
+41
+4
+讨论
+4.1 女性尿失禁患者心理社会适应体验
+4.1.1 生理体验
+本研究结果显示，女性尿失禁患者的生理体验表现为会阴部疼痛等生理不适、
+饮水受限、运动受限、睡眠质量下降及性功能障碍。本研究与以往研究结果基本
+一致，Wennberg 等[26]报道尿失禁患者由于经常发生漏尿，可引起会阴部疼痛、
+会阴部及骶尾部皮炎、妇科炎症等生理问题，Ge 等[27]报道了尿失禁对睡眠的影
+响。Mota[25]认为性生活过程中的气味和对尿失禁的恐惧会影响女性的性功能，
+这与尿失禁的不可预测性和长期性有关。值得注意的是，在我国文化背景下，性
+是忌讳的话题，本研究中只有2 位研究对象提到了性生活，大多数女性不愿主动
+谈及尿失禁对性功能的影响。国外关于女性尿失禁患者性生活方面体验已有比较
+深入的研究，如探讨患者的性欲、性高潮、性满足感及是否存在性交困难等[106-108]，
+而国内有关性生活体验的相关报道非常匮乏，提示我们后续可重点关注在我国传
+统文化背景下女性尿失禁患者性生活方面的体验，为提高我国女性尿失禁患者性
+生活质量提供理论依据。
+4.1.2 心理适应
+本研究结果显示，女性尿失禁患者的心理适应体验表现为焦虑、抑郁、尴尬、
+病耻感、低自尊、恐惧、担心、压力、痛苦、身体心像、自责、希望、信心。女
+性尿失禁患者在患病初期存在不同程度的负性情绪，经过自我调整，表现出对疾
+病和生活充满希望和信心。Delarmelindo 等[109]质性研究表明，尿失禁康复治疗
+作为一种有效的干预措施，可以帮助患者从痛苦走向希望。Nicolson 等[110]质性
+研究报道，尿失禁患者具有缺乏控制感、恐惧、焦虑、抑郁、尴尬及低自尊等患
+病体验。多数女性尿失禁患者存在病耻感，这一观点在以往女性尿失禁患者的量
+性和质性研究均得到了证实[35,111,112]。以往有关女性尿失禁患者心理问题的量性
+研究多关注患者的焦虑和抑郁水平，研究结果表明尿失禁与焦虑和抑郁相关[28,80]。
+女性尿失禁患者心理适应体验错综复杂，量性研究用量表测评的方式具有一定的
+局限性，质性研究能更全面地诠释患者的心理体验和感受。
+4.1.3 社会适应
+
+<!-- page 66 -->
+42
+本研究结果显示，女性尿失禁患者的社会适应体验表现为社会角色弱化、社
+交退缩及社会支持。Siu 等[82]关于女性压力性尿失禁的质性研究中提到，尿失禁
+影响了患者的社会角色。Hrisanfow 等[41]研究结果显示，尿失禁病人因病耻感而
+减少社会交往活动甚至出现社会隔离。本研究中研究对象大多是轻中度尿失禁患
+者，患者没有出现社会角色缺失和社交隔离的情况，尿失禁只影响了她们部分社
+会功能，如不能很好胜任母亲角色、减少社交活动等，因此本研究将社会角色和
+社会交往的主题归纳为社会角色弱化和社交退缩。Szymona 等[38]研究报道了女性
+尿失禁患者的社会支持水平与疾病的认知评估的相关性。Gbobbo[83]研究结果显
+示，来自家庭和医护人员的支持能帮助患者的情绪和人际关系方面的适应，减少
+患者的自我责备和内疚感。
+4.1.4 疾病认知
+本研究结果显示，女性尿失禁患者的疾病认知体验表现为疾病知识缺乏和健
+康观念。本研究与以往研究相一致，多数女性尿失禁患者存在疾病知识缺乏现象，
+进而导致错误的疾病认知。以往对女性尿失禁患者的质性访谈结果显示，多数患
+者认为尿失禁是机体自然老化和生育不可避免的结果，并不知道是可以医治的疾
+病[112-114]。研究显示，不同疾病认知水平的女性尿失禁患者采取的应对方式有所
+不同[88]。正确的疾病认知有助于患者及时就医并寻求专业帮助。本研究的访谈对
+象为医院盆底康复门诊就诊的女性尿失禁患者，大多数患者在患病初期存在疾病
+知识缺乏和错误认知，在医务人员的帮助下，错误认知转变为积极的健康观念，
+能正确认识疾病，采取正确的生活方式，坚持进行康复锻炼，从而促进了疾病的
+康复。
+4.1.5 应对策略
+本研究结果显示，女性尿失禁患者的应对策略体验表现为掩饰症状、消极回
+避、接受与调整。女性尿失禁患者大多对衣服选择有特殊要求或使用护垫以掩饰
+漏尿症状。以往研究表明，由于尴尬、羞于启齿，多数女性采用回避和消极的应
+对方式，不愿意为尿失禁寻求医疗帮助，女性就诊率较男性低[42,43]。Xu 等[36]研
+究表明，经常采用回避和消极应对方式的女性尿失禁患者，漏尿症状越严重，生
+活质量越差。Livneh[95]研究显示回避型应对方式与较差的心理社会适应能力具有
+相关性。Gjerde 等[115]报道了埃塞俄比亚女性尿失禁患者延迟就医的内心体验和
+经历。Hagglund 等[112]研究显示对羞辱感的恐惧压抑了女性尿失禁患者的求医行
+
+<!-- page 67 -->
+43
+为。Andersson 等[116]研究表明，老年女性尿失禁患者面对疾病的接受与自我调整
+是其重要的生活体验。
+4.1.6 自我管理
+本研究结果显示，女性尿失禁患者的自我管理体验表现为调整生活方式和提
+高治疗依从性。女性尿失禁患者调整生活方式、积极进行盆底康复训练是其采取
+健康行为、有效自我管理的重要表现。Bradway 等[117]报道了通过改变生活方式
+进行减重是女性尿失禁患者与疾病共存的自我管理策略之一。尿失禁患者盆底肌
+锻炼自我效能可以帮助患者建立积极的应对策略，提高其治疗的依从性和生活质
+量[37]。认知行为干预和自我管理干预有助于患者持续的行为改变和自我管理，进
+而提高患者的生活质量[47-51]。
+4.2 女性尿失禁患者心理社会适应经历
+4.2.1 女性尿失禁患者心理社会适应是一个持续变化的过程
+尿失禁作为一种威胁女性身心健康的常见慢性疾病，多数患者在疾病好转后
+存在与疾病共存的状态。本研究的研究对象为医院盆底康复门诊的患者，大多数
+研究对象患病后在生理体验、心理适应、社会适应、疾病认知及应对策略方面不
+断变化、不断调整，最终实现有效的自我管理。患者通过建立正确的疾病认知，
+采取积极的应对策略，达到心理社会适应的良好状态。Livneh 博士提出的慢性病
+和残疾的心理社会适应是一个动态的、发展的和复杂的过程，强调个体的主观能
+动性和积极品质[62,63]。Londono 等[31]心理社会适应的概念分析指出心理社会适应
+属性包括变化、过程、连续性、互动及影响。
+4.2.2 女性尿失禁患者心理社会适应受多种因素的影响
+本研究结果显示，女性尿失禁患者心理社会适应受患者的个性特征、疾病认
+知、社会支持、感知的健康状况等因素的影响。在Livneh 的慢性病和残疾的心
+理社会适应框架中，人格特征作为情景变量，是对心理社会适应产生重要影响的
+变量之一[62,63]。对疾病的认识不足和歪曲认知是影响女性尿失禁患者求医和治疗
+效果的重要因素[43,93]。Levesque 等[78]的心理适应中域理论认为，患者的社会支持
+与情绪困扰呈直接或间接的正相关。Lim 等[28]对韩国的1116 名中老年女性尿失
+禁患者的纵向研究表明，尿失禁的发生与抑郁密切相关，抑郁评分随着尿失禁症
+状的恶化而变得更差。
+
+<!-- page 68 -->
+44
+5
+结论
+通过质性研究结果得出，女性尿失禁患者心理社会适应体验包括生理体验、
+心理适应、社会适应、疾病认知、应对策略及自我管理，女性尿失禁患者情绪复
+杂多变，以负性情绪占主导。女性尿失禁患者心理社会适应历程是一个持续变化
+的过程，受个性特征、疾病认知、社会支持、感知的健康状况等因素的影响。提
+示医务工作者可从心理社会适应角度持续关注女性尿失禁患者的整体健康状况。
+
+<!-- page 69 -->
+45
+第三部分：女性尿失禁患者心理社会适应评估工具的
+研制
+1
+概述
+尿失禁虽然不是致命性疾病，但其具有长期性和不易治愈的特点，其症状给
+患者的生理、心理、社会功能造成严重困扰，对尿失禁患者心理社会问题的评估
+受到研究者的广泛关注。近年来，心理社会适应成为护理学研究领域关注的焦点，
+心理社会适应有助于个人面对正在经历的健康问题、角色变化及其他生活变化。
+Londono 等[31]对心理社会适应的概念分析指出，受个体或环境特征的影响，心理
+社会适应呈现出持续和动态变化的过程。以往研究常使用心理或社会因素的某一
+概念来诠释尿失禁患者的心理社会适应状况，如抑郁、焦虑、病耻感、社会隔离、
+应对方式、自我效能及社会支持等[24,35-38]。
+目前应用较广泛的心理社会适应评估量表是1986 年Leonard[74]开发的疾病
+心理社会适应量表（self-report psychosocial adjustment，PAIS-SR），2013 年姚静
+静等[75]对其进行汉化，该量表在癌症、高血压、心脏疾病及糖尿病等患者中进行
+验证，具有良好的信效度。女性尿失禁患者心理社会问题突出，PAIS-SR 作为一
+个普适性量表，将其应用于女性尿失禁患者心理社会适应的测评具有一定的局限
+性。目前已有女性尿失禁患者应对方式、自我效能及生活质量的特异性量表，尚
+未检索到女性尿失禁患者心理社会适应的特异性评估工具。
+因此本部分研究基于Roy 适应模式，在前期概念分析和质性研究的基础上，
+研制适合我国文化背景的女性尿失禁患者心理社会适应量表，为女性尿失禁患者
+心理社会适应研究提供特异性评估工具。
+
+<!-- page 70 -->
+46
+2
+对象与方法
+2.1 研究对象
+采用便利抽样法连续选取2021 年8 月至2021 年10 月在河北省唐山市两所
+三级甲等医院盆底康复门诊进行治疗及随访的女性尿失禁患者为研究对象。
+2.1.1 纳入标准
+（1）女性患者；
+（2）经国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）面对面评估
+明确有尿失禁症状；
+（3）年龄≥18 岁；
+（4）病程≥1 个月；
+（5）知情并愿意参加本研究。
+2.1.2 排除标准
+（1）病情严重，合并其他严重躯体疾病；
+（2）存在精神疾患或认知障碍者；
+（3）言语沟通交流障碍者；
+（4）妊娠期尿失禁患者；
+（5）产后3 个月内的尿失禁患者。
+2.1.3 样本量的计算
+以女性尿失禁患者心理社会适应量表条目数而定。根据Kendall 样本估算
+法，探索性因子分析的样本量至少为量表条目数的5~10 倍[118]，正式调研量表条
+目为44，其5~10 倍约为220~440，且探索性因子分析样本量在300 左右为宜[119]，
+考虑10%的无效样本量，样本量应大于330 例。验证性因子分析要求样本量大于
+200 例，且不重复使用探索性因子分析的数据[120]，考虑10%的无效样本量，样
+本量应大于220 例。因此本部分研究样本量应至少为550 例。本研究最终调查样
+本量为570 例，有效样本量为536 例，实际用于探索性因子分析的样本量为333
+例，用于验证性因子分析的样本量为203 例。
+
+<!-- page 71 -->
+47
+2.2.1 一般资料调查表（附录C）
+一般资料调查表由研究者在文献查阅的基础上自行设计，内容包括患者的人
+口社会学因素和疾病相关因素。人口社会学因素包括年龄、居住地、学历、婚姻
+状况、家庭人均月收入、职业、工作状态及医疗付费方式等；疾病相关因素包括
+体重指数、病程、生育情况等。
+2.2.2 国际尿失禁咨询委员会尿失禁问卷简表（附录D）
+国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）由国际尿失禁咨询委
+员会开发，黄亮等[121]于2007 年汉化形成中文版，用于评价尿失禁患者疾病的类
+型和严重程度。量表共4 个条目，其中1 个条目用于判断尿失禁的类型；其他3
+个条目用于评价尿失禁的严重程度，包括尿失禁的频率（“从不漏尿”至“一直
+漏尿”分别计0~5 分）、漏尿量（“不漏尿”、“少量漏尿”、“中等量漏尿”、
+“大量漏尿”分别计0、2、4、6 分）及对日常生活影响程度（“没有任何影响”
+至“很大影响”分别计0~10 分），3 个题目得分相加即为总分，范围0~21 分，
+≤7 分为轻度、8~14 分为中度、≥15 分为重度，得分越高疾病越严重。该量表
+已被国内外学者广泛使用，用于尿失禁患者疾病类型和程度的评估，具有良好的
+信效度[122]。本部分研究采用中文版国际尿失禁咨询委员会尿失禁问卷简表测量
+女性尿失禁患者疾病类型和严重程度。
+2.2.3 女性尿失禁患者心理社会适应量表（附录E）
+女性尿失禁患者心理社会适应量表为本部分研究自行研制，用于正式调研的
+量表包括情绪状态、自我认知、角色功能及社会支持4 个维度、共44 个条目，
+量表采用Likert 5 级计分法，0 分为“从不”，1 分为“很少”，2 分为“有时”，
+3 分为“经常”，4 分为“总是”，正向计分条目14 个，反向计分条目30 个，
+量表总分为0~176 分之间，得分越高表示该患者心理社会适应水平越高。
+2.2.4 应对适应过程量表（简表）（附录F）
+应对适应过程量表（简表）（coping and adaptation processing scale-short form，
+CAPS-SF）是由Roy于2016年基于47条目的CAPS修正后形成的单维度量表[123]，
+中国学者王喜益[61]于2020 年将其汉化形成中文版应对适应过程量表（简表），
+共15 个条目，采用Likert 4 级计分，“从不”、“很少”、“有时”、“总是”
+依次计1~4 分，其中条目5、13、14 为反向计分。量表总分范围为15~60 分，得
+2.2 研究工具
+
+<!-- page 72 -->
+48
+分越高则患者适应能力越好，总量表的Cronbach’s ɑ系数为0.82。本部分研究采
+用中文版应对适应过程量表简表作为女性尿失禁患者心理社会适应量表的校标。
+2.3 研究过程
+量表的研制严格遵循COSMIN（consensus-based standards for the selection of
+health measurement instruments）指导委员会于2018 年更新的COSMIN-RoB
+（COSMIN risk of bias）清单[124]，量表的研制步骤包括初始量表的形成和信效度
+检验，具体技术路线如图10 所示。
+图10
+女性尿失禁患者心理社会适应量表研制技术路线图
+校标关联效度
+内部一致性信度
+重测信度
+女性尿失禁患者
+心理社会适应量表（n=17）
+概念分析
+质性研究
+15 名专家进行2 轮
+德尔菲专家函询
+形成条目池（n=41）
+形成预试量表（n=44）
+预调查及量表修正
+正式调查
+项目分析（n=28）
+探索性因子分析
+结构效度（n=17）
+验证性因子分析结构效
+度，形成3 个维度（n=17）
+便利抽样法
+按照纳入排除标准
+选取30 例研究对象
+按照纳入排除标准
+选取570 例研究对象
+临界比值法和相关系
+数法删除16 个条目
+删除11 个条目
+选取应对适应过程
+量表作为校标
+5 名专家评价内容效度
+编制函询问卷
+
+<!-- page 73 -->
+49
+2.3.1 女性尿失禁患者心理社会适应初始量表的形成
+（1）建立初始量表条目池
+1）基于概念分析结果：本研究的第一部分采用了Rodgers 演化概念分析法
+从尿失禁患者心理社会适应概念的演化、概念属性、先决条件和影响因素、后果
+及相关概念等方面，对尿失禁患者心理社会适应的相关内容进行分析、整合，并
+基于Roy 适应模式提出女性尿失禁患者心理社会适应的概念框架，为本部分研
+究的女性尿失禁患者心理社会适应初始量表条目池的形成提供了科学的参考。
+2）基于质性研究结果：本研究的第二部分采用了描述现象学方法，对女性
+尿失禁患者进行半结构式深入访谈，深入挖掘我国文化背景下女性尿失禁患者心
+理社会适应的真实体验和历程，质性研究所提炼的主题为本部分研究的女性尿失
+禁患者心理社会适应初始量表条目池的形成提供了丰富的信息资料。
+（2）德尔菲专家咨询
+1）专家选择：选择15 名相关领域的专家进行函询，专家的纳入标准为：①
+具有10 年及以上工作经验；②职称在副高级及以上；③学历为本科及以上；④
+自愿参与本研究。
+2）专家函询方法：编制专家函询问卷（附录G），通过纸质版或电子问卷
+的形式进行发放。根据专家意见和统计分析结果，经课题组研究讨论，对问卷进
+行修改，形成第二轮专家函询问卷。当专家意见趋于一致时，停止函询。
+3）条目保留标准：采用Likert 5 级评分法，要求专家根据条目及维度的重
+要性从“很不重要”到“很重要”依次评为1~5 分。每个指标后均设有意见修改
+栏。计算各条目及维度的重要性赋值均数和变异系数。重要性赋值平均分≥3.5
+分、变异系数＜0.25 的条目给予保留。
+4）统计分析：专家积极程度采用问卷回收率表示，计算公式为：收回问卷
+数／发放问卷数×100%。采用条目重要性评分的变异系数（CV）和肯德尔协调
+系数（W）代表专家意见的协调程度，专家权威系数（Cr）通过专家判断依据（Ca）
+和熟悉程度（Cs）来计算，赋值见表3.1、3.2。计算公式为：Cr=(Ca+Cs)／2。
+
+<!-- page 74 -->
+50
+表3.1 专家判断依据赋值表
+判断依据
+判断依据对判断的影响程度
+小
+中
+大
+理论分析
+0.1
+0.2
+0.3
+实践经验
+0.3
+0.4
+0.5
+参考国内外文献
+0.1
+0.1
+0.1
+主观判断
+0.1
+0.1
+0.1
+合计
+0.6
+0.8
+1.0
+表3.2 专家熟悉程度赋值表
+熟悉程度
+很熟悉
+比较熟悉
+一般熟悉
+不太熟悉
+很不熟悉
+分值
+1.0
+0.8
+0.6
+0.4
+0.2
+（3）预调查
+将女性尿失禁患者心理社会适应量表的条目按随机数字表进行重新排序后，
+选择符合纳入和排除标准的研究对象30 名进行预调查，对条目的难易度、准确
+性及是否引起歧义等进行评价，研究者根据评价结果对其进行修改，形成女性尿
+失禁患者心理社会适应初始量表。
+2.3.2 项目分析
+（1）临界比值法
+该方法的目的是求出各个条目的决断值，即临界比（critical ratio，CR）。
+先求出每个条目的总分，然后由高到低排序，前27%为高分组，后27%为低分组，
+以此得分作为临界点，采用独立样本t检验计算高分组与低分组的各条目得分差
+异是否具有统计学意义，删除CR小于3或经统计学检验差异未达显著水平
+（P>0.05）的条目[125]。
+（2）相关系数法
+采用两种相关系数来评价各条目的同质性和独立性。通过计算各条目与量表
+总分的相关性，考察各条目的同质性，若各条目得分与量表总得分的Pearson相
+关系数小于0.3，表示条目与整体量表的同质性较低，考虑删除[119]；计算各条目
+间得分的相关性，考察各条目的独立性，若各条目间得分的Pearson相关系数大
+于0.8，说明这些条目关联性过强，可能反映同一个问题，应酌情将某一条目删
+除[126]。
+2.3.3 信效度检验
+
+<!-- page 75 -->
+51
+（1）效度检验
+1）内容效度：从德尔菲专家函询中选取5 名专家对条目的相关性进行评议，
+以评价量表的内容效度。请专家采用Likert 4 级评分法，“1=不相关、2=弱相关、
+3=较强相关、4=非常相关”。计算量表的内容效度（I-CVIs on the Scale，S-CVI），
+S-CVI 为量表所有条目内容效度的和除以所有条目数，条目的内容效度为选择“3
+分”、“4 分”的专家数与专家总数之比。S-CVI＞0.90 为接受的标准[127]。
+2）结构效度：本量表基于Roy适应模式构建，采取了反应模型，根据
+COSMIN-RoB清单，采用因子分析法评价量表的结构效度，包括探索性因子分析
+（exploratory factor analysis，EFA）和验证性因子分析（confirmatory factor analysis，
+CFA）。通过KMO值和Bartlett球形检验判断是否适合做因子分析，判断标准为：
+当KMO＞0.9时，因子分析非常适合；KMO＜0.5，因子分析不能进行[128]。Bartlett
+球形检验若P＜0.05，则因子分析可以进行[129]。采用主成分分析法和正交旋转的
+方差最大法的方法进行因子分析，通过判断各条目共同性和因子载荷来删除不符
+合标准的条目，得到比较清晰、解释合理的因子。验证性因子分析利用结构方程
+模型（structural equation model，SEM）完成，并验证其拟合程度。
+3）效标关联效度：效标关联效度反映量表的稳定性，本研究采用中文版应
+对适应过程量表[61]作为效标，通过计算相关系数以评价效标关联效度，相关系数
+在0.4~0.8 之间最佳[130]。
+（2）信度检验
+1）内部一致性信度：根据COSMIN-RoB 清单，该量表采用Likert5 级计分
+法，属于定量数据，使用Cronbach’s α系数测量量表的内部一致性。计算总量表
+和各个维度的Cronbach’s α系数，Cronbach’s α值越高代表量表的内部一致性信度
+越高，Cronbach’s α系数在0.70 以上，可认为所编制工具的信度较好[125]。
+2）重测信度：选取30 例研究对象，间隔2 周后进行重复测量，计算总量表
+两次测评得分的相关系数，系数范围0~1，越接近1 越好，一般大于0.70 表示可
+以接受[131]。
+2.4 资料收集
+由研究者本人或接受过统一培训的研究员对调查问卷进行发放和收回。调查
+前向研究对象解释调查的目的和意义，取得研究对象的知情同意。调查时应用统
+
+<!-- page 76 -->
+52
+一的指导语，根据本人实际情况独立完成调查问卷的填写。研究对象对问卷内容
+有疑问时，研究者给予解释，问卷当场发放并回收。
+2.5 资料的整理与分析
+采用双人录入法录入数据，使用SPSS25.0 和AMOS24.0 统计软件分析数据。
+患者的一般资料用均数±标准差、频数进行描述；量表的条目分析采用t 检验和
+相关系数来进行分析；量表的结构效度采用探索性因子分析和验证性因子分析检
+验；量表的信度采用Cronbach’s α系数、相关系数进行检验。
+2.6 伦理问题
+本研究已向中国医科大学医学伦理委员会提交伦理申请并获得批准（伦审
+[2021]94 号），伦理批件见附录A。研究者严格遵守《赫尔辛基宣言》，对研
+究对象的信息严格保密，在研究结束后1 年内将参与者的所有信息销毁。
+研究正式开始前，研究者向研究对象介绍本研究的目的和意义，解释研究的
+注意事项、保密协议及资料的销毁流程等，研究对象知情同意后签署知情同意书
+（附录H）；研究者选取合适的地点对研究对象进行资料收集，保护研究对象隐
+私；研究过程中研究对象有随时终止研究并要求销毁研究资料的权利；资料整理
+分析过程中涉及研究对象个人隐私的信息统一用数字代替。
+2.7 质量控制
+（1）初始量表的编制：根据概念分析和质性研究结果，结合专家意见，形
+成初始化问卷；严格按专家的遴选条件选取专家。
+（2）研究对象的选取：严格按照纳入标准和排除标准选取研究对象。
+（3）资料的收集过程：调查问卷由研究者本人或接受过统一培训的研究员
+进行发放和收回。调查时使用统一的指导语,尽量让调查对象自己填写，如有不
+便由研究者代为填写，问卷当场收回并剔除有明显逻辑错误的问卷。
+（4）数据的录入与分析：双人录入并核对数据，统计分析有问题时随时咨
+询统计学专家。
+
+<!-- page 77 -->
+53
+3
+结果
+3.1 初始量表条目池的建立
+根据女性尿失禁患者心理社会适应概念框架和质性研究结果，经课题组研究
+讨论，建立女性尿失禁患者心理社会适应量表条目池（附录G），包含4 个维度
+共41 个条目，分别为情绪状态（11 个条目）、自我认知（13 个条目）、社会角
+色（10 个条目）及社会支持（7 个条目）。
+3.2 德尔菲专家函询结果
+3.2.1 专家一般资料
+本部分研究严格按照专家纳入标准遴选专家，同时考虑专家的权威性和代表
+性，共邀请了15 名专家进行了函询，其中女性14 名，男性1 名。年龄为（48.87±7.28）
+岁，工作年限为（26.13±7.90）年。专家的基本资料见表3.3。
+表3.3 专家基本情况（n=15）
+项目
+类别
+人数
+构成比（%）
+年龄（岁）
+30~39
+2
+13.33
+40~49
+6
+40.00
+50~59
+7
+46.67
+工作年限（年）
+10~19
+3
+20.00
+20~29
+4
+26.67
+30~39
+8
+53.33
+学历
+博士
+4
+26.67
+硕士
+5
+33.33
+本科
+6
+40.00
+职称
+正高级
+9
+60.00
+副高级
+6
+40.00
+专业领域
+妇产科临床医疗
+4
+26.68
+妇产科临床护理
+5
+33.33
+妇产科护理管理
+2
+13.33
+妇产科护理教育
+2
+13.33
+心理学
+2
+13.33
+
+<!-- page 78 -->
+54
+3.2.2 专家的积极系数
+本部分研究共进行了2 轮专家函询，2 轮专家函询问卷的有效回收率均为
+100%。因此，2 轮函询的专家积极系数均为100%。
+3.2.3 专家的权威系数
+本部分研究函询专家的个人权威系数在0.75~1.00，专家整体的平均权威系
+数为0.89，符合专家权威要求。
+3.2.4 专家意见的集中程度和协调程度
+本部分研究2 轮专家函询的条目重要性评分的变异系数（CV）范围分别为
+0.08~0.21、0~0.10，因此无条目删除。2 轮专家函询的肯德尔和谐系数（W）分
+别为0.223、0.315，均P<0.01，专家意见协调一致。
+3.2.5 专家意见及量表修改
+（1）第一轮专家意见及量表修改
+本研究将包含4 个维度共41 个条目的量表进行第一轮专家函询，本轮专家
+咨询未对量表维度提出异议，只对量表的某些条目提出意见。结合专家意见和课
+题组讨论后，对量表条目进行删除、拆分及修改。
+1）删除条目：1 名专家提出自我认知维度中条目“我担心由于漏尿而遭到
+别人的嘲笑”与“我担心由于漏尿而遭到别人的歧视”语义相似，容易引起歧义。
+经课题组讨论决定删除条目“我担心由于漏尿而遭到别人的歧视”。
+2）拆分条目：专家提出社会支持维度中条目“我能得到家人和朋友的情感
+支持和帮助”、“我能得到家人和朋友的切实具体的帮助”、“我能与家人和朋
+友分享快乐与忧伤”、“漏尿问题没有影响我与家人和朋友的关系”，家人和朋
+友属于社会系统的不同层面，被试对两者的评分很可能不一样，放到一起评分会
+相互影响，建议拆分为2 道题。课题组接受专家建议，将4 个条目拆分为8 个条
+目，分别为“我能得到家人的情感支持和帮助”、“我能得到朋友的情感支持和
+帮助”、“我能得到家人的切实具体的帮助”、“我能得到朋友的切实具体的帮
+助”、“我能与家人分享快乐与忧伤”、“我能与朋友分享快乐与忧伤”、“漏
+尿问题没有影响我与家人的关系”、“漏尿问题没有影响我与朋友的关系”。
+3）修改条目：1 名专家提出条目“我感到害怕”，不能准确反映焦虑/抑郁，
+建议修改为“我感到担忧”，接受建议。1 名专家提出条目“漏尿问题妨碍到我
+
+<!-- page 79 -->
+55
+工作的能力”表述不准确，建议修改为“漏尿问题妨碍到我的工作”，接受建议。
+1 名专家提出条目“关于漏尿问题，家人特别理解和包容我”表述不准确，建议
+修改为“关于漏尿问题，家人能够理解和包容我”，接受建议。专家提出条目
+14“我能得到家人切实具体的帮助”和条目29“我能得到朋友切实具体的帮助”，
+其中“切实具体”表述容易引起歧义。课题组结合专家提出的意见，经讨论后，
+将条目14 修改为“我能得到家人实际的帮助”、条目29 修改为“我能得到朋友
+实际的帮助”。
+（2）第二轮专家意见及量表修改
+结合第一轮专家函询意见对量表进行修改，将修改后的女性尿失禁患者心理
+社会适应量表（包含4 个维度共44 个条目）发放给专家进行第二轮函询。本轮
+咨询仅2 名专家提出修改意见，未提出删减或增加条目的意见。修改意见为：建
+议将条目“漏尿问题妨碍到我在家庭中的责任”修改为“漏尿问题妨碍到我应尽
+的家庭义务”，接受建议；建议将条目“漏尿会增加家庭经济负担，我存在因漏
+尿问题导致的经济负担”修改为“我存在因漏尿问题导致的经济负担”，接受建
+议。
+结合2 轮专家函询意见，课题组讨论后，对量表进行了条目的删减、增加及
+修改，最终形成用于预调查的女性尿失禁患者心理社会适应量表（包含4 个维度
+共44 个条目），量表维度和条目分别为情绪状态（11 个条目）、自我认知（12
+个条目）、社会角色（10 个条目）及社会支持（11 个条目）。
+3.3 预调查
+本研究选取符合纳入和排除标准的女性尿失禁患者30 名进行预调查，回收
+有效问卷30 份（有效回收率为100%），填写完成问卷时间约为15min，女性尿
+失禁患者心理社会适应量表的Cronbach’s ɑ系数为0.909。预调查的研究对象对量
+表内容难易度、准确性及是否引起歧义等进行评价时，有1 名患者提出意见。1
+名患者提出条目1“我感到自责，让他人失望”与条目34“我对自己感到失望、
+没有价值”同时提到“失望”，容易引起歧义。课题组结合患者提出的意见，经
+讨论后，将条目34 修改为“我感到自己没有价值”。
+
+<!-- page 80 -->
+56
+本研究于2021 年8 月至10 月进行量表的检验，共发放570 份问卷，回收
+559 份问卷，回收率为98.07%；其中有效问卷为536 份，有效回收率94.04%。
+研究对象的年龄为（41.52±10.46）岁，病程为（5.17±6.41）年，尿失禁问卷简表
+得分为（8.94±4.10）分，研究对象的一般资料见表3.4。
+表3.4 研究对象一般人口学资料（n=536）
+项目
+类别
+例数
+百分比（%）
+年龄（岁）
+＜30
+53
+9.9
+30～39
+206
+38.4
+40～49
+151
+28.2
+50～59
+94
+17.5
+≥60
+32
+6.0
+居住地
+城镇
+397
+74.1
+农村
+139
+25.9
+学历
+小学及以下
+51
+9.5
+初中
+86
+16.0
+高中及中专
+119
+22.2
+大学及以上
+280
+52.3
+婚姻状况
+有配偶
+483
+90.1
+无配偶
+53
+9.9
+家庭人均月收入（元）
+＜2000
+60
+11.2
+2000～3999
+150
+28.0
+4000～5999
+152
+28.4
+≥6000
+174
+32.4
+职业
+职员
+293
+54.7
+工人
+55
+10.3
+农民
+52
+9.7
+个体
+28
+5.2
+其他
+108
+20.1
+工作状态
+在职
+394
+73.5
+病休
+91
+17.0
+退休
+10
+1.9
+无工作
+41
+7.6
+3.4 研究对象的一般资料
+
+<!-- page 81 -->
+57
+表3.4 研究对象一般人口学资料（n=536）（续）
+项目
+类别
+例数
+百分比（%）
+医疗付费方式
+医疗保险
+396
+73.9
+商业保险
+14
+2.6
+自费
+126
+23.5
+体重指数
+体重过轻
+15
+2.8
+正常体重
+300
+56.0
+超重
+173
+32.3
+肥胖
+48
+8.9
+生育次数
+0
+13
+2.4
+1
+277
+51.7
+2
+190
+35.5
+≥3
+56
+10.4
+病程（年）
+＜1
+66
+12.3
+1～4
+265
+49.4
+5～9
+120
+22.4
+≥10
+85
+15.9
+尿失禁类型
+压力性
+412
+76.9
+混合性
+101
+18.8
+急迫性
+23
+4.3
+尿失禁严重程度
+轻度
+257
+47.9
+中度
+212
+39.6
+重度
+67
+12.5
+3.5 项目分析结果
+3.5.1 临界比值法结果
+将本研究的333 份问卷总得分按由高到低排序，排在前27%（第90 位）的
+临界值和排在后27%（第244 位）的临界值作为临界分割点，进行独立样本t 检
+验，结果显示条目2、3、4、9、10、12、32、37、38 的差异均无统计学意义（P>0.05），
+删除该9 个条目。其余条目CR 值均大于3，且差异均有统计学意义（P<0.05），
+见表3.5。
+
+<!-- page 82 -->
+58
+表3.5 各条目高分组、低分组均值独立样本t 检验（n=333）
+条目
+t
+P
+条目
+t
+P
+Q1
+49.426
+＜0.001***
+Q23
+66.820
+＜0.001***
+Q2
+0.281
+0.597
+Q24
+40.702
+＜0.001***
+Q3
+0.237
+0.627
+Q25
+19.394
+＜0.001***
+Q4
+1.243
+0.266
+Q26
+41.849
+＜0.001***
+Q5
+4.291
+0.040*
+Q27
+12.204
+0.001**
+Q6
+100.331
+＜0.001***
+Q28
+7.105
+0.008**
+Q7
+31.024
+＜0.001***
+Q29
+34.430
+＜0.001***
+Q8
+17.627
+＜0.001***
+Q30
+14.797
+＜0.001***
+Q9
+2.879
+0.091
+Q31
+8.213
+0.005**
+Q10
+0.821
+0.366
+Q32
+0.025
+0.874
+Q11
+35.743
+＜0.001***
+Q33
+24.241
+＜0.001***
+Q12
+3.048
+0.083
+Q34
+15.110
+＜0.001***
+Q13
+48.436
+＜0.001***
+Q35
+111.49
+＜0.001***
+Q14
+31.215
+＜0.001***
+Q36
+63.711
+＜0.001***
+Q15
+25.318
+＜0.001***
+Q37
+0.046
+0.830
+Q16
+87.587
+＜0.001***
+Q38
+0.571
+0.451
+Q17
+48.706
+＜0.001***
+Q39
+183.956
+＜0.001***
+Q18
+18.095
+＜0.001***
+Q40
+20.522
+＜0.001***
+Q19
+17.624
+＜0.001***
+Q41
+55.637
+＜0.001***
+Q20
+9.522
+0.002**
+Q42
+15.695
+＜0.001***
+Q21
+32.831
+＜0.001***
+Q43
+9.368
+0.003**
+Q22
+17.103
+＜0.001***
+Q44
+13.031
+＜0.001***
+注：*表示P＜0.05，**表示P＜0.01，***表示P＜0.001
+3.5.2 相关分析结果
+相关性分析结果显示，各条目得分与量表总分相关系数小于0.3 的条目包括
+6 个条目，分别为11、14、21、26、39、44，删除该6 个条目，结果见表3.6；
+各条目得分之间相关系数大于0.8 的条目为16 与17（r =0.830），经课题组讨论，
+删除条目16。
+
+<!-- page 83 -->
+59
+表3.6 各条目得分与量表总分相关系数（n=333）
+项目
+r
+项目
+r
+项目
+r
+Q1
+0.782***
+Q19
+0.703***
+Q31
+0.426***
+Q5
+0.536***
+Q20
+0.727***
+Q33
+0.685***
+Q6
+0.683***
+Q21
+0.198***
+Q34
+0.713***
+Q7
+0.742***
+Q22
+0.781***
+Q35
+0.834***
+Q8
+0.745***
+Q23
+0.806***
+Q36
+0.770***
+Q11
+-0.010
+Q24
+0.735***
+Q39
+0.081
+Q13
+0.767***
+Q25
+0.309***
+Q40
+0.415***
+Q14
+0.119*
+Q26
+0.156**
+Q41
+0.748***
+Q15
+0.613***
+Q27
+0.684***
+Q42
+0.628***
+Q16
+0.813***
+Q28
+0.733***
+Q43
+0.721***
+Q17
+0.794***
+Q29
+0.308***
+Q44
+0.282***
+Q18
+0.645***
+Q30
+0.314***
+注：*表示P＜0.05，**表示P＜0.01，***表示P＜0.001
+3.6 量表的信效度检验结果
+3.6.1 效度检验结果
+（1）内容效度
+本部分研究从15 名德尔菲函询专家中选择5 名专家（妇产科临床医疗专家
+2 名、妇产科临床护理专家2 名及心理学专家1 名），评价量表的内容效度。请
+各位专家对量表各条目与研究内容的关联程度进行评分。结果显示，女性尿失禁
+患者心理社会适应量表的内容效度为0.995，4 个维度内容效度为0.970~1.000。
+（2）结构效度
+1）探索性因子分析
+第一次探索性因子分析：将项目分析后保留的28 个条目进行第一次探索性
+因子分析，对量表进行KMO 和Bartlett 球形检验，KMO=0.963，Bartlett’s 球形
+检验P<0.01，拒绝球形假设，适合进行因子分析。利用主成分分析法提取公因
+子，抽取特征值大于1.0 的公因子，经最大方差法正交旋转后，设定因子载荷值
+大于0.5 进行因子分析发现，量表提取了3 个公因子，累计方差贡献率为62.979%，
+条目1、8、13、22、23、24、27、35、36、42 存在明显双载荷现象，给予删除；
+条目5 在各因子上的载荷均小于0.5，经课题组讨论并依据筛选标准，将其删除。
+
+<!-- page 84 -->
+60
+第二次探索性因子分析：将剩余的17 个条目进行第2 次探索性因子分析，
+对量表进行KMO 和Bartlett 球形检验，KMO=0.917，Bartlett’s 球形检验P<0.01。
+采用相同的方法提取公因子3 个（图11），累积方差贡献率为66.952%（表3.7），
+所有条目在所属维度上的载荷值均大于0.50 且没有出现双载荷现象（表3.8），
+故无条目删除。
+图11
+探索性因子分析碎石图
+表3.7 探索性因子分析3 个公因子的解释变异量（n=333）
+项目
+初始特征值
+旋转平方和载入
+总计
+方差百分比
+累积%
+总计
+方差百分比
+累积%
+因子1
+7.566
+44.506
+44.506
+4.852
+28.542
+28.542
+因子2
+2.722
+16.012
+60.518
+3.829
+22.525
+51.067
+因子3
+1.094
+6.434
+66.952
+2.700
+15.885
+66.952
+表3.8 探索性因子分析旋转后成分矩阵表（n=333）
+条目
+因子载荷值
+因子1
+因子2
+因子3
+28 我感到担忧
+0.759
+0.391
+-0.049
+19 漏尿问题使我很难保持整洁干净
+0.751
+0.337
+0.024
+17 漏尿问题使我悲伤、沮丧
+0.727
+0.465
+0.037
+
+<!-- page 85 -->
+61
+表3.8 探索性因子分析旋转后成分矩阵表（n=333）（续）
+条目
+因子载荷值
+因子1
+因子2
+因子3
+43 我感到紧张
+0.718
+0.375
+0.021
+31 我不愿意让别人知道我的漏尿问题
+0.708
+-0.086
+-0.062
+20 我感到烦躁、易怒
+0.708
+0.419
+0.028
+34 我感到自己没有价值
+0.706
+0.374
+0.017
+18 我对未来不抱有希望
+0.637
+0.388
+-0.008
+6 漏尿问题妨碍到我应尽的家庭义务
+0.245
+0.828
+0.095
+15 由于漏尿，我减少外出的次数
+0.202
+0.782
+0.057
+7 漏尿问题导致我与朋友之间的交流减少
+0.414
+0.753
+0.080
+41 由于漏尿问题，我放弃了许多休闲及娱乐活动
+0.491
+0.640
+0.077
+33 漏尿问题妨碍到我的工作
+0.454
+0.631
+0.042
+29 我能得到朋友实际的帮助
+0.001
+-0.022
+0.867
+25 我能得到朋友的情感支持和帮助
+0.008
+-0.053
+0.846
+40 我能与朋友分享快乐与忧伤
+0.124
+0.099
+0.790
+30 我能与家人分享快乐与忧伤
+-0.167
+0.217
+0.757
+因子命名：根据女性尿失禁患者心理社会适应量表因子和条目内涵，基于
+Roy 适应模式理论，结合前期概念分析和质性研究结果，第一个因子命名为自我
+概念维度，包括情绪状态和自我认知2 个方面，共计8 个条目；第二个因子命名
+为角色功能维度，包括社会交往和角色功能2 个方面，共计5 个条目；第三个因
+子命名为社会支持维度，对应社会支持方面，共计4 个条目，结果见图12。
+2）验证性因子分析：经探索性因子分析得到3 个因子模型，通过AMOS 软
+件对探索性因子分析的结果进行验证，结果详见图13。标准化因子载荷值均大
+于0.6，临界值检验结果显示，各系数均有统计学意义（P<0.001），见表3.9。3
+个因子的路径系数均在0.6 以上，说明各因子之间具有较高的相关性，见表3.10。
+模型适配度检验结果为χ2/df=3.132（P<0.001），SRMR=0.092，CFI=0.910，此模
+型拟合较理想。
+
+<!-- page 86 -->
+62
+图12
+女性尿失禁患者心理社会适应量表维度组成
+自我认知
+社会支持
+角色功能
+情绪状态
+I28
+I17
+I43
+I20
+I18
+I31
+I19
+I34
+I15
+I7
+I41
+I6
+I33
+I29
+I25
+I30
+I40
+角色功能
+社会支持
+自我概念
+
+<!-- page 87 -->
+63
+图13
+验证性因子分析模型中各标准化系数的估计
+
+<!-- page 88 -->
+64
+表3.9 验证因子分析结果估计模型系数（n=203）
+ITEMS
+UNSTD
+S.E.
+t
+P
+STD
+CR
+AVE
+Q28
+<---
+F1
+1
+0.792
+0.920
+0.592
+Q19
+<---
+F1
+1.142
+0.088
+13.002
+***
+0.813
+Q17
+<---
+F1
+1.032
+0.079
+13.015
+***
+0.806
+Q43
+<---
+F1
+1.081
+0.088
+12.328
+***
+0.779
+Q31
+<---
+F1
+0.979
+0.090
+10.862
+***
+0.706
+Q20
+<---
+F1
+0.967
+0.085
+11.411
+***
+0.743
+Q34
+<---
+F1
+1.087
+0.082
+13.273
+***
+0.833
+Q18
+<---
+F1
+0.807
+0.080
+10.118
+***
+0.669
+Q6
+<---
+F2
+1
+0.753
+0.896
+0.636
+Q15
+<---
+F2
+1.392
+0.102
+13.593
+***
+0.905
+Q7
+<---
+F2
+1.059
+0.091
+11.645
+***
+0.782
+Q41
+<---
+F2
+1.298
+0.098
+13.304
+***
+0.887
+Q33
+<---
+F2
+0.887
+0.099
+8.989
+***
+0.627
+Q29
+<---
+F3
+1
+0.879
+0.902
+0.702
+Q25
+<---
+F3
+1.142
+0.057
+20.021
+***
+0.944
+Q40
+<---
+F3
+1.038
+0.060
+17.343
+***
+0.876
+Q30
+<---
+F3
+0.665
+0.068
+9.749
+***
+0.613
+注：***为P<0.001
+表3.10 维度之间的路径系数估计（n=203）
+ITEMS
+UNSTD
+S.E.
+t
+P
+STD
+F1
+<-->
+F2
+0.802
+0.106
+7.542
+***
+0.978
+F2
+<-->
+F3
+0.521
+0.084
+6.206
+***
+0.614
+F1
+<-->
+F3
+0.592
+0.088
+6.699
+***
+0.656
+注：***为P<0.001
+（2）校标关联效度
+采用中文版应对适应过程量表作为校标，计算中文版应对适应过程量表与女
+性尿失禁患者心理社会适应量表得分的Pearson 相关系数为0.600（P＜0.01）。
+3.6.2 信度检验结果
+
+<!-- page 89 -->
+65
+（1）内部一致性信度
+本研究采用计算Cronbach’s a 系数来衡量量表的内部一致性。女性尿失禁患
+者心理社会适应总量表的Cronbach’s a 系数为0.893，3 个维度的Cronbach’s a
+系数为0.835~0.910，见表3.11。
+表3.11 总量表及各维度的Cronbach’s a 系数（n=333）
+因子
+问卷维度
+条目数
+Cronbach’s a
+总量表
+17
+0.893
+1
+自我概念
+8
+0.910
+2
+角色功能
+5
+0.885
+3
+相互依赖
+4
+0.835
+（2）重测信度
+两周后对30 例女性尿失禁患者重新测量，评价问卷的重测信度，两次测量
+问卷得分的Pearson 相关系数为0.803（P＜0.01）。
+
+<!-- page 90 -->
+66
+4
+讨论
+4.1 女性尿失禁患者心理社会适应初始量表条目池的建立
+本部分研究基于前期的概念分析和质性研究结果，建立了女性尿失禁患者心
+理社会适应初始量表的维度和条目池。女性尿失禁患者心理社会适应的概念分析
+明确了其包括4 个概念属性，分别为情绪状态、自我认知、角色功能及社会支持，
+为初始量表维度划分提供了理论依据；本研究第二部分采用描述现象学的方法对
+女性尿失禁患者的心理社会适应进行了深入的访谈，质性研究内容分析资料为初
+始量表条目池的建立提供丰富的信息资料。因此，本部分研究初始量表条目池的
+构建既有一定的理论支撑，又保证了量表条目内容的全面性，使构建的初始量表
+具有一定的科学性和可操作性。
+4.2 项目分析
+项目分析和筛选的目的是筛选出既能客观准确反映量表主题，又能准确测量
+所欲测量变量的特质，同时又具备良好鉴别效能的条目[132]。因此，条目分析结
+果可以作为对量表条目进行删改的参考依据之一。本研究采用临界比值法和相关
+系数法进行条目的筛选。CR 小于3 或经统计学检验差异未达显著水平（P＞0.05）
+的条目，其区分度较低，本研究将不符合此标准的9 个条目予以删除。相关系数
+法是评价各条目的同质性和独立性，本研究中有6 个条目得分与量表总得分的
+Pearson 相关系数小于0.3，表示条目与整体量表的同质性较低，予以删除；条目
+16 与17 间得分的Pearson 相关系数大于0.8，说明这些条目关联性过强，有可能
+反映同一问题。条目16 为“漏尿使我感到羞耻”，条目17 为“漏尿问题使我悲
+伤、沮丧”，经课题组讨论认为条目17 更能准确表达患者的心境，同时条目31
+（我不愿意让别人知道我的漏尿问题）的内涵在一定程度上可反映患者的羞耻体
+验，因此课题组研究决定删除条目16。本研究从条目的区分度、同质性及独立
+性三个方面进行条目筛选，保证了量表条目的质量。
+4.3 信效度分析
+4.3.1 效度分析
+
+<!-- page 91 -->
+67
+效度用于考察测评工具的准确度、正确性以及有效性，效度的高低表示工具
+所测量到的结果与所需考察内容的一致程度[133]。本研究采用内容效度、结构效
+度及校标关联效度对量表进行效度评价。
+（1）内容效度：内容效度用于考察量表条目所反映出的概念与研究者所要
+测量概念的一致程度[134]，即对条目与量表主题的吻合度作出的判断。本研究在
+概念分析和质性研究基础上形成初始量表条目池，经过2 轮专家咨询，对条目进
+行增删及修改，最终形成由4 个维度共44 条目组成的初始量表，S-CVI 为0.995，
+S-CVI＞0.90 为接受的标准[127]，说明本量表内容效度较好，能较好反映量表所测
+量的概念。
+（2）结构效度：结构效度用于考察测评工具能否反映研究的概念及实际测
+量分数与量表所依理论框架间相吻合的程度[135]。
+1）探索性因子分析结果：当KMO＞0.9 时，因子分析非常适合；KMO＜0.5，
+因子分析不能进行[128]。Bartlett 球形检验若P＜0.05，则因子分析可以进行[129]。
+本研究中KMO 为0.917，Bartlett’s 球形检验为3505.995（P＜0.001），差异有显
+著性，说明该量表适合做因子分析。利用主成分分析法提取公因子，抽取特征值
+大于1.0 的公因子，经最大方差法正交旋转后，设定因子载荷值大于0.5 进行因
+子分析发现，量表提取了3 个公因子，累计方差贡献率为66.952%。
+2）验证性因子分析结果：利用结构方程模型进行验证性因子分析时，因子
+载荷系数越大，表示条目能被相应因子（维度）解释的变异越大，也表示条目能
+有效反映相应因子的特质，一般以标准化因子载荷系数均大于0.5 为标准[136]。
+本研究结果显示，全部标准化因子载荷系数均大于0.6，表示模型的基本适配度
+良好；3 个维度之间的路径系数均在0.6 以上，显示各维度之间存在相关性。关
+于模型拟合指标，一般认为χ2/df＜5 时，拟合程度可以接受，＜3 时，拟合较好[136]；
+SRMR＜0.1 时，模型的拟合程度可以接受[137]；CFI＞0.9 时，模型的拟合程度较
+好[137]。本研究中χ2/df=3.132（P＜0.001），SRMR=0.092，CFI=0.910，说明此模
+型拟合较好。
+3）因子分析后量表维度的变化：由自我概念、角色功能及社会支持维度构
+成的17 个条目的女性尿失禁患者心理社会适应量表与原构想基本一致，可较好
+反映女性尿失禁患者心理社会适应量表的内涵。原构想四个维度的内涵分别为：
+情绪状态维度以女性尿失禁患者最常见的焦虑和抑郁情绪为主要内容；自我认知
+维度以女性尿失禁患者较常见的病耻感、自尊及身体心像的自我体验为主要内容；
+
+<!-- page 92 -->
+68
+角色功能维度包括社会交往和社会角色内容；社会支持包括家庭支持和社会支持
+内容。经探索性因子分析和验证性因子分析得出的17 个条目的女性尿失禁患者
+心理社会适应量表包括自我概念、角色功能和社会支持三个维度，与原构想相比，
+情绪状态维度和自我认知维度合并为自我概念维度。自我概念是社会心理学研究
+热点，美国学者斯蒂芬编著、中国学者葛剑桥等翻译的《社会心理学》[138]中认
+为，自我概念是一个人全部思想和感受的总和，将自我定义为一个客体。因此，
+本研究中将情绪状态维度和自我认知维度合并后的内容符合自我概念维度的内
+涵。
+（3）校标关联效度：效标关联效度用于考察研究工具与其他测量标准之间
+关联的程度，反映研究工具的稳定性，效标关联效度采用相关系数表示，通常认
+为相关系数在0.4~0.8 之间最佳[130]。本研究采用中文版应对适应过程量表简表[61]
+作为效标，计算女性尿失禁患者心理社会适应量表总分与中文版应对适应过程量
+表简表总分的相关系数为0.6，表明本量表具有较好的效标关联效度。
+4.3.2 信度分析
+信度是指测评工具所测得结果的可靠性程度，反映工具的稳定性、一致性与
+可靠性。本研究采用Cronbach’s a 系数评价量表的内部一致性信度，一般认为量
+表的Cronbach’s a 系数在0.7 以上，所编制工具的信度较好[125]。重测信度测量量
+表的稳定性，越接近1 越好，一般大于0.70 表示可以接受[131]。本研究中总量表
+的Cronbach’s a 系数为为0.893，3 个维度的Cronbach’s a 系数为0.835~0.910，重
+测信度为0.803，说明量表具有较好的信度。
+
+<!-- page 93 -->
+69
+5
+结论
+本研究基于概念分析和质性研究结果，研制了女性尿失禁患者心理社会适应
+量表，包括3 个维度共17 个条目，分别为自我概念（8 个条目）、角色功能（5
+个条目）及社会支持（4 个条目）。经检验证实量表具有较好的信效度，可作为
+女性尿失禁患者心理社会适应研究的特异性评估工具。
+
+<!-- page 94 -->
+70
+第四部分：女性尿失禁患者心理社会适应概念模型的
+验证
+1
+概述
+女性尿失禁患者由于不自主漏尿，常引发会阴部疼痛、瘙痒、皮炎及泌尿系
+统疾病等生理问题，同时漏尿导致患者出现焦虑、抑郁、病耻感及低自尊等负性
+情绪，进而出现社交退缩、社会隔离、角色功能障碍等社会问题。此外，尿失禁
+患者需要承受额外的卫生经济负担，美国一项调查显示[139]，尿失禁女性每年用
+于尿失禁管理的花费高达650 亿美元，且呈持续增长的趋势。尿失禁虽然为非致
+命性疾病，但其症状引发的心理社会问题给患者造成了严重的困扰，严重影响了
+患者的生活质量和生活满意度。心理社会适应作为护理学领域的一个重要概念，
+大量研究表明，在护理实践中提高患者的心理社会适应水平，有助于改善其生活
+质量和生活满意度[33,34,65]。
+以往女性尿失禁患者心理社会问题的干预研究，往往针对患者心理社会的某
+一因素进行，如抑郁、病耻感、应对方式及自我效能等，有研究证实的干预策略
+包括认知行为干预[46,48]、自我管理干预[47,49-51]、基于达标理论的干预[52]、基于保
+护动机理论的干预[53]、小组模式干预[54,55]、基于应用程序的音频引导盆底肌训练
+干预[56]及支持性心理疗法[57]等。对女性尿失禁患者实施有效的心理社会适应干
+预，为女性尿失禁患者心理社会问题的干预提供了新的视角和思路，但现阶段未
+形成有针对性的女性尿失禁患者心理社会适应的干预方案，女性尿失禁患者心理
+社会适应的概念模型及心理社会适应对生活质量影响的作用机制尚未阐明。
+综上所述，本研究第一部分基于Roy 适应模式，通过尿失禁患者心理社会
+适应概念分析，构建了女性尿失禁患者心理社会适应的概念模型，本部分研究采
+用横断面调查法，分析女性尿失禁患者心理社会适应水平及影响因素，探讨女性
+尿失禁患者心理社会适应对生活质量影响的作用机制和路径，对女性尿失禁患者
+心理社会适应模型进行验证，以期为制定女性尿失禁患者心理社会适应的有效干
+预方案提供理论依据。
+
+<!-- page 95 -->
+71
+2
+对象与方法
+2.1 研究方法
+本部分研究采用横断面研究方法。
+2.2 研究对象
+采用便利抽样法连续选取2021 年11 月至2021 年12 月在河北省唐山市两所
+三级甲等医院盆底康复门诊进行治疗及随访的女性尿失禁患者为研究对象。
+2.2.1 纳入标准
+（1）女性患者；
+（2）经国际尿失禁咨询委员会尿失禁问卷简表（ICIQ-UI SF）面对面评估
+明确有尿失禁症状；
+（3）年龄≥18 岁；
+（4）病程≥1 个月；
+（5）知情并愿意参加本研究。
+2.2.2 排除标准
+（1）病情严重，合并其他严重躯体疾病；
+（2）存在精神疾患或认知障碍者；
+（3）言语沟通交流障碍者；
+（4）妊娠期尿失禁患者；
+（5）产后3 个月内的尿失禁患者。
+2.2.3 样本量计算
+根据Kendall 样本估算法，样本量为自变量数的5~10 倍[118]，本研究中自变
+量最多为20 个（一般资料调查表11 个、ICIQ-UI SF 2 个维度、女性尿失禁患者
+心理社会适应量表3 个维度、疾病认知问卷1 个维度、女性尿失禁应对方式量表
+3 个维度），考虑10%的无效样本量，样本量应为110~220 人。结构方程模型参
+数估计的稳定性和样本量的大小有关，一般最少的样本量需求为200 例以上[140]。
+本研究最终调查样本量为220 人。
+
+<!-- page 96 -->
+72
+2.3 研究工具
+本部分研究为女性尿失禁患者心理社会适应概念模型的验证，依据本研究第
+一部分女性尿失禁患者心理社会适应概念分析中初步构建的女性尿失禁患者心
+理社会适应概念模型（见图7），选择本部分研究的研究工具，包括一般资料调
+查表、ICIQ-UI SF、女性尿失禁患者心理社会适应量表、尿失禁疾病认知问卷、
+女性尿失禁应对方式量表及尿失禁生活质量量表。
+2.3.1 一般资料调查表（附录C）
+同本研究第三部分（P47）。
+2.3.2 国际尿失禁咨询委员会尿失禁问卷简表（附录D）
+同本研究第三部分（P47）。
+2.3.3 女性尿失禁患者心理社会适应量表（附录I）
+女性尿失禁患者心理社会适应量表为本研究第三部分研制，用于女性尿失禁
+患者心理社会适应水平的测评，该量表包括自我概念、角色功能及社会支持3
+个维度共17 个条目。量表采用Likert 5 级计分法，0 分为“从不”，1 分为“很
+少”，2 分为“有时”，3 分为“经常”，4 分为“总是”，正向计分条目4 个
+（条目14~17），反向计分条目13 个（条目1~13），总分为0~68 分之间，得
+分越高表示该患者心理社会适应越好。经验证，量表具有较好的效度，总量表的
+Cronbach’s a 系数为0.893，3 个维度的Cronbach’s a 系数为0.835~0.910，重测信
+度为0.803。
+2.3.4 尿失禁疾病认知问卷（附录J）
+尿失禁疾病认知问卷由研究者基于第二部分质性研究结果自行编制，用于评
+价女性尿失禁患者疾病认知水平，共有8 个条目，条目内容涵盖尿失禁病因、治
+疗及康复。量表采用Likert 5 级计分法，0 分为“从不”，1 分为“很少”，2 分
+为“有时”，3 分为“经常”，4 分为“总是”，其中5 个条目（条目1~5）为
+反向计分题。总分范围为0~32 分，得分越高则患者疾病认知水平越好。问卷的
+Cronbach’s ɑ系数为0.861。
+2.3.5 女性尿失禁应对方式量表（附录K）
+
+<!-- page 97 -->
+73
+该量表由吴臣等[141]于2012 年编制，是评估女性尿失禁患者应对方式的特异
+性量表。该量表分为3 个维度共18 个条目。量表的3 个维度和条目数分别为：
+预防性应对方式（8 个条目）、掩饰性应对方式（6 个条目）及治疗性应对方式
+（4 个条目）。量表采用Likert 4 级评分法，量表得分越高，表明尿失禁患者的
+应对方式越消极。量表的Cronbach’s α系数为0.778，各个维度的Cronbach’s α系
+数分别为0.862、0.718、0.711。
+2.3.6 尿失禁生活质量量表（附录L）
+尿失禁生活质量量表（Incontinence Quality of Life，I-QOL）由Wagner 等[142]
+于1996 年研制，王晓茜等[143]于2013 年汉化并进行信效度检验形成中文版量表，
+用于尿失禁患者生活质量的特异性评价工具。量表分为3 个维度共22 个条目，
+量表的3 个维度和条目数分别为：逃避和限制性行为（8 个条目）、心理社会影
+响（9 个条目）及自我困扰（5 个条目）。该量表为患者自评量表，采用Likert5
+级评分法，得分越高表明生活质量越好。总量表Cranach's α系数为0.963，已经
+被国际尿控协会推荐为A 类问卷，在临床上广泛应用。本部分研究采用中文版
+尿失禁生活质量量表测评女性尿失禁患者的生活质量。
+2.4 资料收集
+由研究者本人或接受过统一培训的研究员对调查问卷进行发放和收回。调查
+前向研究对象解释调查的目的和意义，取得研究对象的知情同意。调查时应用统
+一的指导语，根据本人实际情况独立完成调查问卷的填写。研究对象对问卷内容
+有疑问时，研究者给予解释，问卷当场发放并回收。立即将回收后的问卷进行核
+查，发现遗漏请研究对象及时补填。
+2.5 资料整理与分析
+采用双人录入法录入数据，使用SPSS25.0 和AMOS24.0 统计软件分析数据。
+患者的一般资料用均数±标准差、频数进行描述；采用正态性检验、t 检验、方差
+分析及多元线性回归分析进行统计学推断。应用AMOS24.0 统计软件进行模型
+的估计和模型的检验，根据初步模型各参数估计的检验结果、整体适配度和相关
+模型修正指数对模型进行调整。采用偏差校正和百分比Bootstrap 法进行中介效
+应检验，样本量设置为5000（迭代次数），置信区间设置为95%。
+
+<!-- page 98 -->
+74
+2.6 伦理考量
+本研究已向中国医科大学医学伦理委员会提交伦理申请并获得批准（伦审
+[2021]94 号），伦理批件见附录A。研究者严格遵守《赫尔辛基宣言》，对研究
+对象的信息严格保密，在研究结束后1 年内将研究对象的所有信息销毁。
+研究正式开始前，研究者向研究对象介绍本研究的目的和意义，解释研究的
+注意事项、保密协议及资料的销毁流程等，研究对象知情同意后签署知情同意书
+（附录H）；研究者选取合适的地点对研究对象进行资料收集，保护研究对象隐
+私；研究过程中研究对象有随时终止研究并要求销毁研究资料的权利；资料整理
+分析过程中涉及研究对象个人隐私的信息统一用数字代替。
+2.7 质量控制
+（1）研究对象的选取：严格按照纳入标准和排除标准选取研究对象。
+（2）资料的收集过程：调查问卷由研究者本人或接受过统一培训的研究员
+进行发放和收回。调查时使用统一的指导语,尽量让调查对象自己填写，如有不
+便由研究者代为填写，问卷当场收回并剔除有明显逻辑错误的问卷。
+（3）数据的录入与分析：双人录入并核对数据，统计分析有问题时随时咨
+询统计学专家。
+
+<!-- page 99 -->
+75
+2.8 技术路线
+图14
+女性尿失禁患者心理社会适应概念模型验证技术路线图
+女性尿失禁患者心理
+社会适应概念模型验证
+便利抽样法
+纳入排除标准
+选取研究对象
+调查工具：一般资料调查表、
+女性尿失禁患者心理社会适应
+量表、ICIQ-UI SF、尿失禁疾
+病认知问卷、女性尿失禁应对
+方式量表、I-QOL
+问卷调查
+数据整理与统计
+分析
+描述性分析、t 检验、
+方差分析、相关性分
+析、多元线性回归分析
+分析女性尿失禁患者心理
+社会适应水平及影响因素
+基于女性尿失禁
+患者心理社会适
+应概念模型选取
+调查工具
+验证女性尿失禁患者
+心理社会适应概念模型
+应用AMOS24.0 对构
+建的模型进行路径和
+中介效应分析并验证
+模型
+
+<!-- page 100 -->
+76
+3
+结果
+3.1 女性尿失禁患者的一般资料
+本阶段共发放220 份问卷，回收215 份问卷，回收率为97.73%；其中有效
+问卷为203 份，有效回收率为92.27%。本部分研究所调查女性尿失禁患者年龄
+为（38.18±10.49）岁，病程为（4.07±4.10）年，尿失禁问卷简表得分为（10.29±4.10）
+分，具体情况见表4.1。
+表4.1 女性尿失禁患者的一般资料（n=203）
+项目
+类别
+例数
+百分比（%）
+年龄（岁）
+＜30
+34
+16.7
+30～39
+98
+48.3
+40～49
+39
+19.2
+50～59
+21
+10.3
+≥60
+11
+5.5
+居住地
+城镇
+123
+60.6
+农村
+80
+39.4
+学历
+小学及以下
+23
+11.3
+初中
+52
+25.6
+高中及中专
+68
+33.5
+大学及以上
+60
+29.6
+婚姻状况
+有配偶
+181
+89.2
+无配偶
+22
+10.8
+家庭人均月收入
+（元）
+＜2000
+29
+14.3
+2000～3999
+68
+33.5
+4000～5999
+65
+32.0
+≥6000
+41
+20.2
+职业
+职员
+102
+50.2
+工人
+27
+13.3
+农民
+28
+13.8
+个体
+17
+8.4
+其他
+29
+14.3
+
+<!-- page 101 -->
+77
+表4.1 女性尿失禁患者的一般资料（n=203）（续）
+项目
+类别
+例数
+百分比（%）
+工作状态
+在职
+137
+67.5
+病休
+47
+23.2
+退休
+7
+3.4
+无工作
+12
+5.9
+医疗付费方式
+医疗保险
+118
+58.1
+商业保险
+7
+3.4
+自费
+78
+38.5
+体重指数
+体重过轻
+7
+3.5
+正常体重
+106
+52.2
+超重
+66
+32.5
+肥胖
+24
+11.8
+生育次数
+0
+3
+1.4
+1
+83
+40.9
+2
+98
+48.3
+≥3
+19
+9.4
+病程（年）
+＜1
+39
+19.2
+1～4
+104
+51.2
+5～9
+54
+26.6
+≥10
+6
+3.0
+尿失禁类型
+压力性
+158
+77.8
+混合性
+42
+20.7
+急迫性
+3
+1.5
+尿失禁严重程度
+轻度
+65
+32.0
+中度
+96
+47.3
+重度
+42
+20.7
+
+<!-- page 102 -->
+78
+调查结果显示，女性尿失禁患者心理社会适应总得分为（39.06±15.49）分，
+得分最高的维度是角色功能，得分最低的维度是自我概念。女性尿失禁患者心理
+社会适应各维度评分及总评分见表4.2。
+表4.2 女性尿失禁患者心理社会适应得分（x±s，n=203）
+维度
+条目数
+得分范围
+总分
+条目均分
+排序
+总分
+17
+1~68
+39.06±15.49
+2.30±0.91
+3
+自我概念
+8
+0~32
+17.71± 7.91
+2.21±0.99
+4
+角色功能
+5
+0~20
+12.11± 5.19
+2.42±1.04
+1
+社会支持
+4
+0~16
+9.24± 3.88
+2.31±0.97
+2
+3.3 女性尿失禁患者心理社会适应的单因素分析
+以女性尿失禁患者心理社会适应总得分为因变量，女性尿失禁患者的一般人
+口学资料和疾病相关资料为自变量，采用独立样本t 检验和单因素方差分析进行
+比较，结果显示，不同年龄、学历、家庭月收入、职业、医疗付费方式、体重指
+数、生育次数、病程、尿失禁类型及严重程度，女性尿失禁患者心理社会适应水
+平不同，差异有统计学意义（P＜0.05），居住地、婚姻状况及工作状态对女性
+尿失禁患者心理社会适应水平影响无统计学意义（P＞0.05），具体情况见表4.3。
+表4.3 女性尿失禁患者心理社会适应水平单因素分析（x±s，n=203）
+项目
+类别
+心理社会适应得分
+t/F
+P
+年龄（岁）
+＜30
+50.06±12.56
+16.486
+＜0.001***
+30～39
+41.65±14.21
+40～49
+34.38±14.45
+50～59
+23.00±11.18
+≥60
+29.18±10.72
+居住地
+城镇
+44.33±13.04
+2.878a
+0.091
+农村
+30.95±15.54
+学历
+小学及以下
+23.26±10.52
+23.749
+＜0.001***
+初中
+36.98±15.48
+高中及中专
+36.82±13.16
+大学及以上
+49.45±12.65
+注：a 表示t，**表示P＜0.01，***表示P＜0.001
+3.2 女性尿失禁患者心理社会适应得分情况
+
+<!-- page 103 -->
+79
+表4.3 女性尿失禁患者心理社会适应水平单因素分析（x±s，n=203）（续）
+项目
+类别
+心理社会适应得分
+t/F
+P
+婚姻状况
+有配偶
+39.94±15.02
+1.409a
+0.237
+无配偶
+31.77±17.69
+家庭人均月收入
+（元）
+＜2000
+31.21±15.90
+13.353
+＜0.001***
+2000～3999
+35.31±14.36
+4000～5999
+39.26±14.06
+≥6000
+50.51±13.06
+职业
+职员
+44.24±14.58
+8.478
+＜0.001***
+工人
+35.26±12.16
+农民
+27.50±18.55
+个体
+36.65±13.34
+其他
+36.97±11.86
+工作状态
+在职
+41.01±15.30
+2.307
+0.078
+病休
+35.00±16.02
+退休
+36.71±17.84
+无工作
+34.08±10.88
+医疗付费方式
+医疗保险
+42.85±14.20
+11.141
+＜0.001***
+商业保险
+44.14±12.51
+自费
+32.87±15.75
+体重指数
+体重过轻
+40.00± 6.81
+5.290
+0.002**
+正常体重
+42.90±14.65
+超重
+35.15±16.22
+肥胖
+32.58±14.75
+生育次数
+0
+32.00±10.15
+8.267
+＜0.001***
+1
+41.90±13.33
+2
+39.85±16.54
+≥3
+23.68± 9.97
+注：a 表示t，**表示P＜0.01，***表示P＜0.001
+
+<!-- page 104 -->
+80
+表4.3 女性尿失禁患者心理社会适应水平单因素分析（x±s，n=203）（续）
+项目
+类别
+心理社会适应得分
+t/F
+P
+病程（年）
+＜1
+50.05±13.95
+19.219
+＜0.001***
+1～4
+40.60±12.98
+5～9
+29.80±14.67
+≥10
+24.33±16.93
+尿失禁类型
+压力型
+40.83±15.28
+4.829
+0.009**
+混合型
+32.81±15.29
+急迫型
+33.33± 2.89
+尿失禁严重程度
+轻度
+53.38±10.84
+117.761
+＜0.001***
+中度
+36.89± 9.52
+重度
+21.86±12.23
+注：a 表示t，**表示P＜0.01，***表示P＜0.001
+3.4 女性尿失禁患者心理社会适应与疾病认知、应对方式、生活质量
+的相关性分析
+Pearson 相关分析结果显示，女性尿失禁患者心理社会适应与疾病认知呈正
+相关（P＜0.01），与应对方式呈负相关（P＜0.01），生活质量与女性尿失禁患
+者心理社会适应呈正相关（P＜0.01），具体情况见表4.4。
+表4.4 女性尿失禁患者心理社会适应的相关性分析
+项目
+疾病认知
+应对方式
+生活质量
+心理社会适应
+疾病认知
+1
+应对方式
+-0.718**
+1
+生活质量
+0.785**
+-0.834**
+1
+心理社会适应
+0.856**
+-0.838**
+0.880**
+1
+注：**表示P＜0.01
+
+<!-- page 105 -->
+81
+以女性尿失禁患者心理社会适应量表总得分为因变量，将单因素分析中有统
+计学意义的变量（年龄、学历、家庭月收入、职业、医疗付费方式、体重指数、
+生育次数、病程、尿失禁类型及严重程度）及相关分析结果中有统计学意义的变
+量（尿失禁疾病认知、应对方式）作为自变量，进行多元线性回归分析。引入方
+程中的所有自变量的赋值及哑变量设置情况见表4.5。结果显示，医疗付费方式、
+病程、尿失禁严重程度、疾病认知及应对方式5 个变量进入回归方程，结果见表
+4.6。
+表4.5 女性尿失禁患者心理社会适应多元回归自变量赋值及哑变量设置表
+自变量
+赋值
+年龄
+＜30=0，30～39=1，40～49=2，50～59=3，≥60=4
+学历
+小学及以下=0，初中=1，高中及中专=2，大学及以上=3
+家庭人均月收入
+＜2000=0，2000～3999=1，4000～5999=2，≥6000=3
+职业
+1=职员，X1=0，X2=0，X3=0，X4=0
+2=工人，X1=1，X2=0，X3=0，X4=0
+3=农民，X1=0，X2=1，X3=0，X4=0
+4=个体，X1=0，X2=0，X3=1，X4=0
+5=其他，X1=0，X2=0，X3=0，X4=1
+医疗付费方式
+1=医疗保险，X1=0，X2=0
+2=商业保险，X1=1，X2=0
+3=自费，X1=0，X2=1
+体重指数
+体重过轻=0，正常体重=1，超重=2，肥胖=3
+生育次数
+0=0，1=1，2=2，≥3=3
+病程
+＜1=0，1～4=1，5～9=2，≥10=3
+尿失禁类型
+1=压力性，X1=0，X2=0
+2=混合性，X1=1，X2=0
+3=急迫性，X1=0，X2=1
+尿失禁严重程度
+轻度=0，中度=1，重度=2
+疾病认知
+实测值
+应对方式
+实测值
+3.5 女性尿失禁患者心理社会适应的多因素分析
+
+<!-- page 106 -->
+82
+表4.6 女性尿失禁患者心理社会适应多元线性回归分析结果
+自变量
+未标准化系数
+标准化系数
+t
+P
+B
+标准误差
+Beta
+（常量)
+57.663
+5.921
+9.739
+＜0.001***
+商业保险VS 医疗保险
+-0.803
+2.442
+-0.009
+-0.329
+0.743
+自费VS 医疗保险
+-3.600
+1.125
+-0.113
+-3.201
+0.002**
+病程
+-1.531
+0.707
+-0.079
+-2.165
+0.032*
+严重程度
+-3.093
+1.006
+-0.144
+-3.076
+0.002**
+疾病认知
+1.036
+0.104
+0.453
+9.971
+＜0.001***
+应对方式
+-0.615
+0.073
+-0.402
+-8.483
+＜0.001***
+注：R2=0.864，调整后R2=0.848，F =54.532，P＜0.001
+*表示P＜0.05，**表示P＜0.01，***表示P＜0.001
+3.6 女性尿失禁患者心理社会适应影响因素的路径分析
+根据前期初步构建的概念模型和文献研究，将女性尿失禁患者的医疗付费方
+式、病程、严重程度、疾病认知、应对方式及心理社会适应6 个变量纳入，建立
+结构方程模型，将疾病认知、应对方式和心理社会适应作为内衍变量进行分析，
+3 个内衍变量能够有效的被解释，解释变异量分别是心理社会适应的85%，疾病
+认知的49%，应对方式的64%。女性尿失禁患者心理社会适应影响因素路径分
+析如图15，证实9 条路径与构想路径一致，1 条路径未被证实，修正模型中估计
+参数的显著性检验结果见表4.7。修正后的路径分析模型适配度检验结果为
+χ2/df=1.191，RMSEA=0.031，GFI=0.994，CFI=0.999，NFI=0.995，此模型拟合
+较理想。
+
+<!-- page 107 -->
+83
+图15
+女性尿失禁患者心理社会适应影响因素路径分析图
+表4.7 心理社会适应影响因素修正模型中估计参数的显著性检验结果
+项目
+非标准化
+参数估计值
+标准误
+t
+P
+标准化回归
+系数
+疾病认知
+<--- 医疗付费方式
+-1.194
+0.353
+-3.380
+＜0.001
+-0.172
+疾病认知
+<--- 严重程度
+-4.745
+0.528
+-8.984
+＜0.001
+-0.503
+疾病认知
+<--- 病程
+-2.191
+0.473
+-4.635
+＜0.001
+-0.257
+应对方式
+<--- 严重程度
+6.470
+0.774
+8.355
+＜0.001
+0.460
+应对方式
+<--- 疾病认知
+-0.632
+0.082
+-7.691
+＜0.001
+-0.423
+心理社会适应<--- 医疗付费方式
+-1.620
+0.444
+-3.650
+＜0.001
+-0.102
+心理社会适应<--- 严重程度
+-3.022
+0.875
+-3.454
+＜0.001
+-0.140
+心理社会适应<--- 应对方式
+-0.593
+0.069
+-8.662
+＜0.001
+-0.387
+心理社会适应<--- 疾病认知
+1.054
+0.093
+11.365
+＜0.001
+0.461
+3.7 女性尿失禁患者心理社会适应影响因素的中介效应分析
+采用Bootstrap 的方法（重复抽样5000 次），进行置信区间估计以判断中介
+效应是否显著。研究结果显示，疾病认知和应对方式在医疗付费方式、病程及严
+重程度与心理社会适应之间起多重中介作用；医疗付费方式、病程及严重程度与
+心理社会适应之间存在间接效应；医疗付费方式和严重程度与心理社会适应之间
+
+<!-- page 108 -->
+84
+存在直接效应。所有效应量的置信区间均不包括0，表示各中介效应成立。结果
+见表4.8。
+表4.8 各影响因素对女性尿失禁患者心理社会适应的直接、间接及总效应
+路径关系
+效应值
+SE
+Z
+Bootstrap
+偏差校正法
+百分比法
+95%CI
+95%CI
+下限
+上限
+下限
+上限
+直接效应
+医疗付费-心理社会适应
+-1.620
+0.444
+-3.649
+-2.572
+-0.763
+-2.520
+-0.728
+严重程度-心理社会适应
+-3.022
+1.014
+-2.980
+-4.880
+-0.947
+-4.886
+-0.960
+间接效应
+医疗付费-认知-心理社会适应
+-1.258
+0.400
+-3.145
+-2.089
+-0.517
+-2.105
+-0.532
+医疗付费-认知-应对-心理社会适应
+-0.448
+0.140
+-3.200
+-0.756
+-0.206
+-0.740
+-0.190
+病程-认知-心理社会适应
+-2.309
+0.552
+-4.183
+-3.449
+-1.280
+-3.435
+-1.269
+病程-认知-应对-心理社会适应
+-0.821
+0.211
+-3.891
+-1.308
+-0.463
+-1.259
+-0.425
+严重程度-认知-心理社会适应
+-5.000
+0.777
+-6.435
+-6.652
+-3.621
+-6.643
+-3.618
+严重程度-应对-心理社会适应
+-3.839
+0.828
+-4.636
+-5.653
+-2.433
+-5.605
+-2.394
+严重程度-认知-应对-心理社会适应
+-1.779
+0.339
+-5.248
+-2.552
+-1.218
+-2.481
+-1.173
+总效应
+医疗付费-心理社会适应
+-3.326
+0.675
+-4.927
+-4.683
+-2.019
+-4.669
+-2.010
+病程-心理社会适应
+-3.130
+0.723
+-4.329
+-0.238
+-0.086
+-0.237
+-0.085
+严重程度-心理社会适应
+-13.640
+1.141
+-11.954
+-15.826
+-11.394
+-15.848
+-11.423
+3.8 女性尿失禁患者生活质量的单因素分析
+以女性尿失禁患者生活质量总得分为因变量，女性尿失禁患者的一般人口学
+资料和疾病相关资料为自变量，采用独立样本t 检验和单因素方差分析进行比较，
+结果显示，不同年龄、居住地、学历、家庭月收入、职业、工作状态、医疗付费
+方式、生育次数、病程、尿失禁类型及严重程度，女性尿失禁患者生活质量不同，
+差异有统计学意义（P<0.05），而婚姻状况和体重指数对女性尿失禁患者生活质
+量影响无统计学意义（P＞0.05），具体情况见表4.9。
+
+<!-- page 109 -->
+85
+表4.9 女性尿失禁患者生活质量单因素分析（x±s，n=203）
+项目
+类别
+生活质量得分
+t/F
+P
+年龄（岁）
+＜30
+87.03±17.72
+21.531
+＜0.001***
+30～39
+70.64±20.86
+40～49
+64.33±21.07
+50～59
+42.19±14.83
+≥60
+45.09±16.26
+居住地
+城镇
+75.12±19.66
+4.646a
+0.032*
+农村
+56.66±24.16
+学历
+小学及以下
+42.39±16.59
+26.259
+＜0.001***
+初中
+65.44±22.31
+高中及中专
+64.31±19.89
+大学及以上
+83.70±18.74
+婚姻状况
+有配偶
+69.28±22.58
+1.876a
+0.172
+无配偶
+56.05±26.33
+家庭人均月收入
+（元）
+＜2000
+53.66±24.29
+14.408
+＜0.001***
+2000～3999
+63.00±21.18
+4000～5999
+68.40±22.13
+≥6000
+85.05±17.51
+职业
+职员
+74.20±21.27
+5.504
+＜0.001***
+工人
+63.22±18.59
+农民
+53.36±29.33
+个体
+67.41±22.14
+其他
+64.07±21.60
+工作状态
+在职
+71.94±23.02
+4.855
+0.003**
+病休
+57.79±21.41
+退休
+64.71±29.30
+无工作
+62.33±19.11
+医疗付费方式
+医疗保险
+71.60±21.84
+4.006
+0.020*
+商业保险
+68.43±22.13
+自费
+62.12±24.65
+注：a 表示t，*表示P＜0.05，**表示P＜0.01，***表示P＜0.001
+
+<!-- page 110 -->
+86
+表4.9 女性尿失禁患者生活质量单因素分析（x±s，n=203）（续）
+项目
+类别
+生活质量得分
+t/F
+P
+体重指数
+体重过轻
+69.71±19.59
+2.052
+0.108
+正常体重
+71.41±22.41
+超重
+64.48±24.60
+肥胖
+60.83±22.98
+生育次数
+0
+64.00±31.10
+6.414
+＜0.001***
+1
+71.22±21.41
+2
+69.21±23.82
+≥3
+46.68±17.54
+病程（年）
+＜1
+85.05±18.73
+17.857
+＜0.001***
+1～4
+69.34±20.17
+5～9
+54.59±22.61
+≥10
+49.50±28.91
+尿失禁类型
+压力性
+70.75±22.89
+5.905
+0.003**
+混合性
+57.21±22.82
+急迫性
+64.00± 4.00
+尿失禁严重程度
+轻度
+92.74±13.10
+222.866
+＜0.001***
+中度
+63.36±12.85
+重度
+39.57±13.38
+注：a 表示t，*表示P＜0.05，**表示P＜0.01，***表示P＜0.001
+3.9 女性尿失禁患者生活质量的多因素分析
+以女性尿失禁患者生活质量量表总得分为因变量，将单因素分析中有统计学
+意义的变量（年龄、居住地、学历、家庭月收入、职业、工作状态、医疗付费方
+式、生育次数、病程、尿失禁类型及严重程度）及相关分析结果中有统计学意义
+的变量（尿失禁疾病认知、应对方式、心理社会适应）作为自变量，进行多元线
+性回归分析。引入方程中的所有自变量的赋值及哑变量设置情况见表4.10。结果
+
+<!-- page 111 -->
+87
+显示，年龄、工作状态、尿失禁严重程度、疾病认知、应对方式、心理社会适应
+6 个变量进入回归方程，结果见表4.11。
+表4.10 女性尿失禁患者生活质量多元回归分析自变量的赋值及哑变量设置表
+自变量
+赋值
+年龄
+＜30=0，30～39=1，40～49=2，50～59=3，≥60=4
+居住地
+城镇=0，农村=1
+学历
+小学及以下=0，初中=1，高中及中专=2，大学及以上=3
+家庭人均月收入
+＜2000=0，2000～3999=1，4000～5999=2，≥6000=3
+职业
+1=职员，X1=0，X2=0，X3=0，X4=0
+2=工人，X1=1，X2=0，X3=0，X4=0
+3=农民，X1=0，X2=1，X3=0，X4=0
+4=个体，X1=0，X2=0，X3=1，X4=0
+5=其他，X1=0，X2=0，X3=0，X4=1
+工作状态
+1=在职，X1=0，X2=0，X3=0，2=病休，X1=1，X2=0，X3=0
+3=退休，X1=0，X2=1，X3=0，4=无工作，X1=0，X2=0，X3=1
+医疗付费方式
+1=医疗保险，X1=0，X2=0
+2=商业保险，X1=1，X2=0
+3=自费，X1=0，X2=1
+生育次数
+0=0，1=1，2=2，≥3=3
+病程
+＜1=0，1～4=1，5～9=2，≥10=3
+尿失禁类型
+1=压力性，X1=0，X2=0
+2=混合性，X1=1，X2=0
+3=急迫性，X1=0，X2=1
+尿失禁严重程度
+轻度=0，中度=1，重度=2
+疾病认知
+实测值
+应对方式
+实测值
+心理社会适应
+实测值
+
+<!-- page 112 -->
+88
+表4.11 女性尿失禁患者生活质量多元线性回归分析结果
+自变量
+未标准化系数
+标准化系数
+t
+p
+B
+标准误差
+Beta
+(常量)
+62.171
+12.782
+4.864
+＜0.001***
+年龄
+-2.011
+0.993
+-0.080
+-2.026
+0.044*
+病休VS 在职
+-6.024
+1.771
+-0.096
+-3.402
+0.001**
+退休VS 在职
+6.272
+4.244
+0.043
+1.478
+0.141
+无工作VS 在职
+-1.517
+3.225
+-0.014
+-0.47
+0.639
+严重程度
+-11.909
+1.695
+-0.323
+-7.028
+＜0.001***
+疾病认知
+0.470
+0.210
+0.120
+2.240
+0.026*
+应对方式
+-0.438
+0.143
+-0.167
+-3.064
+0.003**
+心理社会适应
+0.658
+0.124
+0.385
+5.318
+＜0.001***
+注：R2=0.88，调整后R2=0.863，F =51.737，P＜0.001
+*表示P＜0.05，**表示P＜0.01，***表示P＜0.001
+3.10 女性尿失禁患者心理社会适应概念模型的验证分析
+根据本研究第一部分初步构建的女性尿失禁患者心理社会适应概念模型，将
+女性尿失禁患者的年龄、工作状态、严重程度、疾病认知、应对方式、心理社会
+适应及生活质量7 个变量纳入，建立结构方程模型，将疾病认知、应对方式、心
+理社会适应及生活质量作为内衍变量进行分析，4 个内衍变量能够有效的被解释，
+解释变异量分别是生活质量的86%，心理社会适应的84%，疾病认知的44%，
+应对方式的64%。女性尿失禁患者心理社会适应概念模型路径分析如图16，证
+实10 条路径与构想路径一致，4 条路径未被证实，修正模型中估计参数的显著
+性检验结果见表4.12，修正后的路径分析模型适配度检验结果为χ2/df=2.176，
+RMSEA=0.076，GFI=0.986，CFI=0.996，NFI=0.992，此模型拟合较理想。
+
+<!-- page 113 -->
+89
+图16
+女性尿失禁患者心理社会适应概念模型路径分析图
+表4.12 女性尿失禁患者心理社会适应模型路径分析估计参数的显著性检验结果
+项目
+非标准化参
+数估计值
+标准误
+t
+P
+标准化回
+归系数
+疾病认知
+<---
+年龄
+-1.308
+0.391
+-3.343
+＜0.001
+-0.203
+疾病认知
+<---
+严重程度
+-5.074
+0.574
+-8.843
+＜0.001
+-0.538
+应对方式
+<---
+严重程度
+6.470
+0.774
+8.355
+＜0.001
+0.460
+应对方式
+<---
+疾病认知
+-0.632
+0.082
+-7.691
+＜0.001
+-0.423
+心理社会适应
+<---
+严重程度
+-3.037
+0.903
+-3.364
+＜0.001
+-0.141
+心理社会适应
+<---
+应对方式
+-0.584
+0.071
+-8.250
+＜0.001
+-0.381
+心理社会适应
+<---
+疾病认知
+1.126
+0.094
+11.995
+＜0.001
+0.493
+生活质量
+<---
+心理社会适应
+0.795
+0.089
+8.982
+＜0.001
+0.465
+生活质量
+<---
+严重程度
+-12.858
+1.527
+-8.421
+＜0.001
+-0.349
+生活质量
+<---
+应对方式
+-0.495
+0.135
+-3.676
+＜0.001
+-0.189
+3.11 女性尿失禁患者心理社会适应概念模型的中介效应分析
+采用Bootstrap 的方法（重复抽样5000 次），进行置信区间估计以判断中介
+效应是否显著。研究结果显示，疾病认知、应对方式及心理社会适应在年龄、严
+
+<!-- page 114 -->
+90
+重程度与生活质量之间起多重中介作用；年龄、严重程度与生活质量之间存在间
+接效应；严重程度还与生活质量之间存在直接效应。所有效应量的置信区间均不
+包括0，表示各中介效应成立。结果见表4.13。
+表4.13 女性尿失禁患者心理社会适应概念模型各因素的的直接、间接及总效应
+路径关系
+效应值
+SE
+Z
+Bootstrap
+偏差校正法
+百分比法
+95%CI
+95%CI
+下限
+上限
+下限
+上限
+直接效应
+严重程度-生活质量
+-12.858
+1.690
+-7.608
+-16.044
+-9.420
+-16.043
+-9.418
+间接效应
+年龄-认知-心理社会适应-生活质量
+-1.171
+0.411
+-2.849
+-2.080
+-0.444
+-2.055
+-0.431
+年龄-认知-应对-心理社会适应-生活质量
+-0.383
+0.142
+-2.697
+-0.725
+-0.158
+-0.693
+-0.137
+年龄-认知-应对-生活质量
+-0.409
+0.180
+-2.272
+-0.882
+-0.142
+-0.813
+-0.117
+严重程度-认知-心理社会适应-生活质量
+-4.544
+0.850
+-5.346
+-6.394
+-3.109
+-6.399
+-3.112
+严重程度-心理社会适应-生活质量
+-2.415
+0.971
+-2.487
+-4.437
+-0.631
+-4.429
+-0.622
+严重程度-应对-生活质量
+-3.202
+0.949
+-3.374
+-5.340
+-1.562
+-5.089
+-1.424
+严重程度-应对-心理社会适应-生活质量
+-3.002
+0.773
+-3.884
+-4.776
+-1.732
+-4.696
+-1.705
+严重程度-认知-应对-心理社会
+适应-生活质量
+-1.487
+0.328
+-4.534
+-2.296
+-0.974
+-2.193
+-0.928
+严重程度-认知-应对-生活质量
+-1.587
+0.523
+-3.034
+-2.854
+-0.743
+-2.710
+-0.667
+总效应
+年龄-生活质量
+-1.964
+0.654
+-3.003
+-3.371
+-0.780
+-3.332
+-0.733
+严重程度-生活质量
+-29.095
+1.575
+-18.473
+-32.246
+-25.962
+-32.206
+-25.936
+
+<!-- page 115 -->
+91
+4
+讨论
+4.1 女性尿失禁患者心理社会适应现状
+研究调查结果显示，女性尿失禁患者心理社会适应量表的平均分为
+（39.06±15.49）分。从各维度的得分情况看，三个维度的得分比较接近，得分较
+高的维度是角色功能，得分较低的维度是自我概念。研究结果表明，女性尿失禁
+患者整体心理社会适应水平有待提高，特别是自我概念维度。本研究第二部分的
+质性研究结果也印证了这一结论，质性研究中提取了13 个心理适应体验的主题，
+大多患者存在一定程度的负性情绪和不恰当的自我认知，对患者积极自我概念的
+形成产生了负面影响。心理社会适应有助于患者激发自身潜能，积极应对疾病，
+提高患者心理社会健康水平和生活质量[33,34]。作为医务工作者，在关注女性尿失
+禁患者生理功能的同时，应重点关注患者的心理社会适应状况，后续可开展女性
+尿失禁患者心理社会适应干预策略的实证研究，从而提高患者的心理社会适应水
+平和生活质量。
+4.2 女性尿失禁患者心理社会适应与疾病认知、应对方式、生活质量
+的相关性
+研究表明，慢性病适应涉及生理、认知、情感及人际等多种因素，且各因素
+间存在潜在的相互作用[144]。以往研究结果显示，疾病认知被认为是影响慢性病
+适应的重要因素[38]，心理社会适应与生活质量具有相关性[65]。本研究结果显示
+女性尿失禁患者心理社会适应总分与疾病认知和生活质量呈高度正相关，与以往
+研究结果相一致。Xu 等[36]研究表明，经常采用回避和消极应对方式的女性尿失
+禁患者，生活质量较差。Livneh[95]研究显示回避型应对方式与较差的心理社会适
+应能力具有相关性。本研究采用的女性尿失禁应对方式量表得分越高反映应对方
+式越消极，因此本研究得出的心理社会适应与应对方式负相关的结论，与以往研
+究结果也相一致。
+通过对以往文献的梳理发现，心理社会适应与疾病认知、应对方式及生活质
+量的相关研究已有较多报道，但大多数研究仅局限在某种单一因素与心理社会适
+应之间进行研究，对多种心理社会因素的相互影响及作用路径鲜有报道。本研究
+第一部分在大量文献梳理的基础上，基于Roy 适应模式对女性尿失禁患者的心
+
+<!-- page 116 -->
+92
+理社会适应进行了概念分析，确定了概念属性、影响因素及后果，初步构建了女
+性尿失禁患者心理社会概念模型，为本部分研究能更深入地分析多种心理社会因
+素的相互影响及对心理社会适应影响的作用路径分析奠定了坚实的理论基础。
+4.3 女性尿失禁患者心理社会适应影响因素及路径分析
+本部分研究依据研究第一部分初步构建的女性尿失禁患者心理社会概念模
+型，对女性尿失禁患者心理社会适应的影响因素进行筛选，本部分研究中影响因
+素包括一般人口学因素、疾病相关因素、疾病认知及应对方式。通过单因素分析
+和多元线性回归分析，最终结果提示医疗付费方式、病程、严重程度、疾病认知
+及应对方式是女性尿失禁患者心理社会适应的影响因素。在一般人口学因素方面，
+分析原因可能是由于本次调查对象来自医院盆底康复门诊，虽然大多数患者拥有
+职工医疗保险或居民医疗保险，但有部分患者在医院门诊就医的费用并没有完全
+纳入医保范围，自费就医的患者，其经济负担较重，影响了患者心理社会适应水
+平。在疾病相关因素方面，病程越长、程度越重的患者，漏尿对患者生理、心理
+和社会功能的影响越大，其心理社会适应水平越低。
+与心理社会适应影响因素原构想路径相比较，在本研究中病程对心理社会适
+应直接影响的路径未得到证实，此结果与以往研究不一致。患者在患病的不同时
+间和阶段，对疾病的心理反应可能不同，Lim 等[28]对韩国的1116 名中老年尿失
+禁女性的纵向研究表明，尿失禁的发生与抑郁密切相关，抑郁评分随着尿失禁症
+状的恶化而变得更差。病程对患者心理社会适应的影响关系到研究者对患者实施
+有效干预的时间点，对干预方案的实施具有重要意义。本部分研究由于调查时间
+的原因，样本量有限，且调查地点在同一城市的两家医院进行，样本的代表性有
+待提高，今后可考虑扩大样本量，开展多中心大样本的横断面研究或者队列研究，
+以深入分析病程及其他影响因素对患者心理社会适应的影响。
+4.4 女性尿失禁患者心理社会适应影响因素的中介效应分析
+从女性尿失禁患者心理社会适应影响因素的中介效应分析结果可以看出，疾
+病认知和应对方式在医疗付费方式、病程及严重程度与心理社会适应之间起多重
+中介作用。疾病认知在病程对心理社会适应的影响过程中发挥完全中介作用，在
+医保付费方式和疾病严重程度与心理社会适应之间发挥部分中介作用。应对方式
+在疾病严重程度和疾病认知与心理社会适应之间发挥部分中介作用。Roy 适应模
+
+<!-- page 117 -->
+93
+式有关适应过程的阐释，认为认知和应对是人体对刺激的控制过程，对患者适应
+行为的输出起到重要的调节作用[58]。本部分通过横断面量性研究，清晰地阐明了
+疾病认知和应对方式在心理社会适应过程的中介作用，可以为后续干预研究提供
+具体的可控点。另外，医疗付费方式、病程及疾病严重程度对心理社会适应具有
+间接效应，医疗付费方式和疾病严重程度还对心理社会适应具有直接效应，提示
+医务工作者应重点关注自费就医、病程长及重度的女性尿失禁患者，因其更有可
+能具有较高的心理社会适应问题。
+4.5 女性尿失禁患者心理社会适应概念模型的验证分析
+女性尿失禁患者心理社会适应概念模型是基于Roy 适应模式中域理论并针
+对女性尿失禁人群构建的，因此对临床护理实践具有更强的指导性。通过第一部
+分研究对女性尿失禁患者心理社会适应所进行的概念分析，明确了概念的属性、
+影响因素及后果，为女性尿失禁患者心理社会适应概念模型的构建提供了概念框
+架。生活质量作为一个多维度概念，是健康涵义的深化，包括个体身体机能、心
+理功能及社会功能等健康质量的评估，被研究者广泛应用于评估患者的整体生存
+状态。有关心理社会适应对患者生活质量影响的研究已有较多报道[33,34]，而女性
+尿失禁患者心理社会适应对生活质量影响的作用机制及路径尚未阐明。本部分研
+究的单因素分析和多元线性回归分析结果显示，年龄、工作状态、疾病严重程度、
+疾病认知、应对方式及心理社会适应是女性尿失禁患者生活质量的影响因素，年
+龄越大、工作状态为病休的重度尿失禁患者，生存质量较差。以往研究也证实，
+尿失禁患者的症状严重程度正向预测患者的生活质量[90]。
+通过对女性尿失禁患者生活质量影响因素进行路径分析，验证女性尿失禁患
+者心理社会适应概念模型。路径分析结果显示，与原构想一致的10 条路径被证
+实。未被证实的4 条路径分别为年龄与应对方式、年龄与心理社会适应、年龄与
+生活质量、疾病认知与生活质量之间。一项关于老年女性尿失禁患者的调查显示，
+年龄越轻的老年女性尿失禁患者更倾向于采取积极的应对方式[88]。抑郁在高龄的
+女性尿失禁患者中检出率更高[87]。以往研究显示，我国多数女性尿失禁患者的疾
+病认知水平较低，甚至存在歪曲或者错误认知，对女性尿失禁患者进行认知行为
+干预可有效提高患者的生活质量[46]。对4 条路径未被证实的原因进行分析，一个
+原因可能是样本的代表性有限所致，另一个原因可能是由于本研究中所使用的尿
+失禁疾病认知问卷为研究者根据质性访谈和文献研究结果自行编制，条目偏少，
+
+<!-- page 118 -->
+94
+且仅进行了内部一致性检验，未进行结构效度检验等原因。通过查阅文献发现，
+国内外对尿失禁患者的疾病认知方面的研究，大多为质性研究[39]，一部分量性研
+究虽然对患者的疾病认知情况进行调查，但多数研究使用的尿失禁疾病认知问卷
+均为研究者根据调查内容自行编制的，现阶段尚缺乏涵盖内容全面、经过严格信
+效度检验、使用广泛的尿失禁疾病认知问卷。在未来，研究者可从这一角度考虑，
+开发尿失禁患者疾病认知问卷或评价指标体系等，帮助临床医务工作者更好地评
+估尿失禁患者的疾病认知，从而提高患者的疾病认知水平。
+4.6 女性尿失禁患者心理社会适应概念模型的中介效应分析
+从女性尿失禁患者心理社会适应概念模型的中介效应分析结果可以看出，疾
+病认知、应对方式及心理社会适应在年龄、严重程度与生活质量之间起多重中介
+作用。经验证后的女性尿失禁患者心理社会适应模型，与原构想的概念模型基本
+一致。从模型中可以看出，疾病认知和应对方式在女性尿失禁患者心理社会适应
+过程中发挥中介作用，心理社会适应在提高患者生活质量的过程中发挥中介作用。
+因此，通过提高女性尿失禁患者的疾病认知、鼓励患者采取积极的应对方式，可
+有效提高患者的心理社会适应水平，进而提高患者整体的生活质量。女性尿失禁
+患者心理社会适应概念模型的验证和中介效应检验，拓展了心理社会适应理论的
+应用范围，可以为提高女性尿失禁患者心理社会适应制定干预方案提供理论依据，
+为提升女性尿失禁患者心理社会健康水平提供了新的研究视角。
+
+<!-- page 119 -->
+95
+5
+结论
+通过应用本研究第三部分研制的女性尿失禁患者心理社会适应量表对女性
+尿失禁患者进行横断面调查，结果显示医疗付费方式、病程、疾病严重程度、疾
+病认知及应对方式是女性尿失禁患者心理社会适应的影响因素。女性尿失禁患者
+人口社会学因素和疾病相关因素通过疾病认知和应对方式对心理社会适应产生
+直接和/或间接效应。年龄、工作状态、疾病严重程度、疾病认知、应对方式、
+心理社会适应是女性尿失禁患者生活质量的影响因素。验证后的女性尿失禁患者
+心理社会适应概念模型与原构想基本一致，女性尿失禁患者的心理社会适应在疾
+病认知和应对方式与生活质量之间发挥中介作用。
+
+<!-- page 120 -->
+96
+本研究创新性的自我评价
+1.应用概念分析方法明确女性尿失禁患者心理社会适应概念属性、先决条件、
+影响因素及后果，基于Roy 适应模式构建女性尿失禁患者心理社会适应概念模
+型，为开发女性尿失禁患者特异性的心理社会适应评估工具提供理论依据。
+2.基于概念分析和质性研究结果研制的女性尿失禁患者心理社会适应量表，
+经检验证实具有良好的信度和效度，为客观、准确评估女性尿失禁患者的心理社
+会适应状况提供了科学的研究工具。
+3.采用量性研究方法验证女性尿失禁患者心理社会适应概念模型，明确了女
+性尿失禁患者心理社会适应的影响因素及其对生活质量影响的作用机制与路径，
+为提高女性尿失禁患者心理社会适应制定干预方案提供了理论依据，同时拓展了
+心理社会适应理论的应用范围，为提高女性尿失禁患者心理社会健康水平提供了
+新的研究视角。
+
+<!-- page 121 -->
+97
+本研究对临床工作和未来研究的启示
+1.医务工作者可开展多中心大样本的女性尿失禁患者心理社会适应的横断
+面研究，深入探讨女性尿失禁患者心理社会适应的其他影响因素。
+2.针对女性尿失禁患者心理社会适应进行纵向研究，以深入分析不同时间点
+患者心理社会适应的变化趋势。
+3.构建女性尿失禁患者心理社会适应干预方案，开展女性尿失禁患者心理社
+会适应干预策略的实证研究，从而提高患者的心理社会适应水平和生活质量。
+
+<!-- page 122 -->
+98
+本研究的局限性
+1.本研究中研究对象的选取仅来源于2 所三甲医院盆底康复门诊，可能存在
+样本选择偏倚的问题，影响样本量的代表性，使研究结论的推广受到一定的限制。
+2.由于研究者质性研究经验有限，可能对访谈资料深层次的内容挖掘不够。
+
+<!-- page 123 -->
+99
+参考文献
+[1] Abrams P, Cardozo L, Fall M, et al.The standardisation of terminology of lower urinary tract
+function:report from the Standardisation subcommittee of the international continence
+society[J].American Journal of Obstetrics and Gynecology, 2002, 187 (1) :116-126.
+[2] National Institute for Health and Care Excellence ．Urinary incontinence in women:The
+management of urinary incontinence in women[M]. London:Royal College of Obstetricians
+and Gynaecologists, 2013:1-385.
+[3] 李志毅, 朱兰. 女性压力性尿失禁流行病学现状[J]. 实用妇产科杂志, 2018, 34(3) :
+161-162．
+[4] 李晓伟, 王建六. 尿失禁的病因和发病机制[J]. 实用妇产科杂志, 2018, 34(3) : 162-164．
+[5] Abrams P, Andersson KE, Birder L, et al. Fourth International Consultation on Incontinence
+Recommendations of the International Scientific Committee: Evaluation and treatment of
+urinary incontinence, pelvic organ prolapse, and fecal incontinence[J]. Neurourol Urodyn,
+2010, 29(1) : 213-240．
+[6] 朱兰.女性尿失禁的流行趋势及带来的社会问题[J]. 中华全科医师杂志,2005, 4(5):
+261-262.
+[7] Milsom I, Gyhagen M.The prevalence of urinary incontinence[J].Climacteric. 2019,
+22(3):217-222.
+[8] 刘春燕.中国成年女性尿失禁的流行病学调查研究[D].北京:中国协和医科大学,2007.
+[9] Pedersen LS, Lose G, Høybye MT, et al. Prevalence of urinary incontinence among women
+and analysis of potential risk factors in Germany and Denmark[J]. Acta Obstetricia et
+Gynecologica Scandinavica, 2017,96(8):939-948.
+[10] 严文广, 李旭红, 孙邵丹, 等. 女性盆腔脏器脱垂和尿失禁的危险因素[J]. 中南大学学
+报（医学版）, 2018 ,43(12):1345-1350.
+[11] Zhang L，Zhu L，Xu T，et al．A Population-based survey of the Prevalence, potential risk
+Factors, and symptom-specific bother of lower urinary tract symptoms in adult chinese
+women[J]. Eur Urol, 2015, 68(1):97-112．
+
+<!-- page 124 -->
+100
+[12] Komesu YM, Schrader RM, Ketai LH, et al. Epidemiology of mixed，stress，and urgency
+urinary incontinence in middle-aged / older women: the importance of incontinence
+history[J]. Int Urogynecol J, 2016, 27(5):763-772．
+[13] Tahtinen RM, Cartwright R, Tsui JF, et al. Long-term impact of mode of delivery on stress
+urinary
+incontinence
+and
+urgency
+urinary
+incontinence:A
+systematic
+review
+and
+Meta-analysis[J]. Eur Urol, 2016,70(1):148-158．
+[14] Lee UJ, Kerkhof MH, van Leijsen SA, et al. Obesity and pelvic organ prolapse[J]. Curr Opin
+Urol, 2017,27(5):428-434．
+[15] Abrams P, Cardozo L, Wein A, et al. Incontinence: 6th International Consultation on
+Incontinence [C]. Bristol，UK: International Continence Society, 2017．
+[16] 中华医学会妇产科学分会妇科盆底学组. 女性压力性尿失禁诊断和治疗指南(2017)[J].
+中华妇产科杂志, 2017, 52(5) :289-293．
+[17] Burkhard FC, Bosch JLHR, Cruz F, et al. EAU Guidelines on Urinary Incontinence in
+Adults(2017)[EB/OL]. http: //uroweb. org /guideline / urinary-incontinence /．
+[18] Bettez M, Tule M, Carlson K, et al. 2012 update: guidelines for adult urinary incontinence
+collaborative consensus document for the canadian urological association[J]. Can Urol Assoc
+J, 2012, 6(5) : 354-363．
+[19] Qaseem A, Dallas P, Forciea MA, et al. Nonsurgical management of urinary incontinence in
+women: a clinical practice guideline from the American College of Physicians[J]. Annals of
+Internal Medicine, 2014, 161(6) : 429-440．
+[20] 张淑惟, 孙建华, 刘跃光, 等. 女性混合性尿失禁国外治疗进展[J]. 中国全科医学, 2015,
+18(18) : 2210-2212.
+[21] 杨小芸, 王平. 女性尿失禁的非手术治疗[J]. 实用妇产科杂志, 2018, 34(3) : 169-171．
+[22] Labrie J, Berghmans BL, Fischer K, et al. Surgery versus physiotherapy for stress urinary
+incontinence[J]. N Engl J Med, 2013,369(12):1124.
+[23] Siddiqui NY, Wiseman JB, Cella D, et al. Mental Health, Sleep and Physical Function in
+Treatment Seeking Women with Urinary Incontinence[J]. The Journal of Urology,
+2018,200(4):848-855.
+
+<!-- page 125 -->
+101
+[24] Kwak Y, Kwon H, Kim Y. Health-related quality of life and mental health in older women
+with urinary incontinence[J]. Aging & Mental Health, 2016,20(7):719-726.
+[25] Mota RL. Female urinary incontinence and sexuality[J]. International Brazilian Journal of
+Urology, 2017,43(1):20-28.
+[26] Wennberg AL, Molander U, Fall M, et al. A longitudinal population-based survey of urinary
+incontinence, overactive bladder, and other lower urinary tract symptoms in women[J].
+European Urology, 2009,55(4): 783-791.
+[27] Ge TJ, Vetter J, Lai HH.Sleep disturbance and fatigue are associated with more severe
+urinary incontinence and overactive bladder symptoms[J].Urology, 2017, 109(11):67-73.
+[28] Lim YM, Lee SR, Choi EJ, et al. Urinary incontinence is strongly associated with depression
+in middle-aged and older Korean women: Data from the Korean longitudinal study of
+ageing[J]. European Journal of Obstetrics & Gynecology and Reproductive Biology,
+2018,220(1):69-73.
+[29] Hajjar RR. Psychosocial impact of urinary incontinence in the elderly population[J]. Clinics
+in geriatric medicine, 2004, 20(3): 533-564.
+[30] Elissen A, Nolte E, Knai C, et al. Is Europe putting theory into practice? A qualitative study
+of the level of self-management support in chronic care management approaches[J]. BMC
+Health Serv Res, 2013, 13: 117.
+[31] Londono Y, McMillan DE. Psychosocial adaptation: An evolutionary concept analysis
+exploring a common multidisciplinary language[J]. Journal of Advanced Nursing, 2015,
+71(11):2504-2519.
+[32] Wei JT, Dunn R, Nygaard I, et al. Development and Validation of a Quantitative Measure of
+Adaptive Behaviors in Women With Pelvic Floor Disorders[J].Female Pelvic Medicine &
+Reconstructive Surgery, 2017,23(4):232-237.
+[33] Takai Y, Terao T, Goto S, et al. Effect of temperaments on quality of life and social
+adaptation
+in
+depressive
+patients
+with
+mood
+disorder[J].
+Psychiatry
+and
+Clinical
+Neurosciences,2011,65(5):505–509.
+[34] Tonsing KN. Predictors of psychological adaptation of South Asian immigrants in Hong
+Kong[J]. International Journal of Intercultural Relations,2013,37(2): 238–248.
+
+<!-- page 126 -->
+102
+[35] Wang C, Wan X, Wang K, et al. Disease stigma and intentions to seek care for stress urinary
+incontinence among community-dwelling women[J].Maturitas, 2014, 77 (4) :351-355.
+[36] Xu D, Liu N, Qu H, et al. Relationships among symptom severity, coping styles, and quality
+of life in community-dwelling women with urinary incontinence: a multiple mediator
+model[J]. Quality of Life Research, 2016, 25(1):223-232.
+[37] Nicosia FM, Lisha NE, Chesney MA, et al. Cite Strategies for evaluating self-efficacy and
+observed success in the practice of yoga postures for therapeutic indications: methods from a
+yoga intervention for urinary incontinence among middle-aged and older women[J]．BMC
+Complementary Medicine and Therapies, 2020,20(1):148.
+[38] Szymona PK, Janowski K, Pedrycz A, et al. Knowledge of the Disease, Perceived Social
+Support, and Cognitive Appraisals in Women with Urinary Incontinence[J] ．Biomed
+Research International, 2016:3694792.
+[39] Pintos DM, Alonso BC, Parás BP, et al. Living with Urinary Incontinence: Potential Risks of
+Women's Health? A Qualitative Study on the Perspectives of Female Patients Seeking Care
+for the First Time in a Specialized Center[J].International Journal of Environmental Research
+and Public Health, 2019, 16(19):3781.
+[40] Siddiqui NY, Ammarell N, Wu JM, et al. Urinary Incontinence and Health-Seeking Behavior
+Among White, Black, and Latina Women[J].Female Pelvic Medicine & Reconstructive
+Surgery, 2016, 22(5):340-345.
+[41] Hrisanfow E, Hagglund D.Impact of cough and urinary incontinence on quality of life in
+women and men with chronic obstructive pulmonary disease[J].Journal of Clinical Nursing,
+2013, 22 (1/2) :97-105.
+[42] Bilgic D, Beji NK, Ozbas A, et al. Coping and Help-Seeking Behaviors for Management of
+Urinary Incontinence[J]．Lower Urinary Tract Symptoms, 2017, 9(3):134-141.
+[43] 江长琴.女性尿失禁患者的生活质量、疾病认识及求医意向分析的观察性研究［D］.合
+肥:安徽医科大学,2016.
+[44] Sacomori C, Berghmans B, Bie R, et al. Predictors for adherence to a home-based pelvic
+floor muscle exercise program for treating female urinary incontinence in Brazil[J].
+Physiotherapy Theory and Practice, 2020, 36(1):186-195.
+
+<!-- page 127 -->
+103
+[45] Zhang D, Wong C, Sit RWS, et al. Incontinence and loneliness among Chinese older adults
+with multimorbidity in primary care: A cross-sectional study[J].Journal of Psychosomatic
+Research, 2019, 127(12):109863.
+[46] 王爱花.认知行为干预对成年女性压力性尿失禁患者生活质量的影响[D].郑州:郑州大
+学,2015.
+[47] Hoffman V, Soderstrom L, Samuelsson E. Self-management of stress urinary incontinence via
+a mobile app: two-year follow-up of a randomized controlled trial[J]. Acta Obstet Gynecol
+Scand, 2017,96(10):1180-1187.
+[48] Diane N, Diane F, Vivian S. Structured behavioral treatment research protocol for women
+with mixed urinary incontinence and overactive bladder symptoms[J]. Neurourol Urodyn,
+2018, 37(1):14-26.
+[49] Gagne JCD, So A, Wu B, et al. The effect of a urinary incontinence self-management
+program for older women in South Korea: a pilot study[J]. International Journal of Nursing
+Sciences, 2015, 2(1):39-46.
+[50] Kincade JE, Dougherty MC, Carlson JR, et al. Randomized clinical trial of efficacy of self
+monitoring techniques to treat urinary incontinence in women[J]. Neurourology and
+Urodynamics, 2007,26(4):507-511.
+[51] Sjöström M, Umefjord G, Stenlund H, et al. Internet based treatment of stress urinary
+incontinence:
+a
+randomised
+controlled
+study
+with
+focus
+on
+pelvic
+floor
+muscle
+training[J].BJU International, 2013,112(3):362-372.
+[52] 范国荣,薄海欣.达标理论在产后尿失禁患者盆底康复训练中的应用研究[J].中华护理杂
+志，2019,54(4):506-510.
+[53] 白亚男.基于保护动机理论的健康教育在产后尿失禁患者盆底肌功能锻炼中的应用[J].
+齐鲁护理杂志,2019,25(16):101-103.
+[54] Dumoulin C, Morin M, Danieli C, et al.Group-Based vs Individual Pelvic Floor Muscle
+Training to Treat Urinary Incontinence in Older Women: A Randomized Clinical
+Trial[J].JAMA Intern Med, 2020,180(10):1284-1293.
+
+<!-- page 128 -->
+104
+[55] Howard Z, Ross L, Weir K A, et al. A group program for overweight and obese women with
+urinary incontinence (ATHENA): an implementation-effectiveness hybrid type 3 study[J].Int
+Urogynecol J, 2021,3:17.
+[56] Wang X, Xu X, Luo J, et al. Effect of app-based audio guidance pelvic floor muscle training
+on treatment of stress urinary incontinence in primiparas: A randomized controlled trial[J].Int
+J Nurs Stud, 2020,104:103527.
+[57] 王莎, 刘立芳, 何国平. 社区中老年女性尿失禁患者心理干预的研究进展[J].解放军护
+理杂志,2016,33(7): 32-35.
+[58] Roy C. The Roy Adaptation Model[M]. Third Edition New Jersey:Pearson Education, Inc.,
+2009.
+[59] Younas A, Quennell S. Usefulness of nursing theory-guided practice: an integrative review[J].
+Scand J Caring Sci, 2019, 33(3): 540-555.
+[60] 王喜益, 叶志弘, 汤磊雯, 等. 基于罗伊适应模式的护理中域理论发展的文献研究[J].
+解放军护理杂志, 2020, 37(06): 1-5.
+[61] 王喜益.慢性病适应中域理论的构建与验证[D].杭州:浙江大学,2020.
+[62] Livneh H, Antonak RF. Psychosocial adaptation to chronic illness and disability[J].
+Rehabilitation Counseling Bulletin,2001,44(3):151-160.
+[63] Livneh H，Martz E．Psychosocial Adaptation to Disability Within the Context of Positive
+Psychology: Philosophical Aspects and Historical Roots[J]. Journal of Occupational
+Rehabilitation, 2015, 26(1): 13-19.
+[64] 唐惠艳, 李小寒. 女性尿失禁患者心理社会现状及干预策略的研究进展[J]. 解放军护理
+杂志, 2021, 38(9): 60-63.
+[65] Christianson HF, Weis JM, Fouad NA. Cognitive adaptation theory and quality of life in
+late-stage cancer patients[J]. Journal of Psychosocial Oncology, 2013,31(3): 266–281.
+[66] Walker L, Avant K. Strategies for Theory Construction in Nursing[J]. Pearson Schweiz Ag.
+2010, 44(44): 434-436.
+[67] Rodgers BL,Knafl KA. Concept Development in Nursing：Foundations，Techniques and
+Applications[M]. Philadelphia: Saunders,2000.
+[68] Roy C. Adaptation: a conceptual framework for nursing[J]. Nurs Outlook, 1970,18(3): 42-5.
+
+<!-- page 129 -->
+105
+[69] Murray R, Zentner JP. Nursing concepts for health promotion[M]. London: Prentice-Hall,
+1975.
+[70] Levine ME. The conservation model: Twenty years later[M]//RIEHL-SISCA J P. Conceptual
+Models for Nursing Practice. Norwalk, CT: Appleton & Lange, 1989: 325-337.
+[71] 刘晓虹, 李小妹. 心理护理理论与实践[M]. 北京: 人民卫生出版社, 2012.
+[72] Roy C．The Roy Adaptation Model[M]．Upper Saddle River，NJ：Pearson Education，2009
+[73] Pollock SE.Human responses to chronic illness: physiologic and psychosocial adaptation[J].
+Nurs Res, 1986,35(2): 90-95.
+[74] Leonard R. The psychosocial adjustment to illness scale(PAIS)[J]. J Psych Res,
+1986,30(1):77-91.
+[75] 姚静静.癌症患者适应水平的横断面调查及其预测因素分析[D].上海:第二军医大
+学,2013.
+[76]
+Rezaei
+AM,
+Salsali
+M,
+Mohammadi
+E.
+Nursing
+image:an
+evolutionary
+concept
+analysis[J].Contemp Nurse, 2012,43(1):81-89.
+[77] Stanton AL, Revenson TA, Tennen H. Health psychology: psychological adjustment to
+chronic disease[J]. Ann Rev Psychol, 2007, 58(1): 565-592
+[78] Lévesque L, Ricard N, Ducharme F, et al. Empirical verification of a theoretical model
+derived from the Roy adaptation model: findings from five studies[J]. Nursing Science
+Quarterly, 1998,11(1):31-39.
+[79] Helgeson VS, Jakubiak B, Van VM, et al. Communal Coping and Adjustment to Chronic
+Illness: Theory Update and Evidence[J]. Pers Soc Psychol Rev, 2018, 22(2): 170-195.
+[80] Felde G, Ebbesen MH, Hunskaar S. Anxiety and depression associated with urinary
+incontinence. A 10-year follow-up study from the Norwegian HUNT study (EPINCONT)[J].
+Neurourol Urodyn, 2017,36(2):322-328.
+[81] 时蓉华. 现代社会心理学[M]. 上海：华东师范大学出版社, 2002.
+[82] Siu LSK, Lopez V. Chinese women’s experiences of stress incontinence: a descriptive
+qualitative study[J]. Int J Urol Nurs, 2012, 6(3):125-136.
+[83] Gbobbo JE. Strategies for promoting client's adaptation to renal failure based on Nursing
+process[J]. West African Journal of Nursing, 2008, 19(1): 55-61.
+
+<!-- page 130 -->
+106
+[84] Beutel M. Approaches to taxonomy and measurement of adaptation in chronic disease[J].
+Psychother Psychosom, 1985, 43(4): 177-85.
+[85] 高凤英,王晓燕,乔芬.重度烧伤患者家庭亲密度和适应性与社交回避和苦恼的相关性
+[J].中国康复理论与实践, 2017,23(6):7228-7233.
+[86] 林润,陈晓欢,金调芬,等.家庭亲密度和适应性对产后盆底功能障碍女性应对方式的影
+响[J].中国护理管理, 2019,19(2):211-215．
+[87] 朱亚丽,权丽丽,张彦梅,等.自我效能感在女性尿失禁患者中社会支持与抑郁之间的调节
+作用[J].实用预防医学, 2020,27(07):838-841.
+[88] 魏代艳.老年女性压力性尿失禁患者应对方式及影响因素的调查分析[J].中华现代护理
+杂志, 2015, 21(10):1164-1167.
+[89] 谢美莲, 张志云, 张海霞, 等. 老年尿失禁病人护理的研究进展[J]. 护理研究,
+2020,34(6):1052-1026.
+[90] 杨帆.尿失禁对石家庄市社区中老年女性生活质量的影响及其自我应对策略[D].石家庄:
+河北医科大学, 2015.
+[91] Kwon J, Lee HJ, Joo JH, et al. Urinary incontinence status changes and depressive symptoms
+among middle-aged and older women: Using data from a survey of the Korean Longitudinal
+Study of Aging[J].J Affect Disord, 2021,279(1):549-553.
+[92] Taylor SE. Adjustment to threatening events: A theory of cognitive adaptation[J]. Am Psychol,
+1983, 38(11): 1161-1173.
+[93] Bascur CA, Araneda GA, Castro AH. Determinants in the process of seeking help for urinary
+incontinence in the Chilean health system[J]. Int J Gynaecol Obstet, 2019, 144(1):103-111.
+[94] Lazarus RS. Coping theory and research: past, present, and future[J]. Psychosom Med, 1993,
+55(3): 234-47.
+[95] Livneh H. The use of generic avoidant coping scales for psychosocial adaptation to chronic
+illness and disability: A systematic review[J]. Health Psychology Open, 2019,6(2): 1-17.
+[96] Roy C. Research based on the Roy adaptation model: last 25 years[J]. Nurs Sci Q,
+2011,24(4):312-320.
+[97] Daliento L, Mapelli D, Volpe B.Measurement of cognitive outcome and quality of life in
+congenital heart disease[J]. Heart, 2006,92(4):569-574.
+
+<!-- page 131 -->
+107
+[98] Korte J, Bohlmeijer ET, Westerhof GJ,et al. Reminiscence and adaptation to critical life
+events in older adults with mild to moderate depressive symptoms[J]. Aging Ment Health,
+2011,15(5):638-646.
+[99] Donnellan C, Hevey D, Hickey A, et al. Adaptation to stroke using a model of successful
+aging[J]. Neuropsychol Dev Cogn B Aging Neuropsychol Cogn, 2012,19(4):530-547.
+[100] Jaser SS, Faulkner MS, Whittemore R, et al. Coping, self-management, and adaptation in
+adolescents with type 1 diabetes[J]. Ann Behav Med, 2012,43(3):311-319.
+[101] Folkman S, Lazarus RS. Coping as a mediator of emotion[J]. Journal of Personality and
+Social Psychology, 1988, 54(3):466-475.
+[102] Ambrosio L，Senosiain García JM，Riverol FM，et al．Living with chronic illness in adults：
+a concept analysis[J]．Journal of Clinic Nursing, 2015,24(17-18):2357-2367.
+[103] Tong A, Sainsbury P, Craig J. Consolidated criteria for reporting qualitative research
+(COREQ): A 32-item checklist for interviews and focus groups[J]. International journal for
+quality in health care, 2007, 19(6):349-357.
+[104] Sanders C. Application of Colaizzi's method: interpretation of an auditable decision trail by
+a novice researcher[J]. Contemp Nurse, 2003,14(3):292-302.
+[105] 普拉尼·利亚姆帕特唐, 道格拉斯·艾子. 质性研究方法[M]. 郑显兰, 译. 重庆：重庆大
+学出版社, 2009.
+[106] Akyuz A, Kok G, Kilic A, et al. In her own words: living with urinary incontinence in sexual
+life[J]. Sex Disabil, 2014, 32(1): 23-33.
+[107] Coyne KS, Margolis MK, Jumadilova Z, et al. Overactive bladder and women’s sexual
+health: what is the impact?[J]. J Sex Med, 2007, 4(3): 656-666.
+[108] Roos AM, Thakar R, Sultan AH, et al. Pelvic floor dysfunction: women’s sexual concerns
+unraveled[J]. J Sex Med,2014,11(3):743-752.
+[109] Delarmelindo R, Parada C, Rodrigues R, et al. Between suffering and hope: rehabilitation
+from urinary incontinence as an intervening component[J]. Cien Saude Colet, 2013,
+18(7):1981-1991.
+
+<!-- page 132 -->
+108
+[110] Nicolson P, Kopp Z, Chapple CR, et al. It’s just the worry about not being able to control it!
+A qualitative study of living with overactive bladder[J]. Br J Health Psychol, 2008, 13(2):
+343-359.
+[111] 吴琼芳,李春梅,余黎静,等.羞耻感对社区女性尿失禁患者求医态度的影响[J].中国护理
+管理,2016,16(11):1529-1533.
+[112] Hagglund D, Wadensten B. Fear of humiliation inhibits women’s care-seeking behaviour for
+long-term urinary incontinence[J]. Scand J Caring Sci, 2007, 21(3):305-312.
+[113] 麻彦,柳韡,于彬彬.女性尿失禁患者不主动求医行为的原因分析[J].中华护理教
+育,2014,11(04):305-308.
+[114] Peake S, Manderson L, Potts H. “Part and parcel of being a woman”: female urinary
+incontinence and constructions of control[J]. Med Anthropol Q, 1999, 13(3):267-285.
+[115] Gjerde JL, Rortveit G, Muleta M, et al. Silently waiting to heal: experiences among women
+living with urinary incontinence in northwest Ethiopia[J]. Int Urogynecol J Pelvic Floor
+Dysfunct, 2013, 24(6):953-958.
+[116] Andersson G, Johansson JE, Nilsson K, et al. Accepting and adjusting: older women’s
+experiences of living with urinary incontinence[J]. Urol Nurs, 2008, 28(2): 115-121.
+[117] Bradway CW, Barg F. Developing a cultural model for longterm female urinary
+incontinence[J]. Soc Sci Med, 2006, 63(12): 3150-3161.
+[118] 肖顺贞. 临床科研设计[M]. 北京:北京大学医学出版社, 2008.
+[119] 吴明隆. 问卷统计分析实务:SPSS 操作与应用[M]. 重庆：重庆大学出版社, 2010.
+[120] Streiner DL, Kottner J.Recommendations for reporting the results of studies of instrument
+and scale development and testing[J].J Adv Nurs,2014,70(9):1970-1979.
+[121] Huang L, Zhang SW, Wu SL, et al. The Chinese version of ICIQ: a useful tool in clinical
+practice and research on urinary incontinence[J]. Neurourol Urodyn, 2008 ,27(6): 522-524.
+[122]杜彦芳, 蒋妍, 黄向华. 女性尿失禁的分类及诊断标准[J]. 实用妇产科杂志, 2018, 34(3):
+164-167．
+[123] Roy C, Bakan G, Li Z, et al. Coping measurement: Creating short form of Coping and
+Adaptation Processing Scale using item response theory and patients dealing with chronic
+and acute health conditions[J].Appl Nurs Res, 2016, 32(11): 73-79.
+
+<!-- page 133 -->
+109
+[124] Mokkink LB, De VH, Prinsen CAC, et al. COSMIN Risk of Bias checklist for systematic
+reviews of patient-reported outcome measures[J]. Qual Life Res, 2018, 27(5): 1171-1179.
+[125] 陈平雁. SPSS 13.0 统计软件应用教程[M]. 北京：人民卫生出版社, 2005.
+[126] 孟亚军, 李宁秀, 陈建华, 等. 中国艾滋病病毒感染者生命质量测定量表的编制[J]. 中
+华流行病学杂志, 2007, 28(11):1081-1084.
+[127] 曾光. 现代流行病学方法与应用[M]. 北京：北京医科大学、中国协和医科大学联合出
+版社, 1994.
+[128] 吴明隆. SPSS统计应用实务[M]. 北京:科学出版社, 2003.
+[129] 钱炜炜. 居民食品素养问卷的汉化与信效度检验[D]. 苏州:苏州大学, 2020.
+[130] 邱皓政.量化研究与统计分析[M]. 重庆: 重庆大学出版社, 2013.
+[131] 王乐三. SPSS在医学科研中的应用[M]. 北京：化学工业出版社,2007.
+[132] 王亚菲. 肠造口患儿家庭主要照顾者照护能力测评量表的编制[D]. 济南:山东大学,
+2019.
+[133] 李灿,辛玲. 调查问卷的信度与效度的评价方法研究[J]. 中国卫生统计, 2008, (5):
+541-544.
+[134] 葛晓红. 埃德蒙顿衰弱量表（EFS）的汉化及老年糖尿病患者的衰弱现状研究[D]. 沈
+阳:中国医科大学, 2020.
+[135] 解亚宁. 心理统计学[M]. 北京：人民卫生出版社, 2007.
+[136] 温忠麟, 汤丹丹, 顾红磊. 预测视角下双因子模型与高阶因子模型的一般性模拟比较
+[J].心理学报, 2019，51(3), 119-127.
+[137] 陈晓萍, 沈伟. 组织与管理研究的实证方法[M]. 北京: 北京大学出版社, 2018.
+[138] [美]斯蒂芬•弗兰佐. 社会心理学[M].葛鉴桥, 陈侠, 胡军生,等,译. 上海：上海人民出版
+社, 2010.
+[139] Hu JS, Pierre EF. Urinary Incontinence in Women:Evaluation and anagement[J].American
+Family Physician, 2019,100(6):339-348.
+[140] 吴明隆.结构方程模型-AMOS的操作与应用[M].2版.重庆:重庆大学出版社,2010.
+[141] 吴臣,刘妍,管晓萌,等.女性尿失禁患者应对方式量表的编制及信效度检验[J].护理学杂
+志, 2012, 27(15): 39-41.
+
+<!-- page 134 -->
+110
+[142] Wagner TH, Patrick DL, Bavendam TG, et al. Quality of life of persons with urinary
+incontinence: development of a new measure[J]. Urology,1996,47(1):67-71.
+[143] 王晓茜.改良女性自我形象评价量表（MBIS）、尿失禁生活质量问卷（I-QOL）、子
+宫肌瘤症状及健康相关生活质量问卷（UFS-QOL）中文版本研制与中国人群验证[D].
+北京：北京协和医学院,2013.
+[144] De Ridder D, Geenen R, Kuijer R, et al. Psychological adjustment to chronic disease[J]. The
+Lancet, 2008, 372(9634): 246-255.
+
+<!-- page 135 -->
+111
+附录
+附录A：伦理批文
+
+<!-- page 136 -->
+112
+附录B：质性访谈-知情同意书
+尊敬的xxxx 女士：
+您好，我们邀请您参加由中国医科大学护理学院开展的“女性尿失禁患者心理社
+会适应评估工具的研制及模型构建与验证”中的“女性尿失禁患者心理社会适应的质
+性研究”部分。该研究项目已通过中国医科大学医学伦理委员会的审查和批准。
+您自愿决定是否参加。在决定之前，请您仔细阅读下列内容，帮助您了解该项目。
+如果您有任何疑问请及时提出，研究者会为您解答。以下是本研究项目的介绍：
+一、研究背景
+尿失禁（urinary incontinence, UI）是女性盆底功能障碍性疾病常见的类型之一，
+女性尿失禁的发生与年龄、阴道分娩、多产、体重指数、慢性肺部疾病等因素相关，
+大多数研究报告尿失禁的患病率在25%~45%之间。尿失禁虽然不是致命性疾病,但其
+症状给患者的生理、心理、日常生活、社交活动和性生活等造成严重困扰，严重影响
+了患者的身心健康和生活质量。心理社会适应有助于个人面对正在经历的健康问题、
+角色变化及其他生活变化。患者在面对疾病时并非均消极被动，相反，他们会尝试利
+用各种资源去适应疾病以达到身心适宜状态。大量研究表明心理社会适应与生活质量
+和生活满意度具有相关性，良好的心理社会适应有助于患者更好地面对疾病、提高治
+疗的依从性，改善患者的生活质量和生活满意度。女性尿失禁患者心理社会问题突出，
+良好的心理社会适应将有助于提高患者的身心健康水平和改善患者的生活质量，但目
+前国内外尚未发现女性尿失禁患者特异性的心理社会适应评估工具及心理社会适应
+在身心健康调适过程的作用机制和路径研究。因此，本研究旨在通过质性访谈深入挖
+掘心理社会适应的真实体验和身心调适历程，研制适合我国文化背景的女性尿失禁患
+者特异性心理社会适应评估工具，从而分析我国女性尿失禁患者心理社会适应水平、
+影响因素及其作用机制和路径，构建女性尿失禁患者心理社会适应模型，为制定个性
+化和高质量的心理社会适应护理干预措施提供理论依据。
+二、研究目的
+本研究旨在探讨女性尿失禁患者心理社会适应的真实体验及其身心调适历程，为
+研制一个信效度良好的适合我国文化背景的女性尿失禁患者心理社会适应量表提供
+依据，进而为女性尿失禁患者心理社会适应干预措施的制定提供理论依据。
+三、研究内容和步骤
+我们将利用线上或者面对面的形式，采用一对一深入访谈的形式进行调查。访谈
+
+<!-- page 137 -->
+113
+时间以您方便为原则，访谈的时间大约在30~40 分钟。为了确保资料的完整，在获得
+您同意的前提下，访谈过程将全程录音或屏幕录制，并对访谈内容进行必要的记录。
+访谈过程中，我们会提出有关您对于自己关于患病后在生活中遇到困扰的真实心理体
+验、您采取的适应行为、影响您对疾病适应的因素及您患病过程中希望得到的帮助等
+问题。您的一切回答无对错或好坏之分。访谈在相对安静、无干扰的环境中进行，整
+个过程只有您和研究者参与。
+如果您符合下列要求即可参与研究：①女性患者；②经国际尿失禁咨询委员会尿
+失禁问卷简表（ICIQ-UI SF）面对面评估明确有尿失禁症状；③年龄≥18 岁；④病程
+≥1 个月；⑤知情并愿意参加本研究。
+四、研究中需要您哪些方面的配合
+研究者将与您预约访谈时间，访谈的时间大约在30~40 分钟。访谈过程中请您根
+据您的认知，真实地回答相关问题，您的一切回答无对错或好坏之分。
+五、参加研究可能的风险、不适及处理方法
+本研究需要对您进行深入访谈，可能会花费您的时间。考虑到您日常工作繁忙，
+访谈相关事宜将会在您工作空余时间进行，减少对您工作的影响。
+六、参加研究可能的受益与补偿
+1）研究对社会群体的益处
+研究结果有利于从事妇产科治疗和护理的相关医护人员了解女性尿失禁患者心
+理社会适应的真实体验，以及女性尿失禁患者患病后身心调适历程。为下一步构建女
+性尿失禁患者心理社会适应评估工具提供研究依据，以便明确我国女性尿失禁患者心
+理社会适应水平、影响因素及其作用机制和路径，制定科学有效的干预措施奠定理论
+基础。
+2）研究对受试者本人的益处
+该研究是为了进一步构建女性尿失禁患者心理社会适应量表，有助于医护工作者
+为您提供更加科学细致的医疗服务，提高您心理社会适应水平和生活质量。
+七、自愿参加/退出研究
+您自愿决定是否参与本研究。您有权拒绝参加或随时退出研究，您不会因此而受
+到歧视和报复，医疗待遇与个人正当权益不会受到任何影响。
+八、个人信息的保密
+研究者负责保管在研究期间收集到的所有您的个人信息，并且对资料严格保密。
+只有研究人员与伦理委员会成员在法律允许的范围内，有权审阅您的信息记录。在任
+
+<!-- page 138 -->
+114
+何有关本项目的研究报告和出版物中，您的个人信息不会被公开。
+九、联系方式
+您可以在任何时间提出有关本项研究的任何问题。您可以与您的研究者随时取得
+联系，联系人：李小寒联系电话：
+。如果您对参加项目有任何意见，请
+联系伦理委员会（联系电话：
+）。
+受试者同意声明
+1.我已认真阅读并理解了上述有关本研究的介绍，而且有机会就此与研究者讨论并提
+出问题。我提出的所有问题都得到了满意的答复。
+2.我知道参加研究是自愿的，我确认已有充足的时间对此进行考虑，而且明白：
+1）我可以随时向研究者咨询更多的信息；
+2）我可以随时退出研究，而不受到歧视和报复，医疗待遇与个人权益不会受到
+影响。
+最后，我决定同意参加本项研究，并愿意按研究方案要求，配合完成本研究。
+受试者签字：
+日期：
+电话：
+我已向该受试者充分解释和说明了本项研究的目的、操作过程以及受试者参加该
+项目可能存在的风险和利益，并满意地回答了受试者的所有有关问题。
+研究者签名：
+日期：
+电话：
+
+<!-- page 139 -->
+115
+附录C：一般资料调查表
+1.年龄：
+周岁
+2.居住地：□城镇
+□农村
+3.您的文化程度：□小学及以下
+□初中
+□高中或中专
+□大专及以上
+4.您的婚姻状况：□已婚
+□未婚
+□丧偶
+□离异
+5.家庭人均月收入（元）：□＜2000
+□2000～3999
+□4000～5999
+□≥6000
+6.您的工作类型：□职员
+□工人
+□农民
+□个体户
+□其他
+7.现在的工作状态：在职
+□病休
+□退休
+□无工作
+8.您的付费方式：□医疗保险
+□商业保险
+□自费
+□其它
+9.身高
+cm
+体重
+Kg
+10.生育情况：□0 次
+□1 次
+□2 次
+3 次及以上
+11.疾病病程：
+（年）
+
+<!-- page 140 -->
+116
+附录D：国际尿失禁咨询委员会尿失禁问卷简表
+指导语：请您仔细回忆过去一年的状况，在符合您情况的选项前面打“√”。
+1.您漏尿的次数？
+□从来不漏尿
+□一星期大约漏尿1 次或经常不到1 次
+□一星期漏尿2 次或3 次
+□每天大约漏尿1 次
+□一天漏尿数次
+□一直漏尿
+2.我们想知道您认为自己漏尿的量是多少？在通常情况下，您的漏尿量是多少(不
+管您是否使用了防护用品)
+□不漏尿
+□少量漏尿
+□中等量漏尿
+□大量漏尿
+3.总体上看，漏尿对您日常生活影响程度如何？
+请在0(表示没有影响)-10(表示有很大影响)之间的某个数字上画圈
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+没有影响
+很大影响
+4.什么时候发生漏尿？
+□从不漏尿
+□未能到达厕所就会有尿液漏出
+□在咳嗽或打喷嚏时漏尿
+□在睡着时漏尿
+□在活动或体育运动时漏尿
+□在小便完和穿好衣服时漏尿
+□在没有明显理由的情况下漏尿
+
+<!-- page 141 -->
+117
+附录E：女性尿失禁患者心理社会适应量表（44 条目待检验量表）
+指导语：请您根据您的实际情况，在符合您情况的位置勾选“√”。
+女性尿失禁患者心理社会适应量表
+量表条目
+总是
+经常
+有时
+很少
+从不
+1.我感到自责、让他人失望
+2.我认为自己是一个有魅力的人
+3.我能获得到我所需要的有关疾病方面的信息
+4.我情绪很不稳定
+5.总体来说，我对自己是满意的
+6.漏尿问题妨碍到我应尽的家庭义务
+7.漏尿问题导致我与朋友之间的交流减少
+8.漏尿问题让我总是心事重重
+9.漏尿使我感到尴尬
+10.漏尿问题限制了我进行一些体育活动
+11.我不存在因漏尿问题导致的经济负担
+12.我担心漏尿问题会越来越严重
+13.由于漏尿问题，使我不愿意与他人交往
+14.我能得到家人实际的帮助
+15.由于漏尿，我减少外出的次数
+16.漏尿使我感到羞耻
+17.漏尿问题使我悲伤、沮丧
+18.我对未来不抱有希望
+19.漏尿问题使我很难保持整洁干净
+20.我感到烦躁、易怒
+21.关于漏尿问题，家人能够理解和包容我
+22.我无法避免漏尿问题对我的困扰
+23.我感到自卑
+24.漏尿问题导致我与家人之间的交流减少
+25.我能得到朋友的情感支持和帮助
+26.漏尿问题没有影响我与家人的关系
+27.我变得容易哭泣或者常常想哭
+28.我感到担忧
+
+<!-- page 142 -->
+118
+29.我能得到朋友实际的帮助
+30.我能与家人分享快乐与忧伤
+31.我不愿意让别人知道我的漏尿问题
+32.我认为自己是一个有吸引力的人
+33.漏尿问题妨碍到我的工作
+34.我感到自己没有价值
+35.由于漏尿问题，我减少了我的社交活动
+36.漏尿问题使我夜间睡眠很差
+37.我担心漏尿时被别人发现
+38.我担心由于漏尿而遭到别人的嘲笑
+39.漏尿问题没有影响我与朋友的关系
+40.我能与朋友分享快乐与忧伤
+41.由于漏尿问题，我放弃了许多休闲及娱乐活动
+42.漏尿问题妨碍到我在家庭中的责任
+43.我感到紧张
+44.我能得到家人的情感支持和帮助
+
+<!-- page 143 -->
+119
+附录F：中文版应对适应过程量表（简表）
+指导语：人们在生活中有时会经历一些非常困难的事件，以下表格内的内容表现了人
+们应对这些事件可能产生的反应，请您在符合您情况的位置勾选“√”。
+中文版应对适应过程量表（简表）
+量表条目
+从不
+很少
+有时
+总是
+1.我能马上听从不同的指导意见并行动。
+2.我能找出其中的问题，并尽量了解整件事。
+3.我会尽量收集各种信息来做选择。
+4.我一般会尽量让事情向着对自己有利的方向发展。
+5.满脑子都是这件事，不能思考其他事情。
+6.我会试着获取更多资源来处理问题。
+7.我能幽默地处理它。
+8.我在压力下做事会更有效率。
+9.我有自己的精神支柱，或求助于有成功经验的人。
+10.我能借鉴过去的经验来应对眼前的问题。
+11.我会创造性地提出新的解决方案。
+12.我能集思广益来解决问题，哪怕有些方案看起来很不可思议。
+13.我发现自己因此生病了。
+14.我很容易放弃。
+15.我能制订出一系列行动计划来处理它。
+
+<!-- page 144 -->
+120
+附录G：女性尿失禁患者心理社会适应量表专家函询问卷
+尊敬的各位专家：
+您好！
+首先非常感谢您在百忙之中填写这份问卷，谢谢您对本课题的支持！
+尿失禁（urinary incontinence, UI）是女性盆底功能障碍性疾病常见的类型之一，
+女性尿失禁的发生与年龄、阴道分娩、多产、体重指数、慢性肺部疾病等因素相关，
+大多数研究报告尿失禁的患病率在25%~45%之间。尿失禁虽然不是致命性疾病,但其
+症状给患者的生理、心理、日常生活、社交活动和性生活等造成严重困扰，严重影响
+了患者的身心健康和生活质量。心理社会适应有助于个人面对正在经历的健康问题、
+角色变化和其他生活变化。患者在面对疾病时并非均消极被动，相反，他们会尝试利
+用各种资源去适应疾病以达到身心适宜状态。大量研究表明心理社会适应与生活质量
+和生活满意度具有相关性，良好的心理社会适应有助于患者更好地面对疾病、提高治
+疗的依从性，改善患者的生活质量和生活满意度。女性尿失禁患者心理社会问题突出，
+良好的心理社会适应将有助于提高患者的身心健康水平和改善患者的生活质量，但目
+前国内外尚未发现女性尿失禁患者特异性的心理社会适应评估工具。因此，本研究的
+主要目的是研制女性尿失禁患者心理社会适应量表，为科学有效评估女性尿失禁患者
+的心理社会适应提供评测工具。
+本课题通过大量的国内外文献研究、患者质性访谈、课题小组的多次讨论，我们
+初步研制的女性尿失禁患者心理社会适应量表包括4 个维度和41 个条目，现请您对
+维度和条目的重要性进行判断，您的宝贵意见将是我们建立评价女性尿失禁患者心理
+社会适应量表的重要依据！
+本问卷的内容分为两部分：第一部分为女性尿失禁患者心理社会适应量表的专家
+评定；第二部分为专家情况调查。此问卷以匿名的形式函询，您的资料只用于统计分
+析，绝不用于其他目的，绝对保密。为保证课题的顺利进行，请您在收到问卷后1 周
+内填写完成，我们将不胜感激。
+最后，衷心感谢专家对本课题的帮助和支持！
+唐惠艳
+中国医科大学
+2021 年7 月10 日
+
+<!-- page 145 -->
+121
+第一部分：《女性尿失禁患者心理社会适应量表》
+一、“女性尿失禁患者心理社会适应量表”的初步维度
+1.请您对下表中4 个维度重要性做出评价，并在维度后的方框内填写相应的数字，重
+要性评分标准为1-5 分，1=很不重要、2=不重要、3=一般、4=重要、5=很重要。
+2.对于有异议的维度，请您在“专家修改意见”栏内注明修改后的意见及修改原因。
+如果您认为维度不完善，请在“增加维度”栏内补充，并判定修改和补充维度的重要
+程度，请填写完整。
+表1 《女性尿失禁患者心理社会适应量表》的维度
+维度
+具体名称（包含条目）
+专家意见
+重要性评分
+专家修改意见
+1
+2
+3
+4
+5
+维度一
+情绪状态（1-11）
+维度二
+自我认知（12-24）
+维度三
+角色功能（25-34）
+维度四
+社会支持（35-41）
+增加维度
+二、《女性尿失禁患者心理社会适应量表》的初步条目
+1.请您对下表中41 个条目重要性做出评价，并在条目后的方框内填写相应的数字，每
+个条目重要性评分标准为1-5 分，1=很不重要、2=不重要、3=一般、4=重要、5=很重
+要。
+2.对于有异议的条目，请您在“专家修改意见”栏内注明修改后的意见及修改原因。
+如果您认为条目不完善，请在空白处补充，并判定修改和补充条目的重要程度，请填
+写完整。
+
+<!-- page 146 -->
+122
+表2 《女性尿失禁患者心理社会适应量表》的条目
+条目
+具体内容
+重要性评分
+专家修改意见
+1
+2
+3
+4
+5
+1
+我感到紧张
+2
+我感到烦躁、易怒
+3
+我情绪很不稳定
+4
+漏尿问题使我悲伤、沮丧
+5
+我变得容易哭泣或者常常想哭
+6
+我感到害怕
+7
+漏尿问题使我夜间睡眠很差
+8
+我担心漏尿问题会越来越严重
+9
+漏尿问题让我总是心事重重
+10
+我无法避免漏尿问题对我的困扰
+11
+我对未来不抱有希望
+12
+漏尿使我感到尴尬
+13
+漏尿使我感到羞耻
+14
+我不愿意让别人知道我的漏尿问题
+15
+我担心漏尿时被别人发现
+16
+我担心由于漏尿而遭到别人的嘲笑
+17
+我担心由于漏尿而遭到别人的歧视
+18
+我感到自卑
+19
+总体来说，我对自己是满意的
+20
+我对自己感到失望、没有价值
+21
+我感到自责，让他人失望
+22
+我认为自己是一个有吸引力的人
+23
+我认为自己是一个有魅力的人
+24
+漏尿问题使我很难保持整洁干净
+25
+由于漏尿问题，使我不愿意与他人交往
+26
+由于漏尿问题，我减少了我的社交活动
+
+<!-- page 147 -->
+123
+27
+由于漏尿问题，我放弃了许多休闲及娱乐活
+动
+28
+漏尿问题限制了我进行一些体育活动
+29
+由于漏尿，我减少外出的次数
+30
+漏尿问题妨碍到我工作的能力
+31
+漏尿问题妨碍到我在家庭中的责任
+32
+漏尿问题妨碍到我在家庭中的地位
+33
+漏尿问题导致我与家人之间的交流减少
+34
+漏尿问题导致我与朋友之间的交流减少
+35
+我能得到家人和朋友的情感支持和帮助
+36
+我能得到家人和朋友的切实具体的帮助
+37
+我能与家人和朋友分享快乐与忧伤
+38
+我能获得到我所需要的有关疾病方面的信息
+39
+关于漏尿问题，家人特别理解和包容我
+40
+漏尿问题没有影响我与家人和朋友的关系
+41
+漏尿会增加家庭经济负担，我不存在因漏尿
+问题导致的经济负担
+您的建议及补充：
+第二部分
+专家情况调查
+一、专家基本情况调查表
+此调查表仅用于本研究咨询专家整体情况调查分析，严格遵守保密原则。请您填
+写个人情况或在适合选项打“√”。您的专业方向若为“其他”，请写明您的专业。
+表3 专家基本情况调查表
+年龄
+学历
+工作年限
+职务
+职称
+所从事职业
+工作单位
+联系电话
+是否为导师
+□博士导师
+□硕士导师
+□否
+专业方向
+□妇产科临床
+□妇产科护理
+□心理学
+□其他
+
+<!-- page 148 -->
+124
+二、专家权威程度调查表
+1.判断依据包括理论分析、实践经验、参考国内外资料、主观判断，影响程度分
+为大、中、小三级，请在相应的等级上打“√”。
+2.专家熟悉程度：1-5 级，1=很不熟悉；2=不太熟悉；3=一般熟悉；4=较熟悉；
+5=很熟悉，请在相应的位置上打“√”。
+表4 判断依据及影响程度调查表
+影响程度
+判断依据
+大
+中
+小
+理论分析
+实践经验
+参考国内外资料
+主观判断
+表5 熟悉程度调查表
+熟悉程度
+很熟悉
+较熟悉
+一般熟悉
+不太熟悉
+很不熟悉
+专家自评
+对您的悉心指导和帮助再次表示感谢！
+
+<!-- page 149 -->
+125
+附录H：问卷调查-知情同意书
+尊敬的xxxx 女士：
+您好，我们邀请您参加由中国医科大学护理学院开展的“女性尿失禁患者心理社
+会适应评估工具的研制及模型构建与验证”中的“女性尿失禁患者心理社会适应量表
+的研制与模型验证”部分。该研究项目已通过中国医科大学医学伦理委员会的审查和
+批准。
+您自愿决定是否参加。在决定之前，请您仔细阅读下列内容，帮助您了解该项目。
+如果您有任何疑问请及时提出，研究者会为您解答。以下是本研究项目的介绍：
+一、研究背景
+尿失禁（urinary incontinence, UI）是女性盆底功能障碍性疾病常见的类型之一，
+女性尿失禁的发生与年龄、阴道分娩、多产、体重指数、慢性肺部疾病等因素相关，
+大多数研究报告尿失禁的患病率在25%~45%之间。尿失禁虽然不是致命性疾病,但其
+症状给患者的生理、心理、日常生活、社交活动和性生活等造成严重困扰，严重影响
+了患者的身心健康和生活质量。心理社会适应有助于个人面对正在经历的健康问题、
+角色变化及其他生活变化。患者在面对疾病时并非均消极被动，相反，他们会尝试利
+用各种资源去适应疾病以达到身心适宜状态。大量研究表明心理社会适应与生活质量
+和生活满意度具有相关性，良好的心理社会适应有助于患者更好地面对疾病、提高治
+疗的依从性，改善患者的生活质量和生活满意度。女性尿失禁患者心理社会问题突出，
+良好的心理社会适应将有助于提高患者的身心健康水平和改善患者的生活质量，但目
+前国内外尚未发现女性尿失禁患者特异性的心理社会适应评估工具及心理社会适应
+在身心健康调适过程的作用机制和路径研究。因此，本研究旨在研制适合我国文化背
+景的女性尿失禁患者特异性心理社会适应评估工具，从而分析我国女性尿失禁患者心
+理社会适应水平、影响因素及其作用机制和路径，构建女性尿失禁患者心理社会适应
+模型，为制定个性化和高质量的心理社会适应护理干预措施提供理论依据。
+二、研究目的
+本研究旨在研制一个信效度良好的适合我国文化背景的女性尿失禁患者心理社
+会适应量表，从而分析我国女性尿失禁患者心理社会适应水平、影响因素及其作用机
+制和路径，构建并验证女性尿失禁患者心理社会适应概念模型，为女性尿失禁患者心
+理社会适应干预措施的制定提供理论依据。
+
+<!-- page 150 -->
+126
+该调查问卷以纸质版的形式呈现，以现场匿名填写的方式进行调查，填写过程中
+请根据您现有的认知与实际情况，真实准确地填写问卷，请勿查阅电子设备。您的回
+答将不会对您造成任何影响。问卷填写完成后，由研究小组将问卷当场收回。
+如果您符合下列要求即可参与研究：①女性患者；②经国际尿失禁咨询委员会尿
+失禁问卷简表（ICIQ-UI SF）面对面评估明确有尿失禁症状；③年龄≥18 岁；④病程
+≥1 个月；⑤知情并愿意参加本研究。
+四、研究中需要您哪些方面的配合
+调查时会占用您30～40 分钟的时间对“女性尿失禁患者心理社会适应量表的研
+制与模型验证”各问卷进行填写，请您依据实际情况完成该问卷的填写，禁止查阅相
+关资料或电子设备。
+五、参加研究可能的风险、不适及处理方法
+本研究需要您填写问卷，可能会花费您一些时间。考虑到您日常工作繁忙，问卷
+填写相关事宜将会在您工作空余时间进行，减少对您工作的影响。
+六、参加研究可能的受益与补偿
+1）研究对社会群体的益处
+研究结果有利于了解目前女性尿失禁患者心理社会适应水平和影响因素，为下一
+步构建女性尿失禁患者心理社会适应提供现实依据，以便明确我国女性尿失禁患者心
+理社会适应水平、影响因素及其作用机制和路径，制定科学有效的干预措施奠定理论
+基础。
+2）研究对受试者本人的益处
+本研究有利于增加您对心理社会适应的深入认识。同时，该研究是为了进一步形
+成女性尿失禁患者心理社会适应模型，有助于医护工作者为您提供更加科学细致的医
+疗服务，提高您心理社会适应水平和生活质量。
+七、自愿参加/退出研究
+您自愿决定是否参与本研究。您有权拒绝参加或随时退出研究，您不会因此而受
+到歧视和报复，医疗待遇与个人正当权益不会受到任何影响。
+八、个人信息的保密
+研究者负责保管在研究期间收集到的所有您的个人信息，并且对资料严格保密。
+只有研究人员与伦理委员会成员在法律允许的范围内，有权审阅您的信息记录。在任
+何有关本项目的研究报告和出版物中，您的个人信息不会被公开。
+三、研究内容和步骤
+
+<!-- page 151 -->
+127
+您可以在任何时间提出有关本项研究的任何问题。您可以与您的研究者随时取得
+联系，联系人：李小寒联系电话：
+。如果您对参加项目有任何意见，请
+联系伦理委员会（联系电话：
+）。
+受试者同意声明
+1.我已认真阅读并理解了上述有关本研究的介绍，而且有机会就此与研究者讨论并提
+出问题。我提出的所有问题都得到了满意的答复。
+2.我知道参加研究是自愿的，我确认已有充足的时间对此进行考虑，而且明白：
+1）我可以随时向研究者咨询更多的信息；
+2）我可以随时退出研究，而不受到歧视和报复，医疗待遇与个人权益不会受到
+影响。
+最后，我决定同意参加本项研究，并愿意按研究方案要求，配合完成本研究。
+受试者签字：
+日期：
+电话：
+我已向该受试者充分解释和说明了本项研究的目的、操作过程以及受试者参加该
+项目可能存在的风险和利益，并满意地回答了受试者的所有有关问题。
+研究者签名：
+日期：
+电话：
+九、联系方式
+
+<!-- page 152 -->
+128
+附录I：女性尿失禁患者心理社会适应量表（验证后的正式量表）
+指导语：请您根据您的实际情况，在符合您情况的位置勾选“√”。
+女性尿失禁患者心理社会适应量表
+量表条目
+总是
+经常
+有时
+很少
+从不
+1.我感到担忧
+2.漏尿问题使我很难保持整洁干净
+3.漏尿问题使我悲伤、沮丧
+4.我感到紧张
+5.我不愿意让别人知道我的漏尿问题
+6.我感到烦躁、易怒
+7.我感到自己没有价值
+8.我对未来不抱有希望
+9.漏尿问题妨碍到我应尽的家庭义务
+10.由于漏尿，我减少外出的次数
+11.漏尿问题导致我与朋友之间的交流减少
+12.由于漏尿问题，我放弃了许多休闲及娱乐活动
+13.漏尿问题妨碍到我的工作
+14.我能得到朋友实际的帮助
+15.我能得到朋友的情感支持和帮助
+16.我能与家人分享快乐与忧伤
+17.我能与朋友分享快乐与忧伤
+
+<!-- page 153 -->
+129
+附录J：尿失禁疾病认知问卷
+指导语：请您根据您的实际情况，在符合您情况的位置勾选“√
+尿失禁疾病认知问卷
+量表条目
+总是
+经常
+有时
+很少
+从不
+1.我认为漏尿是由于生育所导致的不可避免的结果
+2.我认为漏尿是机体自然老化所导致的不可避免的结果
+3.我认为漏尿不是一种疾病
+4.我认为漏尿是无法医治的疾病
+5.我认为年龄大的女性，漏尿问题的康复治疗是无效的
+6.我认为通过积极的治疗能控制漏尿
+7.我认为坚持盆底肌训练能抑制漏尿
+8.我了解有关漏尿方面的疾病治疗和康复的知识
+
+<!-- page 154 -->
+130
+附录K：女性尿失禁应对方式量表
+指导语：请您根据您的实际情况，在符合您情况的位置勾选“√
+女性尿失禁应对方式量表
+量表条目
+从不
+偶尔
+经常
+总是
+1.为保持膀胱空虚，即使没有尿意也频繁上厕所。
+2.避免弯腰、提重物或者伸展的动作。
+3.限制自己参加身体活动或体育锻炼。
+4.限制自己参加社交活动。
+5.外出之前限制自己饮水。
+6.限制一些使我较长时间不能去厕所的活动，如坐长途车。
+7.为避免漏尿等不舒适的情况避免外出而选择呆在家里。
+8.避免去一些可能找不到厕所的地方。
+9.使用带有衬垫的短裤。
+10.使用尿不湿（尿裤）。
+11.使用女性卫生巾。
+12.使用其他一些吸收材料如卫生纸、纸巾等。
+13.频繁洗澡以减轻漏尿带来的异味和不适。
+14.使用除臭剂或粉以减轻漏尿带来的异味。
+15.避免服用含有咖啡因的饮料如茶叶等。
+16.按医生的指导服用处方药物治疗。
+17.自行购买非处方药物治疗。
+18.服用中草药治疗。
+
+<!-- page 155 -->
+131
+附录L：尿失禁生活质量量表（I-QOL）
+指导语：请您根据您的实际情况，在符合您情况的位置勾选“√
+尿失禁生活质量量表
+量表条目
+完全
+如此
+常常
+如此
+有时
+这样
+很少
+这样
+从未
+如此
+1.我害怕不能及时赶到厕所。
+2.我担心咳嗽打喷嚏时会尿失禁。
+3.我担心会有尿失禁，我从座位上起立时会分外小心。
+4.在新环境中，我特别注意厕所的位置。
+5.尿失禁等问题使我觉得很沮丧失。
+6.尿失禁等问题使我不能外出过久。
+7.尿失禁等问题使我放弃了很多想做的事情，感觉沮丧。
+8.我担心旁边的人会闻到我身上的尿味。
+9.我总担心会发生尿失禁等问题。
+10.我经常去厕所小便。
+11.每次做事前我都得考虑周到，避免尿失禁带来麻烦。
+12.我担心随着年龄增长尿失禁等问题会严重。
+13.因为尿失禁等问题，夜间我几乎没有正常睡眠。
+14.我担心因尿失禁等问题出现尴尬场面或受到羞辱。
+15.尿失禁等问题使我觉得自己不是一个正常人。
+16.尿失禁等问题让我感到无助。
+17 尿失禁等问题使我觉得生活乐趣变少了。
+18.我担心尿失禁时弄湿衣物。
+19.我觉得我没法控制膀胱了。
+20.我很注意喝什么、喝多少，避免发生尿失禁等问题。
+21.尿失禁等问题限制了我挑选衣物。
+22.尿失禁等问题使我对性生活有顾虑。
+
+<!-- page 156 -->
+132
+综述
+女性尿失禁患者心理社会现状及干预策略研究进展
+国际尿控协会（International Continence Society, ICS）将尿失禁（urinary
+incontinence, UI）定义为“任何尿液不自主流出的现象”[1]。尿失禁已成为威胁
+女性身心健康的五种主要健康问题之一，受到全世界的广泛关注[2]。据报道，大
+多数国家和地区女性尿失禁的患病率在25%~45%之间[3]，我国2007年一项大规模
+流行病调查数据显示，女性尿失禁发生率达30.9%[4]。尿失禁虽为非致命疾病，
+但其具有长期性和不易治愈的特点，对患者的身心健康、和社会交往等产生严重
+困扰，严重影响了患者的身心健康水平和生活质量[5-7]。
+女性尿失禁患者心理社会问题突出，以往研究显示，女性尿失禁患者症状严
+重程度与其心理困扰程度并不完全一致，其原因可能是由于不同患者对疾病适应
+水平存在差异[8]。心理社会适应侧重于患者自身对心理社会问题的调适，有助于
+激发患者内在潜能和积极能量面对正在经历的健康问题、角色变化和其他生活变
+化[9]。心理社会适应与生活质量和生活满意度具有相关性[10-12]，通过加强心理社
+会适应的干预措施有助于提高患者的生活质量。本文通过综述女性尿失禁疾病特
+征、心理社会适应的相关理论、心理社会现状、评估工具及干预策略，以期为制
+定个性化和高质量的心理社会干预措施提供理论依据，从而提高患者的心理社会
+适应水平和生活质量。
+1.女性尿失禁的疾病特征
+1.1 女性尿失禁的分类和发病机制
+女性尿失禁分类方法多样，根据英国国家卫生和临床医疗优选研究所指南
+（National Institute for Health and Clinical Excellence，NICE），将尿失禁分为压
+力性尿失禁（stress urinary incontinence，SUI）、混合性尿失禁（mixed urinary
+incontinence，MUI）及急迫性尿失禁（urge urinary incontinence，UUI）[13]。SUI
+是尿失禁中最常见的类型，50%以上的尿失禁与女性SUI有关[14]。ICS将SUI定义
+为患者在运动、打喷嚏或咳嗽等腹压突然增加的情况下，出现不自主的尿液溢出
+[15]。SUI的发病机制复杂，涉及盆底肌肉、神经、激素水平、遗传等多个方面，
+
+<!-- page 157 -->
+133
+经典理论主要为压力传导理论和吊床假说[16-19]。UUI是指突然和强烈的排尿感后
+发生尿漏，患者的排尿感可由疼痛、下腹部不适感、听到水流声等触发[19]。UUI
+的发生与泌尿系统炎症、结石、肿瘤和脑卒中等神经系统疾病有关，逼尿肌过度
+活动的病理生理机制包括肌源性假说和神经源性假说[20-22]。MUI患者同时具有
+SUI和UUI的症状，相比于单纯的SUI和UUI的情况复杂，是初诊患者中最常见的
+尿失禁类型之一[19]。
+1.2 女性尿失禁的危险因素
+女性尿失禁在人群中发病情况不一，有研究报道，女性尿失禁的发生与年龄、
+种族、阴道分娩、多产、体重指数、慢性肺部疾病等因素相关[23-25]。Komesu等
+纵向研究显示，美国白人女性相比于黑人女性尿失禁的发生风险更高[26]。阴道分
+娩、特别是困难阴道分娩的女性尿失禁的发生率较高[27]。肥胖患者由于腹内压力
+和膀胱压力增高，也是尿失禁发生的高危人群[28]。
+1.3 女性尿失禁的诊断和治疗
+1.3.1 女性尿失禁的诊断
+女性尿失禁的诊断流程主要包括病史、体格检查、排尿日记、实验室检查、
+尿动力学检查、1小时尿垫试验和尿失禁相关调查问卷。详细地询问尿失禁的相
+关症状和与尿失禁相关的既往病史，对尿失禁的诊断和治疗非常重要。压力试验、
+指压试验和棉签试验是鉴别不同尿失禁类型常用的体格检查方法[29]。排尿日记是
+通过患者详细记录3日内与尿失禁相关的日常活动和行为，有助于尿失禁的诊断，
+尿失禁专家咨询委员会（International Consultation on Incontinence，ICI）高度推
+荐首次评估尿失禁患者时，指导其书写排尿日记[30]。实验室检查主要包括尿常规、
+尿沉渣和细菌培养，可排除患者是否存在泌尿系统的感染。尿动力学检查是从流
+体力学角度以确定尿失禁的类型，其不做为保守治疗患者的常规检查，但如果患
+者存在诊断不明、需进行手术或者有SUI手术史，NICE、ICI、中华医学会妇产
+科学分会妇科盆底学组及欧洲泌尿协会（European Association of Urology，EAU）
+的相关指南推荐进行尿动力学检查[13,30-32]。WHO推荐SUI患者行1小时尿垫试验，
+用于对SUI的严重程度进行客观分度[29]。尿失禁相关调查问卷较多，尿失禁影响
+问卷简表（incontinence impact questionnaire short form，IIQ-7）、国际尿失禁问
+卷（international consultation on incontinence questionnaire，ICIQ）及盆腔器官脱
+
+<!-- page 158 -->
+134
+垂-尿失禁性生活问卷简表（pelvic organ prolapsed-urinary incontinence sexual
+questionnaire-12，PISQ-12）被推荐用于尿失禁患者症状和程度的评估[29,30]。
+1.3.2 女性尿失禁的治疗
+根据尿失禁国内外相关指南[13,30-34]，在手术治疗前均需进行保守治疗，包括
+改变生活方式、行为治疗及物理治疗等，生活方式的改变包括减少咖啡因的摄入
+（B级推荐）、减低肥胖女性的体重（A级推荐）、控制便秘（C级推荐）、限制
+液体的摄入和戒烟（C级推荐），膀胱功能训练和盆底肌功能训练（pelvic floor
+muscle training，PFMT）是最常见的行为和物理治疗方式。各指南均肯定了PFMT
+对SUI的治疗效果。UUI和MUI多采取综合性的治疗方案，在生活方式干预和物
+理治疗基础上结合药物进行治疗[35-37]。
+手术治疗对于改善压力性尿失禁的症状有相对肯定的疗效，但对于急迫性症
+状的改善尚存在争议[36]。SUI手术适应证包括康复治疗失败、不接受康复治疗、
+中重度SUI患者[38]。Nilsson等[39]指出，经耻骨后无张力尿道中段悬吊带术
+（tension-free vaginal tape，TVT）已成为抗SUI手术的金标准术式，其团队一项
+长达17年的纵向研究显示，TVT术后患者客观治愈率超过90%，主观治愈率为
+87%。梁云霄等[40]运用网状Meta分析比较了6种新型手术方式对女性SUI中长期疗
+效及安全性，研究结果表明，单切口可调节吊带术（Ajust）在治疗SUI的中长期
+研究中具有较好的疗效。
+1.4 女性尿失禁的预后
+女性尿失禁的预后受尿失禁的类型、严重程度、治疗方式及患者自身特征等
+多种因素的影响，因此相关研究关于女性尿失禁治愈率的报道并不一致。患者患
+病后积极改变生活方式，如减重、戒烟、控制饮水量及咖啡因等，能有效改善疾
+病的预后[37]。PFMT是轻中度女性尿失禁患者的一线治疗方案，其有效率已得到
+广泛验证，但患者对PFMT治疗的依从性影响了患者的预后。有研究表明，PFMT
+训练时间越长，患者越年轻，尿失禁治疗效果越好[37]。治疗方式不同，患者的预
+后存在差异。一项女性SUI的对照研究显示，TVT手术主、客观治愈率显著高于
+盆底康复治疗组[41]。但手术治疗由于术后可能出现出血、盆底神经痛和尿潴留等
+并发症，非手术治疗被大多数患者所选择[37]。另外，尽管SUI手术治疗的成功率
+
+<!-- page 159 -->
+135
+可达80%～90%，但是仍然存在一定的失败率和复发率，并且后续治疗有较大难
+度。
+2.心理社会适应的概念和相关理论
+2.1 心理社会适应的概念
+2.1.1 适应
+适应最宽泛的定义是指个体调整自己去适合环境，对环境做出适应性反应的
+主动、动态的自我调整过程，是一个全身性的反应过程，涵盖了生理、心理、社
+会文化及技术四个层次。2009年Roy将适应定义为：“具有思维和感觉的人，作
+为个体或群体应用意识并选择创造人类和环境一体化的过程和结果”[42]。Levine
+将适应视为个人与环境之间相互作用的产物，认为适应是一个涉及变化的过程，
+以个人为中心，包括生理适应性反应和行为适应性反应[43]。
+2.1.2 心理社会适应
+Roy虽然没有提供心理社会适应的定义，但适应的定义包括反映适应的心理
+社会方面的要素，如思维、感觉、意识、人和环境的整合，另外，在适应方式上
+分为生理功能、自我概念、角色功能和相互依赖四个方面，也区分了生理适应与
+心理社会适应的不同[42]。随着心理社会适应的概念频繁地应用于护理领域，2015
+年Londono等[9]对心理社会适应进行了概念分析，心理社会适应的概念被描述为
+一个持续的过程，在这个过程中，内部和外部的相互作用反映了个体在适应自己
+的情况时所经历的变化。这一过程受个体或环境特征的影响。因此，心理社会适
+应的属性包括变化、过程、连续性、互动和影响。在医学领域，心理社会适应的
+重点主要是健康状况、角色变化和生活条件的改变。
+2.2 心理社会适应相关理论
+2.2.1 罗伊适应模式
+Roy适应模式[42]主要阐述人的适应行为，适应行为是人对外界环境刺激的反
+应而形成的，包括输入、控制、效应器、输出及反馈5个部分。适应系统内在的
+控制过程，亦可称为应对机制，包括生理调节和认知调节两种亚系统。当机体面
+对刺激时，通过两个亚系统进行应对，表现为适应性反应和/或无效反应。
+
+<!-- page 160 -->
+136
+在行为反应阶段，适应反应表现为四种适应方式，分别是：①生理方式，反
+映生命体基本的生理需求，如氧合反应、营养需求、排泄活动、活动和休息等。
+②自我概念，反映个体在某一特定时间内对自己的信仰和感受，由自我感知和对
+他人反应的感知形成。③角色功能，反映了个体在社会中的存在方式，个体须履
+行每个角色所赋予的职责。④相互依赖，反映个体为了满足情感的需要和关系发
+展而去建立人际间的亲密关系。
+2.2.2 慢性病适应中域理论
+该理论由王喜益等[44]基于Roy适应模式形成，描述了护理的目标是促进个体
+系统的整体适应，与Roy适应模式的概念框架存在一一对应关系。在刺激输入过
+程中，主要刺激（慢性病和健康促进干预）、相关刺激（社会人口学因素、社会
+支持要素、疾病治疗进程和疾病相关要素）及固有刺激（生命阶段和社会文化）
+对信息处理过程中的认知/调节系统产生影响，具体表现在个体的认知适应过程。
+个体内环境的疾病感知（压力感知、情绪表达和患病接受度）和应对适应过程（应
+对方式和适应策略）相互作用，使机体处于动态调整，进而以生理功能（生理指
+标和生理症状）、自我概念（躯体自我、心理症状、灵性健康）、角色功能（角
+色内容和胜任力）和互相依赖（社会支持和人际关系）方式输出个体对刺激的处
+理情况，其结果表现为适应行为或不适应行为。
+2.2.3 慢性病和残疾的心理社会适应概念框架
+该概念框架于2001年提出，它认为慢性病和残疾（chronic illness and disability，
+CID）的心理社会适应是一个动态的、发展的和复杂的过程，强调个体的主观能
+动性和积极品质[45,46]。在触发事件的作用下，处于不同情景影响中的个体其适应
+过程是自发产生的，受疾病相关因素、人口社会学因素、个性特征、应对方式及
+外部环境等情景变量的影响。情景影响包括生理状态、心理社会状态和环境状况；
+情景变量是对心理社会适应产生重要影响的变量，包括CID相关的变量、人口社
+会学特征、人格或心理特质、外部环境特征，这些变量往往是调节变量、中介变
+量或交互变量。
+3.女性尿失禁患者心理社会现状
+3.1 抑郁和焦虑
+尿失禁导致的生理不适以及对日常活动的影响，使大多数患者存在不同程度
+
+<!-- page 161 -->
+137
+的抑郁和焦虑情绪。Kwak等[47]的研究结果证实，老年尿失禁患者的压力和抑郁
+在老年人群中处于较高水平，分别是无尿失禁症状老年人的2倍和1.5倍。Lim等[48]
+对韩国的1116名中老年尿失禁女性的纵向研究表明，尿失禁的发生与抑郁密切相
+关，抑郁评分随着尿失禁症状的恶化而变得更差。挪威的一项长期随访研究报告，
+挪威妇女的抑郁和焦虑都与尿失禁有关[49]。尿失禁与抑郁密切相关的原因，可能
+是由于尿失禁引起的功能障碍和社会隔离。
+3.2 病耻感和社会隔离
+由于漏尿和身体异味，尿失禁患者易产生羞耻和自卑等不良情绪，导致患者
+减少社会交往活动甚至出现社会隔离，尿失禁被俗称为“社交癌”。尿失禁患者
+因担心受到歧视和嘲笑，常常选择掩饰自己的病情、消极的就医行为[50,51]。吴琼
+芳等[52]研究表明，尿失禁患者的病耻感水平负向预测其就医意愿。有研究报道，
+羞耻和尴尬是影响患者自我管理和寻求治疗的影响因素[53]。童海鸥对绝经后盆底
+功能障碍患者的研究结果显示，病耻感水平较高的患者更倾向于选择回避的应对
+方式[54]。患者病耻感水平越高，其心理和社会问题越突出、生活质量越差[55,56]。
+3.3 应对方式
+女性尿失禁患者大多采用回避和消极的应对方式，由于尴尬、羞于启齿，大
+多女性不愿意为尿失禁寻求医疗帮助，女性就诊率较男性低[57,58]。不同年龄、文
+化程度、经济状况和疾病认知水平的女性尿失禁患者采取的应对方式有所不同[59]。
+患者面对疾病时选择何种应对方式，直接影响其康复效果和疾病预后。Xu等[60]
+研究表明，偏向于选择回避和消极的应对方式的患者，疾病症状越严重，生活质
+量越差。Livneh[61]研究提示应对方式影响个体对疾病的适应，回避型应对方式与
+较差的心理社会适应能力之间具有相关性。
+3.4 自我效能
+患者应对方式的选择受其自我效能的影响，较高的自我效能与积极的应对方
+式有关[62]。盆底肌功能训练的依从性直接影响尿失禁患者的康复效果，自我效能
+感已作为测评尿失禁患者盆底肌训练依从性的有效指标[63]。Nicosia等[64]研究显
+示，通过对中老年女性尿失禁患者进行瑜伽训练干预，观察并评估其姿势自我效
+
+<!-- page 162 -->
+138
+能水平，结果表明较高自我效能感患者倾向于选择积极应对策略，患者的训练依
+从性和生活质量得到明显改善。Brown等[65]研究提示，接受小组干预的女性尿失
+禁患者，在症状的改善、自我效能和生活质量方面优于对照组。
+3.5 家庭和社会支持
+寻求社会支持往往被认为是人们用来应对疾病相关压力的策略之一，社会支
+持已被证明有助于对慢性病的适应[66]。家庭亲密度和适应性作为应对生活应激事
+件的中间变量，也是个体心理应激反应过程的重要影响因素[67]。研究表明，较低
+的家庭亲密度和适应性与回避和屈服的应对方式呈正相关[68]。Zhang等[69]研究显
+示尿失禁与孤独感具有相关性，提示医务人员应特别关注老年尿失禁患者的孤独
+感情绪，并给予必要的家庭和社会支持。
+3.6 疾病认知
+疾病认知也被认为是影响慢性病适应的重要因素[66]。疾病认知影响个体在面
+对疾病时的心理反应和应对行为,进而影响疾病的康复。研究显示，我国多数女
+性尿失禁患者的疾病认知水平较低，甚至存在歪曲或者错误认知，有些患者认为
+该疾病是机体自然老化和生育不可避免的结果，并不知道是可以医治的疾病，而
+认知缺乏也是导致女性尿失禁患者就诊率低下、消极应对的主要原因[57]。
+4.女性尿失禁患者心理社会因素相关的特异性评估工具
+4.1 女性尿失禁应对方式评估工具
+4.1.1 女性尿失禁应对方式量表
+该量表用于特异性评估女性尿失禁患者的疾病应对方式，由吴臣等[70]于2012
+年编制，共有18个条目，以及预防性、掩饰性和治疗性应对方式3个维度，采用
+Likert 4级计分，得分越低反映患者的应对方式越积极，总量表的Cronbach’s α系
+数为0.778。该量表已广泛用于我国中老年女性尿失禁患者应对方式的评估。
+4.1.2 女性排尿行为量表
+该量表用于评估女性尿失禁患者排尿行为应对方式的改变，由Wang等[71]于
+2011年研制，2012年刘妍等[72]汉化，中文版量表共有14个条目，以及排尿地点选
+
+<!-- page 163 -->
+139
+择倾向、无尿意排尿、憋尿、排尿用力4个维度，采用Likert 5级计分，得分越低
+反映患者的排尿行为越积极，总量表的Cronbach’s α系数为0.764。该量表用于中
+老年女性尿失禁患者排尿行为应对方式的评估，具有较强的适用性。
+4.2 女性尿失禁自我效能评估工具
+4.2.1 盆底肌肉运动自我效能量表
+该量表用于评估中老年女性尿失禁患者盆底肌肉锻炼依从性和自信心，由
+Broome等[73]于1999年编制，白雪等[74]于2015年汉化，共有23个条目，以及预期
+自我效能和预期结果2个维度，总量表的Cronbach’s α系数为0.912。该量表计分跨
+度大，每个条目的评分范围介于0~100分之间，评分容易受患者主观影响。
+4.2.2 尿失禁自我效能量表
+该量表用于评估女性尿失禁患者控制排尿的意识和自信心，由Tannenbaum
+等[75,76]于2008年编制，孙自红等[77]于2011年汉化，共有25个条目，以及控尿意识、
+自我控制漏尿的信心、盆底肌锻炼及疗效的信心、克服阻碍盆底肌锻炼的信心4
+个维度。量表采用Likert 5级计分，得分越高，表示患者的自我效能水平越高。
+总量表Cronbach’s α系数为0.92。该量表在老年女性尿失禁患者具有较强的适用性，
+但在其他年龄段的适用性还有待于进一步验证。
+4.3 女性尿失禁生活质量测评量表
+4.3.1 尿失禁生活质量量表
+该量表用于评估尿失禁患者的生活质量，是Wagner等[78]于1996年研制的自
+评量表，王晓茜等[79]于2013年汉化，共有22个条目，以及逃避和限制性行为、心
+理社会影响及自我困扰3个维度。量表采用Likert 5级评分法，得分越高表明生活
+质量越好。总量表Cronbach's α系数为0.963。该量表在国内外使用广泛，已作为
+评估尿失禁患者生活质量的特异性测评工具，被国际尿控协会推荐为A类问卷。
+4.3.2 尿失禁影响问卷
+该量表用于评估尿失禁患者的生活质量，由Shumaker等[80]于1994年在IIQ-30
+的基础上简化形成IIQ-7，香港学者Chan等[81]翻译并验证了繁体中文版，共有7
+个条目，以及体力活动、交通出行、社会/人际关系、心理健康4个维度。问卷采
+
+<!-- page 164 -->
+140
+用Likert4级评分，Cronbach's α系数为0.93，是国际应用广泛的女性尿失禁生活质
+量量表之一。然而由于问卷条目数少，故建议与其他量表联合使用。
+4.4 盆底疾病适应性行为量表
+该量表用于评估尿失禁、大便失禁、盆腔器官脱垂等盆底疾病的适应性行为，
+由Wei等[8]于2017年研制，量表共17个条目，以及回避和卫生2个维度。量表采用
+Likert 5级评分，得分越高代表患者的适应性行为越好，各维度的Cronbach's α系
+数分别为0.88和0.68。该量表目前尚未引入国内，有待开展进一步研究。
+5.女性尿失禁心理社会问题干预策略
+5.1 认知行为干预
+认知行为干预是女性尿失禁患者常用的干预策略，其结合认知理论和行为干
+预方法，通过改变人们的思维和行为方式，有效解决情绪和行为问题。多数女性
+尿失禁患者存在错误认知，认为尿失禁是人体自然老化或生育所导致的不可避免
+的结果，患者因漏尿常常感到尴尬和难以启齿，不愿与人提及疾病和主动寻求帮
+助。研究表明，对该疾病的认识不足和歪曲认知是影响患者求医和治疗效果的重
+要因素[58,82,83]。盆底肌训练作为尿失禁的非手术治疗方法，具有肯定的疗效，而
+盆底肌训练的正确性和依从性是影响盆底肌训练效果的重要影响因素[84]。国内外
+研究显示，认知行为疗法可改善患者的错误认知，有助于改善患者负性情绪和自
+我管理，提高盆底肌训练的依从性，改善患者的生活质量[85,86]。
+5.2 自我管理干预
+自我管理已被广泛应用于慢性疾病的管理，自我管理能力能够促进和优化个
+体应对疾病的能力。自我管理干预在国外尿失禁患者中应用较成熟，如面对面咨
+询、基于网络平台的自我管理等[87,88]。自我管理干预可有效改善女性尿失禁患者
+的疾病认知、健康信念及自我效能[89]。Hoffman等[90]使用移动应用程序对女性压
+力性尿失禁患者进行自我管理干预，在患者盆底肌训练3个月和2年时进行随访，
+结果显示，基于移动应用程序的自我管理可有效提高尿失禁患者自我效能和盆底
+肌治疗效果，生活质量明显改善，有助于尿失禁患者长期实施自我管理。我国学
+者贾静等[91]建立以尿失禁患者电子档案为核心的医院-社区-家庭三级失禁护理
+
+<!-- page 165 -->
+141
+平台，对尿失禁患者实施干预，提高了患者自我管理水平及盆底肌训练的积极性，
+改善了患者的漏尿症状及生活质量。穆晓云等[92]借助微信公众平台对62名社区女
+性尿失禁患者进行6个月的延伸护理服务结果显示，干预后患者的生活质量显著
+提高，80%以上患者认为微信模式使宣教内容更易掌握，使其改变对尿失禁错误
+的认识，有利于康复锻炼的坚持。
+5.3 基于达标理论的干预
+范国荣等[93]基于达标理论对产后尿失禁患者盆底康复训练进行干预，取得了
+满意的效果。依据达标理论，对患者个体、人际间及社会系统进行综合评估，护
+患双方感知健康问题，共同制订居家盆底康复训练目标、互动达标等干预，6周
+后患者盆底训练的主动性和依从性明显提高，改善了盆底康复疗效，促进了康复
+目标的达成。
+5.4 基于保护动机理论的干预
+白亚男[94]基于保护动机理论制定健康教育内容，对产后尿失禁患者进行盆底
+肌功能训练干预，对患者强调每日进行盆底肌训练的重要性，通过集中授课、发
+放宣传手册等方式进行健康教育，微信、电话和门诊随访时进行督导，提高了患
+者疾病知识掌握程度和盆底肌锻炼的依从性，有效改善了患者的盆底康复效果。
+5.5 小组模式干预
+Dumoulin等[95]对老年女性尿失禁患者给予小组模式的盆底肌训练干预，研
+究结果表明，在干预后1年，小组模式的盆底肌训练较个体盆底肌训练对患者症
+状及生活质量改善效果无明显差异，小组模式干预节约了人力和财力的投入，可
+在临床实践中广泛应用。Howard等[96]对超重或肥胖女性尿失禁患者实施并评估
+12周集体运动和健康饮食计划治疗的可行性、可接受性和有效性，研究结果表明
+集体运动和健康饮食计划治疗方案具有可行性，患者对其满意度高，该方案可有
+效改善患者的生活质量和尿失禁的症状。
+5.6 其他干预策略
+Wang等[97]应用基于APP的音频引导盆底肌训练治疗初产妇压力性尿失禁，
+干预后结果显示，基于APP的音频引导盆底肌训练能显著提高初产妇的自我效能，
+
+<!-- page 166 -->
+142
+与传统的家庭盆底肌训练相比较，患者康复效果和依从性更好。国内学者对女性
+尿失禁患者实施支持性心理疗法，达到了有效缓解患者紧张、焦虑及抑郁情绪的
+效果。支持性心理疗法以告知疾病知识、健康教育及鼓励患者为主，患者得到来
+自医护人员、家庭和社会的支持[98]。
+6 启示
+6.1 开发女性尿失禁患者心理社会问题特异性评估工具
+女性尿失禁患者心理社会问题突出，目前已开发了女性尿失禁患者应对方式、
+自我效能和生活质量的特异性评估工具，今后可考虑继续开发尿失禁患者心理社
+会问题的特异性测评工具，如病耻感、社会支持及适应等特异性量表，用于特异
+性评估患者的心理社会问题。
+6.2 加强女性尿失禁患者心理社会因素作用机制的理论研究
+以往我国女性尿失禁患者的量性研究大多为现状及影响因素的研究，缺乏心
+理社会因素对患者身心健康调适作用机制的深入研究，可考虑深入了解其作用机
+制，以激发患者的积极潜能，更好地适应疾病，为心理社会干预措施的制定提供
+理论依据。我国女性尿失禁患者心理社会因素的纵向研究还很匮乏，有待进一步
+研究。
+6.3 制定科学规范干预策略
+现阶段我国认知行为疗法应用存在不规范的问题，有研究者片面认为健康教
+育即为认知干预；自我管理策略缺乏循证依据支持，存在移动平台建立不规范、
+患者后期依从性降低等问题；基于护理理论的干预策略的制定，为尿失禁干预策
+略的制定提供了新的方向和思路，在今后尿失禁患者干预研究中，我们应注重结
+合适应的护理理论，使干预策略更加科学、有效。
+7 小结
+我国女性尿失禁患者由于疾病困扰存在诸多的心理社会问题，医务人员应密
+切关注患者心理社会因素对身心健康的影响，开发女性尿失禁患者适宜的特异性
+
+<!-- page 167 -->
+143
+测评工具，研究心理社会因素对患者身心健康影响的作用机制，通过深化相关的
+理论研究，制定科学规范的干预策略，最终提高患者的生活质量及康复效果。
+参考文献
+[1]
+Abrams P, Cardozo L, Fall M, et al.The standardisation of terminology of lower urinary tract
+function:report from the Standardisation subcommittee of the international continence
+society[J].American Journal of Obstetrics and Gynecology, 2002, 187 (1) :116-126.
+[2]
+朱兰.女性尿失禁的流行趋势及带来的社会问题[J].中华全科医师杂志,2005, 4(5):
+261-262.
+[3] Milsom I, Gyhagen M.The prevalence of urinary incontinence[J].Climacteric. 2019,
+22(3):217-222.
+[4]
+刘春燕.中国成年女性尿失禁的流行病学调查研究[D].北京:中国协和医科大学,2007.
+[5]
+Siddiqui NY, Wiseman JB, Cella D, et al. Mental Health, Sleep and Physical Function in
+Treatment Seeking Women with Urinary Incontinence[J]. The Journal of Urology,
+2018,200(4):848-855.
+[6]
+Krhut J, Gärtner M, Mokris J, et al. Effect of severity of urinary incontinence on quality of
+life in women[J]. Neurourol Urodyn, 2018, 37(6):1925-1930.
+[7]
+Mota RL. Female urinary incontinence and sexuality[J]. International Brazilian Journal of
+Urology, 2017,43(1):20-28.
+[8]
+Wei JT, Dunn R, Nygaard I, et al. Development and Validation of a Quantitative Measure of
+Adaptive Behaviors in Women With Pelvic Floor Disorders[J].Female Pelvic Medicine &
+Reconstructive Surgery, 2017,23(4):232-237.
+[9] Londono Y, McMillan DE. Psychosocial adaptation: An evolutionary concept analysis
+exploring a common multidisciplinary language[J]. Journal of Advanced Nursing, 2015,
+71(11):2504-2519.
+[10] Christianson HF, Weis JM, Fouad NA. Cognitive adaptation theory and quality of life in
+late-stage cancer patients[J]. Journal of Psychosocial Oncology, 2013,31(3): 266-281.
+[11] Takai Y, Terao T, Goto S, et al. Effect of temperaments on quality of life and social adaptation
+in depressive patients with mood disorder[J]. Psychiatry and Clinical Neurosciences,
+2011,65(5): 505-509.
+
+<!-- page 168 -->
+144
+[12] Tonsing N. Predictors of psychological adaptation of South Asian immigrants in Hong
+Kong[J]. International Journal of Intercultural Relations, 2013,37(2): 238–248.
+[13] National Institute for Health and Care Excellence. Urinary incontinence in women:The
+management of urinary incontinence in women[M]. London:Royal College of Obstetricians
+and Gynaecologists, 2013.
+[14] Abrams P, Andersson KE, Birder L, et al. Fourth International Consultation on Incontinence
+Recommendations of the International Scientific Committee: Evaluation and treatment of
+urinary incontinence, pelvic organ prolapse, and fecal incontinence[J]. Neurourol Urodyn,
+2010, 29(1) : 213-240．
+[15] 李志毅, 朱兰. 女性压力性尿失禁流行病学现状[J]. 实用妇产科杂志, 2018, 34(3) :
+161-162．
+[16] 左晓虎, 洪莉. 压力性尿失禁发病机制研究进展[J].现代妇产科进展, 2021, 30(3) :
+217-220．
+[17] Bodner-Adler B，Bodner K，Kimberger O，et al．Role of serum steroid hormones in women
+with stress urinary incontinence:a case-control study[J]. BJU Int, 2017, 120(3) : 416-421.
+[18] Yanai-Inamura H，Ohashi R，Ishigami T，et al．Urethral function and histopathology in aged
+female rats as a stress urinary incontinence model[J]. Low Urin Tract Symptoms, 2019,
+11(2) : 186-192.
+[19] 李晓伟, 王建六. 尿失禁的病因和发病机制[J]. 实用妇产科杂志, 2018, 34(3) : 162-164．
+[20] Aoki Y，Brown HW，Brubaker L，et al．Urinary incontinence in women[J]. Nature Reviews
+Disease Primers，2017, 3:17042．
+[21] Lazzeri M．Editorial comment on:A refocus on the bladder as the originator of storage lower
+urinary tract symptoms:a systematic review of the latest literature[J]. European Urology,
+2009, 56(5):820．
+[22] Enck P，Aziz Q，Barbara G，et al．Irritable bowel syndrome[J]. Lancet, 2016, 2(8197):16014．
+[23] Pedersen LS, Lose G, Høybye MT, et al. Prevalence of urinary incontinence among women
+and analysis of potential risk factors in Germany and Denmark[J]. Acta Obstetricia et
+Gynecologica Scandinavica, 2017,96(8):939-948.
+[24] 严文广, 李旭红, 孙邵丹, 等. 女性盆腔脏器脱垂和尿失禁的危险因素[J]. 中南大学学
+报（医学版）, 2018 ,43(12):1345-1350.
+
+<!-- page 169 -->
+145
+[25] Zhang L，Zhu L，Xu T，et al．A Population-based survey of the Prevalence, potential risk
+Factors, and symptom-specific bother of lower urinary tract symptoms in adult chinese
+women[J]. Eur Urol, 2015, 68(1):97-112．
+[26] Komesu YM, Schrader RM, Ketai LH, et al. Epidemiology of mixed，stress，and urgency
+urinary incontinence in middle-aged / older women: the importance of incontinence
+history[J]. Int Urogynecol J, 2016, 27(5):763-772．
+[27] Tahtinen RM, Cartwright R, Tsui JF, et al. Long-term impact of mode of delivery on stress
+urinary
+incontinence
+and
+urgency
+urinary
+incontinence:A
+systematic
+review
+and
+Meta-analysis[J]. Eur Urol, 2016,70(1):148-158．
+[28] Lee UJ, Kerkhof MH, van Leijsen SA, et al. Obesity and pelvic organ prolapse[J]. Curr Opin
+Urol, 2017,27(5):428-434．
+[29] 杜彦芳, 蒋妍, 黄向华. 女性尿失禁的分类及诊断标准[J]. 实用妇产科杂志, 2018,
+34(3) : 164-167．
+[30] Abrams P, Cardozo L, Wein A, et al. Incontinence: 6th International Consultation on
+Incontinence [C]. Bristol，UK: International Continence Society, 2017．
+[31] 中华医学会妇产科学分会妇科盆底学组. 女性压力性尿失禁诊断和治疗指南(2017)[J].
+中华妇产科杂志, 2017, 52(5) :289-293．
+[32] Burkhard FC, Bosch JLHR, Cruz F, et al. EAU Guidelines on Urinary Incontinence in
+Adults(2017)[EB/OL]. http: //uroweb. org /guideline / urinary-incontinence /．
+[33] Bettez M, Tule M, Carlson K, et al. 2012 update: guidelines for adult urinary incontinence
+collaborative consensus document for the canadian urological association[J]. Can Urol Assoc
+J, 2012, 6(5) : 354-363．
+[34] Qaseem A, Dallas P, Forciea MA, et al. Nonsurgical management of urinary incontinence in
+women: a clinical practice guideline from the American College of Physicians[J]. Annals of
+Internal Medicine, 2014, 161(6) : 429-440．
+[35] Khullar V, Cardozo L, Dmochowski R. Mixed incontinence: current evidence and future
+perspectives [J]. Neurourol Urodyn, 2010, 29 (4) : 618-622.
+[36] 张淑惟, 孙建华, 刘跃光, 等. 女性混合性尿失禁国外治疗进展[J]. 中国全科医学, 2015,
+18(18) : 2210-2212.
+[37] 杨小芸, 王平. 女性尿失禁的非手术治疗[J]. 实用妇产科杂志, 2018, 34(3) : 169-171．
+
+<!-- page 170 -->
+146
+[38] 张晓薇, 梁雪早. 女性压力性尿失禁手术治疗及术中关键环节[J]. 实用妇产科杂志,
+2018, 34(3) : 167-169．
+[39] Nilsson CG, Palvak, Aarnio R, et al. Seventeen years' follow-up of the tension-free vaginal
+tape procedure for female stress urinary incontinence[J]. Int Urogynecol J, 2013,
+24(8):1265-1269．
+[40] 梁云霄, 何天基, 韦尔东, 等. 不同手术方式治疗女性压力性尿失禁中长期疗效和并发
+症的网状Meta分析[J]. 中国全科医学, 2020, 23(8) : 949-958.
+[41] Labrie J, Berghmans BL, Fischer K, et al. Surgery versus physiotherapy for stress urinary
+incontinence[J]. N Engl J Med, 2013,369(12):1124.
+[42] Roy C. The Roy Adaptation Model[M]. Upper Saddle River, NJ:Pearson Education, 2009.
+[43] Levine E. The conservation model: Twenty years later[M]. Norwalk,CT: Appleton &
+Lange,1989: 325-337.
+[44] 王喜益.慢性病适应中域理论的构建与验证[D].杭州:浙江大学, 2020.
+[45] Livneh H, Antonak RF. Psychosocial adaptation to chronic illness and disability[J].
+Rehabilitation Counseling Bulletin,2001,44(3):151-160.
+[46] Livneh H，Martz E．Psychosocial Adaptation to Disability Within the Context of Positive
+Psychology: Philosophical Aspects and Historical Roots[J]. Journal of Occupational
+Rehabilitation, 2015, 26(1): 13-19.
+[47] Kwak Y, Kwon H, Kim Y. Health-related quality of life and mental health in older women
+with urinary incontinence[J]. Aging & Mental Health, 2016,(7):719-726.
+[48] Lim YM, Lee SR, Choi EJ, et al. Urinary incontinence is strongly associated with depression
+in middle-aged and older Korean women: Data from the Korean longitudinal study of
+ageing[J]. European Journal of Obstetrics & Gynecology and Reproductive Biology,
+2018,220(1):69-73.
+[49] Felde G, Ebbesen MH, Hunskaar S. Anxiety and depression associated with urinary
+incontinence. A 10-year follow-up study from the Norwegian HUNT study (EPINCONT)[J].
+Neurourol Urodyn, 2017,36(2):322-328.
+[50] Wang C, Wan X, Wang K, et al.Disease stigma and intentions to seek care for stress urinary
+incontinence among community-dwelling women[J].Maturitas, 2014, 77 (4) :351-355.
+
+<!-- page 171 -->
+147
+[51] Hrisanfow E, Hagglund D.Impact of cough and urinary incontinence on quality of life in
+women and men with chronic obstructive pulmonary disease[J].Journal of Clinical Nursing,
+2013, 22 (1/2) :97-105.
+[52] 吴琼芳,李春梅,余黎静,等.羞耻感对社区女性尿失禁患者求医态度的影响[J].中国护理管
+理,2016,16(11):1529-1533.
+[53] Norton JM, Dodson JL, Newman DK, et al. Nonbiologic factors that impact management in
+women with urinary incontinence: review of the literature and findings from a National
+Institute of Diabetes and Digestive and Kidney Diseases workshop[J]. International
+Urogynecology Journal, 2017, 28(9):1295-1307.
+[54] 童海鸥,王洪萍,苏婵,等.绝经后盆底功能障碍患者羞耻感与其应对方式的关系分析[J].中
+华现代护理杂志,2018,24( 33) :4012-4015．
+[55] Eloranta S, Rantanen V, Kauppila M, et al. Pelvic floor disorders and health-related quality of
+life in older women: Results from the Women's Gynaecological Health study in Lieto,
+Finland[J]. Archives of Gerontology Geriatrics, 2019, 82(5-6): 226-231．
+[56] 原静民,郑美春,卜秀青,等.永久性肠造口患者病耻感现状及其影响因素研究[J].中华护理
+杂志,2016,51 (12) :1422-1427.
+[57] Bilgic D, Beji NK, Ozbas A, et al. Coping and Help-Seeking Behaviors for Management of
+Urinary Incontinence[J]．Lower Urinary Tract Symptoms, 2017, 9(3):134-141.
+[58] 江长琴.女性尿失禁患者的生活质量、疾病认识及求医意向分析的观察性研究[D].合肥:
+安徽医科大学,2016.
+[59] 魏代艳.老年女性压力性尿失禁患者应对方式及影响因素的调查分析[J].中华现代护理
+杂志,2015,21(10):1164-1167.
+[60] Xu D, Liu N, Qu H, et al. Relationships among symptom severity, coping styles, and quality
+of life in community-dwelling women with urinary incontinence: a multiple mediator
+model[J]. Quality of Life Research, 2016, 25(1):223-232.
+[61] Livneh H. The use of generic avoidant coping scales for psychosocial adaptation to chronic
+illness and disability: A systematic review[J]. Health Psychology Open, 2019,6(2): 1–17.
+[62] 李婕,段应龙,吴孝琦,等.老年尿失禁患者应对方式评估工具的研究进展[J]. 中南大学学
+报（医学版）,2020, 45(6): 733-738.
+
+<!-- page 172 -->
+148
+[63] Sacomori C, Berghmans B, Bie R, et al. Predictors for adherence to a home-based pelvic
+floor muscle exercise program for treating female urinary incontinence in Brazil[J].
+Physiotherapy Theory and Practice, 2020, 36(1):186-195.
+[64] Nicosia FM, Lisha NE, Chesney MA, et al. Cite Strategies for evaluating self-efficacy and
+observed success in the practice of yoga postures for therapeutic indications: methods from a
+yoga intervention for urinary incontinence among middle-aged and older women[J]. BMC
+Complementary Medicine and Therapies, 2020,20(1):148.
+[65] Brown HW, Braun EJ, Wise ME, et al. Small-Group, Community-Member Intervention for
+Urinary and Bowel Incontinence: A Randomized Controlled Trial[J]. Obstetrics and
+Gynecology, 2019, 134(3):600-610.
+[66] Szymona PK, Janowski K, Pedrycz A, et al. Knowledge of the Disease, Perceived Social
+Support, and Cognitive Appraisals in Women with Urinary Incontinence[J] ．Biomed
+Research International, 2016:3694792.
+[67] 高凤英,王晓燕,乔芬.重度烧伤患者家庭亲密度和适应性与社交回避和苦恼的相关性[J].
+中国康复理论与实践,2017,23(6):7228-7233.
+[68] 林润,陈晓欢,金调芬,等.家庭亲密度和适应性对产后盆底功能障碍女性应对方式的影响
+[J].中国护理管理,2019,19(2):211-215．
+[69] Zhang D, Wong C, Sit RWS, et al. Incontinence and loneliness among Chinese older adults
+with multimorbidity in primary care: A cross-sectional study[J].Journal of Psychosomatic
+Research, 2019, 127(12):109863.
+[70] 吴臣,刘妍,管晓萌,等.女性尿失禁患者应对方式量表的编制及信效度检验[J].护理学杂志,
+2012, 27(15): 39-41.
+[71] Wang K, Palmer MH. Development and validation of an instrument to assess women's
+toileting behavior related to urinary elimination: preliminary results[J]. Nursing Research,
+2011, 60(3): 158-164.
+[72] 刘妍,吴臣,孙涛,等.中文版女性排尿行为量表的信效度检验[J].护理学杂志,2012,27(16):
+78-80.
+[73] Broome BA. Development and testing of a scale to measure self-efficacy for pelvic muscle
+exercises in women with urinary incontinence[J]. Urology Nursing, 1999, 19(4):258-268.
+[74] 白雪,苏芳静,李红玉.中文版盆底肌肉锻炼自我效能量表的信效度评价[J].中国全科医
+学,2015, 18(15): 1857-1860.
+
+<!-- page 173 -->
+149
+[75] Tannenbaum C, Brouillette J, Korner BN, et al. Creation and testing of the geriatric
+self-efficacy index for urinary incontinence[J]. J Am Geriatr Soc, 2008, 56(3):542-547.
+[76] Tannenbaum C, BroUIllette J, Michaud J, et al. Responsiveness and clinical utility of the
+geriatric self-efficacy index for urinary incontinence[J]. Journal of The American Geriatrics
+Society, 2009, 57(3):470-475.
+[77] 孙自红,孙建萍,杨支兰,等.尿失禁自我效能量表中文版的信效度研究[J].护理研究,2011,
+25(13): 1212-1213.
+[78] Wagner TH, Patrick DL, Bavendam TG, et al. Quality of life of persons with urinary
+incontinence: development of a new measure[J]. Urology,1996,47(1):67-71.
+[79] 王晓茜.改良女性自我形象评价量表（MBIS）、尿失禁生活质量问卷（I-QOL）、子宫
+肌瘤症状及健康相关生活质量问卷（UFS-QOL）中文版本研制与中国人群验证[D].北京:
+北京协和医学院,2013.
+[80] Shumaker A, Wyman F, Uebersax S, et al.Health related quality of life measures for women
+with urinary incontinence:the Incontinence Impact Questionnaire and the Urogenital Distress
+Inventory. Continence Program in Women (CPW) Research Group[J].Quality of Life
+Research, 1994, 3 (5) :291-306.
+[81] Chan S, Choy W, Lee P, et al.Chinese validation of Urogenital Distress Inventory and
+Incontinence Impact Questionnaire short form[J].International Urogynecology Journal, 2010,
+21 (7) :807-812.
+[82] Cohn JA, Shah AS, Goggins KM, et al. Health literacy, cognition, and urinary incontinence
+among geriatric inpatients discharged to skilled nursing facilities[J].Neurourol Urodyn,
+2018,37(2):854-860.
+[83] Bascur CA, Araneda GA, Castro AH. Determinants in the process of seeking help for urinary
+incontinence in the Chilean health system[J]. Int J Gynaecol Obstet, 2019, 144(1):103-111.
+[84] Luginbuehl H, Baeyens JP, Taeymans J, et al. Pelvic floor muscle activation and strength
+components influencing female urinary continence and stress incontinence: A systematic
+review[J]. Neurourology and Urodynamics, 2015,34(6):498-506.
+[85] Diane N, Diane F, Vivian S. Structured behavioral treatment research protocol for women
+with mixed urinary incontinence and overactive bladder symptoms[J]. Neurourol Urodyn,
+2018, 37(1):14-26.
+
+<!-- page 174 -->
+150
+[86] 王爱花.认知行为干预对成年女性压力性尿失禁患者生活质量的影响[D].郑州:郑州大学,
+2015.
+[87] Kincade JE, Dougherty MC, Carlson JR, et al. Randomized clinical trial of efficacy of self
+monitoring techniques to treat urinary incontinence in women[J]. Neurourology and
+Urodynamics, 2007,26(4):507-511.
+[88] Sjöström M, Umefjord G, Stenlund H, et al. Internet based treatment of stress urinary
+incontinence:
+a
+randomised
+controlled
+study
+with
+focus
+on
+pelvic
+floor
+muscle
+training[J].BJU International, 2013,112(3):362-372.
+[89] Gagne JCD, So A, Wu B, et al. The effect of a urinary incontinence self-management
+program for older women in South Korea: a pilot study[J]. International Journal of Nursing
+Sciences, 2015, 2(1):39-46.
+[90] Hoffman V, Soderstrom L, Samuelsson E. Self-management of stress urinary incontinence via
+a mobile app: two-year follow-up of a randomized controlled trial[J]. Acta Obstet Gynecol
+Scand, 2017,96(10):1180-1187.
+[91] 贾静,徐晶晶,仇晓溪.医院-社区-家庭失禁护理平台在压力性尿失禁患者管理中的应用
+研究[J].中华护理杂志,2018,53(5):533-536.
+[92] 穆晓云,丁艳萍,刘诗盈,等.基于微信平台的延伸护理服务对女性尿失禁病人生活质量的
+影响[J].护理研究,2016,30(15):1878-1879.
+[93] 范国荣,薄海欣.达标理论在产后尿失禁患者盆底康复训练中的应用研究[J].中华护理杂
+志, 2019,54(4):506-510.
+[94] 白亚男.基于保护动机理论的健康教育在产后尿失禁患者盆底肌功能锻炼中的应用[J].
+齐鲁护理杂志, 2019,25(16):101-103.
+[95] Dumoulin C, Morin M, Danieli C, et al.Group-Based vs Individual Pelvic Floor Muscle
+Training to Treat Urinary Incontinence in Older Women: A Randomized Clinical
+Trial[J].JAMA Intern Med, 2020,180(10):1284-1293.
+[96] Howard Z, Ross L, Weir K A, etal. A group program for overweight and obese women with
+urinary incontinence (ATHENA): an implementation-effectiveness hybrid type 3 study[J].Int
+Urogynecol J, 2021,3:17.
+[97] Wang X, Xu X, Luo J, et al. Effect of app-based audio guidance pelvic floor muscle training
+on treatment of stress urinary incontinence in primiparas: A randomized controlled trial[J].Int
+J Nurs Stud, 2020,104:103527.
+
+<!-- page 175 -->
+151
+[98] 王莎,刘立芳,何国平.社区中老年女性尿失禁患者心理干预的研究进展[J].解放军护理杂
+志,2016,33(7): 32-35.
+
+<!-- page 176 -->
+152
+攻读学位期间取得的研究成果
+一、发表论文和出版专著
+1. 唐惠艳, 李小寒*. 女性尿失禁患者心理社会现状及干预策略的研究进展[J].
+解放军护理杂志, 2021, 38(9): 60-63.
+2. 程建超, 唐惠艳*. 老年人虐待概念分析[J]. 护理研究, 2021, 35(02): 342-345.
+3. 程建超, 邢凤梅, 夏侯文秀, 余林硕, 唐惠艳*. 社区老年人老化期望现状及影
+响因素分析[J]. 护理学杂志, 2021, 36(20): 15-18.
+4. 综合临床护理技术操作规程（第二版）, 2022, 北京大学医学出版社, 副主编
+5. 助产学（第一版）, 2022, 北京大学医学出版社, 参编
+二、科研项目
+1. 2021 年度河北省医学科学研究课题计划，不孕症夫妇社会支持对其生活质量
+影响的机制研究，项目号：20211504，主持
+2. 2020 年度河北省医学科技一等奖，积极心理干预对不孕症患者心理健康及幸
+福感的影响研究，第一主研人
+
+<!-- page 177 -->
+153
+致谢
+时光飞逝，三年的学习生活已接近尾声，在中国医科大学学习的点点滴滴，
+将成为我最美好和难忘的回忆，值此论文完成之间，谨向一直给予我帮助、关怀
+与支持的老师、同学、朋友、亲人致以由衷地感谢。
+首先，衷心感谢我的导师李小寒教授，感谢您带我走进更高的学术殿堂，给
+予我宝贵的学习机会，在有着红医精神的中国医科大学，我感受到了浓厚的学术
+氛围，您渊博的专业知识，严谨的治学态度，精益求精的工作作风，诲人不倦的
+高尚师德，朴实无华、平易近人的人格魅力对我影响深远。从论文选题到完成，
+倾注了您大量的心血，在此向您表示我最深深的敬意和诚挚的感谢！
+此外，感谢西安交通大学李小妹教授、复旦大学胡雁教授、北京大学郭桂芳
+教授、中国医科大学吴辉教授、尹智华教授、范玲教授、王爱平教授、刘宇教授、
+赵海平教授在论文开题、预答辩及答辩时提出的宝贵意见和建议！
+感谢唐山市妇幼保健院盆底康复中心王雪梅主任、门诊部邱忠君主任、唐山
+中心医院盆底康复中心季淑英主任、王以曼副主任护师在课题实施过程中给予我
+的帮助与指导，感谢参与研究的每位患者！
+感谢华北理工大学护理与康复学院的领导和老师们给予我的支持与帮助！
+感谢家人无私的陪伴与支持，你们永远是我最坚强的后盾，让我可以不畏惧
+任何困难，战胜困难！
+感谢中国医科大学护理学院的老师及我的学姐、学妹、学弟们在学习和生活
+上给予我的帮助！
+
+<!-- page 178 -->
+154
+个人简历
+姓名：唐惠艳
+性别：女
+出生年月：1979 年5 月
+民族：汉
+专业：护理学
+研究方向：临床护理
+学习经历：
+2000.9～2004.6
+承德医学院本科
+2008.9～2011.6
+河北联合大学硕士研究生
+2019.9～2022.6
+中国医科大学博士研究生
+工作经历：
+1997.09～2018.8
+唐山市妇幼保健院产科、生殖遗传科
+2018.09 至今
+华北理工大学护理与康复学院

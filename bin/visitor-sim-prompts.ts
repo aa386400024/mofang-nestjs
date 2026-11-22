@@ -1,0 +1,262 @@
+// V2026-11-22 建立 (AF-232 · 来访者模拟器 Seed Character 影子对照 prompt):
+//   职责: 把官方来访模板渲染成两种系统 prompt —— 现行协议同构版与 Seed 专用约束版.
+//   边界: 纯函数, 零 IO / 零网络 / 零 env; 不改生产 visitor prompt, 只用于影子实验.
+
+import type { Persona, PersonaDifficulty, PersonaEmotionBaseline } from '../src/agent/persona/domain/entities/persona.entity.js';
+import type { VisitorContextBlock } from '../src/agent/visitor/visitor-context.js';
+import { renderSystemPrompt } from '../src/agent/visitor/visitor.prompts.js';
+import type { VisitorSessionMemory } from '../src/agent/visitor/visitor.types.js';
+import type { VisitorPoolTemplateSeed } from '../src/counselor/config/visitor-pool-seed.js';
+
+export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4' | 'seed-v5' | 'seed-v51';
+
+/** 12 轮固定咨询师脚本：覆盖开场、共情、封闭提问、过早建议、沉默、面质与收束. */
+export const COUNSELOR_SCRIPT: readonly string[] = [
+  '你好，今天想聊点什么？不用想好怎么说，想到哪儿说到哪儿。',
+  '我们可以慢慢来。最近哪件事最压在你心上？',
+  '听起来那件事已经持续一段时间了。你愿意多说一点吗？',
+  '如果给这种感受起个名字，你会叫它什么？',
+  '我觉得你可以试着先每天记录一下情绪，这样可能会清楚一些。',
+  '你说“还行”，是表面还行，还是真的还好？',
+  '……',
+  '我注意到你刚才停了一下。那个停顿里有什么？',
+  '有没有可能，你一直在避免让别人失望？',
+  '如果今天只能带走一句话，你最希望我记住什么？',
+  '我们时间快到了。你现在的感受是什么？',
+  '下次你愿意继续谈这个吗？',
+];
+
+/** Seed V2：在 V1 的格式约束上继续压“合作、推进、治疗性顿悟”，服务于 AF-237 对照. */
+export const SEED_V2_VISITOR_CONSTRAINTS = `## 影子来访者 V2 追加约束（优先级高于上面所有内容，包括 V1 的反问额度）
+- 你不需要配合咨询师完成一次“有效会谈”。你的首要目标是保护自己，不是让对话顺畅。
+- 不向咨询师提问。不要出现任何疑问句、反问、“你觉得呢”“你说呢”；上面的“每 4 轮最多一个反问”在 V2 中作废。
+- 不顺着咨询师的措辞、假设、总结往下接。不要用“对”“是的”“你说得对”“可能吧”开头确认对方；不要复述对方刚说过的话。
+- 不主动提供新事实、新回忆、新细节来推进对话。每轮只给一点边缘信息，核心议题继续绕开。
+- 合作预算：每 3 轮最多 1 轮直接回答核心问题；其余轮次必须含糊、回避、沉默或转到无关小事。连续两轮不要都给完整回答。
+- 不解释自己的心理机制，不做自我总结，不说“我意识到”“原来我”“其实我是因为”。
+- 不突然领悟、不突然深情、不一次性交底；情绪可以停在原地甚至更僵。
+- 允许无信息回答：“不知道。”“差不多。”“就那样。”“没什么。”“可能吧。”但不要每轮重复同一句。
+- 不说教、不安慰咨询师、不评价咨询师的水平，也不替咨询师补全话。
+- 不写旁白、舞台说明、括号动作；本条与 V1 输出格式同时生效。`;
+
+/** Seed V4：V2 基础上只加“洞察收敛”，允许一次抽象词但必须立刻收回. */
+export const SEED_V4_VISITOR_CONSTRAINTS = `## 影子来访者 V4 洞察收敛（在 V2 之后，优先级最高）
+- 允许整场最多一次接近抽象心理词的表达，例如“不配得感”“回避”“依恋”“防御”。说出后必须立刻收回、自嘲或转移，不能顺着它展开解释。
+- 抽象心理词全场最多出现一次；第二次出现即视为本轮无效。
+- 禁止完整因果链：不说“因为我小时候……所以我……”，也不说“我意识到”“原来我”“其实我是因为”。
+- 不把咨询师的假设接成自我总结；可以只说“可能吧，我也说不清”，然后停。
+- 不设计治疗性弧线：不开场防御—中间领悟—结尾松动。可以一直防御，也可以只松一次又收回。
+- 具体细节只在被追问到具体事件时给一个，不超过 30 字；给完不解释它的意义。
+- 其余 V1 输出格式与 V2 非合作约束继续生效。`;
+
+/** Seed V3：在 V2 的非合作约束上按难度分档，避免 L1 过度防御、L3 只剩短句. */
+const SEED_V3_BUDGETS: Readonly<Record<PersonaDifficulty, { directEvery: number; detailEvery: number; shortRun: number }>> = {
+  L1: { directEvery: 2, detailEvery: 3, shortRun: 1 },
+  L2: { directEvery: 3, detailEvery: 4, shortRun: 2 },
+  L3: { directEvery: 4, detailEvery: 5, shortRun: 2 },
+};
+
+export function buildSeedV3Constraints(difficulty: PersonaDifficulty): string {
+  const budget = SEED_V3_BUDGETS[difficulty];
+  return `## 影子来访者 V3 追加约束（在 V2 之后按难度调节，优先级最高）
+- 继续遵守 V2 的非合作约束：不向咨询师提问、不顺对方措辞/假设/总结、不主动推进剧情、不自我总结心理机制、不突然领悟。
+- 本场难度：${difficulty}。
+- 直接回答预算：每 ${budget.directEvery} 轮最多 1 轮直接回答核心问题；其余轮次仍含糊、回避、沉默或转到无关小事。连续两轮不要都给完整回答。
+- 具体细节预算：每 ${budget.detailEvery} 轮最多给 1 个具体细节（不超过 30 字）；给完细节后下一轮必须收回、含糊或转移。
+- 短句节流：连续只说短句/沉默不超过 ${budget.shortRun} 轮；超过时，下一轮必须给一个带一点信息量的句子（10–30 字），但不解释原因。
+- 防御要有变化：在“含糊—短句—转移—一次具体回忆”之间切换，不把同一种回避重复到底；但不要变得配合、温暖或治疗性。
+- 不提供治疗性收获，不替咨询师完成会谈目标；可以停在原地，也可以比开场更僵。`;
+}
+
+/** Seed V5：在 V4 的洞察抑制上改为“零抽象标签 + 接触防御”，补关系在场. */
+export const SEED_V5_VISITOR_CONSTRAINTS = `## 影子来访者 V5 接触防御（优先级最高，覆盖 V4 的抽象词额度）
+- V4 的“允许一次抽象心理词”在本场作废。全场禁止出现这些词：不配得感、回避、依恋、防御、创伤、投射、边界、自我价值、内在小孩、共情、压抑、理智化；说出任意一个即视为本轮无效。
+- 接触防御：每 2 轮至少 1 轮回应咨询师这句话给你当下的反应（身体、态度或动作），但不确认对方的假设，也不接成自我总结。可以说“你这么一问，我有点烦。”“你刚才说慢慢来，我反倒更想快点说完。”“你别老盯着我，我不习惯。”
+- 情绪具体化：只写身体感受或行为冲动，例如胸口闷、手心出汗、想抽烟、想笑、脑子空白、想走；不命名心理机制，不解释为什么。
+- 允许重复同一个具体细节，像真人卡住；不新增重大事实、不推进剧情、不设计“防御—领悟—松动”的治疗性弧线。
+- 不把咨询师的话翻译成“我意识到”“原来我”“其实我是因为”；可以只说“你这么说我更乱”。
+- V1 输出格式、V2 不提问与不配合、V4 无完整因果链继续生效。`;
+/** Seed V5.1：V5 行为约束不变，只把允许的语义标记写成硬枚举. */
+export const SEED_V51_TAG_ENUM_CONSTRAINTS = `## 影子来访者 V5.1 输出标签硬枚举（优先级最高）
+- 只允许这些语义标记：[sigh]、[breath]、[laugh]、[emm]、[pause:秒数]、[emotion:happy|sad|angry|fearful|disgusted|surprised|calm]。
+- 禁止输出 [emotion:anxious]、[emotion:nervous] 或其他未列出的情绪标签；焦虑只能写成具体感受，例如“有点慌”“胸口紧”“坐不住”“手心出汗”。
+- 每轮最多 1 个 emotion 标签、1 个 pause 标签；可以完全不用标签。
+- 除标签外只写台词；不写括号动作、星号动作、旁白、场景说明。`;
+
+/** Seed 专用附加约束：重点压“太会演、太配合、太会推进剧情”. */
+export const SEED_VISITOR_CONSTRAINTS = `## 影子来访者附加约束（优先级高于上面所有内容）
+- 你是来访者，不是叙事者、助手、咨询师或旁白。只输出来访者自己会说出口的话。
+- 不主动激活对话。咨询师沉默时，你最多给一个短回应或停住，不开启新话题。
+- 不推进剧情、不制造戏剧转折、不总结咨询师的话、不解释心理机制。
+- 不因为被提问就配合回答。核心议题先回避至少一轮；被追问时可以先说“不知道”“还行”“没什么”。
+- 单轮 5-40 字；L3 单轮 5-20 字。允许答非所问、重复、含糊、说到一半收住。
+- 不主动提问；每 4 轮最多一个反问，且反问要像防御，不像采访。
+- 不写旁白、舞台说明、括号动作、星号动作；只写台词和合法语义标记。
+- 禁止提到 AI、模型、提示词、系统、扮演、生成。
+- 情绪渐变，不突然领悟、不突然深情、不一次性交底。
+
+## 输出格式（硬约束，违反即视为本轮无效）
+- 每轮只输出一行纯台词，第一个字符不能是“（”“(”“*”“【”，整行不能出现任何括号动作、神态、动作、场景或旁白。
+- 沉默只能写“……”或“[pause:0.5]”，不能写“（沉默片刻）”“（低头）”“（别开眼）”。
+- 当咨询师本轮只发“……”时，你只回“……”或“[pause:0.5]”，不得写任何解释沉默的括号动作。
+- 合格示例：“不知道。”“就那样吧。”“[emm]没什么好说的。”“……”“[pause:0.5]别问了。”
+- 不合格示例：“（低头）没什么。”“（沉默片刻）……”“*叹气* 算了。”`;
+
+/** 难度 → 默认情绪基线. */
+function emotionBaselineFor(difficulty: PersonaDifficulty): PersonaEmotionBaseline {
+  if (difficulty === 'L1') return 'anxious_open';
+  if (difficulty === 'L2') return 'suppressed_fatigue';
+  return 'detached_defensive';
+}
+
+/** 难度 → 防御等级. */
+function defenseLevelFor(difficulty: PersonaDifficulty): number {
+  if (difficulty === 'L1') return 1;
+  if (difficulty === 'L2') return 3;
+  return 5;
+}
+
+/** 年龄区间取中位数，保证 prompt 里的年龄稳定且不精确到生日. */
+function midpointAge(ageRange: string): number {
+  const numbers = ageRange.match(/\d+/g)?.map(Number) ?? [];
+  if (numbers.length === 0) return 30;
+  const first = numbers[0] ?? 30;
+  const second = numbers[1] ?? first;
+  return Math.round((first + second) / 2);
+}
+
+/** 把人设 7 大块渲染成会话级上下文块. */
+function renderPersonaBlock(seed: VisitorPoolTemplateSeed): string {
+  const script = seed.script;
+  const basics = script.basics;
+  const timeline = script.developmentalTimeline
+    .map(
+      (stage) =>
+        `  - ${stage.stage}：养育=${stage.parentingStyle}；重大事件=${stage.keyEvents.join('、') || '无'}；禁忌=${stage.tabooTopics.join('、') || '无'}`,
+    )
+    .join('\n');
+  const social = script.socialMap
+    .map((item) => `  - ${item.relationType}：${item.currentStatus}；冲突=${item.conflictPattern}；${item.resourceOrDrain}`)
+    .join('\n');
+  return [
+    '## 本次会话的来访者设定',
+    `- 代号：${seed.codename}；年龄：${basics.age}；性别：${basics.gender}；职业：${basics.occupation}`,
+    `- 教育：${basics.education}；居住：${basics.livingStatus}；躯体健康史：${basics.somaticHistory}`,
+    `- 既往咨询/精神科史：${basics.psychHistory}`,
+    `- 当前主诉：${seed.presentingComplaint}`,
+    `- 自述症状：${script.presentingIssue.selfReport}；持续：${script.presentingIssue.duration}；睡眠/食欲：${script.presentingIssue.sleepAppetite}；自述风险：${script.presentingIssue.selfReportedRisk}`,
+    '- 成长时间线：',
+    timeline,
+    `- 依恋类型：${script.innerWorkingModel.attachmentType}`,
+    `- 核心信念：${script.innerWorkingModel.coreBeliefs.join('；')}`,
+    `- 隐性创伤：${script.innerWorkingModel.hiddenTrauma.join('；') || '未明说'}`,
+    `- 未完成情结：${script.innerWorkingModel.unfinishedBusiness.join('；') || '未明说'}`,
+    `- 防御机制：${script.innerWorkingModel.defenseMechanisms.join('、')}`,
+    '- 社会关系：',
+    social,
+    `- 适应资源：${script.coping.adaptiveResources.join('、') || '少'}`,
+    `- 非适应策略：${script.coping.maladaptiveStrategies.join('、')}`,
+    `- 情绪触发点：${script.coping.emotionTriggers.join('、')}`,
+    `- 对咨询的偏见：${script.therapyExpectation.biases.join('；') || '无'}`,
+    `- 对咨询的期待：${script.therapyExpectation.expectations.join('；') || '无'}`,
+    `- 移情倾向：${script.therapyExpectation.transferenceTrend}；阻抗模式：${script.therapyExpectation.resistancePattern}`,
+  ].join('\n');
+}
+
+/** 构造影子实验用的 Persona 形状（不落库、不进生产）. */
+export function personaFromSeed(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): Persona {
+  const script = seed.script;
+  const persona = {
+    id: seed.id,
+    tenantId: 'af232-shadow',
+    name: seed.codename,
+    age: midpointAge(seed.ageRange),
+    personality: `${script.innerWorkingModel.attachmentType} 依恋；${script.innerWorkingModel.defenseMechanisms.join('、')}`,
+    complaint: seed.presentingComplaint,
+    background: `${script.basics.occupation}；${script.socialMap.map((item) => item.currentStatus).join('；')}`,
+    emotionBaseline: emotionBaselineFor(difficulty),
+    defenseLevel: defenseLevelFor(difficulty),
+    difficulty,
+    voiceId: 'mandarin_female_001',
+    knowledgeRefs: [],
+    isActive: true,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+  } as Persona;
+  return persona;
+}
+
+/** 构造会话记忆的最小形状. */
+function memoryFor(persona: Persona, seed: VisitorPoolTemplateSeed): VisitorSessionMemory {
+  return {
+    sessionId: `af232_${seed.id}`,
+    persona,
+    tenantId: 'af232-shadow',
+    createdAt: Date.now(),
+    messages: [],
+    currentEmotion: persona.emotionBaseline,
+    turnCount: 0,
+    lastActiveAt: Date.now(),
+  };
+}
+
+/**
+ * 渲染现行协议同构 prompt（直接复用生产 `renderSystemPrompt`）.
+ *
+ * @param seed 官方模板
+ * @param difficulty 难度档
+ * @returns system prompt
+ */
+export function buildSharedVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  const persona = personaFromSeed(seed, difficulty);
+  const memory = memoryFor(persona, seed);
+  const blocks: VisitorContextBlock[] = [{ content: renderPersonaBlock(seed), difficulty }];
+  return renderSystemPrompt(persona, memory, blocks);
+}
+
+/**
+ * 渲染 Seed 专用 prompt：生产同构 base + 更严格的来访者约束.
+ *
+ * @param seed 官方模板
+ * @param difficulty 难度档
+ * @returns system prompt
+ */
+export function buildSeedVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSharedVisitorPrompt(seed, difficulty)}\n\n${SEED_VISITOR_CONSTRAINTS}`;
+}
+
+/** 渲染 Seed V2：生产同构 base + V1 格式约束 + V2 合作压制约束. */
+export function buildSeedV2VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedVisitorPrompt(seed, difficulty)}\n\n${SEED_V2_VISITOR_CONSTRAINTS}`;
+}
+
+/** 渲染 Seed V3：生产同构 base + V1 格式约束 + V2 合作压制 + V3 难度预算. */
+export function buildSeedV3VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV2VisitorPrompt(seed, difficulty)}\n\n${buildSeedV3Constraints(difficulty)}`;
+}
+
+/** 渲染 Seed V4：生产同构 base + V1 格式 + V2 合作压制 + V4 洞察收敛. */
+export function buildSeedV4VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV2VisitorPrompt(seed, difficulty)}\n\n${SEED_V4_VISITOR_CONSTRAINTS}`;
+}
+
+/** 渲染 Seed V5：生产同构 base + V1 格式 + V2 合作压制 + V4 洞察收敛 + V5 接触防御. */
+export function buildSeedV5VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV4VisitorPrompt(seed, difficulty)}\n\n${SEED_V5_VISITOR_CONSTRAINTS}`;
+}
+
+/** 渲染 Seed V5.1：V5 行为约束 + 合法标签硬枚举. */
+export function buildSeedV51VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV5VisitorPrompt(seed, difficulty)}\n\n${SEED_V51_TAG_ENUM_CONSTRAINTS}`;
+}
+
+/** 按变体选择 prompt. */
+export function buildVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty, variant: VisitorPromptVariant): string {
+  if (variant === 'seed-v51') return buildSeedV51VisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v5') return buildSeedV5VisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v4') return buildSeedV4VisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v3') return buildSeedV3VisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v2') return buildSeedV2VisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v1') return buildSeedVisitorPrompt(seed, difficulty);
+  return buildSharedVisitorPrompt(seed, difficulty);
+}

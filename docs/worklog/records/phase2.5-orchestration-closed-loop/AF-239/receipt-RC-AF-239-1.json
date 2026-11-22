@@ -1,0 +1,119 @@
+{
+  "deliveredAt": "2026-11-22T04:53:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-239-1",
+    "taskId": "AF-239",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "fb327f44764833432138fabbaf0b76ba56eefb56",
+    "dependsOn": ["AF-238"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-239/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af239-p95-aggregation-fix-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af239-p95-aggregation-fix-2026-11-22.md"],
+      "modified": ["bin/visitor-sim-analysis.ts", "test/auto-practice/af232-visitor-shadow.spec.ts"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "18/18 通过；修复前新增回归断言失败 expected 3000 < 1000"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 252,
+        "machine": "同上",
+        "wallClock": "约 4 分钟",
+        "note": "252 files passed + 1 skipped；4214 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "首次因 prettier 折行失败，格式化后重跑 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "tsc -b tsconfig.check.json"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms A,C,E --out data/phase25-exit/af238-seed-v2-stability/r2 --max-packets 36 --concurrency 2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "A/C/E 首 token P95 = 2044/887/900ms；E verdict conditional hard=true"
+      }
+    ],
+    "reproNotes": "只改分析聚合与回归测试，复用 r2 缓存评分重算报告，不重新生成会话。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-239 贯穿任务单、分支、交付记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组标记齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-239 事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core，diff 为空" },
+      { "item": "text-privacy", "result": "pass", "note": "记录不含台词原文与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef、分支基线均为 fb327f44"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-238-report-refresh",
+        "impact": "AF-238 r1/r3 历史报告仍保留旧 P95 数字，可在需要时用缓存复跑刷新"
+      }
+    ],
+    "openQuestions": [
+      "four-rate 在 E 三轮均值约 0.653、单轮 0.708 边界，是否按评分员分算或放宽尚未定"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "重算轮次",
+        "taskSays": "重算 r2/r3",
+        "reality": "先重算 r2 验证结论，r3 缓存报告未刷新",
+        "action": "交付记录写明只重算 r2，r3 留作后续可选补跑",
+        "why": "AF-238 的关键误判发生在 r2，r3 E 原本已 conditional，不影响结论"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "P95 聚合缺陷已修复并有回归覆盖；修复后 seed-v2 三轮硬门槛全过，E 从误判 fail 回到 conditional，seed-v1 仍因 plot/tag 真实失败。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

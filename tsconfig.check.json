@@ -1,0 +1,14 @@
+{
+  // V2026-11-12 闸门提速: tsc build 模式缓存专用配置.
+  // 目的: 让"重复的收尾类型闸门"从全量 ~38s 降到秒级.
+  //   - tsc --noEmit 不复用增量信息 (实测 warm 38.5s ≈ 基线 38.2s, 无收益)
+  //   - 只有 build 模式 (tsc -b) 会依据 .tsbuildinfo 判断"无变更即跳过整轮检查"
+  // 口径与 tsconfig.build.json 完全一致 (src 全量, 排除 spec/test/bin), 只是把产物发射到
+  // node_modules/.tmp (git 忽略), 不污染 dist.
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./node_modules/.tmp/tcheck",
+    "tsBuildInfoFile": "./node_modules/.tmp/tcheck.tsbuildinfo"
+  }
+}

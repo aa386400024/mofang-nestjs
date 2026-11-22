@@ -1,0 +1,1843 @@
+// V2026-10-29 治本 (WP8-B · B 层 · 引擎 → voice 对话后端适配):
+//   职责: 实现 voice 侧的窄接口 `VoiceTurnBackend` —— 把新引擎的"决策 → 流式渲染"
+//         翻译成语音链路熟悉的三态 chunk (content / done / error), 并维护
+//         逐字稿副本 (供督导报告).
+//   边界: 装配层 (src/engine-adapters/wiring/); 只做**翻译与记账**, 不写决策、
+//         不拼 prompt、不碰 TTS/ASR/帧协议.
+//
+//   为什么这个适配器住在 wiring 而不是 rendering:
+//     它依赖 `EngineTurnService` (wiring 层的东西), 而 wiring 又依赖 rendering ——
+//     若把适配器放在 rendering, 就成了 rendering → wiring → rendering 的**目录环**.
+//     它的职责本来就是"装配": 把一个子系统 (引擎) 的形状翻译成另一个子系统
+//     (语音) 的形状, 这正是 wiring 层的定义.
+//
+//   为什么"翻译点只有一处":
+//     语音消费器 (`VoiceService.consumeLlmStream`) 只认三态 chunk, 且**零改动**
+//     (成熟资产). 于是所有"引擎语义 → 语音语义"的转换必须收敛在本文件:
+//       增量文本 → content chunk;
+//       本轮结束 → done chunk (带 usage);
+//       引擎侧失败 → error chunk (带 code / message / retryable).
+//     若在 voice 层里写"如果是新引擎就怎样", 语音层就得知道引擎的内部语义 ——
+//     那是把两个子系统的知识搅在一起, 灰度一关就全是死代码.
+//
+//   为什么"降级兜底句"也要出声 (而不是静默 done):
+//     任务单 §2.4 要求全挂时"仍正常返回收尾结果, 让上层能发 done, TTS 不悬挂".
+//     若降级时一个字都不吐, 前端会看到"开始了 → 结束了, 但没有任何话", 用户
+//     以为程序卡了. 兜底句本身就是为这一刻准备的 (中性、不越界).
+//
+//   反双胞胎:
+//     - 不在 voice 层判断"这是不是新引擎": 本文件已经把一切翻译成三态 chunk,
+//       voice 层拿到的两条链路**形状完全一样**, 于是"选哪条"只剩灰度开关一个决定.
+//     - 不自己写逐字稿格式: 直接复用 `TranscriptTurn` (agent/supervisor 的既有类型),
+//       督导报告那条链路的解析口径不用改.
+//     - 不在失败时把半句写进逐字稿: 与旧链路对齐 —— 旧链路在早退时回滚 user 消息,
+//       净效果是"这一轮不落逐字稿". 这里只在整轮成功时落, 语义一致.
+//     - 不吞引擎侧的内核错误: 内核错误 (SESSION_NOT_FOUND / ABORTED) 转成 error chunk
+//       交给既有消费器处理, 与旧链路"LLM 流错误 → error 帧"同形.
+//     - V2026-10-29 (WP9-A): 角色解析**失败不抛**, 只 warn + 回退中性基线.
+//       角色是**可选增强**, 不是会话的前置条件 —— 抛错会把"没有角色"升级成
+//       "会话开不起来", 那是一个可选能力不该有的失败半径.
+//
+//   V2026-10-29 治本 (WP9-A · B 层 · 角色解析注入):
+//   职责: 开场时把"角色定义"解析成内核 `CharacterProfile` 并注入内核, 让人格基线
+//         (信念 / 阻抗 / 情绪 / 信任) 在**第一轮之前**就位; 解析不到就走中性基线.
+//   边界: 只做"解析 → 注入 → 快照命名"; 角色语义 (种子/映射口径) 全在
+//         `wiring/character/`, 本文件**不认识**任何具体角色.
+//
+//   为什么解析点收敛在这一个文件:
+//     翻译点只有一处是 WP8-B 立下的纪律 —— 引擎语义 → 语音语义必须收敛.
+//     角色解析同属"引擎语义": 窄接口只透传"角色 key + 临场参数"这**原始事实**,
+//     "这个 key 意味着什么样的阻抗与信念"是引擎侧的事. voice 层若自己去解析角色,
+//     voice 层就得知道角色语义, 灰度一关就全是死代码.
+//
+//   反双胞胎 (WP9-A):
+//     - 不用 @nestjs 的 useClass 装配 resolver: 它的构造参数带默认值, Nest 会把
+//       Object 当成待注入依赖而报错 —— 走 useFactory 显式 new (与仓库既有做法一致).
+//     - 不把"查不到角色"当错误: DB 角色池未接时这是**常态**, warn 即可.
+//     - 不手改内核快照: 初始快照由内核 `buildInitialSnapshot` 装配 (含 label 重算),
+//       适配层只交出纯对象, 不在外部拼快照.
+//
+//   V2026-10-30 治本 (WP10 · B 层 · 轨迹剧本注入):
+//   职责: 开场时把"剧本 id"解析成内核 `TrajectoryScript` 并注入内核的 `trajectory`
+//         字段, 让伦理盲盒剧本在**第一轮之前**就位; 解析不到就走 BDI 自由运行.
+//   边界: 只做"解析 → 注入"; 剧本内容 (10 个伦理盲盒) 全在 `wiring/trajectory/`,
+//         本文件**不认识**任何具体剧本, 也不判断"这次会谈该不该有剧本".
+//
+//   为什么解析点与角色解析收敛在同一个文件:
+//     翻译点只有一处是 WP8-B 立下的纪律 —— 引擎语义 → 语音语义必须收敛.
+//     剧本解析同属"引擎语义": 窄接口只透传"剧本 key"这个**原始事实**,
+//     "这个 key 意味着什么样的伦理事件"是引擎侧的事. voice 层若自己去解析剧本,
+//     voice 层就得知道剧本语义, 灰度一关就全是死代码.
+//
+//   反双胞胎 (WP10):
+//     - 不在 voice 层判断"有没有剧本": 它只透传 scriptId 字符串.
+//     - 不在本文件写剧本内容: 只调 resolver, 拿到什么注入什么.
+//     - 不因为"查不到剧本"抛错: 剧本是可选增强 (与角色解析同款语义),
+//       查不到 = warn + 回退自由运行, 会话照常开.
+//     - 不给旧 VisitorService 加剧本支持: 它不接新引擎剧本, 天然 undefined.
+//
+//   如何验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/voice/wp8b-grayscale.spec.ts 覆盖 delta → content / 结束 → done / 失败 → error
+//     3. test/engine-adapters/wp9a-open-profile.spec.ts 覆盖角色注入 / 中性回退 / 快照一致性
+//     4. test/engine-adapters/wp10-trajectory-injection.spec.ts 覆盖剧本注入 / 未命中回退 / 零回归
+//
+//   时间戳: 2026-10-30 GMT+8
+
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character/index.js';
+import type { EngineTurnService } from './engine-turn.service.js';
+import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import { TurnIdempotencyService, type TurnResultSnapshot, type TurnSettleHandle } from './turn-idempotency.service.js';
+import type { TraceRecorder, TurnTrace } from '../../admin-debug/trace-recorder.service.js';
+import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { EngineCoreError, EngineErrorCode } from '../../engine-core/index.js';
+import type {
+  AttachmentStyle,
+  CharacterProfile,
+  OpenEngineSessionInput,
+  RiskProbePort,
+  TrajectoryScript,
+} from '../../engine-core/index.js';
+import type { SessionEvaluationRegistry, SessionEvaluationTurnInput } from '../../voice/session-evaluation-slot.js';
+import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import {
+  TURN_INCOMPLETE_CODE,
+  type VoiceCatchUpResult,
+  type VoiceSafetyPreCheckInput,
+  type VoiceSafetyPreCheckResult,
+  type VoiceTurnBackend,
+  type VoiceTurnBackendCloseResult,
+  type VoiceTurnBackendOpenOptions,
+  type VoiceTurnBackendTurnOptions,
+} from '../../voice/voice-turn-backend.port.js';
+import type {
+  VoiceCatchUpBdiSnapshot,
+  VoiceCatchUpSessionState,
+  VoiceCatchUpTurn,
+  VoiceServerMessage,
+  VoiceSessionPersona,
+} from '../../voice/voice.types.js';
+import {
+  accumulateSessionUsage,
+  buildSessionCostSummary,
+  DEFAULT_SESSION_COST_PRICING,
+  emptySessionUsageTotals,
+  type SessionCostPricing,
+  type SessionCostPricingTable,
+  type SessionUsageTotals,
+} from '../observability/session-cost.js';
+import type { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import { runWithProbeSource } from '../rendering/probe-source.js';
+import { isCrisisCategory } from '../rendering/render-risk.js';
+import {
+  buildCrisisModalFrame,
+  buildCrisisToastFrame,
+  buildStudentRiskDecisionFromProbe,
+  truncateRiskSnippet,
+  type StudentRiskDecision,
+  type StudentRiskGate,
+} from '../rendering/student-risk-disposal.js';
+import type { TurnRenderResult } from '../rendering/turn-render-orchestrator.js';
+
+/**
+ * 中性基线来访者身份 (无角色时的回落形态).
+ *
+ * 为什么是中性基线而不是"读 persona 实体":
+ *   角色资产 (5Ps / 难度 / 情绪基线) 的解析由 `CharacterProfileResolver` 负责
+ *   (WP9-A: 内置种子; WP9-B: DB 角色池). 解析不到时给一个**不越界**的中性身份:
+ *   它不承诺任何角色特征, 也不伪造一个看起来很像角色的假身份 (那会让报告里的
+ *   人名与真实设定对不上). 中性基线 = WP8-B 的现状行为, 逐字不变.
+ */
+const NEUTRAL_PERSONA: VoiceSessionPersona = {
+  id: 'voice_visitor',
+  name: '来访者',
+  voiceId: '',
+  difficulty: 'L1',
+};
+
+/**
+ * 引擎版对话后端 (实现 voice 侧窄接口).
+ */
+@Injectable()
+export class EngineStreamBackend implements VoiceTurnBackend {
+  private readonly logger = new Logger(EngineStreamBackend.name);
+  /** 语音会话 id → 内核句柄 id. */
+  private readonly handles = new Map<string, string>();
+  /** 语音会话 id → 逐字稿 (一问一答两条). */
+  private readonly transcripts = new Map<string, TranscriptTurn[]>();
+  /**
+   * 语音会话 id → 稳定落库 id (training_sessions.id).
+   *
+   * V2026-10-29 治本 (WP9-C): 督导轻提示帧按**稳定落库 id** 路由 (voice 侧的
+   * `VoiceFrameRegistry` 就是按它登记出口的), 而窄接口给的是 WS 会话 id ——
+   * 两者不是一回事, 所以这里显式存一份.
+   */
+  private readonly dbSessionIds = new Map<string, string>();
+  /**
+   * 语音会话 id → 长时记忆的归属上下文 (WP12).
+   *
+   * 为什么单独存: 收尾时要拿**同一个**作用域去写长时记忆, 而内核召回也是按这个
+   * 作用域查的 —— 写与读必须是同一把键, 否则摘要写进去了却永远召不回.
+   */
+  private readonly sessionContexts = new Map<string, SessionContext>();
+  /**
+   * 语音会话 id → 本场累计用量 (WP24 · 单场成本日志).
+   *
+   * 为什么单独存而不是逐轮落库: 本单要的是**整场汇总**, 逐轮散点已经有了
+   * (WP19 的 trace, 那是另一个坑). 内存里累加, closeSession 时一次算清 —
+   * 不给数据库再加一张表, 也不给每轮加一次写.
+   *
+   * 生命周期: `openSession` 重置 (重连不能把上一场的用量算进来) →
+   * 每轮累加 → `closeSession` 读完即删 (不留痕).
+   */
+  private readonly sessionUsage = new Map<string, SessionUsageTotals>();
+  /**
+   * 语音会话 id → 本场角色 key (WP19-R · 留痕).
+   *
+   * 为什么要单独存: 留痕快照要记 `characterSlug` (§1.1 契约), 而**角色 key 只在
+   * 开场那一刻确定** —— 轮次结算时拿不到 open 的入参. 开场存一份, 轮次直接读.
+   *
+   * 口径与长时记忆作用域**同款** (`resolveCharacterKey`): 公共模板 id 优先,
+   * 否则 personaId —— 跟引擎实际注入的角色是同一份口径, 不会"调试器看到的角色"
+   * 与"引擎注入的角色"对不上.
+   */
+  private readonly characterSlugs = new Map<string, string>();
+  /**
+   * 语音会话 id → 本场**已提交轮次**台账 (V2026-11-03, WP23 · 断线补漏的数据源).
+   *
+   * 为什么需要这张台账 (而不是从逐字稿反推):
+   *   逐字稿只有"说了什么", 没有**轮次号 / BDI 快照 / 危机等级** ——
+   *   而补漏帧要的就是这三样 (客户端要能把漏掉的轮次按序补回对话流).
+   *   引擎侧是**唯一**在提交那一刻同时握着这三样的地方, 所以台账住在引擎侧.
+   *
+   * 记的是"**已提交**"的轮次 (BDI 已落、回复已发完) —— 半截轮 (断流 / 被 abort)
+   *   不进台账: 那种轮次客户端自己就知道没收到 (它只缺"服务端跑完了没有"这一口).
+   *
+   * 生命周期: openSession 重置 → 每轮提交追加 → closeSession 清空 (与逐字稿同生命周期).
+   */
+  private readonly committedTurns = new Map<string, VoiceCatchUpTurn[]>();
+  /**
+   * 语音会话 id → 本场逐轮内核出参投影 (V2026-11-06, WP43 · 快速评分的数据源).
+   *
+   * 为什么在引擎侧累计而不是每轮落库: 评估是**整场汇总** (逐轮散点已经有了 ——
+   * 逐字稿 / 调试 trace); 内存里累加, 会话收尾时一次交给业务侧算分 ——
+   * 不给数据库再加一张"逐轮评估"表.
+   *
+   * 生命周期: openSession 重置 (重连 = 新一场) → 每轮追加 → closeSession 读完即删.
+   */
+  private readonly sessionEvaluationTurns = new Map<string, SessionEvaluationTurnInput[]>();
+
+  constructor(
+    private readonly engine: EngineTurnService,
+    /**
+     * 角色解析器 (WP9-A).
+     *
+     * 为什么 @Optional: 角色是**可选增强**. 装配缺失 (旧装配 / 独立单测) 时必须
+     * 仍然能开会话 —— 等同"无角色 → 中性基线", 而不是 500.
+     */
+    @Optional() @Inject(CHARACTER_PROFILE_RESOLVER) private readonly resolver?: CharacterProfileResolver,
+    /**
+     * WS 帧出口注册表 (WP9-C).
+     *
+     * 为什么 @Optional: 它由 voice 侧的 `VoiceSessionModule` (@Global) 提供.
+     * 装配缺失时**只影响危机提示帧**, 不影响会话本身 —— 不能让"没有出口"变成
+     * "开不了会话".
+     */
+    @Optional() private readonly frames?: VoiceFrameRegistry,
+    /**
+     * 轨迹剧本解析器 (WP10).
+     *
+     * 为什么 @Optional: 剧本是**可选增强**, 与角色解析同款语义 —— 装配缺失 (旧装配 /
+     * 独立单测) 时必须仍然能开会话, 等同"本场无剧本 → BDI 自由运行", 而不是 500.
+     *
+     * 位置说明: 本参数排在 `traceRecorder` 之前 —— `traceRecorder` 至今没有装配入口
+     * (后端走工厂构造, Nest 不读它的 design:paramtypes), 把它挪到最后一位是为了
+     * 让工厂能用**位置参数**把剧本解析器装进来, 不必在中间插一个 undefined 占位.
+     */
+    @Optional() @Inject(TRAJECTORY_SCRIPT_RESOLVER) private readonly scriptResolver?: TrajectoryScriptResolver,
+    /**
+     * 会话收尾服务 (WP12): 逐字稿全量落库 + 会话摘要晋升长时记忆.
+     *
+     * 为什么 @Optional: 收尾是**增强** —— 装配缺席时本场会谈照常结束, 只是
+     * "逐字稿没全量落库" + "没有长时记忆". 不能让"没有收尾服务"变成"开不了会话".
+     */
+    @Optional() private readonly closeout?: SessionCloseoutService,
+    /**
+     * 调试快照记录器 (WP19).
+     *
+     * 为什么 @Optional: 它由 AdminDebugModule 提供. 装配缺失时
+     * 会话照常进行, 只是没有调试 trace 落库 —— 不能让"没有调试器"变成
+     * "开不了会话".
+     */
+    @Optional() private readonly traceRecorder?: TraceRecorder,
+    /**
+     * 成本单价 (WP24 · 单场成本日志).
+     *
+     * 为什么 @Optional: 成本日志是**观测增强** —— 装配缺席时只是没这条汇总日志,
+     * 会话照常开、照常结束. 不能让"没配单价"变成"开不了会话".
+     *
+     * 位置说明: 本参数排在 `traceRecorder` **之后**. `traceRecorder` 至今没有
+     * 装配入口 (后端走工厂构造, Nest 不读它的 design:paramtypes), 所以工厂那边
+     * 必须给第 6 位**显式占一个 undefined** —— 这与 WP12 之前"不占位"的做法相反,
+     * 原因是本单真的需要第 7 位, 而位置参数不能跳着传.
+     */
+    @Optional() private readonly costPricing?: SessionCostPricing,
+    /**
+     * 学员侧处置闸门 (WP14).
+     *
+     * 为什么 @Optional: 闸门是**可选增强** —— 装配缺席时本场照常,
+     * 只是"没有学员侧危机处置" (与本单之前逐字一致).
+     *
+     * 它是**模块内单例**: 编排门面 (判定) 与本适配器 (置位 / 推帧 / 留痕) 必须拿到
+     * 同一个实例, 否则"这里置位的监测状态"那边看不见.
+     */
+    @Optional() private readonly studentRiskGate?: StudentRiskGate,
+    /**
+     * 学员风险审计插槽 (WP14).
+     *
+     * 为什么 @Optional: 审计是**留痕能力**, 不是会话能力 ——
+     * 业务侧没注册实现时, 弹窗照弹, 只是"这次没留痕".
+     */
+    @Optional() private readonly riskAudit?: StudentRiskAuditRegistry,
+    /**
+     * 风险探测器 (WP14 优化项 · 前置 safety gate).
+     *
+     * 为什么 @Optional: 探测器是**可选增强** —— 装配缺席时前置 gate 直接放行
+     * (内核侧那一层判定照旧在), 不能让"没配探测器"变成"开不了会话".
+     *
+     * 为什么是**同一个**实例 (与内核注入的 RISK_PROBE 同源): 前置 gate 与内核
+     * 判定必须问同一个探测器 —— 口径不一样就会出现"前置说 pass / 内核说 block"
+     * 这种没法解释的分裂; 而且 D12 的本地词典兜底是挂在这个实例上的, 复用它
+     * 才意味着"远端挂了前置 gate 也能拦".
+     */
+    @Optional() private readonly riskProbe?: RiskProbePort,
+    /**
+     * 轮次幂等表 (WP16 · 同一会话同一 round_id 不重跑 BDI).
+     *
+     * 为什么放在**最后一位**且带默认值:
+     *   · 位置参数装配 (工厂) 要求新依赖只能追加在尾部 —— 中间插一位就得让
+     *     既有调用点补 undefined 占位, 而既有单测有 20+ 处按位置 new;
+     *   · 默认值让那些调用点**一行不改**也能跑 (幂等是增强, 不是会话的前置条件);
+     *   · 生产装配由 `createEngineStreamBackend` 显式注入, 走的是模块内单例.
+     *
+     * 为什么它**不能缺席**: 缺席 = 幂等闸门形同虚设, "重发同一轮再跑一遍 BDI"
+     * 的漂移会回来. 所以生产路径必须注入, 默认值只兜单测.
+     */
+    private readonly idempotency: TurnIdempotencyService = new TurnIdempotencyService(),
+    /**
+     * 评估插槽注册表 (V2026-11-06, WP43 · 会话结束后的规则快评).
+     *
+     * 为什么 @Optional: 评估是**增强** —— 业务侧没装 (或没注册实现) 时,
+     * 会话照常开、照常结束, 只是"这场没有快速评分".
+     *
+     * 为什么走 voice 层插槽而不是直接注入评估服务:
+     *   engine-adapters → counselor 是仓库明令禁止的反向依赖 (同 student-risk-audit-slot).
+     *   引擎侧只认插槽接口, 业务侧在自己的 onModuleInit 注册实现 —— 两侧互不认识对方的类型.
+     */
+    @Optional() private readonly evaluationRegistry?: SessionEvaluationRegistry,
+    /**
+     * provider 维度定价表 (AF-261).
+     *
+     * 为什么 @Optional: 与 `costPricing` 同款 —— 观测增强，缺席时回落旧口径。
+     * 放在构造参数末尾，避免移动既有位置参数导致工厂/测试错位。
+     */
+    @Optional() private readonly costPricingTable?: SessionCostPricingTable,
+  ) {}
+
+  /**
+   * 开场: 内核开会话 (有角色 → 注入角色基线; 无角色 → 中性基线).
+   *
+   * 重复开会话 → 先关掉旧句柄再开新的 (与旧 visitor "覆盖 memory" 的行为对齐;
+   * 不对齐的话, 第二条 `user_text` 之前的一次 startSession 重连就会撞上
+   * `SESSION_ALREADY_OPEN`, 而那本该是无感的重连).
+   */
+  async openSession(opts: VoiceTurnBackendOpenOptions): Promise<VoiceSessionPersona> {
+    const previous = this.handles.get(opts.sessionId);
+    if (previous) {
+      this.handles.delete(opts.sessionId);
+      this.engine.close(previous);
+    }
+
+    const characterId = resolveCharacterId(opts);
+    const character = await this.resolveCharacter(opts);
+    const script = this.resolveTrajectoryScript(opts);
+    // V2026-10-30 治本 (WP12): 长时记忆的归属作用域 = **(学员, 角色)**.
+    //   见 buildMemoryScope 的说明 —— 这一步不做, 学员之间会互相读到对方的咨询内容.
+    const memoryScope = buildMemoryScope(opts.userId, resolveCharacterKey(opts, characterId));
+    // V2026-10-30 治本 (WP12): 跨会话接续来源.
+    const resumeFromSessionId = opts.resumeFromSessionId?.trim() ?? '';
+    const handle = this.openKernelSession(opts, character, script, memoryScope, resumeFromSessionId);
+
+    this.handles.set(opts.sessionId, handle.handleId);
+    this.transcripts.set(opts.sessionId, []);
+    // V2026-11-03 治本 (WP23): 开一场 = 开一本**空台账** ——
+    //   重连 (第二条 user_text 之前的一次 startSession) 走的是同一条 openSession,
+    //   若不重置, 上一场的已提交轮次会留在台账里, 于是重连后的补漏会把**上一场**的
+    //   轮次也塞给客户端 (两场对话混在一条补漏帧里).
+    this.committedTurns.set(opts.sessionId, []);
+    // WP16: 重连 = 新会话 = 新状态 (内核句柄换了, BDI 从头开始) ——
+    //   上一场留下的轮次快照属于**旧状态**, 留着会让新会话的同号重试拿到旧回复.
+    this.idempotency.clearSession(opts.sessionId);
+    // WP24: 重置本场用量累计 —— 重连 (第二条 user_text 之前的一次 startSession)
+    //   走的是同一条 openSession, 若不重置, 上一场的花费会被算进这一场.
+    this.sessionUsage.set(opts.sessionId, emptySessionUsageTotals());
+    // V2026-11-06 治本 (WP43): 开一场 = 开一本**空的评估台账** ——
+    //   重连走的是同一条 openSession, 若不重置, 上一场的逐轮出参会留在台账里,
+    //   于是重连后的评估会把**上一场**的轮次也算进去 (两场混成一份分数).
+    this.sessionEvaluationTurns.set(opts.sessionId, []);
+    this.sessionContexts.set(opts.sessionId, {
+      tenantId: opts.tenantId,
+      visitorId: memoryScope,
+      userId: opts.userId?.trim() ?? '',
+      // 有没有学员身份: 没有的话长时记忆**不写** (见 buildMemoryScope 的说明).
+      studentScoped: (opts.userId?.trim() ?? '').length > 0,
+    });
+    const dbSessionId = opts.dbSessionId?.trim() ?? '';
+    if (dbSessionId.length > 0) {
+      this.dbSessionIds.set(opts.sessionId, dbSessionId);
+    }
+    // WP19-R: 记下本场角色 key (留痕快照的 characterSlug 用它).
+    this.characterSlugs.set(opts.sessionId, resolveCharacterKey(opts, characterId));
+    this.logger.log(
+      `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${memoryScope} ` +
+        `character=${character?.displayName ?? 'neutral'} script=${script?.scriptId ?? 'none'} ` +
+        `resume=${resumeFromSessionId || 'none'}`,
+    );
+    // 对外仍然回 personaId (身份键不因角色而变 —— WP9-A 既有口径).
+    return character ? { ...NEUTRAL_PERSONA, id: characterId, name: character.displayName } : { ...NEUTRAL_PERSONA, id: characterId };
+  }
+
+  /**
+   * 调内核开会话 (带接续兜底).
+   *
+   * 接续失败**不阻断** (任务单 §1.5.5): 上一场不存在 / 已过期 / 状态读失败 →
+   *   记 warn, 按**新会话**开. 不抛错、不断连.
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `openSession` 的圈复杂度已到上限, 再塞分支就超 (仓库 eslint 卡 20);
+   *   ② "接续失败怎么兜"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * @param opts 开场参数
+   * @param character 本场角色 (无 = 中性基线)
+   * @param script 本场剧本 (无 = BDI 自由运行)
+   * @param memoryScope 长时记忆归属作用域
+   * @param resumeFromSessionId 接续来源 (空 = 新会话)
+   * @returns 内核句柄
+   */
+  private openKernelSession(
+    opts: VoiceTurnBackendOpenOptions,
+    character: ResolvedCharacter | null,
+    script: TrajectoryScript | undefined,
+    memoryScope: string,
+    resumeFromSessionId: string,
+  ): { readonly handleId: string; readonly sessionId: string } {
+    // WP41: 表达风格三字段 —— 从**已解析的角色基线**取 (DB 角色的三列经 resolver →
+    //   buildCharacterProfile 已经在内核契约里了). 没角色 (中性基线) → 不带 →
+    //   渲染层不消费 → prompt 与 WP35 逐字一致 (零回归).
+    const profile = character?.characterProfile;
+    // WP64: 角色底色简述 —— 只算一次 (下面要用它判"带不带").
+    const characterBrief = buildCharacterBrief(profile);
+    const openOptions = {
+      characterLabel: character?.displayName ?? '',
+      ...(profile?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: profile.speechVolumeBaseline }),
+      ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
+      ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
+      ...(character?.verbalVoice ? { verbalVoice: character.verbalVoice } : {}),
+      // WP-J P1d: 依恋风格 —— 语音链路的开场登记点 (自动对练/调试面板走 debug-session 那条).
+      //   不登记则渲染层拿不到 attachmentStyle, anxious 行为指引永远不渲染.
+      ...attachmentStyleOption(profile),
+      // WP64: 旁路审议的计费归属 (学员账号) —— 缺省 = 审议层跳过 (见 engine-turn.service.ts).
+      ...(opts.userId?.trim() ? { userId: opts.userId.trim() } : {}),
+      // WP64: 角色底色简述 (依恋 + 大五) —— 审议 prompt 的「角色背景」块.
+      ...(characterBrief ? { characterBrief } : {}),
+      // V2026-11-09 (闸门 trace 查询接口): 落库会话 id → 登记进归属 → 闸门决策落 MySQL 时
+      //   带得上 dbSessionId (admin 后台按落库 id 筛的那一半口径).
+      //   ⚠️ 与 `dbSessionIds` 映射表**同源同口径**: 有值才登记, 没有就都不登记.
+      ...(opts.dbSessionId?.trim() ? { dbSessionId: opts.dbSessionId.trim() } : {}),
+    };
+    try {
+      return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, true), openOptions);
+    } catch (error) {
+      if (!resumeFromSessionId) throw error;
+      this.logger.warn(
+        `[openSession] 接续上一场失败, 按新会话开 session=${opts.sessionId} ` + `resumeFrom=${resumeFromSessionId}: ${messageOf(error)}`,
+      );
+      return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, false), openOptions);
+    }
+  }
+
+  /**
+   * 构造内核开场入参.
+   *
+   * 三个"有才带"的字段 (characterProfile+seed / trajectory / resumeFromSessionId):
+   *   **不传时键不存在**, 不是"值为 undefined" —— 与现状逐字一致 (WP10 的零回归断言
+   *   断言的就是键集合, 键存在即算形状变了).
+   *
+   * @param opts 开场参数
+   * @param character 本场角色
+   * @param script 本场剧本
+   * @param memoryScope 长时记忆归属作用域
+   * @param resumeFromSessionId 接续来源
+   * @param withResume 本次是否带接续 (兜底重开时传 false)
+   * @returns 内核开场入参
+   */
+  private buildOpenInput(
+    opts: VoiceTurnBackendOpenOptions,
+    character: ResolvedCharacter | null,
+    script: TrajectoryScript | undefined,
+    memoryScope: string,
+    resumeFromSessionId: string,
+    withResume: boolean,
+  ): OpenEngineSessionInput {
+    return {
+      sessionId: opts.sessionId,
+      tenantId: opts.tenantId,
+      visitorId: memoryScope,
+      // 有角色才带 profile/seed; 无角色时**不传这两个字段** (缺省 = 中性默认基线),
+      // 与 WP8-B 的调用形态逐字一致.
+      ...(character
+        ? {
+            characterProfile: character.characterProfile,
+            ...(character.seed === undefined ? {} : { seed: character.seed }),
+          }
+        : {}),
+      // V2026-10-30 治本 (WP10): 有剧本才带 trajectory; 没解析到 / 没传 scriptId
+      //   时**不传这个字段** (缺省 = 本场无轨迹约束), 与现状逐字一致.
+      ...(script ? { trajectory: script } : {}),
+      // V2026-10-30 治本 (WP12): 有 resume 才带; 没传时**不传这个字段**
+      //   (缺省 = 全新会话), 与现状逐字一致.
+      ...(withResume && resumeFromSessionId ? { resumeFromSessionId } : {}),
+    };
+  }
+
+  /**
+   * 解析本场角色 (WP9-A).
+   *
+   * 三种"没有角色"的口径统一收敛到 null (走中性基线), 且**都不抛错**:
+   *   1. resolver 未装配 (@Optional 缺省);
+   *   2. 本场没有任何角色参数 (普通 voice session);
+   *   3. 角色 key 查不到 (DB 角色池未接时的常态) / 解析过程抛错.
+   *
+   * @param opts 开场参数
+   * @returns 解析结果; 无角色 → null
+   */
+  private async resolveCharacter(opts: VoiceTurnBackendOpenOptions): Promise<ResolvedCharacter | null> {
+    if (!this.resolver) return null;
+    try {
+      const resolved = await this.resolver.resolve({
+        templateId: opts.templateId,
+        skillCode: opts.skillCode,
+        preset: opts.preset,
+      });
+      if (!resolved) {
+        // 查不到是常态 (角色池未接), 但带了 templateId 仍值得记一笔:
+        // 线上排查"为什么这场没上角色"时, 这是唯一的线索.
+        if (opts.templateId?.trim()) {
+          this.logger.warn(`[openSession] 未解析到角色 templateId=${opts.templateId}, 回退中性基线`);
+        }
+        return null;
+      }
+      return resolved;
+    } catch (error) {
+      this.logger.warn(`[openSession] 角色解析异常, 回退中性基线: ${messageOf(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * 解析本场轨迹剧本 (WP10).
+   *
+   * 三种"没有剧本"的口径统一收敛到 undefined (走 BDI 自由运行), 且**都不抛错**:
+   *   1. 本场没带 scriptId (普通 voice session) —— 连 warn 都不打 (常态);
+   *   2. 剧本解析器未装配 (@Optional 缺省);
+   *   3. scriptId 查不到 (资产不存在 / Phase2 数据源未接) / 解析过程抛错.
+   *
+   * 为什么"查不到"必须是 warn 而不是抛错: 剧本是**可选增强**, 抛错会把
+   * "客户端传了个不认识的剧本 id"升级成"会话开不起来" —— 那是一个可选能力
+   * 不该有的失败半径 (与 WP9-A 角色解析同款语义).
+   *
+   * @param opts 开场参数
+   * @returns 剧本; 无剧本 → undefined
+   */
+  private resolveTrajectoryScript(opts: VoiceTurnBackendOpenOptions): TrajectoryScript | undefined {
+    const scriptId = opts.trajectoryScriptId?.trim() ?? '';
+    if (scriptId.length === 0) return undefined;
+    if (!this.scriptResolver) {
+      this.logger.warn(`[openSession] 剧本解析器未装配, scriptId=${scriptId}, 回退自由运行`);
+      return undefined;
+    }
+    try {
+      const script = this.scriptResolver.resolve(scriptId);
+      if (!script) {
+        this.logger.warn(`[openSession] 未解析到剧本 scriptId=${scriptId}, 回退自由运行`);
+        return undefined;
+      }
+      return script;
+    } catch (error) {
+      this.logger.warn(`[openSession] 剧本解析异常, 回退自由运行: ${messageOf(error)}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * 前置 safety 判定 (V2026-11-02, WP14 优化项 · block 不发 llm_start).
+   *
+   * 为什么在这里 (而不是内核侧): 内核的 safety 判定发生在 `session.turn()` **内部** ——
+   *   等它判完, voice 层已经把 `llm_start` 发出去 (前端 loading 圈转起来了),
+   *   而 block 之后前端既收不到 `llm_done` (后端根本没渲染), 又被全屏 modal 抢屏.
+   *   前置判一次 = modal 干干净净地弹出来, 不先转圈.
+   *
+   * 委托给**已有**的探测器实例 (与内核注入的是同一个), 不新建探测器:
+   *   · 口径必须与内核判定一致 (同一个服务 / 同一份词典兜底);
+   *   · D12 的本地词典兜底挂在这个实例上 —— 复用它, "远端挂了也能拦"才成立;
+   *   · 新建实例 = 多一份配置 / 多一条连接, 迟早与主链路漂移.
+   *
+   * 只拦 **block**: warn 仍由内核侧按原时序发 `crisis_toast` (不打断正常流式回复).
+   * 类别边界 (只有危机类别才处置) 由 `buildStudentRiskDecisionFromProbe` 兜住 ——
+   * 专业越界 (承诺治愈 / 双重关系 …) 是督导的事后复盘项, 不该在对话中途弹窗.
+   *
+   * 失败语义: **静默放行** —— 探测器抛错就按"没事"处理, 走既有流程;
+   * 内核侧那一层判定仍然会再判一次 (双层防御), 不能因为前置 gate 挂了就把对练搞挂.
+   *
+   * @param input 判定入参 (会话 / 文本 / 轮次 / 帧出口)
+   * @returns 判定结果 (block 时危机帧已推、审计已写、重点监测已置位)
+   */
+  async preCheckSafety(input: VoiceSafetyPreCheckInput): Promise<VoiceSafetyPreCheckResult> {
+    const probe = this.riskProbe;
+    if (!probe) return { level: 'pass' };
+    const text = input.userText.trim();
+    if (text.length === 0) return { level: 'pass' };
+
+    let decision: StudentRiskDecision;
+    try {
+      // 探测来源通道: 远端答的记 `psyguard`, 委托本地词典兜底答的记 `local_dict`
+      //   —— 审计表要能分辨"远端识别能力"与"本地兜底占比", 不能一律记成 psyguard.
+      const { value: result, source } = await runWithProbeSource(() => probe.probe(text, 'counselor_input'));
+      decision = buildStudentRiskDecisionFromProbe(result, source ?? 'local_dict');
+    } catch (error) {
+      this.logger.warn(`[preCheckSafety] 前置探测异常, 放行 session=${input.sessionId}: ${messageOf(error)}`);
+      return { level: 'pass' };
+    }
+
+    if (decision.action !== 'block') {
+      // warn / none → 一律放行 (warn 由内核侧按原时序处置, 这里不重复发 toast).
+      if (decision.action === 'toast' && decision.category) return { level: 'warn', category: decision.category };
+      return { level: 'pass' };
+    }
+
+    // block: 推全屏弹窗 + 写审计 + 置位重点监测 (与内核判定同一套动作, 同一份口径).
+    this.publishStudentRiskFrame(input.sessionId, decision, input.publishFrame);
+    this.recordStudentRiskEvent(input.sessionId, input.userText, input.turnIndex, decision);
+    const handleId = this.handles.get(input.sessionId);
+    if (handleId) this.studentRiskGate?.markMonitored(handleId);
+    this.logger.warn(
+      `[preCheckSafety] block 级危机前置拦截 session=${input.sessionId} turn=${input.turnIndex} ` +
+        `category=${decision.category ?? '-'} source=${decision.source}`,
+    );
+    return decision.category ? { level: 'block', category: decision.category } : { level: 'block' };
+  }
+
+  /**
+   * 一轮: 把引擎的流式渲染翻译成三态 chunk.
+   *
+   * V2026-11-02 治本 (WP16): 入口加**幂等闸门** —— 同一会话同一 round_id
+   * 再来一次, 不重跑 BDI、不重调 LLM, 直接复用上一轮的结果.
+   *
+   * 三条岔路 (顺序即优先级):
+   *   ① 没有 round_id      → 正常跑 (行为与 WP16 之前逐字一致);
+   *   ② 这一轮**已落定**    → 重放已缓存的结果 (complete=true 回正文 / false 回 turn_incomplete);
+   *   ③ 这一轮**还在跑**    → 等它落定后复用 (并发重发不能变成"再跑一遍 BDI").
+   */
+  async streamTurn(opts: VoiceTurnBackendTurnOptions): Promise<{ readonly stream: LlmStream }> {
+    const handleId = this.handles.get(opts.sessionId);
+    if (!handleId) {
+      // 会话没开 → 直接抛 (调用方负责回落旧链路); 静默返回一个空流会让上层
+      // 以为"这一轮正常结束但没话说", 那是最难排查的一种坏.
+      //
+      // V2026-11-03 治本 (WP26 · P2-6): 抛**内核错误码**, 不再抛裸 Error ——
+      //   裸 Error 只能靠 message 字符串匹配才能映射, 上层映射不到就落全局兜底 500;
+      //   而"会话未开启"是**资源不存在**, 正确答案是 404. 用内核错误码, adapter
+      //   才能按 code 分支 (错误契约里明令: 不靠 message 字符串匹配).
+      throw new EngineCoreError(EngineErrorCode.SESSION_NOT_FOUND, `EngineStreamBackend.streamTurn: sessionId=${opts.sessionId} 未开启`, {
+        sessionId: opts.sessionId,
+      });
+    }
+    const roundId = normalizeRoundId(opts.roundId);
+    if (roundId === undefined) {
+      // 客户端没给轮次号 → 不走幂等 (老客户端零影响).
+      return { stream: this.buildStream(handleId, opts) };
+    }
+    const entry = this.idempotency.lookup(opts.sessionId, roundId);
+    if (!entry) {
+      // 第一趟: 同步登记"在跑", 再开跑 —— 登记必须同步, 否则并发重发会各跑一遍.
+      const settle = this.idempotency.begin(opts.sessionId, roundId);
+      return { stream: this.buildStream(handleId, opts, settle) };
+    }
+    if (entry.status === 'done') {
+      this.logger.log(`[streamTurn] 幂等复用 session=${opts.sessionId} round=${roundId} complete=${entry.snapshot.complete}`);
+      return { stream: this.replayStream(entry.snapshot) };
+    }
+    // 还在跑 → 等它落定 (客户端超时重发时, 服务端那一轮多半还没结束).
+    const snapshot = await entry.settled;
+    this.logger.log(`[streamTurn] 幂等待后复用 session=${opts.sessionId} round=${roundId} complete=${snapshot.complete}`);
+    return { stream: this.replayStream(snapshot) };
+  }
+
+  /**
+   * 重放一轮已落定的结果 (WP16).
+   *
+   * ⚠️ 这里**只**做"把已产出的东西再吐一遍":
+   *   · 不调引擎 (不跑 BDI) / 不调渲染 (不烧 token);
+   *   · 不写逐字稿 / 不写留痕 / 不累加用量 / 不推危机帧 ——
+   *     那些副作用在第一次那一轮已经做过了, 重做一遍就是"同一轮记两次账".
+   *
+   * `complete=false` 的那一轮**不重放**: 直接回 `turn_incomplete`, 让前端
+   * 换一个轮次号走新一轮 —— 旧轮的状态已经提交了, 重放只会把半句话再送一遍.
+   *
+   * @param snapshot 本轮快照
+   * @returns 三态 chunk 流
+   */
+  private async *replayStream(snapshot: TurnResultSnapshot): AsyncIterable<LlmStreamChunk> {
+    if (!snapshot.complete) {
+      yield {
+        type: 'error',
+        error: {
+          code: TURN_INCOMPLETE_CODE,
+          message: '本轮回复未发完, 请换一个轮次号重发新一轮',
+          // 不可重试: 重发**同一个**轮次号还会撞上这一条 —— 换号才行.
+          retryable: false,
+        },
+      };
+      return;
+    }
+    if (snapshot.reply.length > 0) {
+      yield { type: 'content', content: snapshot.reply };
+    }
+    // `replayed=true`: 消费方据此知道"这一轮不是新的一轮" (逐字稿不再落第二条).
+    // WP26 · P2-34: finishReason 也原样回放 —— 同一 round_id 两次结论必须一致.
+    yield {
+      type: 'done',
+      usage: snapshot.usage,
+      replayed: true,
+      ...(snapshot.finishReason === undefined ? {} : { finishReason: snapshot.finishReason }),
+    };
+  }
+
+  /**
+   * 断线重连的补漏数据 (V2026-11-03, WP23).
+   *
+   * 返回本场**已提交**轮次里 `turnIndex > lastSeenTurnIndex` 的那些 —— 服务端据此
+   * 组装 `session_catchup` 帧一次性推回客户端.
+   *
+   * 为什么"已提交"由**引擎侧**判定:
+   *   一轮到底算不算数, 只有引擎知道 (BDI 有没有落、回复有没有发完). voice 层看到的
+   *   只是"流结束了" —— 那不足以区分"这一轮说完了"与"说到一半被 barge-in 掐了".
+   *   半截轮补回去 = 客户端拿到半句话, 那是**制造**问题而不是补问题.
+   *
+   * @param sessionId 会话 id
+   * @param lastSeenTurnIndex 客户端已收到的最后一轮 (从 0 起 = 一轮都没收到)
+   * @returns 补漏数据; undefined = 本后端不认识这场会话 (无可补)
+   */
+  catchUp(sessionId: string, lastSeenTurnIndex: number): VoiceCatchUpResult | undefined {
+    const turns = this.committedTurns.get(sessionId);
+    // 没有台账 = 这场会话不是本后端开的 (或者已经收尾) → 无从补起.
+    if (!turns) return undefined;
+    const missedTurns = turns.filter((turn) => turn.turnIndex > lastSeenTurnIndex);
+    const serverLatestTurnIndex = turns.reduce((max, turn) => Math.max(max, turn.turnIndex), 0);
+    return {
+      serverLatestTurnIndex,
+      missedTurns,
+      sessionState: this.buildCatchUpSessionState(sessionId),
+    };
+  }
+
+  /**
+   * 把本轮记进补漏台账 (已提交).
+   *
+   * 记的判据 (三条, 与 WP16 的"完整"判据同源但更严):
+   *   ① 会话还在 (台账还在) —— 收尾后不再记;
+   *   ② 这一轮**没被 abort** —— 被 barge-in 掐掉的轮次回复没发完, 客户端自己就知道
+   *      这一轮没收到, 补回去只会让它拿到半句话;
+   *   ③ 轮次号取 voice 层给的 (`opts.turnIndex`) —— voice 层是轮次号的**唯一真相**
+   *      (它的计数只在整轮跑完时递增, 与客户端 `lastSeenTurnIndex` 同源).
+   *
+   * ⚠️ 同号覆盖: voice 层的轮次号在"引擎跑完但 done chunk 没送达"时会**被下一轮复用**
+   *   (那一轮对 voice 层来说没跑完, 计数不递增). 此时台账里同号有两条 —— 覆盖成
+   *   后来的那次 (它才是客户端真正该看到的"这一轮最终长什么样").
+   *
+   * @param opts 本轮入参
+   * @param result 本轮结算结果
+   * @param replyText 本轮发给客户端的正文
+   */
+  private recordCommittedTurn(opts: VoiceTurnBackendTurnOptions, result: TurnRenderResult, replyText: string): void {
+    const turns = this.committedTurns.get(opts.sessionId);
+    if (!turns) return;
+    if (opts.signal?.aborted === true) return;
+    const turnIndex = opts.turnIndex ?? result.turnIndex;
+    // BDI 快照沿用 WP19-R 留痕的形状 (同一份口径, 不另造第三套);
+    //   取不到就**不附** (catch-up 契约里它是可选的) —— 见 safeBdiSnapshot 的说明.
+    const bdiSnapshot = safeBdiSnapshot(result.snapshot);
+    const entry: VoiceCatchUpTurn = {
+      turnIndex,
+      userText: opts.userText,
+      replyText,
+      ...(bdiSnapshot ? { bdiSnapshot } : {}),
+      // 标记恒空: 标记由 counselor 侧 worker 实时推帧, 没有可回读的逐轮标记存储.
+      marks: [],
+      crisisLevel: result.safety?.level ?? 'pass',
+    };
+    const existing = turns.findIndex((turn) => turn.turnIndex === turnIndex);
+    if (existing !== -1) {
+      turns[existing] = entry;
+      return;
+    }
+    turns.push(entry);
+  }
+
+  /**
+   * 把本轮内核出参投影成评估输入 (V2026-11-06, WP43 · 快速评分的数据源).
+   *
+   * 为什么在**引擎侧**投影而不是把整个内核出参丢给业务侧:
+   *   业务侧不该认识内核的快照类型 —— 跨层契约越窄, 内核改一个字段就不会带崩业务.
+   *   这里只取"评估要算的三类事实": 事件计数 / BDI 首末差值 / 安全判定.
+   *
+   * 为什么用内核的累计轮次而不是 voice 层的轮次号:
+   *   评估要的是"这场实际跑了几轮引擎" —— 内核计数才是引擎事实;
+   *   voice 的轮次号是**客户端对齐**用的 (断流重发时会复用同一个号).
+   *
+   * @param opts 本轮入参
+   * @param result 本轮结算结果 (内核出参)
+   */
+  private recordEvaluationTurn(opts: VoiceTurnBackendTurnOptions, result: TurnRenderResult): void {
+    const turns = this.sessionEvaluationTurns.get(opts.sessionId);
+    if (!turns) return;
+    // 快照按"可能缺字段"来读 (旧快照 / 精简 stub) —— 评估是增强, 不能因此搞挂主链路.
+    const snapshot = result.snapshot as unknown as {
+      trust?: number;
+      safety?: number;
+      bond?: number;
+      resistance?: { verbal?: number };
+      emotion?: { valence?: number; arousal?: number };
+    };
+    turns.push({
+      turnIndex: result.turnIndex,
+      trust: numberOr(snapshot.trust, 0),
+      safety: numberOr(snapshot.safety, 0),
+      bond: numberOr(snapshot.bond, 0),
+      // 阻抗取**话量**维: 三层阻抗里唯一直接对应"来访愿不愿多讲"的一维.
+      resistance: numberOr(snapshot.resistance?.verbal, 0),
+      valence: numberOr(snapshot.emotion?.valence, 0),
+      arousal: numberOr(snapshot.emotion?.arousal, 0),
+      events: result.events ?? [],
+      safetyLevel: result.safety?.level ?? null,
+      safetyCategories: result.safety?.categories ?? [],
+      // V2026-11-07 治本 (degraded 会话打标): 本轮是否**渲染降级** ——
+      //   出的是系统兜底句, 不是来访者真话. 会话结束时的 degraded 判定靠它统计失败轮次.
+      //   ⚠️ 判定源与"降级轮次不写逐字稿"是**同一个** providerHint (同源, 不会两处漂).
+      degraded: result.render.providerHint === 'degraded',
+    });
+  }
+
+  /**
+   * 本场状态 (补漏帧用) —— 只给**引擎侧知道**的那部分.
+   *
+   * 相位 (listening / speaking / paused) 是 voice 层的会话状态, 由 voice 层补;
+   * 这里给的是"是否重点监测"与"角色代号" —— 两者都是引擎侧的事实.
+   *
+   * @param sessionId 会话 id
+   * @returns 会话状态 (缺相位)
+   */
+  private buildCatchUpSessionState(sessionId: string): Omit<VoiceCatchUpSessionState, 'phase'> {
+    const handleId = this.handles.get(sessionId);
+    const monitored = handleId ? (this.studentRiskGate?.isMonitored(handleId) ?? false) : false;
+    return {
+      riskLevel: monitored ? 'elevated' : 'normal',
+      monitored,
+      characterCode: this.characterSlugs.get(sessionId) ?? '',
+    };
+  }
+
+  /**
+   * 收尾: 关内核句柄 + 清逐字稿, 返回本场统计.
+   */
+  closeSession(sessionId: string): VoiceTurnBackendCloseResult {
+    const turns = this.transcripts.get(sessionId) ?? [];
+    const result: VoiceTurnBackendCloseResult = {
+      finalTurnCount: turns.filter((turn) => turn.role === 'assistant').length,
+      finalMessageCount: turns.length,
+    };
+    // V2026-10-29 治本 (WP19 · flush 调试快照):
+    //   会话关闭时把内存缓冲的 trace 写回 DB. fire-and-forget, 不阻塞 close.
+    const dbSid = this.dbSessionIds.get(sessionId);
+    if (dbSid && this.traceRecorder) {
+      // WP19-R: 每轮已即刻落库, 这里的 flush 只是收尾 (补最后一轮 + 清缓冲).
+      // 失败只打 error 日志 —— 不阻断 closeSession.
+      void this.traceRecorder.flush(dbSid).catch((error: unknown) => {
+        this.logger.error(`[closeSession] 调试快照收尾失败 session=${sessionId}: ${messageOf(error)}`);
+      });
+    }
+
+    const context = this.sessionContexts.get(sessionId);
+    const handleId = this.handles.get(sessionId);
+
+    this.transcripts.delete(sessionId);
+    this.dbSessionIds.delete(sessionId);
+    this.sessionContexts.delete(sessionId);
+    this.characterSlugs.delete(sessionId);
+    // V2026-11-03 治本 (WP23): 台账与逐字稿同生命周期 (防内存泄漏).
+    this.committedTurns.delete(sessionId);
+    // WP16: 清掉本场的轮次幂等表 (防内存泄漏) —— 与逐字稿同生命周期.
+    this.idempotency.clearSession(sessionId);
+    // V2026-11-06 治本 (WP43): 评估台账 → 交办规则快评 (读 + 删 + 交办一步做完).
+    this.finalizeSessionEvaluation(sessionId, dbSid, context, handleId);
+    if (handleId) {
+      // V2026-11-02 (WP14): 清重点监测.
+      //   必须清: 句柄是**进程内**标识, 进程不重启就一直复用 —— 不清的话,
+      //   上一场的高危会把**下一场**也拖进重点监测 (串场).
+      this.clearRiskMonitor(handleId);
+      this.handles.delete(sessionId);
+      this.engine.close(handleId);
+    }
+
+    // V2026-10-30 治本 (WP24 · 单场成本日志):
+    //   把本场累计的用量折算成一条结构化日志 —— "这一场花了多少钱".
+    //
+    //   ⚠️ **按句柄判定, 只打一次** (与下面 WP12 收尾同款理由):
+    //     voice 侧的关闭路径会把"当前后端"与"引擎后端"**各关一次** —— 引擎链路下
+    //     这两个是同一个对象, 于是 closeSession 会被调两次. 第二次调用时句柄已被
+    //     清掉, 累加器也已删除 → 不打第二条 (否则同一场会在日志里出现两条汇总,
+    //     一条有数据一条是空的, 看着像算了两场).
+    //
+    //   为什么"累加器不存在"就不打: voice 侧会把**旧链路**的会话也走一遍引擎
+    //   后端的关闭流程, 那时这场根本没走过引擎 (没有一轮渲染) —— 那不是"花了 0 元",
+    //   是"这场不归引擎管", 两者不能混成一条日志.
+    // V2026-10-30 治本 (WP24 · 单场成本日志):
+    //   把本场累计的用量折算成一条结构化日志 —— "这一场花了多少钱".
+    //   ⚠️ **按句柄判定, 只打一次** (与下面 WP12 收尾同款理由):
+    //     voice 侧的关闭路径会把"当前后端"与"引擎后端"**各关一次** —— 引擎链路下
+    //     这两个是同一个对象, 于是 closeSession 会被调两次. 第二次调用时句柄已被
+    //     清掉, 累加器也已删除 → 不打第二条 (否则同一场会在日志里出现两条汇总,
+    //     一条有数据一条是空的, 看着像算了两场).
+    //
+    //   为什么"累加器不存在"就不打: voice 侧会把**旧链路**的会话也走一遍引擎
+    //   后端的关闭流程, 那时这场根本没走过引擎 (没有一轮渲染) —— 那不是"花了 0 元",
+    //   是"这场不归引擎管", 两者不能混成一条日志.
+    // WP22: 本场累计的 completion tokens (交给 voice 层累加到当日全局预算).
+    //   为什么放在收尾结果里: "这场花了多少"只有这里知道 (用量累加器是适配器的
+    //   私有状态), 而"当日预算是多少"是 voice 层的事 —— 通过窄接口把**事实**传出去,
+    //   两侧各管各的, 不让 voice 层去碰引擎的内部计数器.
+    //   只在**第一次**收尾时有值 (按句柄判定) —— 同一场被 close 两次时,
+    //   第二次拿不到累加器 → 缺省, 调用方据此不会重复计费.
+    const totalCompletionTokens = this.reportSessionCost(sessionId, handleId);
+
+    // V2026-10-30 治本 (WP12 · 会话收尾):
+    //   逐字稿全量落库 + 本场摘要晋升长时记忆. fire-and-forget (与上面的 trace flush 同款):
+    //   收尾是 I/O, 不能反过来阻塞 `session_ended` 帧 (前端在等这个帧收页面).
+    //
+    //   ⚠️ **只在会话真的开着时触发** (按句柄判定):
+    //     voice 侧的关闭路径会把"当前后端"与"引擎后端"**各关一次** —— 引擎链路下
+    //     这两个是同一个对象, 于是 closeSession 会被调两次. 第二次调用时句柄已经被
+    //     清掉了, 若不按句柄判定, 第二次就会拿**空逐字稿**去覆盖写库 ——
+    //     把刚落库的逐字稿抹掉 (而且不留任何痕迹).
+    if (handleId && this.closeout) {
+      void this.closeout
+        .finalize({
+          tenantId: context?.tenantId ?? '',
+          sessionId,
+          // 没有学员身份 → **不晋升**长时记忆 (见 buildMemoryScope 的说明).
+          ...(context?.studentScoped ? { visitorId: context.visitorId } : {}),
+          ...(context?.userId ? { userId: context.userId } : {}),
+          ...(dbSid ? { dbSessionId: dbSid } : {}),
+          transcript: turns,
+        })
+        .catch((error: unknown) => {
+          this.logger.warn(`[closeSession] 会话收尾异常 session=${sessionId}: ${messageOf(error)}`);
+        });
+    }
+
+    this.logger.log(
+      `[closeSession] session=${sessionId} turns=${result.finalTurnCount} msgs=${result.finalMessageCount} ` +
+        `closeout=${handleId && this.closeout ? 'yes' : 'no'}`,
+    );
+    // WP22: 带上有值时才有 totalCompletionTokens (缺省 = 不可得, 不是 0).
+    return totalCompletionTokens === undefined ? result : { ...result, totalCompletionTokens };
+  }
+
+  /**
+   * 单场成本汇总 (V2026-10-30, WP24) —— 折算成一条结构化日志 + 交出本场 completion tokens.
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `closeSession` 的圈复杂度已到仓库上限 (eslint 卡 20);
+   *   ② "这场花了多少钱"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * @param sessionId 会话 id
+   * @param handleId 内核句柄 (无 = 这场没走过引擎 → 不归引擎管)
+   * @returns 本场 completion tokens (不可得 = undefined, 不是 0)
+   */
+  private reportSessionCost(sessionId: string, handleId: string | undefined): number | undefined {
+    if (!handleId) return undefined;
+    const totals = this.sessionUsage.get(sessionId);
+    this.sessionUsage.delete(sessionId);
+    if (!totals) return undefined;
+    const summary = buildSessionCostSummary({
+      sessionId,
+      totals,
+      pricing: this.costPricing ?? DEFAULT_SESSION_COST_PRICING,
+      ...(this.costPricingTable === undefined ? {} : { pricingTable: this.costPricingTable }),
+      // 本单只在**新引擎路径**打这条日志, 所以恒为 'bdi'.
+      // (WP17 已降级并入 WP13: enginePath 作为**留痕字段**是 WP13 的活,
+      //  这里只是日志里标一个常量值, 不新增字段到 trace / 报告.)
+      enginePath: 'bdi',
+    });
+    this.logger.log(`[session_cost_summary] ${JSON.stringify(summary)}`);
+    return totals.completionTokens;
+  }
+
+  /**
+   * 会话收尾 → 交办规则快评 (V2026-11-06, WP43).
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `closeSession` 的圈复杂度已到仓库上限 (eslint 卡 20);
+   *   ② "这场要不要评估"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * 口径 (三种情况都**不是错误**, 是"这场不评估"):
+   *   · 一轮都没跑 → 没有事实 → 不写一条 0 分 (那会让人以为"这场表现极差");
+   *   · 没有业务会话 id → 挂不上 training_sessions;
+   *   · 没有学员身份 → 归属不明.
+   *
+   * ⚠️ fire-and-forget (与 trace flush / WP12 收尾同款): 评估是 I/O,
+   *   不能反过来阻塞 session_ended 帧 (前端在等这个帧收页面).
+   *
+   * ⚠️ **按句柄判定, 只算一次**: voice 侧的关闭路径会把"当前后端"与"引擎后端"
+   *   各关一次 —— 引擎链路下这两个是同一个对象. 台账读完即删 → 第二次调用时
+   *   台账已不存在 → 不会重复算分 (否则同一场会被算两遍).
+   *
+   * @param sessionId 会话 id
+   * @param dbSid 业务会话 id (无 = 挂不上 training_sessions)
+   * @param context 会话归属上下文
+   * @param handleId 内核句柄 (无 = 这场没开着)
+   */
+  private finalizeSessionEvaluation(
+    sessionId: string,
+    dbSid: string | undefined,
+    context: SessionContext | undefined,
+    handleId: string | undefined,
+  ): void {
+    const turns = this.sessionEvaluationTurns.get(sessionId);
+    // 台账与逐字稿同生命周期: 读完即删 (防内存泄漏).
+    this.sessionEvaluationTurns.delete(sessionId);
+    if (!turns || turns.length === 0) return;
+    if (!handleId || !this.evaluationRegistry) return;
+    const userId = context?.userId ?? '';
+    if (!dbSid || userId.length === 0) return;
+    void this.evaluationRegistry
+      .finalize({
+        sessionId,
+        dbSessionId: dbSid,
+        userId,
+        tenantId: context?.tenantId ?? '',
+        turns,
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(`[closeSession] 快速评估交办失败 session=${sessionId}: ${messageOf(error)}`);
+      });
+  }
+
+  /**
+   * 清重点监测 (会话关闭时).
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `closeSession` 的圈复杂度已到 20 的上限 (仓库 eslint 卡 20);
+   *   ② "关会话时到底要清什么"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * @param handleId 内核会话句柄
+   */
+  private clearRiskMonitor(handleId: string): void {
+    this.studentRiskGate?.clearMonitored(handleId);
+  }
+
+  /**
+   * 逐字稿副本 (督导报告用).
+   */
+  transcript(sessionId: string): readonly TranscriptTurn[] {
+    return this.transcripts.get(sessionId) ?? [];
+  }
+
+  /**
+   * 引擎流 → 三态 chunk 的翻译体.
+   *
+   * V2026-11-02 治本 (WP16): 引擎这一轮**落定**时, 把结果快照写进幂等表.
+   *
+   * 为什么落定写在 `pending` 的回调里 (而不是这个生成器的函数体尾部):
+   *   消费方随时可能**放弃**这条流 (barge-in 时 voice 层直接不再拉了) ——
+   *   那样的话生成器尾部**根本不会执行**, 快照就永远写不进去.
+   *   而"这一轮跑过、留下了什么"是**已经发生的事实**, 与消费方还在不在读无关.
+   *   写在 promise 链上, 无论消费方走不走, 快照都落得下来.
+   *
+   * @param handleId 内核会话句柄
+   * @param opts 本轮入参
+   * @param settle 幂等落定句柄 (缺省 = 这一轮没带 round_id, 不进幂等表)
+   */
+  private async *buildStream(
+    handleId: string,
+    opts: VoiceTurnBackendTurnOptions,
+    settle?: TurnSettleHandle,
+  ): AsyncIterable<LlmStreamChunk> {
+    const queue = new DeltaQueue();
+    /**
+     * 本轮引擎**产出**的增量 (不是消费方收到的).
+     *
+     * 为什么单独记一份: 断流判定要回答"引擎到底说出了多少" ——
+     * 消费方可能中途放弃 (那段增量它压根没读), 但引擎产出了多少是客观事实.
+     */
+    const produced: string[] = [];
+    const pending = this.engine
+      .turnStream(
+        handleId,
+        { userText: opts.userText, traceId: opts.traceId, ...(opts.signal ? { signal: opts.signal } : {}) },
+        {
+          onDelta: (delta) => {
+            produced.push(delta);
+            queue.push(delta);
+          },
+          ...(opts.signal ? { signal: opts.signal } : {}),
+        },
+      )
+      .then((result) => {
+        queue.close();
+        settle?.settle(this.buildSettledSnapshot(opts, result, produced));
+        return { ok: true as const, result };
+      })
+      .catch((error: unknown) => {
+        queue.close();
+        settle?.settle(this.buildFailedSnapshot(opts, produced));
+        return { ok: false as const, error };
+      });
+
+    const spoken: string[] = [];
+    for await (const delta of queue) {
+      spoken.push(delta);
+      yield { type: 'content', content: delta };
+    }
+
+    const settled = await pending;
+    if (!settled.ok) {
+      this.logger.warn(`[streamTurn] session=${opts.sessionId} 引擎流失败: ${messageOf(settled.error)}`);
+      yield {
+        type: 'error',
+        error: { code: 'engine_stream_error', message: messageOf(settled.error), retryable: true },
+      };
+      return;
+    }
+
+    const reply = settled.result.reply;
+    if (spoken.length === 0 && reply.length > 0) {
+      // 一个增量都没吐但有正文 → 降级兜底句 (引擎全挂时走这条路).
+      // 把它当 content 吐出去, 否则前端会看到"开始了 → 结束了, 却没有任何话".
+      spoken.push(reply);
+      yield { type: 'content', content: reply };
+    }
+
+    const degraded = settled.result.render.providerHint === 'degraded';
+    const blocked = settled.result.disposal?.action === 'block';
+    // V2026-11-02 (WP14): 阻断轮次**不写逐字稿** —— 本轮来访者一个字都没说,
+    //   写一条空的 assistant 记录会让督导看到"AI 回了但没内容", 反而更费解.
+    //   学员说了什么, 由审计表的 snippet 留痕 (那才是该看的地方).
+    if (!degraded && !blocked) {
+      this.appendTurn(opts.sessionId, opts.userText, spoken.join(''));
+    }
+
+    // V2026-11-02 治本 (WP14 · 学员侧处置):
+    //   危机轮次**当场**推危机帧 + 写审计 + (high 时) 置位重点监测.
+    //   为什么必须同步推 (不等异步 worker): 弹窗是**这一轮**的现场处置 ——
+    //   学员的话已经说出口了, 提示晚一轮就晚一轮. 与 WP9-C 的督导提示同款纪律.
+    this.handleStudentRisk(opts.sessionId, opts.userText, settled.result, opts.publishFrame);
+
+    // V2026-10-29 治本 (WP9-C · 同步危机提示):
+    //   危机轮次**不等异步 worker** —— 督导提示如果靠队列 worker, 就会错过"这一轮"
+    //   的窗口 (人已经说完下一句了, 提示才到). 所以在**本轮结算的当场**推帧.
+    this.publishCrisisHint(opts.sessionId, settled.result);
+
+    const usage = settled.result.render.usage;
+
+    // WP19: 调试快照留痕 (抽成私有方法降复杂度).
+    this.recordTrace(opts.sessionId, settled.result, usage);
+
+    // WP24: 本场用量累加 (单场成本日志的数据源).
+    //   累加的是**渲染结果里真实带回来的**用量, 不另调模型、不重算 ——
+    //   成本必须等于"这一场真的花了多少", 而不是"我们以为花了多少".
+    this.accumulateUsage(opts.sessionId, usage, settled.result.render.model, settled.result.render.providerHint);
+
+    // V2026-11-03 治本 (WP23): 本轮跑完了 → 记进**补漏台账**.
+    //   放在这里 (而不是 done chunk 之后): 这一轮是"已提交"的判据是
+    //   "引擎跑完 + 没被 abort", 而这两件事在这一行都已经确定.
+    this.recordCommittedTurn(opts, settled.result, spoken.join(''));
+
+    // V2026-11-06 治本 (WP43): 本轮内核出参投影进评估台账 ——
+    //   评估数据源是**内核出参** (snapshot / events / safety), 不是留痕快照,
+    //   所以与 ENGINE_DEBUG_TRACE_ENABLED 无关 (留痕是调试能力, prod 缺省关;
+    //   评估是业务能力, prod 必须开).
+    this.recordEvaluationTurn(opts, settled.result);
+
+    yield {
+      type: 'done',
+      usage: {
+        // WP24: 输入侧 token 此前恒为 0 (硬编码), 而聚合路径的上游其实报了
+        //   promptTokens —— 这里接上, 流式路径仍是 0 (上游没给拆分, 不编造).
+        promptTokens: usage?.promptTokens ?? 0,
+        completionTokens: usage?.completionTokens ?? 0,
+        totalTokens: usage?.totalTokens ?? 0,
+        ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+      },
+      // V2026-11-03 治本 (WP26 · P2-34): 透传上游结束原因 ——
+      //   `length` 意味着正文被按长度砍断, 客户端与服务端据此分"说完了"与"被截断了".
+      //   缺省 = 上游没给 (不编造).
+      ...(settled.result.render.finishReason === undefined ? {} : { finishReason: settled.result.render.finishReason }),
+    };
+  }
+
+  /**
+   * 构造本轮的幂等快照 (引擎这一轮**成功**落定时).
+   *
+   * "完整"的判定口径 (三条, 缺一不可):
+   *   ① 没被 abort —— 被 barge-in / 客户端取消打断的轮次, 客户端多半没拿到全话;
+   *   ② 没中途降级 —— 渲染器锁定候选后中途崩了会降级成兜底句, 而**已经说出去的
+   *      半句收不回来**: 兜底句替代不了那半句, 这一轮就是"没说完";
+   *   ③ 引擎没抛错 —— 内核错误 (ABORTED / SESSION_NOT_FOUND …) 本轮压根没跑完.
+   *
+   * ⚠️ "降级但一个字都没产出"**不算**不完整: 那种情况下兜底句是**完整**发出去的
+   *   (适配器会把兜底句当 content 吐给前端), 客户端拿到的是一句完整的话.
+   *   把它判成不完整, 客户端就会换号重发 → 同一句话把 BDI 再推一遍 —— 那是漂移.
+   *
+   * @param opts 本轮入参
+   * @param result 本轮结算结果
+   * @param produced 本轮引擎产出的增量
+   * @returns 幂等快照
+   */
+  private buildSettledSnapshot(
+    opts: VoiceTurnBackendTurnOptions,
+    result: TurnRenderResult,
+    produced: readonly string[],
+  ): TurnResultSnapshot {
+    const degraded = result.render.providerHint === 'degraded';
+    const aborted = opts.signal?.aborted === true;
+    const partial = degraded && produced.length > 0;
+    const complete = !aborted && !partial;
+    const usage = result.render.usage;
+    return {
+      complete,
+      // 不完整时存**已发出的部分** (任务单 §2.2.2), 完整时存全量.
+      reply: complete ? result.reply : produced.join(''),
+      userText: opts.userText,
+      usage: {
+        promptTokens: usage?.promptTokens ?? 0,
+        completionTokens: usage?.completionTokens ?? 0,
+        totalTokens: usage?.totalTokens ?? 0,
+        ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+      },
+      // WP26 · P2-34: 上游结束原因随快照存 (重放时原样回出).
+      ...(result.render.finishReason === undefined ? {} : { finishReason: result.render.finishReason }),
+    };
+  }
+
+  /**
+   * 构造本轮的幂等快照 (引擎这一轮**抛错**时).
+   *
+   * 抛错 = 这一轮没跑完 (内核错误 / 建流失败), 一律记"不完整":
+   * 客户端重发同一轮号会拿到 `turn_incomplete`, 于是换号走新一轮.
+   *
+   * @param opts 本轮入参
+   * @param produced 本轮引擎产出的增量 (抛错前已经说出去的部分)
+   * @returns 幂等快照
+   */
+  private buildFailedSnapshot(opts: VoiceTurnBackendTurnOptions, produced: readonly string[]): TurnResultSnapshot {
+    return {
+      complete: false,
+      reply: produced.join(''),
+      userText: opts.userText,
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
+  }
+
+  /**
+   * 累加一轮用量到本场累计 (WP24).
+   *
+   * @param sessionId 语音会话 id
+   * @param usage 本轮用量 (可能缺省 = 渲染降级, 那轮没调模型)
+   * @param model 本轮实际用的模型名 (缺省 = 上游没报)
+   * @param provider 本轮实际用的 provider (缺省 = 上游没报; AF-261)
+   */
+  private accumulateUsage(
+    sessionId: string,
+    usage: TurnRenderResult['render']['usage'],
+    model: string | undefined,
+    provider: string | undefined,
+  ): void {
+    const current = this.sessionUsage.get(sessionId) ?? emptySessionUsageTotals();
+    this.sessionUsage.set(
+      sessionId,
+      accumulateSessionUsage(current, {
+        ...(usage?.promptTokens === undefined ? {} : { promptTokens: usage.promptTokens }),
+        ...(usage?.completionTokens === undefined ? {} : { completionTokens: usage.completionTokens }),
+        ...(usage?.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens }),
+        ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+        ...(model === undefined ? {} : { model }),
+        ...(provider === undefined ? {} : { provider }),
+      }),
+    );
+  }
+
+  /**
+   * WP19: 每轮完成时写调试快照到内存缓冲 (每轮即刻落库).
+   *
+   * 抽成独立方法: ①降 buildStream 圈复杂度; ②调试逻辑不污染主链路阅读.
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕链接通):
+   *   · 快照形状改成 WP19 原单 §1.1 的**逐字**契约 (bdiSnapshot / renderSpec /
+   *     llmUsage / crisis / ts / turnIndex / characterSlug);
+   *   · 记录失败只打 error 日志 —— 调试器不能反过来把对练搞挂.
+   */
+  private recordTrace(sessionId: string, result: TurnRenderResult, usage: TurnRenderResult['render']['usage']): void {
+    const recorder = this.traceRecorder;
+    if (!recorder) return;
+    const dbSid = this.dbSessionIds.get(sessionId);
+    if (!dbSid) return;
+    try {
+      // 不 await: 主链路不等 IO. record() 内部已吞掉写库异常, 这里再兜一层 —
+      // 留痕是观测能力, 任何失败都不许冒泡到对练链路.
+      void recorder.record(dbSid, this.buildTurnTrace(sessionId, result, usage)).catch((error: unknown) => {
+        this.logger.error(`[recordTrace] 调试快照记录失败 session=${sessionId}: ${messageOf(error)}`);
+      });
+    } catch (error) {
+      this.logger.error(`[recordTrace] 调试快照构造失败 session=${sessionId}: ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * 构造本轮调试快照 (WP19 原单 §1.1 契约, 逐字沿用).
+   *
+   * 抽成独立方法: 让 `recordTrace` 只管"记不记 / 记到哪", 形状转换集中在一处,
+   * 将来契约加字段只改这里.
+   *
+   * V2026-11-05 治本 (WP30): 补 `trajectoryTrace` (内核出参透传).
+   *   没有剧本的会话 (BDI 自由运行) 内核不给这一项 → 字段整个不出现 (可选字段),
+   *   与 `renderSpec` / `llmUsage` 的"没有就不带"口径一致.
+   *
+   * @param sessionId 语音会话 id
+   * @param result 本轮结算结果
+   * @param usage 本轮用量
+   * @returns 调试快照
+   */
+  private buildTurnTrace(sessionId: string, result: TurnRenderResult, usage: TurnRenderResult['render']['usage']): TurnTrace {
+    return {
+      turnIndex: result.turnIndex,
+      characterSlug: this.characterSlugs.get(sessionId) ?? '',
+      bdiSnapshot: buildBdiSnapshot(result.snapshot),
+      renderSpec: buildRenderSpecSummary(result.render),
+      llmUsage: buildLlmUsage(result.render, usage),
+      crisis: buildCrisisSummary(result.safety),
+      ...(result.trajectoryTrace ? { trajectoryTrace: result.trajectoryTrace } : {}),
+      ts: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 危机轮次 → 同步推 `supervision_hint` 帧.
+   *
+   * 判定口径与渲染路由**同一份** (isCrisisCategory): 内核判出来的 warn 里,
+   * 只有"危机类别"才推提示 —— 咨询师的专业性提示 (过早给建议 / 价值审判) 属于
+   * 事后复盘项, 不该在对话中途打断督导的注意力.
+   *
+   * 正文只给**方向**, 不含可照念的话术 (仓库硬约束 1): 提示是给督导看的,
+   * 不是给学员念的.
+   *
+   * @param sessionId 语音会话 id
+   * @param result 本轮结算结果
+   */
+  private publishCrisisHint(sessionId: string, result: TurnRenderResult): void {
+    const safety = result.safety;
+    if (!safety || safety.level === 'pass') return;
+    const categories = safety.categories.filter((category) => isCrisisCategory(category));
+    if (categories.length === 0) return;
+
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    if (!dbSessionId || !this.frames) {
+      this.logger.warn(`[streamTurn] 危机轮次未推督导提示 (session=${sessionId} 无落库 id 或无帧出口)`);
+      return;
+    }
+
+    const published = this.frames.publish(dbSessionId, {
+      type: 'supervision_hint',
+      turnIndex: result.turnIndex,
+      category: categories.join(','),
+      hintText: '检测到明确的危机信号，建议督导在本轮后介入评估安全风险。',
+      tier: 'light',
+    });
+    this.logger.warn(
+      `[streamTurn] 危机轮次已推督导提示 session=${sessionId} turn=${result.turnIndex} ` +
+        `level=${safety.level} categories=${categories.join(',')} published=${published}`,
+    );
+  }
+
+  /**
+   * 学员侧危机处置 (V2026-11-02 WP14): 推危机帧 + 写审计 + (high 时) 置位重点监测.
+   *
+   * 三件事的顺序**刻意**如此:
+   *   ① 先推帧 —— 学员的现场处置最紧急 (弹窗要立刻出现在屏幕上);
+   *   ② 再写审计 —— 留痕是义务, 但不能挡在学员前面;
+   *   ③ 最后置位监测 —— high 之后本场进入重点监测, 后续每轮强制走远端探测.
+   *
+   * @param sessionId 语音会话 id
+   * @param userText 学员本轮输入 (审计 snippet 的来源)
+   * @param result 本轮结算结果
+   * @param publishFrame 危机帧直推回调 (缺省 = 退回帧出口注册表)
+   */
+  private handleStudentRisk(
+    sessionId: string,
+    userText: string,
+    result: TurnRenderResult,
+    publishFrame?: (frame: VoiceServerMessage) => void,
+  ): void {
+    const disposal = result.disposal;
+    if (!disposal || disposal.action === 'none') return;
+
+    this.publishStudentRiskFrame(sessionId, disposal, publishFrame);
+    this.recordStudentRiskEvent(sessionId, userText, result.turnIndex, disposal);
+
+    if (disposal.action === 'block') {
+      const handleId = this.handles.get(sessionId);
+      if (handleId) this.studentRiskGate?.markMonitored(handleId);
+    }
+  }
+
+  /**
+   * 推危机帧 (toast / modal).
+   *
+   * 出口优先级: **先用入参里的 `publishFrame` 直推**, 没有才退回帧出口注册表.
+   * 为什么优先直推:
+   *   · 直推是"推给**本场**" —— 天然不会串场;
+   *   · 注册表按**落库 id** 索引, 本场没落库 (纯内存降级) 时那个 id **不存在** ——
+   *     而**危机弹窗不能因为数据库降级就推不出去**.
+   *
+   * @param sessionId 语音会话 id
+   * @param disposal 处置决定
+   * @param publishFrame 直推回调 (缺省 = 退回注册表)
+   */
+  private publishStudentRiskFrame(
+    sessionId: string,
+    disposal: StudentRiskDecision,
+    publishFrame?: (frame: VoiceServerMessage) => void,
+  ): void {
+    const frame = disposal.action === 'block' ? buildCrisisModalFrame(disposal) : buildCrisisToastFrame(disposal);
+    if (publishFrame) {
+      try {
+        publishFrame(frame);
+      } catch (error) {
+        this.logger.warn(`[streamTurn] 危机帧直推失败 session=${sessionId}: ${messageOf(error)}`);
+      }
+      this.logger.warn(
+        `[streamTurn] 危机帧已直推 session=${sessionId} action=${disposal.action} ` +
+          `level=${disposal.level ?? '-'} category=${disposal.category ?? '-'}`,
+      );
+      return;
+    }
+
+    // 兜底: 没有直推回调 (独立调用后端 / 旧装配) → 走帧出口注册表 (按落库 id).
+    const frames = this.frames;
+    if (!frames) {
+      this.logger.warn(`[streamTurn] 危机帧未推 (session=${sessionId} 无帧出口)`);
+      return;
+    }
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    const published = dbSessionId ? frames.publish(dbSessionId, frame) : false;
+    this.logger.warn(
+      `[streamTurn] 危机帧已推 session=${sessionId} action=${disposal.action} ` +
+        `level=${disposal.level ?? '-'} category=${disposal.category ?? '-'} published=${published}`,
+    );
+  }
+
+  /**
+   * 写一条学员风险事件 (append-only).
+   *
+   * fire-and-forget: 写不进去**只打 error 日志**, 不炸对练 (与 `recordTrace` 同款纪律).
+   *
+   * @param sessionId 语音会话 id
+   * @param userText 学员本轮输入
+   * @param turnIndex 触发轮次 (从 1 起)
+   * @param disposal 处置决定
+   */
+  private recordStudentRiskEvent(sessionId: string, userText: string, turnIndex: number, disposal: StudentRiskDecision): void {
+    const sink = this.riskAudit?.get();
+    if (!sink) {
+      this.logger.warn(`[streamTurn] 风险事件未留痕 (session=${sessionId} 无审计实现)`);
+      return;
+    }
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    const userId = this.sessionContexts.get(sessionId)?.userId ?? '';
+    if (!dbSessionId || !userId) {
+      this.logger.warn(`[streamTurn] 风险事件未留痕 (session=${sessionId} 无落库 id 或无学员身份)`);
+      return;
+    }
+    const blocked = disposal.action === 'block';
+    try {
+      void sink
+        .record({
+          sessionId: dbSessionId,
+          userId,
+          turnIndex,
+          level: blocked ? 'high' : 'medium',
+          category: disposal.category ?? 'passive_ideation',
+          snippet: truncateRiskSnippet(userText),
+          source: disposal.source,
+          actionTaken: blocked ? 'modal' : 'toast',
+          monitoredAfter: blocked,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(`[streamTurn] 风险事件留痕失败 session=${sessionId}: ${messageOf(error)}`);
+        });
+    } catch (error) {
+      this.logger.error(`[streamTurn] 风险事件构造失败 session=${sessionId}: ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * 回写学员在危机弹窗后的选择 (WP14 §1.3).
+   *
+   * 由 voice 层在收到 `crisis_resume` 帧时调. 这是审计表**唯一**允许 update 的列.
+   *
+   * @param sessionId 语音会话 id
+   * @param choice 学员的选择
+   */
+  async markUserChoice(sessionId: string, choice: StudentRiskAuditChoice): Promise<void> {
+    const sink = this.riskAudit?.get();
+    if (!sink) return;
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    if (!dbSessionId) {
+      this.logger.warn(`[crisis_resume] 未回写选择 (session=${sessionId} 无落库 id)`);
+      return;
+    }
+    await sink.markUserChoice(dbSessionId, choice);
+  }
+
+  /**
+   * 追加一问一答到逐字稿 (只记**完整跑完**的轮次, 与旧链路同口径).
+   */
+  private appendTurn(sessionId: string, counselorText: string, visitorText: string): void {
+    const turns = this.transcripts.get(sessionId) ?? [];
+    const at = Date.now();
+    turns.push({ role: 'user', content: counselorText, at }, { role: 'assistant', content: visitorText, at });
+    this.transcripts.set(sessionId, turns);
+  }
+}
+
+/**
+ * 会话归属上下文 (WP12): 收尾时要用的那把"记忆作用域键".
+ */
+interface SessionContext {
+  /** 租户隔离键. */
+  readonly tenantId: string;
+  /** 长时记忆的归属作用域 (= 内核入参的 visitorId). */
+  readonly visitorId: string;
+  /** 归属学员 id (逐字稿写库的归属校验用). */
+  readonly userId: string;
+  /** 是否带学员身份 (没带 → 不写长时记忆). */
+  readonly studentScoped: boolean;
+}
+
+/**
+ * 内核快照 → 留痕的 `bdiSnapshot` (WP19 原单 §1.1).
+ *
+ * 口径:
+ *   · trust / valence / arousal: 快照原值;
+ *   · resistance: 取**话量阻抗** (`resistance.verbal`) —— 与"这轮说了多少"
+ *     直接相关, 也是调试器最先想看的那个数;
+ *   · anxiousSecure: 情绪标签 (内核按 valence × arousal 象限重算的离散标签).
+ *
+ * @param snapshot 内核本轮快照
+ * @returns 留痕快照
+ */
+function buildBdiSnapshot(snapshot: TurnRenderResult['snapshot']): TurnTrace['bdiSnapshot'] {
+  return {
+    trust: snapshot.trust,
+    valence: snapshot.emotion.valence,
+    arousal: snapshot.emotion.arousal,
+    resistance: snapshot.resistance.verbal,
+    anxiousSecure: snapshot.emotion.label,
+  };
+}
+
+/**
+ * 内核快照 → 补漏帧的 `bdiSnapshot` (**不抛**).
+ *
+ * 为什么必须不抛 (V2026-11-03, WP23):
+ *   补漏快照是**可选增强** —— 那一轮已经跑完、回复已经发到客户端了,
+ *   快照取不到只是"这一轮没有快照"(契约里它本来就是可选字段), 不该反过来
+ *   把整轮搞挂. 挂掉 = 那一轮白跑 (BDI 已提交、回复已发, 却收不到 done chunk).
+ *
+ *   为什么真实内核也会缺字段: 读快照的地方不止内核一处 —— 单测的最小快照、
+ *   降级路径的空快照都可能少字段. 与其赌"形状一定全", 不如取不到就不附.
+ *
+ * @param snapshot 内核本轮快照
+ * @returns 补漏快照; 形状不完整 → undefined (这一轮不附快照)
+ */
+function safeBdiSnapshot(snapshot: TurnRenderResult['snapshot']): VoiceCatchUpBdiSnapshot | undefined {
+  try {
+    return buildBdiSnapshot(snapshot);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * 渲染元信息 → 留痕的 `renderSpec` (WP19 原单 §1.1).
+ *
+ * 缺省口径: 渲染端口没给就记 'unknown' / 0 —— **不编**一个看起来像真的值.
+ *
+ * @param render 本轮渲染元信息
+ * @returns 留痕渲染规格
+ */
+function buildRenderSpecSummary(render: TurnRenderResult['render']): TurnTrace['renderSpec'] {
+  const spec = render.spec;
+  return {
+    taskKind: spec?.taskKind ?? 'unknown',
+    promptPreview: spec?.promptPreview ?? '',
+    maxCompletionTokens: spec?.maxCompletionTokens ?? 0,
+    reasoningEffort: spec?.reasoningEffort ?? 'unknown',
+  };
+}
+
+/**
+ * 渲染元信息 + 用量 → 留痕的 `llmUsage` (WP19 原单 §1.1).
+ *
+ * ⚠️ `promptTokens` 的口径: **流式路径上游只给累计 tokenCount**, 输入侧拆不出来
+ * (WP24 已立同款纪律: "不可得" ≠ 0). 契约字段是数字, 这里落 0 = 本轮输入侧
+ * 用量不可得 (流式路径恒如此), 不拿它冒充"输入侧没花钱".
+ *
+ * @param render 本轮渲染元信息
+ * @param usage 本轮用量
+ * @returns 留痕用量
+ */
+function buildLlmUsage(render: TurnRenderResult['render'], usage: TurnRenderResult['render']['usage']): TurnTrace['llmUsage'] {
+  return {
+    promptTokens: usage?.promptTokens ?? 0,
+    completionTokens: usage?.completionTokens ?? 0,
+    reasoningTokens: usage?.reasoningTokens ?? 0,
+    ttftMs: render.ttftMs ?? 0,
+    finishReason: render.finishReason ?? 'unknown',
+  };
+}
+
+/**
+ * 本轮安全判定 → 留痕的 `crisis` (WP19 原单 §1.1).
+ *
+ * @param safety 本轮安全判定 (缺省 = 内核判定为 pass)
+ * @returns 留痕危机判定
+ */
+function buildCrisisSummary(safety: TurnRenderResult['safety']): TurnTrace['crisis'] {
+  return {
+    detected: safety !== undefined,
+    category: safety?.categories?.[0] ?? null,
+  };
+}
+
+/**
+ * 本场的角色 id (对外身份键): personaId 优先, 缺省 = 中性基线 id.
+ *
+ * @param opts 开场参数
+ * @returns 角色 id
+ */
+function resolveCharacterId(opts: VoiceTurnBackendOpenOptions): string {
+  const trimmed = opts.personaId?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : NEUTRAL_PERSONA.id;
+}
+
+/**
+ * 本场的**角色 key** (记忆归属作用域用): 公共人物模板 id 优先, 否则 personaId.
+ *
+ * 为什么模板 id 优先: 同一份"角色资产"在 vpt 场里 personaId 常常是空的, 只有
+ * 模板 id 能区分"晚晴"和"小满" —— 用 personaId 当 key 会把所有无 persona 的角色
+ * 归成同一份记忆.
+ *
+ * @param opts 开场参数
+ * @param characterId 角色 id (模板 id 缺省时的回落)
+ * @returns 角色 key
+ */
+function resolveCharacterKey(opts: VoiceTurnBackendOpenOptions, characterId: string): string {
+  const templateId = opts.templateId?.trim() ?? '';
+  return templateId.length > 0 ? templateId : characterId;
+}
+
+/**
+ * 构造长时记忆的归属作用域 (WP12).
+ *
+ * 口径: **`学员 id : 角色 key`**.
+ *
+ * 为什么不能只用角色 key (这是本单最容易踩的坑):
+ *   内核的 `visitorId` 是长时记忆**跨会话归属键** —— 写入用一把键, 召回也用同一把键.
+ *   而这个产品的"来访者"是 **AI 扮演的角色** (晚晴/小满…), 角色 key 对所有学员都相同.
+ *   若直接拿角色 key 当归属键, 学员 A 的咨询摘要会被学员 B 召回去 ——
+ *   那不是"体验更好", 是**把甲学员的私密内容念给乙学员听**.
+ *   归属键必须包含**学员身份**, 才等于"我的这个角色的上次".
+ *
+ * 为什么不用"学员 id"单独做键: 同一学员练不同角色时不该互相污染 (角色基线不同),
+ *   所以键里必须带角色.
+ *
+ * 学员 id 缺失时 (理论上不该发生 —— 语音链路有 JWT 鉴权): 退化为纯角色 key,
+ *   并由调用方据此**不写**长时记忆 (没有归属就没有隔离).
+ *
+ * @param userId 学员 id (可空)
+ * @param characterKey 角色 key (公共人物模板 id 优先, 否则 personaId)
+ * @returns 归属作用域
+ */
+function buildMemoryScope(userId: string | undefined, characterKey: string): string {
+  const user = (userId ?? '').trim();
+  return user.length > 0 ? `${user}:${characterKey}` : characterKey;
+}
+
+/**
+ * 依恋风格 → 开场登记选项 (WP-J P1d).
+ *
+ * 为什么抽成**模块级函数**而不是在 `openKernelSession()` 里写条件展开:
+ *   那个方法的圈复杂度已经贴着仓库上限 (eslint complexity ≤ 20), 内联三元会把它顶穿.
+ *   抽出来 = 判定逻辑单点可测, 主方法复杂度不变.
+ *
+ * 缺省 = 空对象 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+ *
+ * @param profile 已解析的角色内核基线
+ * @returns 登记选项 (有依恋风格才带 key)
+ */
+function attachmentStyleOption(profile: CharacterProfile | undefined): {
+  readonly attachmentStyle?: CharacterProfile['attachmentStyle'];
+} {
+  const style = profile?.attachmentStyle;
+  return style === undefined ? {} : { attachmentStyle: style };
+}
+
+/**
+ * 角色底色简述 (V2026-11-05 WP64 · 旁路审议的「角色背景」块).
+ *
+ * 为什么要有它: 审议模型要判"这一轮来访者的内心状态该怎么变", 光看本轮对话不够 ——
+ * 同一个"来访者沉默", 在回避型依恋身上是常态, 在安全型身上是退缩信号.
+ * 规则算子本来就有这份底色 (内核 `CharacterProfile`), 审议侧不提供就是**不公平对比**.
+ *
+ * 为什么只带**底色**不带剧本: 剧本 (轨迹) 是这一场的编排, 不是来访者的人格底色;
+ * 把它塞进审议 prompt 会让模型去猜"剧本", 而不是判状态.
+ *
+ * ⚠️ 缺省 = 空串 = 审议 prompt 写「（未提供角色背景）」(WP63 的既有占位口径).
+ *
+ * @param profile 已解析的角色内核 (无角色 = undefined)
+ * @returns 简述正文 (空串 = 没有可写的底色)
+ */
+function buildCharacterBrief(profile: CharacterProfile | undefined): string {
+  if (!profile) return '';
+  const parts: string[] = [];
+  if (profile.attachmentStyle) parts.push(`依恋风格: ${ATTACHMENT_STYLE_LABELS[profile.attachmentStyle]}`);
+  const traits = profile.personalityTraits;
+  if (traits) {
+    const traitParts: string[] = [];
+    if (traits.openness !== undefined) traitParts.push(`开放性 ${traits.openness.toFixed(2)}`);
+    if (traits.conscientiousness !== undefined) traitParts.push(`尽责性 ${traits.conscientiousness.toFixed(2)}`);
+    if (traits.extraversion !== undefined) traitParts.push(`外倾性 ${traits.extraversion.toFixed(2)}`);
+    if (traits.agreeableness !== undefined) traitParts.push(`宜人性 ${traits.agreeableness.toFixed(2)}`);
+    if (traits.neuroticism !== undefined) traitParts.push(`神经质 ${traits.neuroticism.toFixed(2)}`);
+    if (traitParts.length > 0) parts.push(`大五人格: ${traitParts.join(' / ')}`);
+  }
+  return parts.join('；');
+}
+
+/** 依恋风格的中文标签 (给审议模型看的可读名, 不是原始枚举). */
+const ATTACHMENT_STYLE_LABELS: Record<AttachmentStyle, string> = {
+  secure: '安全型',
+  anxious: '焦虑型',
+  avoidant: '回避型',
+  disorganized: '紊乱型',
+};
+
+/**
+ * 极简异步队列 —— 把「push 型 onDelta 回调」翻译成「pull 型 AsyncIterable」.
+ *
+ * 为什么需要它: 引擎的流式接口是**回调**形态 (`onDelta`), 而 voice 的消费接口是
+ * **拉取**形态 (AsyncIterable). 两边形态不同, 中间必须有一座转换. 放在这里而不是
+ * 引擎侧, 是因为"推 → 拉"的转换是**消费侧**的责任 (谁在消费, 谁决定怎么拉).
+ *
+ * 反双胞胎: 不引第三方队列库 (为一个几十行的需求加依赖不划算), 也不复用 TTS 的
+ * 事件队列 (那是 bidi 协议专用, 语义与生命周期都不同).
+ */
+class DeltaQueue {
+  private readonly buffer: string[] = [];
+  private notify: (() => void) | null = null;
+  private closed = false;
+
+  /** 推入一段增量. */
+  push(delta: string): void {
+    if (this.closed || delta.length === 0) return;
+    this.buffer.push(delta);
+    this.notify?.();
+  }
+
+  /** 关闭队列 (生产者结束). */
+  close(): void {
+    this.closed = true;
+    this.notify?.();
+  }
+
+  /** 拉取增量 (直到队列关闭). */
+  async *[Symbol.asyncIterator](): AsyncGenerator<string> {
+    for (;;) {
+      while (this.buffer.length > 0) {
+        yield this.buffer.shift()!;
+      }
+      if (this.closed) return;
+      await new Promise<void>((resolve) => {
+        this.notify = resolve;
+      });
+      this.notify = null;
+    }
+  }
+}
+
+/**
+ * 错误转可读文案.
+ */
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * 取一个可能缺失的数值 (兜底用).
+ *
+ * 为什么需要它: 评估投影要读快照里的 trust / safety / bond / resistance / emotion,
+ *   而快照**可能缺字段** ——
+ *     · WP42 之前持久化到 Redis 的旧快照没有 safety / bond (接续旧会话时会读到);
+ *     · 单元测试的精简 stub 只给部分字段.
+ *   直接解引用会让**整个对练回合抛错** —— 而评估只是**增强**能力,
+ *   绝不能因为"想打个分"把主链路搞挂 (同 riskAudit / traceRecorder 的口径).
+ *
+ * @param value 候选值
+ * @param fallback 缺失 / 非法时的兜底
+ * @returns 有限数值
+ */
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+/**
+ * 归一化客户端给的轮次号 (WP16).
+ *
+ * 只认**正整数**: 轮次号是幂等键, 键必须是稳定的 —— 0 / 负数 / 小数 / NaN /
+ * 字符串都不是合法的"轮次号", 一律当**没给** (走不幂等的正常路径).
+ *
+ * 为什么不做"猜" (比如把字符串 '3' 转成 3): 客户端发什么就按什么理解,
+ * 猜出来的键可能与另一轮的键撞上 —— 那比"没幂等"更糟 (会静默复用别人的结果).
+ *
+ * @param roundId 客户端给的轮次号
+ * @returns 合法轮次号; undefined = 没给 / 不合法
+ */
+function normalizeRoundId(roundId: number | undefined): number | undefined {
+  if (typeof roundId !== 'number' || !Number.isInteger(roundId) || roundId < 1) return undefined;
+  return roundId;
+}

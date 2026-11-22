@@ -1,0 +1,212 @@
+{
+  "deliveredAt": "2026-11-20T19:14:53+00:00",
+  "payload": {
+    "receiptId": "RC-AF-223-1",
+    "taskId": "AF-223",
+    "contextId": "phase3-orchestration-hardening",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "db4c93d1eadef234f27cab64dc1826d43c3137fe",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.1",
+      "agent-orchestration/README.md#强制准入"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-223/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af223-task-id-reservation-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "docs/team/agent-orchestration/cross-machine-single-writer.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "scripts/orchestration/__tests__/task-id-reservation.spec.mjs",
+        "scripts/orchestration/task-id-reservation.mjs"
+      ],
+      "modified": [
+        ".gitignore",
+        "docs/team/agent-orchestration/agent-cards/orchestrator.json",
+        "docs/team/agent-orchestration/cross-machine-single-writer.md",
+        "scripts/orchestration/__tests__/task-id-occupancy.spec.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/task-id-occupancy.mjs",
+        "scripts/orchestration/task-intake.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 11,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "2.72s",
+        "note": "336 tests passed（含新增占号 CAS / 顺延 / 释放 / 重建放行 8 例）"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 246,
+        "machine": "同上",
+        "wallClock": "79.07s",
+        "note": "245 passed + 1 skipped files；4155 passed + 7 skipped tests"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存 lint",
+        "note": "eslint 双配置 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "tsc -b",
+        "note": "0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空（engine-core 纯层零 diff）"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base db4c93d --head 78f0e2b",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "total=1 passed=1 failed=0 ok=true"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs task next-id --reserve && task release-id --taskId AF-224",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "真实远端闭环：reserve 创建 refs/heads/orchestration-task-ids/AF-224（sha 0373f47），release 后远端 ref 消失"
+      },
+      {
+        "command": "git check-ignore -v transport/receipts/AF-222.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": ".gitignore:139:/transport/ 命中，运行态目录不再出现在 git status"
+      }
+    ],
+    "reproNotes": "占号 CAS 只用 git push 的非快进语义，不引网络客户端；单测全用临时目录 + 有状态 fake runGit，不触网。真实端到端验证在 origin 上创建并释放了 AF-224 占号 ref，验证后已清理，未遗留。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-223 贯穿任务单、分支、提交、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / archive 全经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执字段与 task-sheet / receipt schema 对齐"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-223 事件在 db4c93d 基线上新增，未改写既有事件"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "不新增 env 键；占号用 git ref，不引外部服务与凭据"
+      },
+      {
+        "item": "resource-domain",
+        "result": "pass",
+        "note": "orchestrator card 补 .gitignore，与 .prettierignore 同层"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef=db4c93d1eadef234f27cab64dc1826d43c3137fe"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF223-01",
+        "impact": "只读 next-id 仍可能被两机同时看到同一建议；必须用 --reserve 才保证唯一",
+        "severity": "medium",
+        "schedule": "文档已写明；后续可让 next-id 默认带预约（需评估远端 ref 噪音）"
+      },
+      {
+        "id": "BL-AF223-02",
+        "impact": "占号 ref 无陈旧回收：机器占号后彻底放弃会让该号长期被占",
+        "severity": "low",
+        "schedule": "下一批次：超过 N 天未登记的占号在 status 中提示"
+      },
+      {
+        "id": "BL-AF223-03",
+        "impact": "run-once 领单只用远端锁，未参考占号事实；已登记任务可能长期排队",
+        "severity": "low",
+        "schedule": "观察一轮再定"
+      },
+      {
+        "id": "BL-AF222-03",
+        "impact": "远端锁释放仍是「读回比对 → 删除」，存在极窄竞态",
+        "severity": "low",
+        "schedule": "待 GitHub refs 条件更新方案"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "清理范围",
+        "taskSays": "目标为 BL-AF222-02（取号跨机仲裁）与 BL-AF222-05（重建排除自身分支）",
+        "reality": "顺带把 BL「transport/ 未忽略」一并处理（同一提交、同一 scope 内的一行 ignore）",
+        "action": "纳入本单，交付记录与回执单独列出",
+        "why": "一行 ignore 另开任务单的编排成本高于收益，且 .gitignore 已随本单进入 orchestrator 资源域"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "取号从「只读建议」升级为「远端 ref CAS 预约 + 自动顺延」，两台机器同时取号不再拿到同一个号；重建同号不再被本机同名分支挡住（selfOnlyIds 放行，其它源命中仍拒）；占号 ref 可归档后释放；transport/ 纳入 ignore；定向 336 例、全量 4162 例、lint/typecheck 0、engine-core 零 diff、逐提交门 PASS，真实远端 reserve→release 闭环取证。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "generated_at": "auto",
+  "cases": 12,
+  "turns": 496,
+  "sft_samples": 332,
+  "skipped_minor_turns": 16,
+  "skipped_placeholder_turns": 1,
+  "event_distribution": {
+    "open_probe": 309,
+    "empathy": 19,
+    "affirmation": 12,
+    "preaching": 11,
+    "normalization": 4,
+    "minimizing": 4,
+    "judgment": 1
+  },
+  "negative_event_total": 16,
+  "quality_distribution": {
+    "normal": 268,
+    "gold": 153,
+    "borderline": 63,
+    "bad": 12
+  },
+  "delta_mean": {
+    "trust": 0.0086,
+    "safety": 0.0018,
+    "bond": 0.0002,
+    "resistance": 0.001,
+    "emotionValence": -0.0
+  },
+  "risk_distribution": {
+    "low": 6,
+    "medium": 5,
+    "high": 1
+  },
+  "school_distribution": {
+    "精神分析": 4,
+    "CBT": 3,
+    "整合": 2,
+    "未标注": 2,
+    "系统式": 1
+  }
+}

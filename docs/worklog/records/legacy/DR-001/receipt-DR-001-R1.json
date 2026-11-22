@@ -1,0 +1,136 @@
+{
+  "deliveredAt": "2026-11-17T08:52:00.000+08:00",
+  "payload": {
+    "receiptId": "DR-001-R1",
+    "taskId": "DR-001",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "investigation",
+    "baselineRef": "1ffcf0f",
+    "dependsOn": [],
+    "policyRefs": ["autonomous-team-design.md#gui-channel", "reliability.md#retry-policy"],
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/dr001-af013-channel-drill-delivery-2026-11-17.md",
+        "docs/team/agent-orchestration/transport/receipts/DR-001.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "artifactRefs": {
+      "taskSheet": "docs/team/agent-orchestration/transport/tasks/DR-001.json",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/dr001-af013-channel-drill-delivery-2026-11-17.md",
+      "reply": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+      "others": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "状态索引 / 工具契约 / 协议视图 / Agent Card / 运行态任务单 / 事件日志 / 投影一致"
+      },
+      {
+        "command": "pnpm orchestration:contracts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "框架契约包 2.0.0 十四份 schema 哈希与版本一致"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "local",
+        "wallClock": null,
+        "note": "138 用例通过"
+      }
+    ],
+    "reproNotes": "按 pnpm orchestration:validate、orchestration:contracts、定向 vitest 与 git merge-base 参数实测复现；不改源码。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "task-sheet:1.1.0 标识 / 类型 / 状态 / 基线字段",
+        "result": "pass",
+        "note": "transport 交接件解包后通过 schema 校验"
+      },
+      {
+        "item": "receipt:1.0.0 artifactRefs 工件指针对象",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord / reply 均存在且非空"
+      },
+      {
+        "item": "reviewVerdict 可空性",
+        "result": "pass",
+        "note": "未验收任务允许 null，最终结论由 orchestrator 回写"
+      }
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "taskId / contextId / type 与交接件一致；工件指针只存路径不复制正文"
+    },
+    "backlogItems": [
+      {
+        "id": "D-10",
+        "impact": "设计备忘 §3 未锚定框架 reliability §4，重试规则各自立法",
+        "schedule": "优先修订"
+      },
+      {
+        "id": "D-5",
+        "impact": "通道失败终态出口双轨，ready 与 failed 无权威优先级",
+        "schedule": "优先修订"
+      },
+      {
+        "id": "D-6",
+        "impact": "GUI 自动投递未闭环，当前仅文件 Transport 已验证",
+        "schedule": "待浏览器 / 桌面自动化可用后补齐"
+      }
+    ],
+    "openQuestions": [
+      "通道失败权威终态出口以 ready 还是 failed 为准",
+      "通道重试预算归设计备忘还是框架任务级限次",
+      "熔断阈值复用工具 / 下游熔断平面还是通道独立计数"
+    ],
+    "manualReviewList": [
+      "抽查回执原文 6 一致 / 12 差异计数与章节锚点",
+      "抽查只读声明：src / test / engine-core 无改动",
+      "抽查回执不含对话原文与凭证"
+    ],
+    "deviationTable": [
+      {
+        "taskSays": "回执写入指定 archive md",
+        "reality": "回执已在 archive，但此前未登记索引",
+        "action": "以 transport 交接件补登，回执作为 reply 指针，另写交付记录",
+        "why": "不复制、不改写历史回执正文"
+      },
+      {
+        "taskSays": "任务单 / 交付记录成对归档",
+        "reality": "原回执不是交付记录",
+        "action": "新增交付记录并登记 deliveryRecord 指针",
+        "why": "任务单 / 交付记录 / 回执三件分离"
+      },
+      {
+        "taskSays": "执行侧不得自证验收",
+        "reality": "回执原文写 conditional-pass，属执行侧自述",
+        "action": "回执 finalStatus=completed、reviewVerdict=null，最终结论由 orchestrator 回写",
+        "why": "验收结论只能基于工件证据与抽跑复现"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": null,
+    "verdictRationale": "执行侧完成只读演练并交付差异清单，待 orchestrator 按 V1–V7 与人工复核出具最终结论。"
+  }
+}

@@ -1,0 +1,476 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:task-state-index:1.1.0",
+  "title": "Agent Collaboration Framework - Task State Index Contract",
+  "description": "状态索引契约。v1.1.0 起索引是事件日志（state-event）的只读投影：projection 字段记录投影来源与末条事件序号，禁止手改投影中的状态；新增 waitingOn / triggerReason / deadLetter / deadLetterReason 与 verdict.failureReasonCode；归档仅接受终态；时间字段一律 ISO 8601 带时区。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "version"
+  ],
+  "allOf": [
+    {
+      "properties": {
+        "tasks": {
+          "items": {
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "input-required"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "waitingOn",
+                    "triggerReason"
+                  ],
+                  "properties": {
+                    "waitingOn": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "triggerReason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "deadLetter"
+                  ],
+                  "properties": {
+                    "deadLetter": {
+                      "const": true
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "deadLetterReason"
+                  ],
+                  "properties": {
+                    "deadLetterReason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "description": "契约版本号，语义化版本；随数据下发，消费端按版本分派解析。"
+    },
+    "schemaRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "本索引所遵循的契约引用（urn:...:task-state-index:X.Y.Z）。"
+    },
+    "note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "索引说明：存储形态、字段约定与例外。"
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "journalPointer",
+        "lastEventSeq"
+      ],
+      "description": "投影来源。存在时表示本索引由事件日志重建，禁止手改；缺失表示该部署未启用事件溯源。",
+      "properties": {
+        "journalPointer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "事件日志路径指针。"
+        },
+        "lastEventSeq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "已投影的末条事件序号；与日志末条 eventSeq 必须一致。"
+        },
+        "rebuiltAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "投影重建时间。"
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taskRecord"
+      },
+      "default": [],
+      "description": "在途与近期任务记录。"
+    },
+    "archivedTasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/archivedTask"
+      },
+      "default": [],
+      "description": "归档任务记录：只保留轻量指针。"
+    }
+  },
+  "$defs": {
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "任务唯一标识模式；取值口径与 schemas/contract-enums.json 的 taskIdPattern 一致。"
+    },
+    "taskStatus": {
+      "type": "string",
+      "enum": [
+        "backlog",
+        "ready",
+        "submitted",
+        "working",
+        "input-required",
+        "completed",
+        "failed",
+        "canceled",
+        "rejected",
+        "auth-required"
+      ],
+      "description": "状态枚举；取值口径与 schemas/contract-enums.json 的 taskStatuses 一致。auth-required 为冻结预留值。"
+    },
+    "terminalStatus": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "canceled",
+        "rejected"
+      ],
+      "description": "终态枚举；取值口径与 schemas/contract-enums.json 的 terminalStatuses 一致。"
+    },
+    "failureReasonCode": {
+      "type": "string",
+      "enum": [
+        "contract-invalid",
+        "input-invalid",
+        "permission-denied",
+        "deterministic-defect",
+        "flaky-observation",
+        "preexisting-debt",
+        "timeout",
+        "dependency-blocked",
+        "external-input-missing",
+        "cancelled-by-human",
+        "dead-lettered"
+      ],
+      "description": "失败原因码；取值口径与 schemas/contract-enums.json 的 failureReasonCodes 一致。"
+    },
+    "taskRecord": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "taskId",
+        "status"
+      ],
+      "properties": {
+        "taskId": {
+          "$ref": "#/$defs/taskId",
+          "description": "任务唯一标识。"
+        },
+        "contextId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "归组标识。"
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "任务类型；取值与任务单的 type 词汇一致，索引侧不做枚举约束以允许项目扩展。"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "任务标题。"
+        },
+        "status": {
+          "$ref": "#/$defs/taskStatus",
+          "description": "当前状态（投影值，禁止手改）。"
+        },
+        "agent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "当前领取者。"
+        },
+        "baselineRef": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "开工基线锚点。"
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/taskId"
+          },
+          "default": [],
+          "description": "上游任务标识数组。"
+        },
+        "policyRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "策略规则锚点数组。"
+        },
+        "createdAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "创建时间（ISO 8601 带时区）。"
+        },
+        "claimedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "领取时间；租约到点自动释放。"
+        },
+        "deadline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "截止时间，同时是领取租约的到期点。"
+        },
+        "waitingOn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "等待项：input-required 时必填，写明缺什么（输入 / 授权 / 裁决）。"
+        },
+        "triggerReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "中断触发原因：input-required 时必填。"
+        },
+        "deadLetter": {
+          "type": "boolean",
+          "default": false,
+          "description": "死信标记：反复失败或达返修上限的任务隔离，不占用 input-required。"
+        },
+        "deadLetterReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "死信原因：deadLetter 为真时必填。"
+        },
+        "artifacts": {
+          "$ref": "#/$defs/artifactPointers",
+          "description": "工件指针，不复制正文。"
+        },
+        "verdict": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "result"
+              ],
+              "properties": {
+                "result": {
+                  "type": "string",
+                  "enum": [
+                    "passed",
+                    "conditional-pass",
+                    "rejected"
+                  ],
+                  "description": "验收结论三级之一；取值口径与 schemas/contract-enums.json 的 reviewVerdicts 一致。"
+                },
+                "rationale": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "结论依据摘要。"
+                },
+                "failureReasonCode": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/failureReasonCode"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "打回时的失败原因码；result 为 rejected 时必填。"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "验收结论；未验收时为 null。"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/historyEntry"
+          },
+          "default": [],
+          "description": "状态迁移历史，只追加不修改。"
+        }
+      }
+    },
+    "artifactPointers": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "taskSheet": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "任务单路径指针。"
+        },
+        "deliveryRecord": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "交付记录路径指针。"
+        },
+        "reply": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "回执原文路径指针。"
+        }
+      }
+    },
+    "historyEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "at",
+        "from",
+        "to",
+        "by"
+      ],
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "迁移发生时间（ISO 8601 带时区）。"
+        },
+        "from": {
+          "$ref": "#/$defs/taskStatus",
+          "description": "原状态。"
+        },
+        "to": {
+          "$ref": "#/$defs/taskStatus",
+          "description": "新状态。"
+        },
+        "by": {
+          "type": "string",
+          "minLength": 1,
+          "description": "执行迁移的角色或执行方。"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "迁移原因；释放、打回、取消、死信时必须写明。"
+        }
+      }
+    },
+    "archivedTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "status"
+      ],
+      "properties": {
+        "taskId": {
+          "$ref": "#/$defs/taskId",
+          "description": "任务唯一标识。"
+        },
+        "status": {
+          "$ref": "#/$defs/terminalStatus",
+          "description": "归档时的终态；只允许四个终态。"
+        },
+        "artifacts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "taskSheet": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "任务单路径指针。"
+            },
+            "deliveryRecord": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "交付记录路径指针。"
+            },
+            "reply": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "回执原文路径指针。"
+            }
+          },
+          "description": "归档只保留工件指针，不保留运行态字段；additionalProperties 关闭，禁止运行态字段回填。"
+        }
+      }
+    }
+  }
+}

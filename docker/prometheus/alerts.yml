@@ -1,0 +1,119 @@
+# Prometheus alert rules (mofang-nestjs)
+#
+# ⚠️ **V2026-11-05 治本 (WP45 · P3-6)**: 本文件原来混着三类规则, 其中一类**永远不会触发**:
+#   ① 引用 node_exporter / redis_exporter 的指标 (`node_memory_*` / `node_cpu_seconds_total` /
+#      `up{job="redis-exporter"}`) —— 但 `prometheus.yml` 里这两个 exporter 的 scrape job
+#      **都是注释掉的** (标记为"可选"), 指标根本不存在 → 表达式恒为空向量 → 永不触发.
+#      后端**补不了**这些指标 (它们不是本服务的指标) —— 要启用得先在 compose 里加 exporter.
+#      按任务单"没有的话, 要么补指标, 要么删掉没用的告警规则" → **本单删掉这 3 条**,
+#      并在下面留了"想启用时怎么加回来"的说明.
+#   ② 模板语法写错的: `{{ ${ $value } }}` —— Prometheus 的模板语法是 `{{ $value }}`,
+#      `${ $value }` 不是合法写法, 渲染不出值 (告警能发出去, 但描述里是空的).
+#   ③ 拿 `rate()` (每秒速率) 去比一个"次数"阈值: `sum(rate(counter[5m])) > 10`
+#      的真实含义是"每秒超过 10 次", 不是"5 分钟内 10 次" —— 描述与口径对不上.
+#      本单统一改成 `increase()` (窗口内增量, 单位=次), 与描述一致.
+#
+# 📌 **本文件只放"后端自己暴露的指标"的规则**:
+#   后端指标清单见 `src/shared/infra/metrics/metrics.service.ts` (MetricsService).
+#   新增告警前先确认: ① 指标真的在那个文件里注册了; ② 它在 `metrics.enabled`
+#   打开时会被真的 inc (注册了但没人调 = 恒 0).
+#
+# 节点 / Redis / MySQL 这类**基础设施**指标的告警, 要等对应 exporter 的 scrape job
+# 在 `prometheus.yml` 里启用后再加回本文件 (那属于"加可观测组件", 不属于清技术债).
+
+groups:
+  # ============================================================
+  # HTTP / 性能
+  # ============================================================
+  - name: http-performance
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{code=~"5.."}[5m])) by (route)
+            / sum(rate(http_requests_total[5m])) by (route)
+            > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "5xx 错误率过高 ({{ $labels.route }})"
+          description: "{{ $labels.route }} 5xx 错误率 {{ $value | humanizePercentage }} (>5%, 持续 5 分钟)"
+
+      - alert: HighP99Latency
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (route, le))
+            > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "P99 延迟过高 ({{ $labels.route }})"
+          description: "P99 延迟 {{ $value }}s (>1s, 持续 5 分钟)"
+
+      - alert: SlowRequestCount
+        # ⚠️ 口径修正 (WP45): 原式是 `sum(rate(bucket{le="+Inf"})) > 0 and sum(rate(_count)) > 100`
+        #   —— 前半段恒真 (只要有流量就 > 0), 整个 `and` 等价于后半段, 但**速率**比"次数"阈值,
+        #   描述写的却是"请求数". 改成 `increase()` (窗口内增量, 单位=次), 与描述一致.
+        expr: |
+          sum(increase(http_request_duration_seconds_count[5m])) by (route) > 100
+        for: 10m
+        labels:
+          severity: info
+          team: backend
+        annotations:
+          summary: "路由流量监控 ({{ $labels.route }})"
+          description: "5 分钟内 {{ $value }} 次请求, 持续监控中, 关注突增"
+
+  # ============================================================
+  # Auth / 鉴权
+  # ============================================================
+  - name: auth-security
+    interval: 30s
+    rules:
+      - alert: HighFailedLoginRate
+        # ⚠️ 口径修正 (WP45): `rate()` → `increase()` —— 比的是"5 分钟内失败多少次",
+        #   不是"每秒失败多少次".
+        expr: |
+          sum(increase(auth_login_attempts_total{result="failed"}[5m]))
+            > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "登录失败率异常"
+          description: "5 分钟内 {{ $value }} 次登录失败 (可能是撞库攻击)"
+
+      - alert: AccountLockedSpike
+        # ⚠️ 口径修正 (WP45): 同上, `rate()` → `increase()` (窗口内锁定次数).
+        expr: |
+          sum(increase(auth_login_attempts_total{result="locked"}[5m]))
+            > 1
+        for: 1m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "账号锁定激增"
+          description: "5 分钟内有 {{ $value }} 个账号被锁定"
+
+  # ============================================================
+  # Audit / 审计
+  # ============================================================
+  - name: audit-integrity
+    interval: 30s
+    rules:
+      - alert: AuditLogProcessingFailure
+        expr: |
+          sum(increase(audit_log_failed_total[5m]))
+            > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "审计日志写入失败"
+          description: "5 分钟内失败 {{ $value }} 次, 异步队列可能有问题"

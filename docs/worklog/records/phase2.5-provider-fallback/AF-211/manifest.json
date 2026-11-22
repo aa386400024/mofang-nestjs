@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-211",
+  "contextId": "phase2.5-provider-fallback",
+  "status": "ready",
+  "createdAt": "2026-11-21T00:36:00+08:00",
+  "updatedAt": "2026-11-20T16:30:35.785Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-provider-fallback/AF-211/task-sheet.md",
+    "sha256": "3a9469ed3f2acf42972ba1c169d11a6faf92b4d4944db15d04ac9144b6370d23",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": ["docs/worklog/pending/af211-af210-commit-backfill-2026-11-21.md"],
+  "tombstone": null
+}

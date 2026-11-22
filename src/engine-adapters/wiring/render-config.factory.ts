@@ -1,0 +1,391 @@
+// V2026-10-28 治本 (WP8-A · B 层 · 渲染配置工厂 + 渲染端口装配):
+//   职责: ① 从 ConfigService/env 读出渲染配置 → 构造 `RenderAdapterConfig`;
+//         ② 把 WP6 的 `LlmRenderAdapter` 装好 (接上 WP7 的 prompt 缝与 WP6 的输出 guard).
+//   边界: 装配层只做「读配置 → 造纯对象 → 注入」; 不写决策、不拼 prompt、
+//         不组装 RenderSpec (那些分别在内核 / WP7).
+//
+//   为什么模型名放在**候选 overrides** 而不是 taskDefaults:
+//     模型名是**厂商相关**的 —— deepseek 是 'deepseek-chat', qwen 是 'qwen-plus'.
+//     而 taskDefaults 是**全局一层**(不分厂商). 把模型名放全局, 主备两个不同厂商
+//     就会共用一个模型名, 切到备候选时必然打错模型. 所以:
+//       taskDefaults[kind]  → 温度 / token 上限 (厂商无关)
+//       candidate.overrides[kind].model → 该候选该分层的模型 (厂商相关)
+//     WP6 的配置结构本来就是为这件事准备的 (候选 overrides 覆盖全局默认).
+//
+//   反双胞胎:
+//     - 不在装配层写死模型名: 模型名从 env 取; 未配置时向 router 问它自己的
+//       tier→model 映射 (各厂商模型名只有 router 知道) —— 装配层硬编码一份
+//       模型名表, 就等于第二份"厂商有什么模型"的真相, 厂商一改就漂移.
+//     - 不在装配层复制温度/阈值的默认值: 一律引用 WP6 导出的种子常量 ——
+//       数值散落两处, 改一处忘一处, 于是"配置说 30s、代码说 3s"这类分裂.
+//     - 不自己判 provider 是否注册: 未注册时 router 走它既有的回落默认路径.
+//
+//   如何验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖 env 缺省/覆盖与 deps 装配
+
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+import { DEFAULT_VISITOR_DOUBAO_MODEL } from '../../agent/visitor/visitor.runtime.js';
+import type { RenderTaskKind, RiskProbePort } from '../../engine-core/index.js';
+import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums.js';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import {
+  LlmRenderAdapter,
+  createVisitorOutputGuard,
+  createVisitorPrecheck,
+  type ChatCaller,
+  type LlmRenderAdapterDeps,
+} from '../rendering/llm-render.adapter.js';
+import {
+  DEFAULT_RENDER_COOLDOWN_BASE_MS,
+  DEFAULT_RENDER_COOLDOWN_MAX_MS,
+  DEFAULT_RENDER_FAILURE_THRESHOLD,
+  DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
+  DEFAULT_RENDER_REASONING_EFFORT,
+  DEFAULT_RENDER_TASK_DEFAULTS,
+  DEFAULT_RENDER_TIMEOUT_MS,
+  createRenderAdapterConfig,
+  type RenderAdapterConfig,
+  type RenderCandidate,
+} from '../rendering/render-adapter.config.js';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import { buildVisitorMessages } from '../rendering/turn-render-orchestrator.js';
+
+/**
+ * 合法的思考强度档位 (上游协议事实, 查表用).
+ */
+const REASONING_EFFORT_VALUES: ReadonlySet<ChatReasoningEffort> = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
+
+/**
+ * 任务分层 → env 键后缀.
+ */
+const KIND_ENV_SUFFIX: Readonly<Record<RenderTaskKind, string>> = {
+  chat: 'CHAT',
+  stable: 'STABLE',
+  advanced: 'ADVANCED',
+};
+
+/**
+ * 渲染主备 / 熔断相关的 env 键名 (导出成常量).
+ *
+ * 为什么导出成常量而不是写字面量: WP25 的 env 双向守卫
+ * (test/config/wp25-env-example-coverage.spec.ts) 用 **AST** 抽取代码里的 env
+ * 读取点, 只有两种形态看得见 ——
+ *   ① config.get('字面量'); ② config.get(常量标识符) (靠 export const 的字面量反查).
+ * 走 this.text(key) 这种"传参"形态, 守卫**看不见** → 模板里的生效行会被判成
+ * "孤儿键" (配了也不生效) 而让守卫变红.
+ * 所以凡是**要登记进 .env.example** 的键, 一律走常量标识符形态.
+ */
+export const ENGINE_RENDER_FALLBACK_PROVIDERS_ENV_KEY = 'ENGINE_RENDER_FALLBACK_PROVIDERS';
+export const ENGINE_RENDER_REQUIRE_FAILOVER_ENV_KEY = 'ENGINE_RENDER_REQUIRE_FAILOVER';
+export const ENGINE_RENDER_HALF_OPEN_AFTER_MS_ENV_KEY = 'ENGINE_RENDER_HALF_OPEN_AFTER_MS';
+
+/**
+ * 渲染配置工厂: env → `RenderAdapterConfig`.
+ */
+@Injectable()
+export class RenderConfigFactory {
+  private readonly logger = new Logger(RenderConfigFactory.name);
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly router: LlmRouterService,
+  ) {}
+
+  /**
+   * 构造渲染配置 (所有键可选, 缺省回 WP6 种子).
+   *
+   * @returns 渲染适配器配置
+   */
+  build(): RenderAdapterConfig {
+    const candidates = this.buildCandidates();
+    // V2026-11-09 治本 (Phase2.5 WP-H · 改动 1): 候选数校验放在**装配期**.
+    //   跑批时才发现"没有备份"就晚了 —— 那时几千场数据已经全是兜底句.
+    this.assertFailoverCapacity(candidates);
+    const chatTemperature = this.ratioNumber('ENGINE_RENDER_CHAT_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.chat.temperature);
+    const stableTemperature = this.ratioNumber('ENGINE_RENDER_STABLE_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.stable.temperature);
+    // V2026-10-29 治本 (WP9-C): token 上限走**新字段** `maxCompletionTokens`
+    //   (thinking token 计入上限). 未配置 env → 不下发, 由 spec.tokenBudget 决定
+    //   (默认 1500, 见 turn-render-orchestrator 的 DEFAULT_TURN_TOKEN_BUDGET) ——
+    //   这样"上限"只有一个真相: env 覆盖, 否则用内核预算.
+    const maxCompletionTokens = this.optionalPositiveNumber('ENGINE_RENDER_MAX_TOKENS');
+    // 思考强度: 渲染路径默认 low (内核已把决策做完, LLM 只做翻译);
+    //   风险轮次由适配器按内核判定结果强制抬档 (medium/high), 不受这里影响.
+    const reasoningEffort = this.reasoningEffort('ENGINE_RENDER_REASONING_EFFORT') ?? DEFAULT_RENDER_REASONING_EFFORT;
+
+    return createRenderAdapterConfig(candidates, {
+      taskDefaults: {
+        // advanced 本期回退 chat 口径 (本期没有高阶档位, 别假装有).
+        chat: { temperature: chatTemperature, maxCompletionTokens, reasoningEffort },
+        stable: { temperature: stableTemperature, maxCompletionTokens, reasoningEffort },
+        advanced: { temperature: chatTemperature, maxCompletionTokens, reasoningEffort },
+      },
+      timeoutMs: this.positiveNumber('ENGINE_RENDER_TIMEOUT_MS', DEFAULT_RENDER_TIMEOUT_MS),
+      failureThreshold: this.positiveNumber('ENGINE_RENDER_FAILURE_THRESHOLD', DEFAULT_RENDER_FAILURE_THRESHOLD),
+      cooldownBaseMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_BASE_MS', DEFAULT_RENDER_COOLDOWN_BASE_MS),
+      cooldownMaxMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_MAX_MS', DEFAULT_RENDER_COOLDOWN_MAX_MS),
+      // V2026-11-09 治本 (WP-H · 改动 2): 半开探测等待时长 (冷却期内多久放一次探测).
+      halfOpenAfterMs: this.positiveNumberFromRaw(
+        this.config.get<string>(ENGINE_RENDER_HALF_OPEN_AFTER_MS_ENV_KEY),
+        DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
+      ),
+      fallbackUtterances: this.fallbackUtterances(),
+    });
+  }
+
+  /**
+   * 候选序列: 主候选 + 逗号分隔的备候选 (顺序即优先级, 去重).
+   */
+  private buildCandidates(): RenderCandidate[] {
+    const visitorProvider = this.visitorProviderOverride();
+    const configuredPrimary =
+      this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.DEEPSEEK;
+    // AF-252: `VISITOR_LLM_PROVIDER=doubao` 是**来访者总开关** —— 旧 VisitorService 与
+    // 引擎渲染必须一起切，否则同一个开关只覆盖一条链路，生产主候选仍是 MiniMax。
+    const primary = visitorProvider ?? configuredPrimary;
+    const fallbackRaw = this.normalizeEnvText(this.config.get<string>(ENGINE_RENDER_FALLBACK_PROVIDERS_ENV_KEY));
+    const fallbacks = (fallbackRaw ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+
+    // 切到豆包时若没有显式备候选，自动补 MiniMax：单候选一熔断就是整场兜底句。
+    if (visitorProvider === AIProviderId.DOUBAO && fallbacks.length === 0) {
+      fallbacks.push(AIProviderId.MINIMAX);
+    }
+
+    const ids = [...new Set([primary, ...fallbacks])];
+    return ids.map((id) => ({
+      id,
+      overrides: {
+        chat: { model: this.modelFor('chat', id) },
+        stable: { model: this.modelFor('stable', id) },
+        advanced: { model: this.modelFor('advanced', id) },
+      },
+    }));
+  }
+
+  /**
+   * 来访者总开关 `VISITOR_LLM_PROVIDER` (缺省 / minimax = 不覆盖).
+   *
+   * 只允许两个值，非法值启动期抛错 —— 与 `resolveVisitorRuntime()` 同一口径，
+   * 不静默回落（否则部署方以为切了豆包，实际还在 MiniMax）。
+   *
+   * @returns doubao = 强制主候选豆包；null = 保持既有候选配置
+   */
+  private visitorProviderOverride(): AIProviderId.DOUBAO | null {
+    const raw = this.text('VISITOR_LLM_PROVIDER');
+    if (!raw) return null;
+    const normalized = raw.toLowerCase();
+    if (normalized === AIProviderId.DOUBAO) return AIProviderId.DOUBAO;
+    if (normalized === AIProviderId.MINIMAX) return null;
+    throw new Error(`VISITOR_LLM_PROVIDER=${raw} 非法，只允许 minimax / doubao`);
+  }
+
+  /**
+   * 候选序列长度校验 (启动期).
+   *
+   * 为什么必须在**装配期**判: 熔断一开就是全损 —— 单候选时没有备份,
+   * 上游一限流, 整场对练都在吐兜底池 (归档 500 份逐字稿里 91.8% 的来访者
+   * 发言是兜底句, 根因就在这里). 跑到一半才发现就晚了.
+   *
+   * 默认只**告警** (零回归: 当前部署就是单候选, 不该让服务起不来);
+   * env `ENGINE_RENDER_REQUIRE_FAILOVER=true` 时改成硬失败 ——
+   * 给"跑批前必须配好备份"这件事留一个开关, 由部署方自己决定要不要上.
+   *
+   * @param candidates 候选序列
+   */
+  private assertFailoverCapacity(candidates: readonly RenderCandidate[]): void {
+    if (candidates.length >= 2) return;
+    const message = `单候选模式: 候选数=${candidates.length}, 熔断将导致全部请求降级, 批量跑批前请配置 ENGINE_RENDER_FALLBACK_PROVIDERS`;
+    if (this.requireFailover()) {
+      throw new Error(`渲染候选序列校验失败: ${message}`);
+    }
+    this.logger.warn(`[render] ${message}`);
+  }
+
+  /**
+   * env `ENGINE_RENDER_REQUIRE_FAILOVER` (缺省 false).
+   *
+   * 只有 true / 1 / yes / on 算真; 其它一律当假 (缺省是"不拦启动", 别被一个
+   * 手滑的 "True " 之类的值拦在门外).
+   */
+  private requireFailover(): boolean {
+    const raw = this.normalizeEnvText(this.config.get<string>(ENGINE_RENDER_REQUIRE_FAILOVER_ENV_KEY));
+    if (raw === undefined) return false;
+    return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
+  }
+
+  /**
+   * 该候选该分层的模型名: env 优先, 否则问 router 自己的 tier→model 映射.
+   *
+   * AF-210: 加 provider 维度覆盖 `ENGINE_RENDER_<KIND>_MODEL_<PROVIDER>`.
+   *   原实现只有全局键, 主备两家不同厂商时会共用一个模型名 —— 主候选是
+   *   MiniMax 时要覆盖豆包, 全局键会把 MiniMax 也改掉. 优先级保持:
+   *   全局显式键 (既有语义) > provider 维度键 > 档位表.
+   */
+  private modelFor(kind: RenderTaskKind, providerId: string): string | undefined {
+    const explicit = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX[kind]}_MODEL`);
+    if (explicit) return explicit;
+    // advanced 未单独配置时回退 chat (本期 advanced 与 chat 同口径).
+    if (kind === 'advanced') {
+      const chatModel = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX.chat}_MODEL`);
+      if (chatModel) return chatModel;
+    }
+    const providerExplicit = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX[kind]}_MODEL_${providerId.toUpperCase()}`);
+    if (providerExplicit) return providerExplicit;
+    if (kind === 'advanced') {
+      const providerChatModel = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX.chat}_MODEL_${providerId.toUpperCase()}`);
+      if (providerChatModel) return providerChatModel;
+    }
+    // AF-252: visitor 总开关切豆包时，模型默认走 Seed Character，而不是渲染档位表里的
+    // 通用豆包型号；`VISITOR_DOUBAO_MODEL` 与 `ENGINE_RENDER_<KIND>_MODEL_DOUBAO`
+    // 都显式配置时前者先让位（provider 维度键优先）。
+    if (providerId === AIProviderId.DOUBAO && this.visitorProviderOverride() === AIProviderId.DOUBAO) {
+      return this.text('VISITOR_DOUBAO_MODEL') ?? DEFAULT_VISITOR_DOUBAO_MODEL;
+    }
+    return this.router.getDefaultModelForTier(LLMTier.RAG, providerId as AIProviderId);
+  }
+
+  /** 读字符串 (缺省/空白 → undefined). */
+  private text(key: string): string | undefined {
+    return this.normalizeEnvText(this.config.get<string>(key));
+  }
+
+  /**
+   * 归一字符串 env 值 (缺省/空白 → undefined).
+   *
+   * @param raw env 原始值
+   * @returns 归一后的值
+   */
+  private normalizeEnvText(raw: string | undefined): string | undefined {
+    if (typeof raw !== 'string') return undefined;
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  /**
+   * 读正数 (直接给原始 env 值; 非法/缺省 → 回落种子).
+   *
+   * 与 positiveNumber 的区别: 那个走 this.text(key) (守卫看不见读取点),
+   * 这个接受**已经在调用点取好的原始值** —— 调用点用常量标识符形态,
+   * WP25 的 env 双向守卫才认得出这是真的读取.
+   *
+   * @param raw env 原始值
+   * @param fallback 缺省值
+   * @returns 数值
+   */
+  private positiveNumberFromRaw(raw: string | undefined, fallback: number): number {
+    const text = this.normalizeEnvText(raw);
+    if (text === undefined) return fallback;
+    const parsed = Number(text);
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+    return parsed;
+  }
+
+  /** 读正数 (非法 → 回落种子). */
+  private positiveNumber(key: string, fallback: number): number {
+    const parsed = this.parseNumber(key);
+    if (parsed === undefined || parsed <= 0) return fallback;
+    return parsed;
+  }
+
+  /** 读可选正数 (未配置 → undefined, 让下游继续用自己的预算). */
+  private optionalPositiveNumber(key: string): number | undefined {
+    const parsed = this.parseNumber(key);
+    if (parsed === undefined || parsed <= 0) return undefined;
+    return parsed;
+  }
+
+  /**
+   * 读思考强度档位 (非法 → undefined, 让下游回落种子).
+   *
+   * 用查表而不是"是不是 low/medium/high": 档位集合是**上游协议事实**
+   * (MiniMax 还支持 xhigh/max), 写死一份 if 链必然漏档.
+   */
+  private reasoningEffort(key: string): ChatReasoningEffort | undefined {
+    const raw = this.text(key)?.toLowerCase();
+    if (!raw) return undefined;
+    return REASONING_EFFORT_VALUES.has(raw as ChatReasoningEffort) ? (raw as ChatReasoningEffort) : undefined;
+  }
+
+  /**
+   * 兜底话术池: env 一行多句 (`|` 分隔) → 数组.
+   *
+   * 为什么用 `|` 而不是逗号: 兜底话术本身常带逗号 ("……我先缓一下, 我们接着说。"),
+   * 用逗号分隔会把一句话切成两半. 未配置 → undefined (回落种子池).
+   */
+  private fallbackUtterances(): readonly string[] | undefined {
+    const raw = this.text('ENGINE_RENDER_FALLBACK_UTTERANCE');
+    if (!raw) return undefined;
+    const pool = raw
+      .split('|')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    return pool.length > 0 ? pool : undefined;
+  }
+
+  /** 读比率 (温度; 允许 0, 非法 → 回落种子). */
+  private ratioNumber(key: string, fallback: number): number {
+    const parsed = this.parseNumber(key);
+    if (parsed === undefined || parsed < 0) return fallback;
+    return parsed;
+  }
+
+  /** env 值转数字 (非数字 → undefined). */
+  private parseNumber(key: string): number | undefined {
+    const raw = this.text(key);
+    if (raw === undefined) return undefined;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+}
+
+/**
+ * 装配渲染端口的依赖 (WP6 的 `LlmRenderAdapterDeps`).
+ *
+ * 单独抽成函数 (而不是塞进 useFactory 里): 这样单测能**直接断言 deps** ——
+ * prompt 缝是不是 WP7 的 `buildVisitorMessages`、guard 是不是 WP6 的
+ * `createVisitorOutputGuard()` 产物, 一眼可验.
+ *
+ * @param caller 调用出口
+ * @param config 渲染配置
+ * @param probe 可选的来访输出侧探测器 (WP11 审核后决策 #3; 缺省 = 该侧不接探测)
+ * @returns 渲染适配器依赖
+ */
+export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterConfig, probe?: RiskProbePort): LlmRenderAdapterDeps {
+  const logger = new Logger('EngineRenderPort');
+  return {
+    caller,
+    config,
+    // WP7 留给本期的 prompt 缝: 来访视角的中文 system 模板 + 角色映射.
+    buildMessages: buildVisitorMessages,
+    // 输出侧伦理校验: 复用内核 WP4 的 guardVisitorOutput (两侧口径永远一致).
+    // ⚠️ **不显式传 timeoutMs**: 让它继承内核 DEFAULT_PROBE_TIMEOUT_MS ——
+    //   M3 内测把那个常量改回 150ms 时, 这一侧自动跟着回, 只有一个回改点.
+    guard: createVisitorOutputGuard(probe ? { probe } : undefined),
+    // WP8-B 前置静态预检 (流式专用): 复用内核同一套来访侧规则, 只看 RenderSpec,
+    // 不调模型 —— 流式已出声不可撤回, 所以开口前先判一次.
+    precheck: createVisitorPrecheck(),
+    // 安全信号只进日志 (不进 RenderResult): 文本片段由适配器自己截断记录,
+    // 这里只记等级与类别, 避免同一段敏感内容被日志记两遍.
+    onSafetySignal: (_text, level, categories) => {
+      logger.warn(`渲染输出安全信号 level=${level} categories=${categories.join(',') || '-'}`);
+    },
+  };
+}
+
+/**
+ * 装配渲染端口 (WP6 的 `LlmRenderAdapter`).
+ *
+ * @param caller 调用出口
+ * @param config 渲染配置
+ * @param probe 可选的来访输出侧探测器 (WP11 审核后决策 #3; 缺省 = 该侧不接探测)
+ * @returns 渲染端口 (带流式扩展)
+ */
+export function buildEngineRenderPort(caller: ChatCaller, config: RenderAdapterConfig, probe?: RiskProbePort): StreamingRenderPort {
+  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config, probe));
+}

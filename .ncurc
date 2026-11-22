@@ -1,0 +1,3 @@
+{
+  "reject": ["typeorm-model-generator"]
+}

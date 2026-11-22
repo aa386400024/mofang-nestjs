@@ -1,0 +1,662 @@
+name: CI
+
+on:
+  push:
+    branches: [master, integrate]
+  pull_request:
+    # master 只接收 Release workflow 生成的 release PR，CI 由 release.yml
+    # 对 release 分支显式 workflow_dispatch；避免 GITHUB_TOKEN 创建 PR 时
+    # 自动 pull_request run 进入 action_required/failure 并阻塞合并。
+    branches: [integrate]
+  workflow_dispatch:
+
+# 同一个 PR 取消之前的 run (节省 CI quota)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # AF-056：服务端逐提交编排门。只保护 integrate 与任务 PR；
+  # master/release 的 L4 由 release.yml 独立授权，不在这里隐式扩权。
+  orchestration-gate:
+    name: Orchestration Gate
+    if: >-
+      ${{
+        github.event_name == 'pull_request' ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/integrate') ||
+        (github.event_name == 'workflow_dispatch' &&
+          (github.ref == 'refs/heads/integrate' || startsWith(github.ref, 'refs/heads/task/')))
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Resolve commit range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          REF_NAME: ${{ github.ref }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$PR_BASE"
+            HEAD="$PR_HEAD"
+            echo "ORCH_REQUIRE_ACCEPTED=1" >> "$GITHUB_ENV"
+            echo "ORCH_TASK_REF=$HEAD_REF" >> "$GITHUB_ENV"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            BASE="$EVENT_BEFORE"
+            HEAD="$EVENT_AFTER"
+          elif [[ "$REF_NAME" == refs/heads/task/* ]]; then
+            git fetch origin integrate --no-tags
+            BASE="origin/integrate"
+            HEAD="$EVENT_AFTER"
+          else
+            BASE="$EVENT_AFTER^"
+            HEAD="$EVENT_AFTER"
+          fi
+          echo "ORCH_BASE=$BASE" >> "$GITHUB_ENV"
+          echo "ORCH_HEAD=$HEAD" >> "$GITHUB_ENV"
+          echo "Validating $BASE..$HEAD"
+
+      - name: Validate every commit against its own task snapshot
+        run: |
+          if [ "$ORCH_REQUIRE_ACCEPTED" = "1" ]; then
+            # 防止绕过 pr-release，直接从 GitHub 页面合并未验收 PR。
+            node scripts/orchestration/ci-task-gate.mjs \
+              --base "$ORCH_BASE" --head "$ORCH_HEAD" \
+              --require-accepted --task-id "$ORCH_TASK_REF"
+          else
+            node scripts/orchestration/ci-task-gate.mjs --base "$ORCH_BASE" --head "$ORCH_HEAD"
+          fi
+
+      - name: Validate worklog record bundles
+        run: node scripts/orchestration/cli.mjs worklog verify --strict
+
+  # 所有 job 之间没有产物依赖：契约 / lint / 单测 / E2E / 覆盖率 / Docker build / 安全审计
+  # 均从同一 checkout 独立执行。并行跑可将墙钟从「lint→test→build」三段串行压到单段最长作业。
+  # 代价是 lint 失败时其它作业仍会跑完；以延迟优先，失败面由各 job 独立结论呈现。
+  # ============================================================
+  # 0. Contracts (跨仓契约硬门 · P0)
+  #    框架仓为私有仓，CI 不能匿名 checkout；用仓内不可变契约包做真实 schema 校验。
+  #    ORCH_REQUIRE_FRAMEWORK=1 表示框架不可达时禁止 skipped 软通过，必须 fail-fast。
+  # ============================================================
+  contracts:
+    name: Contracts (framework 2.0.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ORCH_FRAMEWORK_DIR: ${{ github.workspace }}/contracts/agent-collaboration-framework/2.0.0
+      ORCH_REQUIRE_FRAMEWORK: '1'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify immutable framework bundle (hash + version)
+        run: pnpm orchestration:contracts
+
+      - name: Assert hard mode fails when framework is missing
+        run: |
+          set +e
+          ORCH_FRAMEWORK_DIR="$RUNNER_TEMP/absent-framework" ORCH_REQUIRE_FRAMEWORK=1 \
+            node scripts/orchestration/cli.mjs validate > "$RUNNER_TEMP/absent.log" 2>&1
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/absent.log"
+          test "$code" -ne 0
+
+      - name: Validate schemas + event journal + projection
+        run: pnpm orchestration:validate
+
+  # ============================================================
+  # 1. Lint + Typecheck (最快, 先跑)
+  # ============================================================
+  lint-and-typecheck:
+    name: Lint + Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache ESLint results
+        uses: actions/cache@v5
+        with:
+          path: .eslintcache
+          # T-2 (TD-9) 键口径: ESLint 自身缓存键 = ESLint 版本 + Node 版本 + 解析后配置对象哈希 + 文件内容哈希
+          #   (使用 --cache-strategy content, 不依赖 checkout 后必然变化的 mtime).
+          #   改过 tsconfig 后旧缓存仍可能给出过期 type-aware 结论, 因此外层键继续绑定 tsconfig 指纹.
+          #   不用 restore-keys: 指纹不同宁可冷跑, 不拿旧类型配置缓存充数.
+          #   收益 (本机实测): 冷跑 183.6s → 命中 5.8s; CI 命中后 Lint 约 6s.
+          key: eslint-content-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
+
+      - name: Cache TypeScript build info
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.tmp/tcheck-full.tsbuildinfo
+          key: tsc-full-${{ runner.os }}-${{ hashFiles('tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            tsc-full-${{ runner.os }}-
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: |
+          mkdir -p node_modules/.tmp
+          pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo
+
+  # ============================================================
+  # 2. Unit tests (TD-11 · T-E: matrix 3 片, 仅 unit 进分片)
+  # ============================================================
+  unit:
+    name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数.
+    #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+        count: [3]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache vitest transform cache
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            vitest-transform-${{ runner.os }}-
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
+
+      - name: Unit tests (shard ${{ matrix.shard }}/${{ matrix.count }})
+        # ⚠️ 必须用 `pnpm run <script> -- <args>` 形态.
+        #    pnpm 的 `pnpm <script> -- <args>` 简写会把 --shard 当成 pnpm 自己的未知选项直接报错
+        #    (本机实测: ERROR Unknown option: 'shard'), 只有 `pnpm run test -- --shard=1/2` 才会透传.
+        run: pnpm run test -- --shard=${{ matrix.shard }}/${{ matrix.count }}
+
+  # ============================================================
+  # 3. E2E tests (独立 config + 独立步骤, 不进分片矩阵)
+  # ============================================================
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+      # P-DEBT-17: 构造期硬校验 env; e2e 装配真实 AppModule 触发 LlmService + AsrTokenService 构造.
+      #   stub 仅通过非空校验, 不发起网络调用 (e2e 用例均 skip 或不触达 LLM/ASR 调用); 生产 env 由部署环境注入.
+      MINIMAX_BASE_URL: http://127.0.0.1:1
+      MINIMAX_API_KEY: stub-test-key
+      MINIMAX_LLM_MODEL: stub-model
+      MINIMAX_ASR_TOKEN_SECRET: stub-asr-token-secret
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
+
+      - name: E2E tests
+        run: pnpm test:e2e
+        env:
+          # E2E 需真实 HTTP server
+          PORT: 3000
+  # ============================================================
+  # 4. Coverage (TD-11 · T-D: 3 片采集 + 合并后统一阈值门禁)
+  #    单进程全量跑覆盖率约 124s；改为 3 片各自采集，末尾 merge-reports 合并覆盖率并只在合并结果上执行阈值，
+  #    保证口径仍是全量。3 片可把测试步骤压到约 20-30s，避免 2 片时 shard 1 成为长尾。
+  # ============================================================
+  coverage-shards:
+    name: Coverage (shard ${{ matrix.shard }}/${{ matrix.count }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+        count: [3]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache vitest transform cache
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            vitest-transform-${{ runner.os }}-
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
+
+      - name: Unit tests with coverage (shard)
+        # 分片阶段只采集数据，不执行阈值；阈值在 coverage-gate 的合并结果上执行，
+        # 避免用局部覆盖率误判全局门禁。
+        run: |
+          mkdir -p .vitest-reports
+          pnpm exec vitest run \
+            --coverage \
+            --coverage.reportsDirectory=coverage/shard-${{ matrix.shard }} \
+            --coverage.thresholds.statements=0 \
+            --coverage.thresholds.branches=0 \
+            --coverage.thresholds.functions=0 \
+            --coverage.thresholds.lines=0 \
+            --shard=${{ matrix.shard }}/${{ matrix.count }} \
+            --reporter=blob \
+            --outputFile=.vitest-reports/blob-${{ matrix.shard }}.json \
+            --exclude '**/e2e/**/*.ts'
+
+      - name: Upload coverage blob
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-blob-${{ matrix.shard }}
+          path: .vitest-reports
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: true
+
+  coverage-gate:
+    name: Coverage Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: coverage-shards
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download coverage blobs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-blob-*
+          path: .vitest-reports
+          merge-multiple: true
+
+      - name: Merge coverage and enforce thresholds
+        run: pnpm exec vitest --merge-reports=.vitest-reports --coverage --reporter=default
+
+      - name: Upload coverage report (lcov)
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-lcov
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: error
+
+  # ============================================================
+  # 5. Build (编译产物, 验证 Dockerfile 能 build)
+  # ============================================================
+  build:
+    name: Build (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: mofang-nestjs:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image size check
+        run: |
+          SIZE=$(docker images mofang-nestjs:${{ github.sha }} --format "{{.Size}}")
+          echo "Image size: $SIZE"
+
+  # ============================================================
+  # 6. Security audit (大厂必备)
+  # ============================================================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit
+        # TD-11 · T-C: --ignore-registry-errors 只在 registry 网络 / 服务故障时放行 (exit 0),
+        #   **真实 high 及以上 advisory 仍按 --audit-level=high 阻断** —— 容错不覆盖漏洞判定.
+        run: pnpm audit --audit-level=high --prod --ignore-registry-errors
+
+      - name: Run Trivy vulnerability scanner on Dockerfile
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'node:26-alpine'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

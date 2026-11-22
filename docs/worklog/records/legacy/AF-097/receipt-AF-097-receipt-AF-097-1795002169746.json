@@ -1,0 +1,95 @@
+{
+  "taskId": "AF-097",
+  "contextId": "phase2.5-exit4-proxy-quality",
+  "type": "implementation",
+  "baselineRef": "6a52d7e62795bc427408d0cc7c6eb415b03363c5",
+  "dependsOn": ["AF-091", "AF-093"],
+  "policyRefs": ["conventions.md#1.3"],
+  "changedFiles": {
+    "added": [
+      "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+      "docs/worklog/completed/phase2.5/af095-counselor-quality-evidence-2026-11-18.json",
+      "docs/worklog/completed/phase2.5/af095-long-batch-quality-audit-2026-11-18.json",
+      "docs/worklog/pending/af097-af095-quality-rework-task-2026-11-18.md",
+      "src/auto-practice/metrics/counselor-quality.ts",
+      "src/auto-practice/metrics/counselor-quality-audit.cli.ts",
+      "test/auto-practice/counselor-quality.spec.ts"
+    ],
+    "modified": ["docs/worklog/pending/phase2.5-README.md"],
+    "deleted": [],
+    "commits": ["2d2dc69"]
+  },
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/pending/af097-af095-quality-rework-task-2026-11-18.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+    "reply": null,
+    "others": [
+      "docs/worklog/completed/phase2.5/af095-counselor-quality-evidence-2026-11-18.json",
+      "docs/worklog/completed/phase2.5/af095-long-batch-quality-audit-2026-11-18.json"
+    ]
+  },
+  "gateResults": [
+    { "command": "corepack pnpm exec tsc --noEmit -p tsconfig.json", "exitCode": 0, "errors": 0, "warnings": 0, "note": "全量类型检查通过" },
+    { "command": "corepack pnpm exec vitest run test/auto-practice/counselor-quality.spec.ts", "exitCode": 0, "errors": 0, "warnings": 0, "note": "9/9 passed" },
+    { "command": "corepack pnpm exec eslint --cache --cache-strategy content \"src/auto-practice/metrics/*.ts\" \"test/auto-practice/counselor-quality.spec.ts\"", "exitCode": 0, "errors": 0, "warnings": 0, "note": "定向 lint 通过" },
+    { "command": "git diff --stat 6a52d7e -- src/engine-core", "exitCode": 0, "errors": 0, "warnings": 0, "note": "零 diff" },
+    { "command": "node scripts/orchestration/cli.mjs events verify", "exitCode": 0, "errors": 0, "warnings": 0, "note": "PASS，409 条事件，哈希链与索引投影一致" },
+    { "command": "corepack pnpm orchestration:preflight", "exitCode": 0, "errors": 0, "warnings": 0, "note": "PASS task=AF-097 status=submitted files=8 covered=7" }
+  ],
+  "reproNotes": "以 496 轮真人 quality 标签校准 8 个行为信号；清洗 think 推理块后审计 46 场 / 497 轮真实逐字稿；真实跑 long 两批（1 场 + 3 场），3 场 completed 共 146 轮，发现 53 轮空输出；出口④维持未达标。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-097" },
+    { "item": "contextId", "result": "pass", "note": "phase2.5-exit4-proxy-quality" },
+    { "item": "baselineRef", "result": "pass", "note": "6a52d7e，与任务单一致" },
+    { "item": "receipt-contract", "result": "pass", "note": "六组必填字段与 changedFiles 齐备" },
+    { "item": "artifactRefs-exist", "result": "pass", "note": "任务单 / 交付记录 / 两份证据 JSON 存在且非空" },
+    { "item": "state-write", "result": "pass", "note": "状态面由 CLI 写入，未手改索引" },
+    { "item": "index-schema", "result": "pass", "note": "events verify 409 条 PASS" },
+    { "item": "engine-core-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+    { "item": "no-fabricated-data", "result": "pass", "note": "未伪造六维标注，未用合成 0.833 冒充 80%，空输出按真实逐字稿计数" },
+    { "item": "private-content", "result": "pass", "note": "证据 JSON 只含 sessionId / 计数 / 比率 / 旗标" }
+  ],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "fieldAlignment": { "result": "aligned", "note": "任务单、交付记录、两份证据 JSON、README §3.2 的 taskId / batchId / 轮数 / 结论一致" },
+  "backlogItems": [
+    {
+      "id": "IM-055",
+      "title": "长会话咨询师空输出未计数（36.3%）",
+      "impact": "3 场 long 会话 146 轮中 53 轮空输出；render_fallback_turns=0、batchHealth=true，空输出污染质量证据",
+      "detail": "completionTokens 中 93.2%-95.8% 为 reasoningTokens；maxCompletionTokens=500 与推理预算冲突。",
+      "status": "candidate"
+    },
+    {
+      "id": "IM-056",
+      "title": "来访者角色缺失导致批次失败",
+      "impact": "vpt_social_anxiety_avoidance_l1 失败，long 批次 4 场只完成 3 场",
+      "detail": "入队前未校验 characterSlug；失败场次 turnCount=0、errorMessage=角色不存在。",
+      "status": "candidate"
+    },
+    {
+      "id": "IM-057",
+      "title": "来访者角色库覆盖不足",
+      "impact": "当前角色无法覆盖 50 分钟咨询的常见主诉与阻抗组合",
+      "detail": "角色扩充与 1000 场数据积累另立任务。",
+      "status": "candidate"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [
+    {
+      "item": "long 小批次完整性",
+      "taskSays": "long 小批次 4 场全部 completed",
+      "reality": "3 场 completed、1 场 failed（角色不存在）",
+      "action": "记录失败场次与 errorMessage，登记 IM-056；质量结论按 3 场 completed 审计",
+      "why": "vpt_social_anxiety_avoidance_l1 角色库缺失，不能伪造完成"
+    }
+  ],
+  "deviationAbsent": false,
+  "finalStatus": "completed",
+  "reviewVerdict": "conditional-pass",
+  "verdictRationale": "质量证据与代码交付齐全，六组机读标记齐备，闸门与 engine-core 边界通过；存在 3 条候选改进与 1 条批次完整性偏差，需人工确认影响面，故为有条件通过。出口④仍为未达标 / 部分可判。"
+}

@@ -1,0 +1,6628 @@
+// 由 orchestration CLI 生成，勿手改
+window.ORCH_SNAPSHOT = {
+  "generatedAt": "2026-11-21T22:41:01.708Z",
+  "mode": {
+    "autoLoopEnabled": true,
+    "reworkLimit": 2
+  },
+  "counts": {
+    "ready": 2,
+    "submitted": 1,
+    "working": 0,
+    "completed": 0,
+    "failed": 0,
+    "canceled": 0,
+    "rejected": 0,
+    "input-required": 0,
+    "deadLetter": 0
+  },
+  "tasks": [
+    {
+      "taskId": "AF-229",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-229",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T17:31:39.753Z",
+        "leaseDeadline": "2026-11-21T18:01:39.749Z",
+        "attempt": 2,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-229.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T17:31:39.753Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-229.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": [
+            {
+              "state": "pending",
+              "preparedAt": "2026-11-21T10:02:46.187Z",
+              "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-229.brief.md",
+              "sessionPath": null,
+              "locateLayer": null,
+              "evidenceRef": null,
+              "consecutiveFailures": 0,
+              "history": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "AF-231",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "R6-D3 Lite 原生评分 prompt V1 与 12 packet 开发集",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-231/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-231",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T17:22:20.674Z",
+        "leaseDeadline": "2026-11-21T17:52:20.671Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-231.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T17:22:20.674Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-248",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-248",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T22:41:01.640Z",
+        "leaseDeadline": "2026-11-21T23:11:01.637Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-248.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T22:41:01.640Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-248.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
+  "deadLetters": [],
+  "reworkProposals": [],
+  "pendingApprovals": [],
+  "improvements": {
+    "total": 73,
+    "activeCount": 19,
+    "byStatus": {
+      "candidate": 18,
+      "queued": 1,
+      "accepted": 0,
+      "done": 51,
+      "wontfix": 3
+    },
+    "byType": {
+      "gap": 46,
+      "guardrail": 5,
+      "tool": 2,
+      "standard": 6,
+      "performance": 1,
+      "tech-debt": 13
+    },
+    "bySource": {
+      "implementation": 33,
+      "acceptance": 17,
+      "rework": 3,
+      "dead-letter": 0,
+      "review": 20
+    },
+    "items": [
+      {
+        "improvementId": "IM-001",
+        "title": "台账抽取通道仅识别快照遗留项，未直接解析回执文件正文",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "scripts/orchestration/improvement-log.mjs#extractFromSnapshot"
+        ],
+        "impact": "回执正文中未进入快照遗留区的缺口不会被台账捕获，存在漏登记风险",
+        "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T19:39:09.747Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "回执正文解析通道 extractFromReceiptDoc 落地，与快照抽取双通道合并去重"
+        }
+      },
+      {
+        "improvementId": "IM-002",
+        "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
+        "status": "done",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "pnpm audit: . > typeorm-model-generator@0.4.6-no-engines > typeorm@0.2.45 / mysql2@2.3.3 / sqlite3@5.1.7"
+        ],
+        "impact": "该 dev 工具上游停更，拖入老 typeorm/mysql2/sqlite3/tar/tmp，贡献全部 4 条 critical 及多数 high/moderate 告警；仅开发期反向生成使用，不进生产运行时",
+        "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
+        "historyCount": 6,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:10.913Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "typeorm-model-generator / bin/entity.ts / bin/NamingStrategy.cjs 实测已不在库（全仓命中 0），状态收口为 done"
+        }
+      },
+      {
+        "improvementId": "IM-003",
+        "title": "运行时传递依赖 uuid/glob/minimatch 存在版本告警，须随主依赖升级治理",
+        "status": "wontfix",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "pnpm audit: typeorm@1.1.2>mssql>tedious>@azure/ms-rest-js>uuid@8.3.2; @sentry/rimraf>glob@13.0.6; ts-morph/@sentry>minimatch@10.2.6"
+        ],
+        "impact": "间接依赖告警，非运行时直连路径；typeorm 的 mssql/tedious 为可选方言打包，本仓实际使用 mysql2",
+        "suggestion": "随 typeorm/sentry/rimraf/ts-morph 主依赖升级带动传递版本；按 P-DEBT-4 纪律，版本变动须附全量绿跑与墙钟数字",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:18.277Z",
+          "by": "orchestrator-cli",
+          "to": "wontfix",
+          "note": "三条 moderate（uuid<11.1.1 / glob<14.0.2 / minimatch<11.0.1）均需跨大版本 overrides 才能修，uuid 11 为 ESM-only 与 gaxios CJS 冲突风险高；CI security-audit 以 high 为门禁故不阻断。触发条件：主依赖上游自行放宽范围或集群整体升级时重评"
+        }
+      },
+      {
+        "improvementId": "IM-004",
+        "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "task-state-index.json: AF-005~008 交付后仍在 tasks 且 status=backlog",
+          "taskSheet 指针指向已归档的 pending 路径（断链）"
+        ],
+        "impact": "任务实际已验收归档，但看板活跃列表仍显示待立项/未验收；台账状态与交付记录脱节，需人工回填，闭环未自动化",
+        "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:30.007Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-015回填机制已生效;索引与快照均显示AF-005~008completed"
+        }
+      },
+      {
+        "improvementId": "IM-005",
+        "title": "交接契约校验枚举与 taskId 模式与框架 ajv schema 双源镜像",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "handover-contract.mjs 手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN",
+          "validator.mjs 走框架 task-sheet.schema.json",
+          "framework 1.4.0 commit 016d6b8: schemas/contract-enums.json 枚举/模式数据真相源",
+          "framework task-sheet/task-state-index schema 内部 $defs 收敛 taskType/taskStatus/taskId"
+        ],
+        "impact": "框架枚举或模式演进时两处需同步 存在口径漂移风险",
+        "suggestion": "交接件校验复用框架 schema 同步封装消除手写镜像；框架侧真相源已就位(1.4.0)；剩余 adapter 接线：handover-contract.mjs 改读 contract-enums.json 消除手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN 镜像（另批）",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T01:57:13.902Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "镜像消除:五组枚举与 taskId 模式改读 vendored contract-enums.json;119 用例绿,validate 5/5;本仓投影由护栏单测对账"
+        }
+      },
+      {
+        "improvementId": "IM-006",
+        "title": "协商轮 review 交接件结构尚未进框架仓 schema 与模板",
+        "status": "done",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "framework",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "autonomous-team-design.md 协商轮定义",
+          "handover-contract.mjs review 字段为本仓适配层定义"
+        ],
+        "impact": "review 结构目前仅本仓定义 跨代理复用需框架层固化",
+        "suggestion": "P1 评估将 review 交接件字段组上提框架仓 schema 与模板",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T01:27:47.957Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "框架1.4.0落地review-handover标准件(commit 016d6b8);本仓adapter切读框架schema另批"
+        }
+      },
+      {
+        "improvementId": "IM-007",
+        "title": "回执幂等次键以交付记录路径代替独立工件版本号",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-010",
+        "evidence": [
+          "dispatch.mjs receiptFingerprint",
+          "framework reliability.md §2"
+        ],
+        "impact": "同一 taskId 若交付记录路径不变而内容被覆盖，指纹无法区分版本；当前交接件不可变口径下风险可控",
+        "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:11.533Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "receiptFingerprint 优先 deliveryRevision/revision（taskId@rev）；同路径返修重写不再被误判已验收，单测 2 条覆盖"
+        }
+      },
+      {
+        "improvementId": "IM-008",
+        "title": "派发目标角色未按 Agent Card 能力声明匹配路由",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-010",
+        "evidence": [
+          "dispatch.mjs targetRole 取 agentRole 兜底 executor",
+          "framework autonomous-loop.md §100"
+        ],
+        "impact": "多执行代理并存时无法按能力与可用性路由；当前单 executor 角色无实际影响",
+        "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:11.929Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-009",
+        "title": "验收残留比对缺 git diff 变更清单采集器，V7 当前 skip",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": [
+          "acceptance-runner.mjs checkResidual opts.changedFiles scope-mutex.mjs detectResidualFiles"
+        ],
+        "impact": "纯函数模块无 git IO；变更清单须由调用方采集传入，未接入采集器前 V7 残留护栏记 skip，清单外文件不会被机读拦截",
+        "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:12.815Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-010",
+        "title": "任务 scope 未与 Agent Card resources 角色资源域做越域校验",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": [
+          "scope-mutex.mjs findScopeConflicts 仅做任务间互斥 agent-cards resources 字段未投影进校验"
+        ],
+        "impact": "本单只拦截在办任务间文件域冲突；任务 scope 越出角色声明资源域（如 executor 写编排目录）暂无前置机读校验",
+        "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:13.539Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-011",
+        "title": "scope 通配路径仅降级目录前缀，未做真实目录枚举 glob 展开",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": [
+          "scope-mutex.mjs normalizePath wildcard 截断 纯函数无 fs 列目录能力"
+        ],
+        "impact": "src/**/*.ts 类通配按 src/ 目录前缀近似判定；跨层通配与单段 * 的精确覆盖口径可能偏宽或偏窄",
+        "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:12.110Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "expandScopePattern 按真实目录展开（rootDir）；消除 src/*.ts 对 src/shared/ 的前缀误报，单测 2 条覆盖"
+        }
+      },
+      {
+        "improvementId": "IM-012",
+        "title": "squash 合并后的提交动作未自动化，脚本仅做 squash 暂存与删除端口",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-012",
+        "evidence": [
+          "branch-workflow.mjs squashMerge 仅执行 git merge --squash cli.mjs cmdBranch merge 注明提交归编排者闸门"
+        ],
+        "impact": "合并链路停在暂存阶段；提交标题（conventional + taskId）与合并后远端分支清理需编排者手工闭合，未形成自动 L1 合并闭环",
+        "suggestion": "L1 自动化阶段在闸门全绿后补提交动作（标题带 taskId），并在合并成功后串联本地/远端源分支清理",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:12.696Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "finalizeSquashMerge 四阶段（squash→commit→delete-local→delete-remote），任一阶段失败即停；CLI branch merge --apply 收口"
+        }
+      },
+      {
+        "improvementId": "IM-013",
+        "title": "分支巡检未判定未合并分支是否落后 integrate（rebase 状态）",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-012",
+        "evidence": [
+          "branch-workflow.mjs classifyBranches 仅按 merged/ageDays 分类 cli.mjs collectBranches 未采集 ahead/behind"
+        ],
+        "impact": "未合并分支可能已落后基线但巡检只标注超期天数，无法识别需先 rebase 的陈旧分支",
+        "suggestion": "巡检采集 git status --branch ahead/behind 或 merge-base 差量，未合并且落后基线的分支单独标注待 rebase",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:14.152Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-014",
+        "title": "通道层重试规则与失败终态未锚定 framework reliability §4（各自立法）",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-013",
+        "evidence": [
+          "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+          "D-10",
+          "D-2",
+          "D-5",
+          "D-7"
+        ],
+        "impact": "通道重试形态/数值（固定重试一次、无退避）与框架指数退避不一致；失败终态出口双轨（保持 ready+转人工 vs 直接 failed）；确定性缺陷在通道层缺终止规则。跨两仓文档修订时需统一权威终态出口与重试预算。",
+        "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:30.680Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已落地不可恢复四类终态任务级预算退避序列;备忘锚定§4"
+        }
+      },
+      {
+        "improvementId": "IM-015",
+        "title": "派发审计缺逐次重试留痕载体与失败定性三分法字段",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-013",
+        "evidence": [
+          "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+          "D-1",
+          "D-3"
+        ],
+        "impact": "审计只留尝试次数聚合值，丢失逐次尝试的失败原因/所在层/退避时长，无法复原重试链；通道失败未纳入确定性/偶发/既有债定性三分法，框架要求的基线分栏在通道侧无载体。",
+        "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:45.355Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已落地attempts逐次留痕定性三分法基线分栏;审计校验枚举"
+        }
+      },
+      {
+        "improvementId": "IM-016",
+        "title": "conventions 与回执模板仍保留旧「不自动 commit/push」口径，未对齐 §6.1 分层",
+        "status": "done",
+        "source": "review",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-014",
+        "evidence": [
+          "docs/team/conventions.md#132",
+          "docs/team/agent-orchestration/relay-receipt-template.md#68"
+        ],
+        "impact": "两处活规范仍写「提交推送等用户指令」，与 README/角色卡/模板已落地的 L1–L3 自动 + L4 冻结口径并存，消费方可能读到旧口径造成边界漂移",
+        "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:46.369Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "conventions§132与回执模板§68已对齐§6.1分层口径"
+        }
+      },
+      {
+        "improvementId": "IM-017",
+        "title": "熔断阈值参数化与通道独立计数预留(P2)",
+        "status": "done",
+        "source": "review",
+        "type": "guardrail",
+        "layer": "framework",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "reliability.md§5;design-memo§3.5",
+          "framework 1.4.0 commit 016d6b8: reliability.md §5.1 熔断扩展位参数与通用计数口径"
+        ],
+        "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2；框架侧扩展位参数语义与计数口径已固化(§5.1)；阈值数值与计数实现仍归适配层 P2",
+        "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:13.302Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "熔断参数化（连续 3 次 / 冷却 10 分钟）+ 计数落盘 + channel-circuit-open 可观察事件 + config 校验归一"
+        }
+      },
+      {
+        "improvementId": "IM-018",
+        "title": "L3合并接远端CI状态门禁(无gh/token,P2)",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "design-memo§6.2"
+        ],
+        "impact": "本机无gh CLI与GITHUB_TOKEN,CI状态本机不可读;当前以本地等价闸门替代远端CI门禁,属过渡方案",
+        "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:13.883Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "新建 ci-status.mjs：check-runs 四态判定 + token 双源（env / git credential）+ 0 check 判 unknown；branch merge --require-ci 接线"
+        }
+      },
+      {
+        "improvementId": "IM-019",
+        "title": "development分支退役执行待人工拍板",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "design-memo§4.4"
+        ],
+        "impact": "退役需删除本地与远端development分支;高风险不可逆动作,须人工确认git-diff为空后执行",
+        "suggestion": "人工拍板后按§4.4流程复核integrate..development为空再删除;本批不执行分支删除",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T13:24:11.061Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已删除本地与远端 development；CI 触发收敛 master/integrate"
+        }
+      },
+      {
+        "improvementId": "IM-020",
+        "title": "12 条差异 / 缺口需在两仓文档修订时消化（备忘 §3 + framework reliability.md §4）；本单不就地修订（outOfScope）。",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:14.494Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "12 条差异分三层落点（L1 代码已实现 / L2 跨仓修订 / L3 备忘修订），触发条件入裁定书 §2、§8"
+        }
+      },
+      {
+        "improvementId": "IM-021",
+        "title": "D-11 属备忘自身字段不自洽，可在下次改备忘 §3.5 时一并修。",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T00:56:38.287Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "备忘 §3.5 基础审计字段清单补顶层 reason（失败原因），与 dispatch-channel.mjs buildDispatchAudit 顶层 reason 字段对齐；baseline 分栏 legacyDebt/changeIntroduced 已由 AF-015 落地（§3.5 行 87），无需再改；纯文档修正，零代码改动。"
+        }
+      },
+      {
+        "improvementId": "IM-022",
+        "title": "工作区存在未纳入版本控制的 scripts/orchestration/dispatch-channel.mjs —— **本单未审读、不对其作任何口径结论**；若其已实现重试逻辑，D-2 / D-5 / D-7 可能已有代码侧对应，需另开只读核对单确认。",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T00:50:43.723Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "只读核对完成：dispatch-channel.mjs 现 git 已跟踪；规则层已对应 D-2 指数退避+任务级总预算、D-5 不可恢复 failed/可恢复 held-ready 双出口分流、D-7 确定性缺陷短路不重试，均有单测覆盖；resolveDispatchDecision/buildDispatchAudit/isIrrecoverable/nextBackoff 运行时接线未激活（CLI 仅接 canDispatch 队列互斥），接线项另登记 IM-028。"
+        }
+      },
+      {
+        "improvementId": "IM-023",
+        "title": "通道失败的权威终态出口以哪侧为准（ready vs failed）？§7「终态不重启」是否约束通道失败？",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:15.075Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：通道失败权威出口为 ready（+heldForHuman），failed 仅给不可恢复类别；§7 终态不重启只约束任务终态"
+        }
+      },
+      {
+        "improvementId": "IM-024",
+        "title": "通道级重试总预算归谁定义（备忘 §3 自定义 vs framework §4 任务级）？降级路径切换是否计一次重试？",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:15.658Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：通道投递预算归通道侧（attempt + 熔断），与 reworkLimit 正交；降级切换计 attempt、不计原通道熔断"
+        }
+      },
+      {
+        "improvementId": "IM-025",
+        "title": "熔断阈值在通道侧复用通用熔断，还是独立计数？",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:16.263Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：复用通用熔断，按通道（下游实例）连续失败计数，不另立任务级独立计数；half-open 仍为预留位"
+        }
+      },
+      {
+        "improvementId": "IM-026",
+        "title": "framework §4.2 的失败定性三分法是否正式豁免通道层失败，还是另立通道定性？",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:16.845Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：§4.2 三分法不豁免通道层，定性对象为投递尝试（deterministic→failed，其余→ready）"
+        }
+      },
+      {
+        "improvementId": "IM-027",
+        "title": "通道演练的「可复核基线」具体取什么（稳定路径清单 / 当日成功率快照 / 两者）？",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:17.420Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：结构基线（路径清单三件套）+ 数值基线（当次成功率快照）两层并用，数值当场复核"
+        }
+      },
+      {
+        "improvementId": "IM-028",
+        "title": "派发决策链运行时接线：CLI/scheduler 接入 resolveDispatchDecision 与 buildDispatchAudit，审计结果映射回任务状态机",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "dispatch-channel.mjs#resolveDispatchDecision",
+          "dispatch-channel.mjs#buildDispatchAudit",
+          "cli.mjs:48"
+        ],
+        "impact": "决策/审计规则当前仅被单测引用；CLI 只接 canDispatch 队列互斥，运行时未跑任务级预算、指数退避、终态分流、失败定性与逐次留痕",
+        "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:47:18.057Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "resolveChannelSelection 决策链已运行时接线（AF-032/034 闭环），决策结果入 dispatchDecision 与事件日志，转 done"
+        }
+      },
+      {
+        "improvementId": "IM-029",
+        "title": "三处编排模块 taskId 校验正则手写镜像未收敛到共享契约投影",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "branch-workflow.mjs",
+          "acceptance-runner.mjs",
+          "improvement-log.mjs 各自手写 taskId 校验正则"
+        ],
+        "impact": "taskId 模式演进时三处需同步,存在口径漂移风险",
+        "suggestion": "枚举与模式收口到 contract-enums.mjs 共享投影,各消费方统一导入",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T02:10:13.482Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "三处手写 taskId 正则镜像消除;122 用例绿,validate 5/5;共享模式护栏单测覆盖"
+        }
+      },
+      {
+        "improvementId": "IM-030",
+        "title": "review 交接件校验尚未切读框架 review-handover.schema.json(消费侧接线)",
+        "status": "done",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "validator.mjs 仅覆盖 taskSheet/taskIndex/toolContract/agentCard;CLI validate 未扫 transport/reviews"
+        ],
+        "impact": "review 交接件结构只经本仓轻量校验,未受框架 schema 机读约束",
+        "suggestion": "validator 纳入 reviewHandover schema,CLI 扫 reviews 目录解包 payload 校验",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T02:10:14.590Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿"
+        }
+      },
+      {
+        "improvementId": "IM-031",
+        "title": "CI 不校验跨仓契约，缺框架时 skipped 软通过",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": [
+          "ci.yml 无 Contracts job; validator.mjs 缺框架返回 skipped; 当时 validate 7/7、单测对 skipped 容错"
+        ],
+        "impact": "CI 绿灯不等于 7 项契约真实通过，框架契约漂移无法在流水线拦截",
+        "suggestion": "固化框架 2.0.0 契约包，CI 设 ORCH_REQUIRE_FRAMEWORK=1 硬校验并断言缺框架 fail-fast",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:53.531Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-032",
+        "title": "集成到发布未闭环，无 tag/Release/GHCR/部署流水线",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": [
+          "master 8ffb6a3 落后 integrate 84ed463; 无 tag; release.yml 不存在; deploy 仅本地交互脚本"
+        ],
+        "impact": "发布动作停在人工口头约定，镜像与部署不可复现，回滚缺少版本锚点",
+        "suggestion": "新增 workflow_dispatch Release：CI 同 SHA 绿灯门禁、master fast-forward、tag、GitHub Release、GHCR、可选 production deploy",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:55.135Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-033",
+        "title": "状态索引只有最终状态，缺事件溯源与可重建轨迹",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": [
+          "task-state-index.json 36 条归档仅轻量指针; note 明确未启用 event sourcing; 无 journal"
+        ],
+        "impact": "只能查最终状态，不能重建每次迁移/审批/归档轨迹，索引手改不可检出",
+        "suggestion": "journal.jsonl 唯一写面 + 索引只读投影 + SHA-256 哈希链 + 幂等键 + 单写者锁 + 回填 36 条归档",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:56.700Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-034",
+        "title": "WP38 调试会话恢复用例在并发全量测试下 30s 超时（单独复跑 100ms 通过）",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "并发跑 lint/typecheck 时 pnpm test 中 wp38-debug-session-resume.spec.ts ③ 超时 30013ms；单独复跑 10/10 通过、100ms；独占全量 3509 passed"
+        ],
+        "impact": "全量闸门在并发负载下会出现与本批改动无关的红灯，误导交付判断",
+        "suggestion": "为该用例增加显式 timeout 或降低全量 worker 并发，并在闸门记录中固定区分并发 flake",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T03:53:17.645Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "③ 首个用例显式 60s 预算 + 判据注释（commit c8632c6）；AF-041 因 fallback 定性误判 failed（留痕），AF-042 复单验收未过因同树残留，最终由 AF-043 复核收口"
+        }
+      },
+      {
+        "improvementId": "IM-035",
+        "title": "V7 文件域残留按 git 全树比对，同批次多任务共存必误判",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "AF-040/AF-042 实现在库却判 rejected；AF-043-I1"
+        ],
+        "impact": "实现落地被误杀成越界，返修次数与审计成本虚增",
+        "suggestion": "回执可选声明 changedFiles.commits，V7 改按提交文件集比对；解析不到即 fail，无解析器 skip",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:00.617Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-036",
+        "title": "channel fallback 的 --cause 缺省退化为确定性缺陷，把旁路误判为任务死",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "AF-041 缺 --cause 被判 delivery-terminal 进 failed 终态；AF-043-I2 / AF-042-I1"
+        ],
+        "impact": "留痕动作变成判决动作，终态不可复活",
+        "suggestion": "--cause 改必填并校验枚举；新增非判决性 cause executed-in-session，旁路写 bypassed 且失败计数不递增",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:01.266Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-037",
+        "title": "通道熔断只有 closed/open，冷却期满无法自动恢复",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "evaluateCircuitBreaker 无 half-open；README 记为预留概念位"
+        ],
+        "impact": "熔断后只能人工复位或永久熔断，恢复路径不可收敛",
+        "suggestion": "冷却期满放一次试探 half-open，成功归零封闭、失败重新开闸；开闸时刻落 delivery.circuitOpenedAt 跨轮计冷却",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:01.912Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-038",
+        "title": "--require-ci 在 CI 容器内无 git credential，token 来源不可用",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "Actions 内无 credential helper，token 只能靠环境变量；AF-043-I4"
+        ],
+        "impact": "远端 CI 门禁在 CI 里取不到 token，只能 abort 或软放行",
+        "suggestion": "三来源优先级 + Actions 内无 token 直接给 secrets.GITHUB_TOKEN 注入提示；基址取 GITHUB_API_URL 兼容 GHES",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:02.521Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-039",
+        "title": "框架 reliability.md §4.1/§5.1 与适配层实现漂移（非失败事实、half-open）",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "框架把 half-open 写作预留概念位；§4.1 只有可恢复/不可恢复两类"
+        ],
+        "impact": "规范与实现两套口径，跨仓验收无共同判据",
+        "suggestion": "§4.1 增非失败事实分类；§5.1 出 half-open 迁移表；receipt-contract §3.1 登记可选 commits 字段",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:03.122Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-040",
+        "title": "CI 门禁只有单测覆盖，没有一次真实远端结论决定过合并",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-046",
+        "evidence": [],
+        "impact": "门禁是装饰还是决定无法区分",
+        "suggestion": "对临时分支跑阻断+放行双路径实弹：workflow_dispatch 补 check runs 后再合并",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:50:27.368Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "本批落地并验证"
+        }
+      },
+      {
+        "improvementId": "IM-041",
+        "title": "框架 docs 条款只靠哈希锁机读契约，正文改写后 CI 仍全绿",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-045",
+        "evidence": [],
+        "impact": "规范与适配层实现漂移无人发现，验收无共同判据",
+        "suggestion": "conformance/normative-anchors.json + check_normative_docs：条款锚点缺失即 V7 失败，改条款必须同步改清单",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:50:27.961Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "本批落地并验证"
+        }
+      },
+      {
+        "improvementId": "IM-042",
+        "title": "熔断开闸后派发侧仍把新单送进已知坏通道",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [],
+        "impact": "开闸只是可观察事件，没有阻断力",
+        "suggestion": "resolveChannelCircuit 扫运行态取最新开闸事实，claimReadyTasks 里 open 整轮停派、half-open 只放一次试探",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:50:28.526Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "本批落地并验证"
+        }
+      },
+      {
+        "improvementId": "IM-043",
+        "title": "ESLint 作用域不含 scripts/，编排脚本只有单测兜底",
+        "status": "done",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "pnpm lint 覆盖 {src",
+          "test",
+          "bin}/**/*.ts；对 scripts/orchestration/*.mjs 直接 airbnb 报 was not found by the project service"
+        ],
+        "impact": "脚本层无静态检查，风格与潜在未使用变量只能靠单测和人工发现",
+        "suggestion": "在 eslint 配置加 allowDefaultProject 白名单或建 scripts 专用 tsconfig 项目，先纳入 scripts/orchestration/**/*.mjs",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-18T03:43:39.473Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "复核 package.json lint 第二段已覆盖 scripts/**/*.mjs；AF-074 lint 实跑退出 0"
+        }
+      },
+      {
+        "improvementId": "IM-044",
+        "title": "mcp / http transport 仍是预留位，只有 file 通道可用",
+        "status": "wontfix",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "config.json transport.type=file，mcp/http 仅在 notes 标注预留"
+        ],
+        "impact": "跨机/常驻调度没有真实传输层，长跑派发仍依赖本机文件与人工确认",
+        "suggestion": "按 transport 接口补 http 实现（幂等 idempotencyKey + 重试预算），先在演练环境验证",
+        "historyCount": 3,
+        "lastTransition": {
+          "at": "2026-11-18T04:25:34.870Z",
+          "by": "orchestrator-cli",
+          "to": "wontfix",
+          "note": "同步 transport 架构约束；重启条件见 improvement-dispositions-2026-11-18.md"
+        }
+      },
+      {
+        "improvementId": "IM-045",
+        "title": "GUI 派发需人工 channel confirm，无人值守长跑未验证",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "reliability §4.1 旁路口径 + deliveryLeaseMinutes=5；实测均为人工确认送达"
+        ],
+        "impact": "夜间无人值守场景下投递确认缺失会按租约回滚 ready，吞吐取决于人在场",
+        "suggestion": "补自动送达判定（GUI 侧回执信号）+ 连续 N 单无人值守演练记录",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-18T03:43:55.584Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "executor 收件写 ack；run-once/channel auto-confirm 只在 ack 合法时确认；真实发送已验证"
+        }
+      },
+      {
+        "improvementId": "IM-046",
+        "title": "跨仓提交不能写入回执 changedFiles.commits",
+        "status": "done",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "framework",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "filesInCommit 在后端仓解析，框架 SHA 必然解析失败；框架提交改放 artifactRefs.others"
+        ],
+        "impact": "跨仓批次只能靠 artifactRefs 人读，V7 的 commit 口径对另一仓不生效",
+        "suggestion": "回执 schema 增 repo 限定（commits 带仓库前缀），校验层按仓分流",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-18T04:25:33.719Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "externalCommits 校验 + 单测 + README 已落地"
+        }
+      },
+      {
+        "improvementId": "IM-047",
+        "title": "生产收口清单（部署/secrets/迁移/监控/回滚）未排期",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "用户明确暂缓生产；仓库内无生产部署与告警配置项"
+        ],
+        "impact": "除生产外已闭环，但上线前仍有五类工作无任务单、无演练记录",
+        "suggestion": "单独立项 AF-1xx 生产前 checklist，含 secrets 轮换、DB 迁移回滚演练、告警阈值与值班",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-18T04:25:34.088Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "生产 checklist 已落 docs/team/production-readiness-checklist-2026-11-18.md；五类演练另行排期"
+        }
+      },
+      {
+        "improvementId": "IM-048",
+        "title": "合并门禁 --sha 可传旧绿 SHA 给已前进分支放行",
+        "status": "done",
+        "source": "review",
+        "type": "guardrail",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "88839c6：--require-ci 缺省改取分支 HEAD，--apply 时显式 --sha 与分支 HEAD 不等即抛错"
+        ],
+        "impact": "门禁可被合法参数绕过（拿历史绿 SHA 合并新提交）",
+        "suggestion": "已修复并入库；保留条目作为口径来源",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:31.642Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "88839c6 已入库，远端 CI pass"
+        }
+      },
+      {
+        "improvementId": "IM-049",
+        "title": "回执内容指纹与发布者留痕（可审计）",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "transport 回执无身份/无指纹，任意进程可写"
+        ],
+        "impact": "验收结论不可追责、内容被改动无法发现",
+        "suggestion": "run-once 摄入时记录 sha256 指纹与 publisher 到运行态与动作日志",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T07:26:38.337Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      },
+      {
+        "improvementId": "IM-050",
+        "title": "run-once/watch 单写者锁，防重复领单与状态面覆盖",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "文件 transport 无锁，多进程/多机并发会争同一任务单"
+        ],
+        "impact": "重复验收、事件链分叉、快照互相覆盖",
+        "suggestion": "O_EXCL 锁文件 + 陈旧阈值自愈 + token 归属释放",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T07:26:38.958Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      },
+      {
+        "improvementId": "IM-051",
+        "title": "status 运行健康最小集（死信/持单/租约/回执失败/锁）",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "异常只能翻 json 才能看到"
+        ],
+        "impact": "出事无人自动发现",
+        "suggestion": "status 尾部输出运行健康计数与被阻塞原因摘要",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T07:26:39.596Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      },
+      {
+        "improvementId": "IM-052",
+        "title": "executor 自行执行 task resume/run-once/archive 的状态面越权",
+        "status": "wontfix",
+        "source": "acceptance",
+        "type": "guardrail",
+        "layer": "framework",
+        "relatedTaskId": "AF-065",
+        "evidence": [
+          "AF-065 租约 5 分钟过期后 MiniMax 自行 task resume + run-once 重新领单；完成后又自行摄回执并归档"
+        ],
+        "impact": "执行方绕过编排者完成状态迁移与验收归档，角色隔离失效；租约短于真实执行时长时会稳定复现",
+        "suggestion": "GUI relay 送达后立即 channel confirm 清租约；executor brief 明确禁止所有 orchestration CLI 写子命令；CLI 侧增加 executor 调用者角色校验/环境隔离",
+        "historyCount": 3,
+        "lastTransition": {
+          "at": "2026-11-18T04:25:35.062Z",
+          "by": "orchestrator-cli",
+          "to": "wontfix",
+          "note": "同用户进程无法可信隔离；补偿控制与重启条件见 improvement-dispositions-2026-11-18.md"
+        }
+      },
+      {
+        "improvementId": "IM-053",
+        "title": "GUI relay ack 自动确认后的无人值守长跑与 stale-ack 实战演练未验证",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-074",
+        "evidence": [
+          "AF-074 真实发送仅验证到 MiniMax 窗口收到消息；未跑连续多任务长跑"
+        ],
+        "impact": "ack 自动确认已代码化，但连续派发/超时回收/旧 ack 隔离仍需实战回归",
+        "suggestion": "由 relay supervisor 在下一轮真实执行任务中记录连续 3 单的 send→ack→auto-confirm→receipt 延迟与回滚次数",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-18T04:25:34.664Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "三单 send→ack→auto-confirm 与 stale-ack 自动化回归通过"
+        }
+      },
+      {
+        "improvementId": "IM-054",
+        "title": "WP-K 容差边界按二进制差值判定，十进制恰好 0.01 会被判 movement",
+        "status": "candidate",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "framework",
+        "relatedTaskId": "AF-086",
+        "evidence": [
+          "data/batch-reports/UAKjJfAx5Iso9f4-054OJ.md",
+          "dim.trust.first_avg 0.245->0.235",
+          "-0.010"
+        ],
+        "impact": "小样本批次可能因边界抖动被判 regressed；出口④质量判读出现假阳性",
+        "suggestion": "评估改为带 epsilon 的容差比较，或对边界差值单独标注；需产品/质量口径拍板，AF-067 已锁定当前行为",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T07:13:20.010Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-055",
+        "title": "长会话咨询师空输出未计数（36.3%）",
+        "status": "candidate",
+        "source": "rework",
+        "type": "guardrail",
+        "layer": "adapter",
+        "relatedTaskId": "AF-097",
+        "evidence": [],
+        "impact": "render_fallback_turns=0、batchHealth=true，空输出污染质量证据",
+        "suggestion": "预算/重试/降级/计数修复后再跑 long 批次",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T11:44:37.773Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-056",
+        "title": "来访者角色缺失导致批次失败",
+        "status": "candidate",
+        "source": "rework",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-097",
+        "evidence": [],
+        "impact": "long 批次 4 场只完成 3 场",
+        "suggestion": "入队前校验 characterSlug 存在性",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T11:44:38.000Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-057",
+        "title": "来访者角色库覆盖不足",
+        "status": "candidate",
+        "source": "rework",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-097",
+        "evidence": [],
+        "impact": "无法覆盖 50 分钟咨询的常见主诉与阻抗组合",
+        "suggestion": "角色扩充与 1000 场数据积累另立任务",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T11:44:38.222Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-058",
+        "title": "批次有效性门禁不读咨询师侧降级计数",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "guardrail",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-01"
+        ],
+        "impact": "咨询师空输出/截断已计数但批次仍可能判 valid",
+        "suggestion": "下一单修 practice-batch-health 读取 counselor_degraded_turns",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:19.718Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-059",
+        "title": "审计 CLI 不再能识别空输出",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-02"
+        ],
+        "impact": "empty_output_high 不再触发，质量证据可能假性正常",
+        "suggestion": "审计 CLI 改读 DB 的 counselor_degraded_turns",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:19.931Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-060",
+        "title": "审计 CLI 与生成侧各有一份推理块剥离口径",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-03"
+        ],
+        "impact": "两份口径将来会漂移",
+        "suggestion": "统一到 visible-output 纯函数",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.135Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-061",
+        "title": "batch 复跑尚无真实证据",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-04"
+        ],
+        "impact": "long 2048 是否足够未实证",
+        "suggestion": "AF-102 合入后跑一轮 long 批次并重新取证",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.355Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-062",
+        "title": "空输出重试使失败轮次调用量翻倍",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "performance",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-05"
+        ],
+        "impact": "long 场次成本与时长上升",
+        "suggestion": "按真实批次统计重试率后再调预算",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.573Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-063",
+        "title": "逐字稿不再保留咨询师推理块",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-06"
+        ],
+        "impact": "新旧批次逐字稿结构不同",
+        "suggestion": "跨批次比对时标注口径",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.783Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-064",
+        "title": "standard/重试预算未标定",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-07"
+        ],
+        "impact": "预算取值需要真实数据回校",
+        "suggestion": "long 批次后校准",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:21.058Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-065",
+        "title": "long 50 轮批次缺少匹配的临床验收口径（12 轮 intake 被全时段套用）",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-109",
+        "evidence": [
+          "AF-109: q_35XnpvLWLr-Yocr8kJh 16 场 long/50 轮",
+          "intake global FAIL zero_motion=2",
+          "expert trust Δ=0.38925/bond Δ=0.049 超 intake-v1 12 轮上限"
+        ],
+        "impact": "long 批次无法给出有临床意义的 PASS/FAIL；出口④只能 incomparable/不可判定",
+        "suggestion": "另立 long-session-acceptance-profile：按 40–50 轮阶段重定 anchor，先做 100–200 轮人工复核试点，不直接改硬阈值",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T15:46:33.239Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-066",
+        "title": "长会话咨询师开场框架与收束缺失导致 AI 质量门 safety/style 系统性不足",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-125",
+        "evidence": [
+          "af125-ai-16-v2/ai-final-ratings.csv",
+          "af125-ai-16-v2/ai-agreement.json"
+        ],
+        "impact": "16 场中 safety 平均 3.0、最低 2；style 平均 3.125；overall 平均 3.938，AI 质量门未达标",
+        "suggestion": "在咨询师系统提示词中加入开场知情框架（保密/边界/时长/可暂停/可拒答）与结束收束（总结/带走/下一步），并用新批次复评",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T01:12:23.814Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-067",
+        "title": "危机升级路径需强制风险收束轮后再结束",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 packet-09: debug_bUjFUsUC9Kg6iNW6rul54",
+          "turn 40 disclosure",
+          "1 post turn",
+          "safety=2"
+        ],
+        "impact": "crisis_escalated 抢在安全计划前终止，临床安全硬门失败",
+        "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-19T10:03:59.040Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-137 两轮安全序列 + 定向闸门通过"
+        }
+      },
+      {
+        "improvementId": "IM-068",
+        "title": "forcedClose 需升级为 runner 级最后两轮硬约束",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 structure audit: routine closing full 1/16",
+          "summary 1/16",
+          "takeaway 2/16",
+          "nextStep 4/16"
+        ],
+        "impact": "13/16 max_turns 场次无常规收束，style 3.3125<3.50",
+        "suggestion": "最后 2 轮若未产出 summary/takeaway/nextStep，继续补轮而非硬切",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.082Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-069",
+        "title": "跨模型评分 κ 口径校准未落地",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "standard",
+        "layer": "framework",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 cross-model overall κ=0.215686 vs same-model 0.794872"
+        ],
+        "impact": "跨模型分数不可互换，κ 硬门失败但非质量差",
+        "suggestion": "落地 AF-131 B-1/B-3/B-4：同法 κ 赛道、未取整共识、±1 仲裁、cluster bootstrap CI",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.265Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-070",
+        "title": "pack 只保留 completed 会系统性漏掉 crisis_ended",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "tool",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 16 sessions: 2 crisis_ended; official pack would keep 14"
+        ],
+        "impact": "危机样本被排除，安全质量评估有选择偏差",
+        "suggestion": "selectBalancedSessions 纳入 crisis_ended，或提供 includeCrisis 选项",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.459Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-071",
+        "title": "升级后的风险收束缺少内容级强制校验",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-137",
+        "evidence": [
+          "MiniMax H1",
+          "AF-136 packet-09 risk-incomplete"
+        ],
+        "impact": "轮次到了但模型可能仍漏评估/计划要素，exit reason 无法区分",
+        "suggestion": "复用 AF-127 结构审计五组正则，新增 crisis_safety_incomplete exit reason，不改 af127-v1 口径",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T10:04:06.563Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-072",
+        "title": "long-session-acceptance 只取 completed 会漏 crisis_ended",
+        "status": "candidate",
+        "source": "review",
+        "type": "tool",
+        "layer": "adapter",
+        "relatedTaskId": "AF-137",
+        "evidence": [
+          "MiniMax H4",
+          "AF-136 2 crisis_ended"
+        ],
+        "impact": "官方 pack 系统性排除危机样本，安全评估样本失真",
+        "suggestion": "把 crisis_ended 纳入 selectBalancedSessions 与 pack 过滤条件",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T10:04:06.774Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-073",
+        "title": "临床级 AI 评分门缺真人双标与仲裁，96 场 cluster 仅 8 个角色簇",
+        "status": "queued",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-152",
+        "evidence": [
+          "data/phase25-exit/af147-kappa-96-final/;docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+        ],
+        "impact": "κ 0.365854 与 safety 4/6 无法判定为模型能力上限还是标注口径缺陷；继续调 AI 评分器会变成自证",
+        "suggestion": "补 ≥24 角色簇或真人双标+仲裁，再复评 κ 与 safety；在此之前质量门保持不通过",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-19T19:10:07.481Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": null
+        }
+      }
+    ]
+  },
+  "deliveryPacks": [
+    {
+      "fileName": "pack-20261115-225603.json",
+      "ref": "docs/team/agent-orchestration/delivery-packs/pack-20261115-225603.json",
+      "packageId": "PACK-20261115-225603",
+      "generatedAt": "2026-11-15T14:56:03.135Z",
+      "cycle": {
+        "startedAt": "2026-11-15T14:56:03.135Z",
+        "endedAt": "2026-11-15T14:56:03.135Z",
+        "mode": "human-in-the-loop",
+        "queueSize": 4,
+        "stopReason": "human-stop"
+      },
+      "counts": {
+        "passed": 0,
+        "conditionalPass": 0,
+        "rejected": 0,
+        "failed": 0,
+        "deadLettered": 0
+      },
+      "leftovers": {
+        "backlogItems": 0,
+        "openQuestions": 0,
+        "manualReviewList": 0
+      },
+      "deadLetters": 0,
+      "pendingApprovals": 0
+    }
+  ],
+  "agentCards": [
+    {
+      "agentId": "AGENT-EXEC-001",
+      "role": "executor",
+      "availability": "available",
+      "skills": [
+        "implementation",
+        "gate-evidence",
+        "deviation-reporting",
+        "self-test"
+      ],
+      "tools": [
+        "workspace-read",
+        "workspace-write",
+        "gate-execution"
+      ],
+      "resources": [
+        "src/",
+        "bin/",
+        "test/",
+        "admin-dashboard/",
+        ".env.example",
+        "docs/team/agent-orchestration/agent-cards/executor.json",
+        "docs/worklog/pending/",
+        "docs/worklog/completed/",
+        "docs/worklog/records/"
+      ],
+      "note": "执行 AI（MiniMax Code）；resources 为可写目录域，实际写入仍以任务单 scope 切片为准（父目录授权不等于全目录可写）。researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
+    },
+    {
+      "agentId": "AGENT-ORCH-001",
+      "role": "orchestrator",
+      "availability": "available",
+      "skills": [
+        "queue-management",
+        "task-decomposition",
+        "claim-management",
+        "acceptance-organization",
+        "index-maintenance",
+        "evidence-review",
+        "improvement-tracking"
+      ],
+      "tools": [
+        "TOOL-STATE-STORE",
+        "TOOL-QUEUE-SCHEDULER",
+        "TOOL-ORCH-CLI",
+        "TOOL-IMPROVEMENT-LOG",
+        "TOOL-ACCEPTANCE-RUNNER",
+        "TOOL-DELIVERY-PACK"
+      ],
+      "resources": [
+        "AGENTS.md",
+        "package.json",
+        ".prettierignore",
+        ".gitignore",
+        ".env.example",
+        "eslint.config.mjs",
+        ".husky/",
+        ".github/",
+        "docs/team/conventions.md",
+        "docs/team/wp-task-template.md",
+        "docs/worklog/",
+        "docs/team/agent-orchestration/",
+        "docs/security/",
+        "docs/architecture/",
+        "scripts/",
+        "data/phase25-exit/",
+        "data/eval-datasets/",
+        "data/eval-reports/",
+        "data/batch-reports/",
+        "web/orchestration/"
+      ],
+      "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。发布分层：L1–L3 在前置条件满足下由本角色自动，L4 转 Human 批准（设计备忘 §6.1）。"
+    }
+  ],
+  "toolContracts": [
+    {
+      "toolId": "TOOL-ACCEPTANCE-RUNNER",
+      "category": "gate-execution",
+      "sideEffect": "read-only",
+      "allowedRoles": [
+        "orchestrator",
+        "reviewer"
+      ],
+      "description": "V1–V6 机读护栏：工件存在性与非空、指针可达、链接可达、编码、结构断言；输出三级结论与人工复核清单。"
+    },
+    {
+      "toolId": "TOOL-DELIVERY-PACK",
+      "category": "artifact-archive",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "汇总夜间交付包：验收结论、证据指针、死信任务、遗留项与待人工批准动作。"
+    },
+    {
+      "toolId": "TOOL-IMPROVEMENT-LOG",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "候选改进台账：实现 / 验收 / 返修 / 死信复盘 / 评审发现的缺口与架构提升点结构化登记、去重、状态流转与汇总；抽取只产生候选，立项与终态须人工闸门流转。"
+    },
+    {
+      "toolId": "TOOL-ORCH-CLI",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "编排工具链命令入口：status / run-once / snapshot / pack / config / channel（dispatch / send / auto-confirm / confirm / fallback）；channel send 驱动主桌面发送 brief 并写发送证据，送达确认只认执行代理 ack。"
+    },
+    {
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "队列扫描、领单租约、超时释放、GUI 送达 ack 自动确认、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
+    },
+    {
+      "toolId": "TOOL-RELAY-SUPERVISOR",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "本地 relay 回执回收器：文件系统事件优先，按任务 profile 的 10–15 分钟档位兜底；任务级账本、单实例锁、命中归档/通知、超时停止、审计 JSONL。不创建永久 cron，不扫描无关回执。"
+    },
+    {
+      "toolId": "TOOL-STATE-STORE",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。"
+    }
+  ],
+  "toolAudits": [
+    {
+      "auditId": "AUD-381",
+      "recordedAt": "2026-11-21T22:40:54.960Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-248",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-380",
+      "recordedAt": "2026-11-21T22:34:19.003Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-247",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-247",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-247.json"
+      ]
+    },
+    {
+      "auditId": "AUD-379",
+      "recordedAt": "2026-11-21T22:34:12.146Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-247",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-378",
+      "recordedAt": "2026-11-21T22:25:16.068Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-246",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-246",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-246.json"
+      ]
+    },
+    {
+      "auditId": "AUD-377",
+      "recordedAt": "2026-11-21T22:25:09.082Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-246",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-376",
+      "recordedAt": "2026-11-21T22:13:51.538Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-245",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-245-af245-persona-delta"
+      ]
+    },
+    {
+      "auditId": "AUD-375",
+      "recordedAt": "2026-11-21T22:13:47.944Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-245",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-245",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-245.json"
+      ]
+    },
+    {
+      "auditId": "AUD-374",
+      "recordedAt": "2026-11-21T22:13:41.017Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-245",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-373",
+      "recordedAt": "2026-11-21T22:02:10.407Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-244",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-244-af244-seed-v51"
+      ]
+    },
+    {
+      "auditId": "AUD-372",
+      "recordedAt": "2026-11-21T22:02:06.649Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-244",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-244",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-244.json"
+      ]
+    },
+    {
+      "auditId": "AUD-371",
+      "recordedAt": "2026-11-21T22:01:59.853Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-244",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-370",
+      "recordedAt": "2026-11-21T21:49:54.697Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-243",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-243-af243-seed-v5-contact"
+      ]
+    },
+    {
+      "auditId": "AUD-369",
+      "recordedAt": "2026-11-21T21:49:46.879Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-243",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-243",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-243.json"
+      ]
+    },
+    {
+      "auditId": "AUD-368",
+      "recordedAt": "2026-11-21T21:49:40.065Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-243",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-367",
+      "recordedAt": "2026-11-21T21:41:24.485Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-242",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-242-af242-plot-zero-fix"
+      ]
+    }
+  ],
+  "auditSummary": {
+    "total": 381,
+    "byResult": {
+      "allowed": 381,
+      "denied": 0
+    },
+    "byTool": {
+      "TOOL-QUEUE-SCHEDULER": 380,
+      "TOOL-STATE-STORE": 1
+    },
+    "byActor": {
+      "orchestrator": 381
+    }
+  },
+  "protocolView": {
+    "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
+    "tasks": [
+      {
+        "taskId": "AF-229",
+        "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
+        "type": "implementation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-227"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-231",
+        "title": "R6-D3 Lite 原生评分 prompt V1 与 12 packet 开发集",
+        "type": "implementation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-227"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-231/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-248",
+        "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-243",
+          "AF-247"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
+          }
+        ]
+      }
+    ],
+    "archivedTasks": [
+      {
+        "taskId": "TD-5",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-5/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-6",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-6/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-7",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-7/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-8",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-8/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-9",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-9/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-10",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-10/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-11",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-11/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-12",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-12/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-13",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-13/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-14",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-14/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-15",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-15/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-16",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-16/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-17",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-17/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-18",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-18/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-19",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-19/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-20",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-20/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-21",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/TD-21/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-001",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-001/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-002",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-003",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-003/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-004",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-004/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-005",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-005/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-006",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-006/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-007",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-007/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-008",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-008/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-009",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-009/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-010",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-010/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-011",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-011/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-012",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-012/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-013",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-013/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-014",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-014/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-015",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-015/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-016",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-016/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-017",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-017/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-018",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-018/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-019",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-019/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-020",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-020/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-021",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-021/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-implementation-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-022",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-022/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "DR-001",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/DR-001/task-sheet.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/dr001-af013-channel-drill-delivery-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-023",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-023/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-025",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-025/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-026",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-026/task-sheet.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af026-orchestration-receipt-chain-and-cancel-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-027",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-027/task-sheet.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af027-orchestration-receipt-chain-rework-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-028",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-028/task-sheet.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af028-task-promote-and-docs-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-024",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-024/task-sheet.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af024-gui-dispatch-implementation-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/records/legacy/AF-024/legacy/af024-channel-review-by-executor.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-029",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-029/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-030",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-030/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af030-acceptance-guard-closure-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-031",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-031/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af031-task-sheet-encoding-closure-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-032",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-032/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af032-dispatch-decision-wiring-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-033",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-033/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-034",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-034/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af034-dispatch-config-normalization-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-035",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-035/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af035-gui-delivery-failure-drill-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-036",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-036/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af036-held-reason-passthrough-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-037",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-037/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-038",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-038/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af038-scope-attribution-recheck-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-040",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-040/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af040-improvement-closeout-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-042",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-042/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af042-wp38-timeout-budget-rework-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-043",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-043/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af043-improvement-closeout-rework-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-039",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-041",
+        "status": {
+          "framework": "failed",
+          "protocol": "FAILED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-041/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-044",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-044/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af044-leftover-backlog-closeout-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-046",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-046/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-045",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-045/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-048",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-048/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af048-orchestrator-resource-domain-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-049",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-049/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af049-orchestrator-governance-docs-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-047",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-047/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af047-dev-orchestration-mandatory-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-050",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-050/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af050-v7-parallel-artifact-acceptance-fix-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-051",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-051/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af051-af047-rework-verification-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-052",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-052/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-053",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-053/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-054",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-054/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-055",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-055/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-056",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-056/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-057",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-057/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-058",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-058/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-059",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-059/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-060",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-060/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-061",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-061/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-063",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-063/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-064",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-065",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af065-batch-scenario-type-passthrough-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/relay-response-20261117-2128.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-066",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-067",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-067/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/relay-response-20261117-2248.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-068",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-068/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af068-af065-scenario-type-landing-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/relay-response-20261117-2310.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-070",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-070/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af070-security-debt-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-071",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-071/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af071-af070-rework-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-072",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-072/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af072-af071-ci-chain-rework-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-069",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-069/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af069-relay-supervisor-implementation-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-073",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-073/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af073-phase25-exit4-formal-verdict-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-074",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-074/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af074-framework-closeout-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-075",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-075/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af075-framework-closeout-rework-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-076",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-076/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af076-gate-conditional-merge-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-077",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-077/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af077-pr-release-conditional-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-078",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-078/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af078-squash-scope-union-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-079",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-079/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-080",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-080/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af080-improvement-closeout-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-081",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-081/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af081-improvement-closeout-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-082",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-082/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af082-commit-envelope-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-083",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-083/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af083-final-envelope-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-084",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-084/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af084-orchestration-hardening-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-085",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-085/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af085-phase25-exit2-verification-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-086",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-086/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af086-phase25-exit2-real-exam-double-run-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-087",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-087/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-088",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-088/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af088-phase25-exit345-evidence-2026-11-18.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/relay-response-AF088-20261118-1630.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-089",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-089/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-090",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-090/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-091",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-091/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af091-phase25-session-realism-2026-11-18.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/relay-response-AF091-20261118-1745.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-092",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-092/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-093",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-093/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/pending/phase2.5-README.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-096",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-097",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-097/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-098",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-098/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-099",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-100",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-100/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-101",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-101/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-102",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-102/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af102-long-session-visible-output-2026-11-18.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF102-20261118-2010.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-104",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-104/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-103",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-103/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af103-visitor-role-preflight-delivery-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-105",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-105/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af105-ci-test-assembly-fix-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-106",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-107",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-107/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-108",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-108/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-109",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-109/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-110",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-111",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-111/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af111-long-session-acceptance-delivery-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-112",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-112/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af112-af111-acceptance-metadata-delivery-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-113",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-113/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-114",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-115",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-116",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-116/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-117",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-117/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af117-ci-fix-delivery-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-118",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-119",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-119/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af119-ci-fix-acceptance-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-120",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-120/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af120-ci-fix-scope-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-121",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-121/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-122",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-122/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-123",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-123/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af123-single-release-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-124",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-124/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af124-repair-chain-gate-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-125",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-125/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-126",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-126/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-129",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-129/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-127",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-127/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-130",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-130/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-131",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-131/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-132",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-132/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-133",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-133/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-134",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-134/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-135",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-135/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af135-af133-acceptance-2026-11-19.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF133-20261119-1505.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-136",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-136/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-137",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-137/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-138",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-138/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-139",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-139/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-140",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-140/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-141",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-141/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-142",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-143",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-143/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-144",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-144/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-145",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-145/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-146",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-146/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-147",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-147/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-148",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-148/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-149",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-149/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-150",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-150/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-151",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-151/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-152",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-152/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-153",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-153/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-154",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-154/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-155",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-155/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-128",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-128/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-156",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-156/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af156-admin-audit-version-health-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-157",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-157/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af157-admin-naive-locale-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-158",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-158/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-159",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-159/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af159-admin-health-auth-watch-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-160",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-161",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af161-worklog-record-bundles-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-162",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-163",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-164",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-165",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-165/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-166",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af166-release-code-snapshot-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-168",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-168/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af168-release-code-snapshot-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-167",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-167/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-169",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-169/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af169-release-docs-snapshot-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-171",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-171/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af171-release-gate-dependency-fix-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-172",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-172/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-173",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-173/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af173-integrate-gate-hydration-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-174",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-174/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-175",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-175/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-176",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-176/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af176-deterministic-structure-close-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-177",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-177/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af177-kappa48-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-178",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-178/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-179",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-179/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af179-af177-late-receipt-repair-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-180",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-180/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af180-af177-late-receipt-closure-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-181",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-181/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af181-af177-late-receipt-final-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-182",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-182/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af182-af177-late-receipt-clean-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-183",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-183/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-184",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-184/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af184-af177-late-receipt-two-stage-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-185",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-185/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af185-exit4-evidence-consolidation-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-186",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-186/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af186-exit4-legacy-closure-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-187",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-187/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-188",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-188/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af188-af187-encounter-closure-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-189",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-189/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af189-af187-encounter-delivery-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-190",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-190/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-191",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-191/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af191-encounter-delivery-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-193",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-193/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af193-executor-card-records-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-192",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-192/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-194",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-194/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af194-encounter-delivery-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-197",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-197/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af197-encounter-delivery-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-198",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af198-encounter-delivery-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-199",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af199-executor-card-records-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-200",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-200/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-201",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-201/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af201-scene-default-voice-boundary-matrix-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-202",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-202/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af202-scene-default-voice-boundary-matrix-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-203",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-203/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-204",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-204/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-205",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-205/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-206",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-206/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-207",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-207/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af207-visitor-realism-r0-r1-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-208",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-209",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-209/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af209-realism-r3-register-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-210",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-provider-fallback/AF-210/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-211",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-provider-fallback/AF-211/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-212",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-provider-fallback/AF-212/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-213",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-213/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af213-realism-r4-prompt-echo-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-214",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-214/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af214-realism-ai-double-blind-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-222",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-222/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af222-01-cross-machine-hardening-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-223",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-223/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af223-task-id-reservation-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-215",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-215/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-216",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-216/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af216-realism-r6-event-conditioning-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-224",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-224/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af224-judge-layer-doc-intake-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-225",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-225/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af225-realism-r6b-scoring-stability-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-226",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-227",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-228",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-228/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-230",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-230/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-232",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-233",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-233/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af233-af232-ci-tsc-fix-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-234",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-235",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-235/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af235-squash-gate-active-task-fix-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-236",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-236/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af236-squash-gate-active-task-fix-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-237",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-237/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-238",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-238/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af238-seed-v2-stability-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-239",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-239/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af239-p95-aggregation-fix-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-240",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-240/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af240-seed-v3-difficulty-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-241",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-241/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af241-seed-v4-insight-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-242",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-243",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-243/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af243-seed-v5-contact-defense-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-244",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-244/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af244-seed-v51-emotion-tags-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-245",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-247",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
+          }
+        ]
+      }
+    ],
+    "statusMap": {
+      "backlog": null,
+      "ready": null,
+      "submitted": "SUBMITTED",
+      "working": "WORKING",
+      "input-required": "INPUT_REQUIRED",
+      "auth-required": "AUTH_REQUIRED",
+      "completed": "COMPLETED",
+      "failed": "FAILED",
+      "canceled": "CANCELED",
+      "rejected": "REJECTED"
+    },
+    "artifacts": [
+      {
+        "taskId": "AF-229",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
+      },
+      {
+        "taskId": "AF-229",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-231",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-231/task-sheet.md"
+      },
+      {
+        "taskId": "AF-231",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-248",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+      },
+      {
+        "taskId": "AF-248",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
+    "capabilityDeclarations": [],
+    "unknownStatuses": []
+  },
+  "webRefresh": {
+    "enabled": true,
+    "intervalMs": 3000
+  },
+  "archivedCount": 251
+};

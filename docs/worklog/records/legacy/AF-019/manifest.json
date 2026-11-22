@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-019",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.591Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-019/task-sheet.md",
+    "sha256": "759b153fa9907b8ba20ce9fb02af9391f25be6a62341164eefed37b0c8f5a2c7",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-022",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.594Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-022/task-sheet.md",
+    "sha256": "de5d04faa3d558fa9fbb3061162ca0fb30b2329c83ec154f6a9b6546b3eb3c8e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

@@ -1,0 +1,163 @@
+{
+  "deliveredAt": "2026-11-17T22:58:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-067-1",
+    "taskId": "AF-067",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "79a5ee2bf7d213bd74f9a92a44e86909176eec87",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af067-regression-evaluator-boundary-tests-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md",
+      "reply": "docs/worklog/pending/relay-response-20261117-2248.md",
+      "others": [
+        "新增测试：test/auto-practice/regression-evaluator-boundary.spec.ts（338 行 / 27 例）",
+        "被测生产函数零改动：src/auto-practice/metrics/regression-evaluator.ts 未改；git diff --stat HEAD -- src/engine-core 为空",
+        "机读回执落在 transport 收件箱（该目录 .gitignore）；durable 副本由编排摄取/归档流程复制到 docs/worklog/pending/archive/，executor 不越权写 archive",
+        "executor 未执行任何 node scripts/orchestration/cli.mjs 子命令，未 git commit / push / checkout / reset；提交与状态迁移由主控执行"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "test/auto-practice/regression-evaluator-boundary.spec.ts",
+        "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md",
+        "docs/worklog/pending/relay-response-20261117-2248.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/regression-evaluator-boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / node v26.13.1 / PowerShell 5.1",
+        "wallClock": "333ms",
+        "note": "1 file passed / 27 tests passed / 0 failed（任务单 gates 指定闸门）"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 20,
+        "machine": "同上",
+        "wallClock": "2.31s",
+        "note": "20 files passed / 333 tests passed / 0 failed（含既有 wp-k-regression-evaluator.spec.ts，未回归）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量",
+        "note": "0 error；注意 tsconfig.check.json → tsconfig.build.json 的 exclude 含 **/*.spec.ts 与 test/**/*，该闸门不覆盖新增 spec 文件（见 deviationTable ①）"
+      },
+      {
+        "command": "pnpm exec tsc -p tsconfig.json --noEmit --types \"node,vitest/globals\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；根 tsc 的 include 覆盖 test/**/*，用于实际校验新增 spec 文件类型正确"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存",
+        "note": "0 error / 0 warning；{src,test,bin}/**/*.ts"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "空；本单未动内核/引擎边界"
+      }
+    ],
+    "reproNotes": "AF-067 只新增一个测试文件，不依赖容器/DB/网络：夹具为字面量最小 BatchMetricsV1（1 场血缘 + 覆盖 10/10 + 空指标表），被测函数 evaluateRegression 为纯函数。复跑顺序：定向 vitest（27 例）→ 目录 vitest test/auto-practice/（333 例）→ pnpm typecheck（0 error）→ 根 tsc（0 error，覆盖 test/）→ pnpm lint（0 error 0 warning）→ git diff --stat HEAD -- src/engine-core（空）。浮点说明：'恰好等于 REGRESSION_TOL' 用 base=0 / candidate=REGRESSION_TOL 构造（二进制下精确相等）；'0.51 - 0.5 = 0.010000000000000009 > REGRESSION_TOL' 另立用例如实锁定，不与前者混写。数字为 2026-11-17 现场复跑结果，未留待执行项。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-067 贯穿任务单、交付记录、回执与回复原文；未出现其它任务号冒名"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "本单未执行任何 node scripts/orchestration/cli.mjs 子命令，未 promote/run-once/archive，未手改 task-state-index.json / journal.jsonl；任务状态仍由主控持有（submitted）"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执七组字段齐全（changedFiles/artifactRefs、gateResults/reproNotes、scopeCheck/parallelArtifactsExcluded/noOutscopeRefactor、contractChecks/contractRef/fieldAlignment、backlogItems/openQuestions/manualReviewList、deviationTable、finalStatus/reviewVerdict/verdictRationale），contractRef 用 urn:agent-collaboration-framework:schema:receipt:1.0.0"
+      },
+      {
+        "item": "event-chain",
+        "result": "not-applicable",
+        "note": "事件链与状态迁移由主控在 run-once / archive 步骤追加；executor 本轮不写事件面"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "交付记录 §4 闸门表、§6 六组标记与本回执字段逐项同源同数字；changedFiles 只声明本单 3 个文件，工作树内并行产物（data/batch-reports/**、admin-dashboard/**、web/orchestration/**、编排状态面、AF-064/AF-066 任务单等）一律不计入"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF067-01",
+        "impact": "类型闸门对测试目录长期无覆盖：pnpm typecheck（tsconfig.check.json → tsconfig.build.json）exclude 含 **/*.spec.ts 与 test/**/*，新增测试文件不在其校验范围；本单已补跑根 tsc 确认为 0 error，但工程缺口仍在（既有债、非本单引入）",
+        "severity": "low",
+        "owner": "待主控派单（改 tsconfig.check.json 的 include/exclude 属独立改造，需另立任务单）"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "类型闸门覆盖范围",
+        "taskSays": "gates 用 pnpm typecheck 判类型 0 error",
+        "reality": "tsconfig.check.json 继承 tsconfig.build.json，exclude 含 **/*.spec.ts 与 test/**/*，新增 spec 文件不在该闸门覆盖内",
+        "action": "保留 pnpm typecheck（exit 0 / 0 error）并额外跑根 tsc -p tsconfig.json --noEmit --types \"node,vitest/globals\"（exit 0 / 0 error），两条都写进 gateResults",
+        "why": "闸门数字必须能复跑且不夸大覆盖；不拿不含该文件的闸门冒充验证"
+      },
+      {
+        "item": "任务单成对归档与状态迁移",
+        "taskSays": "交付格式要求任务单与交付记录一同移入 docs/worklog/completed/phase2.5/",
+        "reality": "本单状态由主控持有（submitted），executor 被禁止运行 promote/run-once/archive 等编排命令",
+        "action": "只产出交付记录与机读回执，任务单原文保持不动，归档与状态索引/事件链更新由主控在 archive 步骤执行",
+        "why": "状态迁移是主控职责；executor 自行搬任务单会与主控归档动作冲突"
+      },
+      {
+        "item": "机读回执落点",
+        "taskSays": "回执写入 docs/team/agent-orchestration/transport/receipts/AF-067.json",
+        "reality": "transport/ 在 .gitignore 内（只作收件箱）；durable 副本由编排摄取流程 archiveReceiptFile 复制到 docs/worklog/pending/archive/",
+        "action": "按简报写 transport 收件箱，不自行复制 archive 副本",
+        "why": "回执摄取与归档属编排侧动作，executor 越权写 archive 会造成双份与指纹不一致"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-067 只新增 test/auto-practice/regression-evaluator-boundary.spec.ts（338 行 / 27 例），零生产代码改动，git diff --stat HEAD -- src/engine-core 为空。用例逐条锁定回归判定器四态边界：incomparable 五类原因（acceptance 不同 / 双侧覆盖率低于 0.9 / counselorModeId 集合不同 / characterSlug 集合不同 / combined=unknown）并断言原因原文与顺序、覆盖率恰好 0.9 仍可比、集合 size 同而成员不同仍不可比；regressed 优先于 improved；neutral 方向指标不参与好坏判定；REGRESSION_TOL 临界两侧（等于容差 neutral、略超才 movement，并如实记录 0.51-0.5 的浮点现状）；缺失/null/字典外指标一律不硬判。闸门真实数字：定向 vitest 1 file 27 tests passed 0 failed；目录回归 20 files 333 tests passed 0 failed；pnpm typecheck 0 error；根 tsc（含 test/）0 error；pnpm lint 0 error 0 warning；内核 diff 空。未改既有测试、未提交并行产物、未执行任何编排状态面命令；任务单归档与提交由主控完成。"
+  }
+}

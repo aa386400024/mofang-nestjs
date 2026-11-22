@@ -1,0 +1,428 @@
+// V2026-11-20 建立 (AF-208 · R2 生成侧真人度):
+//   职责: 对**已经生成**的来访者台词做确定性审计 —— 是否明显违背了本轮话轮形态、
+//         是否把不流利痕迹用超了。只有明确违约才触发重试，避免"为了指标而改台词"。
+//
+//   边界:
+//     · 纯函数，零 IO / 零 env / 零 LLM；
+//     · 只判"可观察的硬违约"，不判"像不像人"这种主观维度；
+//     · 不返回原文，只返回原因与计数，调用方日志不会带台词。
+
+import type { RealismEventKind, RealismEventPlan } from './realism-event-plan.js';
+import type { RealismScene, VisitorTurnShape } from './turn-shape-selector.js';
+import { inspectVisitorRegister, type RegisterSignal, type RegisterViolation } from './visitor-register-audit.js';
+
+/** 审计用的 profile 面（避免把整个 profile 类型耦合进来）。 */
+export interface RealismAuditProfile {
+  readonly state: 'steady' | 'guarded' | 'flooded' | 'risk';
+  readonly shape: VisitorTurnShape;
+  /** 本场接触方式；缺省按面对面咨询室处理。 */
+  readonly scene?: RealismScene;
+}
+
+/** 审计结果。 */
+export interface RealismAuditResult {
+  readonly ok: boolean;
+  readonly reasons: readonly RealismViolation[];
+  /** 软信号：只记录、不触发重试。用于观察 prompt 引导是否生效，避免机械规则逼出假台词。 */
+  readonly signals: readonly RealismSignal[];
+  readonly counts: Readonly<Record<RealismEventKind, number>>;
+  readonly totalEvents: number;
+}
+
+export type RealismViolation = 'too_long' | 'missing_question_back' | 'missing_repair' | 'over_quota' | RegisterViolation;
+export type RealismSignal = 'missing_deflection' | RegisterSignal;
+
+interface Span {
+  readonly start: number;
+  readonly end: number;
+}
+
+const EMPTY_COUNTS: Record<RealismEventKind, number> = {
+  filler: 0,
+  pause: 0,
+  repair: 0,
+  trailoff: 0,
+  repetition: 0,
+  elongation: 0,
+};
+
+/** 合法叠词白名单：这些重复不是不流利。 */
+const REPETITION_WHITELIST: ReadonlySet<string> = new Set([
+  '看看',
+  '想想',
+  '说说',
+  '试试',
+  '聊聊',
+  '走走',
+  '坐坐',
+  '慢慢',
+  '常常',
+  '刚刚',
+  '妈妈',
+  '爸爸',
+  '谢谢',
+  '再见',
+  '一点点',
+  '一些些',
+  '好好',
+  '多多',
+  '少少',
+  '轻轻',
+  '静静',
+  '深深',
+]);
+
+function overlaps(claimed: readonly Span[], start: number, end: number): boolean {
+  for (const span of claimed) {
+    if (start < span.end && span.start < end) return true;
+  }
+  return false;
+}
+
+function claimMatches(
+  pattern: RegExp,
+  text: string,
+  claimed: Span[],
+  kind: RealismEventKind,
+  counts: Record<RealismEventKind, number>,
+  accept?: (match: RegExpMatchArray) => boolean,
+): void {
+  pattern.lastIndex = 0;
+  for (const match of text.matchAll(pattern)) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (start === end || overlaps(claimed, start, end)) continue;
+    if (accept && !accept(match)) continue;
+    claimed.push({ start, end });
+    counts[kind] += 1;
+  }
+}
+
+function countSentences(text: string): number {
+  return text
+    .split(/[。！？!?]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0).length;
+}
+
+function countClauses(text: string): number {
+  return text
+    .split(/[，,；;]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0).length;
+}
+
+function visibleLength(text: string): number {
+  return text.replaceAll(/\s+/g, '').length;
+}
+
+const FRAGMENT_MARKERS = ['……', '...', '…', '——'] as const;
+
+/** 戒备挡回的软信号词：只是观察 prompt 引导是否生效，不参与重试。 */
+const DEFLECTION_MARKERS = ['不想说', '不太想说', '先不说', '换个话题', '还没准备好', '以后再说', '这个……'] as const;
+
+function hasDeflectionMarker(text: string): boolean {
+  return DEFLECTION_MARKERS.some((marker) => text.includes(marker));
+}
+
+function trailingFragmentMarker(text: string): string | undefined {
+  const trimmed = text.trim();
+  return FRAGMENT_MARKERS.find((marker) => trimmed.endsWith(marker));
+}
+
+/**
+ * 统计六类文字层口语事件。
+ *
+ * 与 Phase3 度量保持同一优先级：repair > trailoff > repetition > elongation > pause > filler，
+ * 一个文本位置只归一类，避免同一处标点被重复计数。
+ */
+export function countRealismEvents(text: string): {
+  readonly counts: Readonly<Record<RealismEventKind, number>>;
+  readonly totalEvents: number;
+} {
+  const counts: Record<RealismEventKind, number> = { ...EMPTY_COUNTS };
+  const claimed: Span[] = [];
+  const trimmed = text.trim();
+
+  // ① repair：严格改口标记；不把疑问「是不是」和普通否定算进来。
+  claimMatches(/不对[，,]\s*我是说|我是说|应该是|换个说法|不是[，,]\s*(?:我是说|而是)|不是.{0,10}而是/g, text, claimed, 'repair', counts);
+
+  // ② trailoff：句尾留下省略号 / 破折号 / 英文省略点。
+  const tail = trailingFragmentMarker(trimmed);
+  if (tail) {
+    claimed.push({ start: trimmed.length - tail.length, end: trimmed.length });
+    counts.trailoff += 1;
+  }
+
+  // ③ repetition：相邻重复词；白名单（看看 / 慢慢 / 谢谢）不算。
+  claimMatches(/([\u4E00-\u9FFF]{1,2})\1/g, text, claimed, 'repetition', counts, (match) => {
+    return !REPETITION_WHITELIST.has(match[0]);
+  });
+
+  // ④ elongation：一个词后接破折号；整句用破折号留给 pause。
+  claimMatches(/([\u4E00-\u9FFF])——/g, text, claimed, 'elongation', counts);
+
+  // ⑤ pause：连续省略号 / 破折号 / 英文省略点，合并为一次停顿。
+  claimMatches(/……|…|——|\.{3,}/g, text, claimed, 'pause', counts);
+
+  // ⑥ filler：句首或标点后的短填充词；「那个」只在后面紧跟停顿/标点时才算。
+  claimMatches(/(?:^|[，。！？；、…—])\s*[嗯呃唉哎呵](?=[，。！？；、…—]|$)/g, text, claimed, 'filler', counts);
+  claimMatches(/(?:^|[，。！？；、…—])\s*(那个)(?=[，。…—])/g, text, claimed, 'filler', counts);
+
+  return {
+    counts,
+    totalEvents: Object.values(counts).reduce((sum, value) => sum + value, 0),
+  };
+}
+
+/** 停顿 span 长度分类：一组省略号 / 两组省略号 / 更长或连续断裂。 */
+export type RealismPauseSpanClass = 'brief' | 'held' | 'broken';
+
+/** 改口位置分类：句首 / 句缝（逗号、分号、句号后）/ 句中。 */
+export type RealismRepairPositionClass = 'start' | 'clause_boundary' | 'mid_sentence';
+
+/**
+ * 事件分布审计：只做可观察的计数与分类，不返回台词原文。
+ *
+ * 与 countRealismEvents 的差别：这里额外保留停顿 span 长度、改口位置、句子/分句数与
+ * 短答/碎片形态，供 R6 条件分布对比与报告使用；总事件计数仍以 countRealismEvents 为准。
+ */
+export interface RealismEventDistribution {
+  readonly counts: Readonly<Record<RealismEventKind, number>>;
+  readonly totalEvents: number;
+  readonly pauseSpans: number;
+  readonly pauseSpanClasses: Readonly<Record<RealismPauseSpanClass, number>>;
+  readonly repairPositions: Readonly<Record<RealismRepairPositionClass, number>>;
+  readonly sentences: number;
+  readonly clauses: number;
+  readonly visibleChars: number;
+  readonly shortAnswer: boolean;
+  readonly fragmented: boolean;
+}
+
+const REPAIR_PATTERN = /不对[，,]\s*我是说|我是说|应该是|换个说法|不是[，,]\s*(?:我是说|而是)|不是.{0,10}而是/g;
+const PAUSE_SPAN_PATTERN = /…+|—+|\.{3,}/g;
+
+function classifyPauseSpan(length: number): RealismPauseSpanClass {
+  if (length >= 5) return 'broken';
+  if (length >= 3) return 'held';
+  return 'brief';
+}
+
+function classifyRepairStart(text: string, start: number): RealismRepairPositionClass {
+  const prefix = text.slice(0, start).trimEnd();
+  if (prefix.length === 0) return 'start';
+  const last = prefix.at(-1);
+  return last !== undefined && '，,；;。！？!?'.includes(last) ? 'clause_boundary' : 'mid_sentence';
+}
+
+/**
+ * 统计事件分布。
+ *
+ * @param text 已生成的来访者台词
+ * @returns 计数与分类；不含原文
+ */
+export function inspectRealismEventDistribution(text: string): RealismEventDistribution {
+  const trimmed = text.trim();
+  const { counts, totalEvents } = countRealismEvents(trimmed);
+  const pauseSpanClasses: Record<RealismPauseSpanClass, number> = { brief: 0, held: 0, broken: 0 };
+  let pauseSpans = 0;
+  for (const match of trimmed.matchAll(PAUSE_SPAN_PATTERN)) {
+    const length = match[0].length;
+    pauseSpanClasses[classifyPauseSpan(length)] += 1;
+    pauseSpans += 1;
+  }
+
+  const repairPositions: Record<RealismRepairPositionClass, number> = {
+    start: 0,
+    clause_boundary: 0,
+    mid_sentence: 0,
+  };
+  for (const match of trimmed.matchAll(REPAIR_PATTERN)) {
+    repairPositions[classifyRepairStart(trimmed, match.index ?? 0)] += 1;
+  }
+
+  const sentences = countSentences(trimmed);
+  const clauses = countClauses(trimmed);
+  const visibleChars = visibleLength(trimmed);
+  return {
+    counts,
+    totalEvents,
+    pauseSpans,
+    pauseSpanClasses,
+    repairPositions,
+    sentences,
+    clauses,
+    visibleChars,
+    shortAnswer: sentences <= 2 && clauses <= 2 && visibleChars <= 70,
+    fragmented: counts.trailoff > 0 || pauseSpans > 0,
+  };
+}
+
+function isShortAnswerTooLong(trimmed: string): boolean {
+  return countSentences(trimmed) > 2 || countClauses(trimmed) > 4 || visibleLength(trimmed) > 100;
+}
+
+function isTextTooLong(trimmed: string): boolean {
+  return countSentences(trimmed) > 3 || visibleLength(trimmed) > 140;
+}
+
+function isFragmentTooLong(trimmed: string): boolean {
+  return visibleLength(trimmed) > 100;
+}
+
+function hasQuestionMark(trimmed: string): boolean {
+  return trimmed.includes('？') || trimmed.includes('?');
+}
+
+function collectShapeViolations(
+  trimmed: string,
+  shape: VisitorTurnShape,
+  counts: Readonly<Record<RealismEventKind, number>>,
+): RealismViolation[] {
+  const reasons: RealismViolation[] = [];
+
+  switch (shape) {
+    case 'short_answer_then_silence':
+      if (isShortAnswerTooLong(trimmed)) reasons.push('too_long');
+      break;
+    case 'fragment_then_stop':
+      if (isFragmentTooLong(trimmed)) reasons.push('too_long');
+      break;
+    case 'text_short':
+      if (isTextTooLong(trimmed)) reasons.push('too_long');
+      break;
+    case 'question_back':
+      if (!hasQuestionMark(trimmed)) reasons.push('missing_question_back');
+      break;
+    case 'correct_self_mid_sentence':
+      if (counts.repair < 1) reasons.push('missing_repair');
+      break;
+    default:
+      break;
+  }
+
+  // 全局上限：超过三句或明显长段，已经不符合"来访者一次说一到三句"的硬规则。
+  if (measureVisitorTurnLength(trimmed).overGlobalLimit) reasons.push('too_long');
+  return reasons;
+}
+
+function collectQuotaViolations(
+  counts: Readonly<Record<RealismEventKind, number>>,
+  totalEvents: number,
+  plan: RealismEventPlan,
+): RealismViolation[] {
+  const reasons: RealismViolation[] = [];
+  if (totalEvents > plan.maxEvents) reasons.push('over_quota');
+  for (const option of plan.options) {
+    if (counts[option.kind] > option.maxCount) reasons.push('over_quota');
+  }
+  return reasons;
+}
+
+/**
+ * 软信号：话轮形态是“可选建议”，不是逐字合同。
+ * 这里只记录疑似未遵循，供批次观察；不触发重试，避免机械逼出假台词。
+ */
+function collectShapeSignals(trimmed: string, shape: VisitorTurnShape): RealismSignal[] {
+  if (shape === 'guarded_deflection' && !hasDeflectionMarker(trimmed)) return ['missing_deflection'];
+  return [];
+}
+
+/**
+ * 用量口径：批次基线与运行时审计共用同一份“过长”定义，避免两套阈值分叉。
+ */
+export function measureVisitorTurnLength(text: string): {
+  readonly sentences: number;
+  readonly visibleChars: number;
+  readonly overGlobalLimit: boolean;
+} {
+  const trimmed = text.trim();
+  const sentences = countSentences(trimmed);
+  const visibleChars = visibleLength(trimmed);
+  return {
+    sentences,
+    visibleChars,
+    overGlobalLimit: sentences > 3 || visibleChars > 260,
+  };
+}
+
+/**
+ * 审计一段来访者台词是否明显违背本轮话轮形态 / 配额。
+ *
+ * 只审计明确可判的违约；concrete_detail / emotional_detail / indirect_barb 这类
+ * 需要语义判断的形态不在此列，避免误伤。
+ */
+export function inspectVisitorRealism(text: string, profile: RealismAuditProfile, plan: RealismEventPlan): RealismAuditResult {
+  const trimmed = text.trim();
+  const { counts, totalEvents } = countRealismEvents(trimmed);
+  const register = inspectVisitorRegister(trimmed, { scene: profile.scene });
+
+  // 不可朗读文本在任何状态带都是硬违约；风险轮也不接受括号动作或界面词。
+  if (trimmed.length === 0 || profile.state === 'risk') {
+    return {
+      ok: register.violations.length === 0,
+      reasons: register.violations,
+      signals: register.signals,
+      counts,
+      totalEvents,
+    };
+  }
+
+  const reasons = [
+    ...register.violations,
+    ...collectShapeViolations(trimmed, profile.shape, counts),
+    ...collectQuotaViolations(counts, totalEvents, plan),
+  ];
+  const signals = [...collectShapeSignals(trimmed, profile.shape), ...register.signals];
+
+  return {
+    ok: reasons.length === 0,
+    reasons: [...new Set(reasons)],
+    signals: [...new Set(signals)],
+    counts,
+    totalEvents,
+  };
+}
+
+/**
+ * 把违约转成重试时追加的一句要求。
+ *
+ * @param reasons 违约类型
+ * @param plan 事件计划
+ * @param shape 话轮形态
+ * @returns 重试要求；无违约返回空串
+ */
+export function buildRealismRetryInstruction(
+  reasons: readonly RealismViolation[],
+  plan: RealismEventPlan,
+  shape: VisitorTurnShape,
+): string {
+  if (reasons.length === 0) return '';
+  const lines = ['上一版太像写好的台词，或者超出了这一轮的说话形态。按下面的要求重说一次，只输出来访者这一轮说的话，不要解释。'];
+  for (const reason of reasons) {
+    switch (reason) {
+      case 'too_long':
+        lines.push(shape === 'text_short' ? '最多三句，像文字咨询里的短消息。' : '最多两句，能短就短，不要铺开解释。');
+        break;
+      case 'missing_question_back':
+        lines.push('这一轮把问题轻轻抛回去一次，只一次，不要盘问对方。');
+        break;
+      case 'missing_repair':
+        lines.push('这一轮必须自然改一次口，例如「不对，我是说……」，不要用书面连接词。');
+        break;
+      case 'over_quota':
+        lines.push(`不流利痕迹超了，六类合计控制在 ${plan.maxEvents} 处以内；没有自然发生的地方就删掉。`);
+        break;
+      case 'non_spoken_text':
+        lines.push('去掉括号动作、星号动作和任何界面词，只输出能直接朗读的台词；不要写旁白或软件操作。');
+        break;
+      case 'prompt_echo':
+        lines.push('只输出来访者的这一句台词，不要把设定、规则、状态词或上一轮提示带出来。');
+        break;
+      default:
+        break;
+    }
+  }
+  return lines.join('\n');
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-091",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.669Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-091/task-sheet.md",
+    "sha256": "ac1677270a66943b1305fd1fad0a6f9066443a4cb9f25ae285f6e9167c649174",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af091-phase25-session-realism-2026-11-18.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

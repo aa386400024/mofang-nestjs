@@ -1,0 +1,235 @@
+{
+  "deliveredAt": "2026-11-18T09:32:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-072-1",
+    "taskId": "AF-072",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "0749d153b795a14b38d738a3f30e6d208a11f360",
+    "dependsOn": [],
+    "priorTasks": ["AF-071", "AF-070"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af072-af071-ci-chain-rework-task-2026-11-18.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af072-af071-ci-chain-rework-2026-11-18.md",
+      "reply": null,
+      "others": [
+        "AF-070 机读结论 rejected：scope 外提交 scripts/deploy-tested.cjs、scripts/ensure-utf8.cjs、scripts/smoke-ai-engine.cjs、scripts/smoke-rag.cjs；交付记录缺 gateResults 标记",
+        "AF-071 本地验收 completed、durable 回执 passed；但 PR #20 的 ci-task-gate 逐提交校验报 d51601b scope-residual、3539497 ambiguous-task-id",
+        "AF-072 原子提交 6e0196d01672aca90437b2e7cdf01a976e08f26d 替代 d51601b + 3539497；AF-070/AF-071 交付记录与回执保留，不删除审计证据",
+        "Local ci-task-gate: PASS 6e0196d01672 task=AF-072 reason=pass files=27"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af072-af071-ci-chain-rework-task-2026-11-18.md",
+        "docs/worklog/completed/phase2.5/af072-af071-ci-chain-rework-2026-11-18.md",
+        "docs/worklog/pending/archive/AF-072-receipt-RC-AF-072-1.json"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/agent-cards/orchestrator.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["6e0196d01672aca90437b2e7cdf01a976e08f26d"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows 11 22631 / PowerShell 7.6.4 / node v26.12.1 / pnpm 9.15.0",
+        "wallClock": "缓存 + 全量",
+        "note": "TS 与 scripts/**/*.{mjs,cjs} 两段均通过；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量",
+        "note": "tsc -b tsconfig.check.json；0 error"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "1.46s",
+        "note": "1 file passed / 233 tests passed / 0 failed"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 206,
+        "machine": "同上",
+        "wallClock": "27.58s",
+        "note": "205 files passed + 1 skipped；3647 tests passed + 9 skipped"
+      },
+      {
+        "command": "pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "状态索引、工具契约、协议视图、交付包、Agent Card、运行态任务单、事件日志全部 PASS"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "AF-072 归档后复核 294 条；schema/哈希链/索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base 0749d153b795a14b38d738a3f30e6d208a11f360 --head 6e0196d01672aca90437b2e7cdf01a976e08f26d --task-id AF-072",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS 6e0196d01672 task=AF-072 reason=pass files=27；单条提交可解析、scope 自洽"
+      },
+      {
+        "command": "pnpm audit --audit-level=high --prod --registry=https://registry.npmjs.org",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "4 vulnerabilities；3 moderate | 1 high (1 ignored)；GHSA-fc5q-39xc-vjpf 风险接受生效，其他 high 仍阻断"
+      },
+      {
+        "command": "[System.Management.Automation.Language.Parser]::ParseFile(install-relay-supervisor.ps1)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PS_SYNTAX_OK"
+      },
+      {
+        "command": "pwsh -File scripts/orchestration/install-relay-supervisor.ps1 -RepoRoot D:\\work\\Project\\backend\\mofang-nestjs -NodeExe D:\\tools\\node-v26.12.1-win-x64\\node.exe（两次，第二次 -NoStart）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "幂等；Actions=1；State=Running；NodeVersion=v26.12.1；PID 16296"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；未动内核/引擎"
+      }
+    ],
+    "reproNotes": "本单只修提交链，不重写业务实现。复跑顺序：Node 26 下 pnpm lint → pnpm typecheck → 定向 vitest → pnpm orchestration:validate → events verify → 本地 ci-task-gate（--base 0749d15 --head 6e0196d --task-id AF-072）→ npm registry 审计 → 收尾 pnpm test。PR 侧需 13 项 checks 全绿后 squash。未跑 LLM 批次，未启停 MySQL/Redis。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "原子提交标题只含 AF-072；任务单/回执/交付记录/状态索引一致；priorTasks=['AF-071','AF-070']"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取/归档经 CLI；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope 覆盖 scripts/ 全目录；AF-072 运行态任务单 PASS"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-070 rejected / AF-071 completed 历史保留；AF-072 原子提交与返修事件同链"
+      },
+      {
+        "item": "field-alignment",
+        "result": "pass",
+        "note": "AF-070/AF-071/AF-072 证据链同源；gateResults 标记显式出现"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "实现事实单一真相源为原子提交 6e0196d；风险接受单一真相源为 docs/security/GHSA-fc5q-39xc-vjpf.md 与 package.json 的 ignoreGhsas；返修关系单一真相源为 AF-072 任务单 priorTasks 与 AF-070 rejected / AF-071 completed 历史"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF070-01",
+        "impact": "GHSA-fc5q-39xc-vjpf 风险接受需上游修复版复核",
+        "severity": "medium",
+        "schedule": "2027-02-18 前复核 picomatch / @nestjs/graphql"
+      },
+      {
+        "id": "BL-AF070-02",
+        "impact": "Windows 计划任务为机器级工件",
+        "severity": "low",
+        "schedule": "使用幂等安装脚本重装"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "历史重写",
+        "taskSays": "AF-070/AF-071 提交已存在，只需返修 scope 与字段",
+        "reality": "CI 逐提交校验：d51601b 仍按 AF-070 旧 scope 判 scope-residual；3539497 标题含 AF-071、AF-070 判 ambiguous-task-id；尾部追加无法修复历史提交",
+        "action": "在任务分支把两条提交压成一条 AF-072 原子提交；保留 AF-070/AF-071 交付记录与回执；integrate 仍只接受受保护 PR",
+        "why": "让整条 base..head 提交链每条都能解析到单一任务且 scope 自洽；不删证据、不改 state 历史、不使用 --no-verify"
+      },
+      {
+        "item": "任务编号",
+        "taskSays": "可继续用 AF-071",
+        "reality": "AF-071 已 completed 归档；其提交标题含双任务号，无法作为 CI 可解析的提交",
+        "action": "新建 AF-072，priorTasks=['AF-071','AF-070']",
+        "why": "返修链显式可审计，不篡改已归档任务"
+      },
+      {
+        "item": "定向单测",
+        "taskSays": "AF-070 任务单写 relay-supervisor.spec.mjs",
+        "reality": "AF-072 基于 integrate，无该文件",
+        "action": "实际跑 orchestration.spec.mjs 233 例；如实记录",
+        "why": "不伪造不存在文件的通过结果"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-070 的 rejected 根因已逐条消除：4 个脚本文件纳入 scripts/ scope，交付记录显式 gateResults；原子提交 6e0196d 只含 AF-072，27 文件全部在 scope，本地 ci-task-gate 单提交 PASS；Node 26 下 lint/typecheck/233 例定向/3647 例全量、编排契约与事件链均有真实数字；AF-070 rejected→AF-071 completed→AF-072 返修关系可审计。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

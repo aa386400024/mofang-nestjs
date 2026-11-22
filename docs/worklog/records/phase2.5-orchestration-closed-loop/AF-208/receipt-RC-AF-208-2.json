@@ -1,0 +1,196 @@
+{
+  "deliveredAt": "2026-11-20T23:18:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-208-2",
+    "taskId": "AF-208",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "ea1bbfaba59fd6d84bbd735240d8a61cfdbc505f",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/manifest.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "src/shared/realism/realism-event-plan.ts",
+        "src/shared/realism/visitor-realism-audit.ts",
+        "src/engine-adapters/rendering/visitor-realism-runtime.ts",
+        "test/auto-practice/af208-realism-event.spec.ts",
+        "test/auto-practice/af208-realism-audit.spec.ts",
+        "test/engine-adapters/af208-realism-retry.spec.ts",
+        "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md"
+      ],
+      "modified": [
+        "src/shared/realism/visitor-realism-profile.ts",
+        "src/shared/realism/index.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af208-realism-event.spec.ts test/auto-practice/af208-realism-audit.spec.ts test/engine-adapters/af208-realism-retry.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1s",
+        "note": "23 tests passed（事件计划 5 / 审计 11 / 重试边界 7）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm exec eslint --no-cache \"{src,test}/**/*.ts\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 229,
+        "machine": "同上",
+        "wallClock": "25.57s",
+        "note": "229 passed + 1 skipped files；4018 passed + 4 skipped tests"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "代码、测试、交付记录与回执在同一工作树完成；历史导出离线审计用 `pnpm exec tsx` 临时脚本复算，脚本已删除未入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-208 贯穿任务单、分支、提交、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / archive 全部经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-207 合并后接 AF-208，事件链连续"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "不新增 env 键；RENDER_REALISM_MODE 仍为 off/audit/active"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "审计日志只输出违约类型/软信号/事件计数，不打印台词原文"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef 为 ea1bbfab"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF208-01",
+        "impact": "R2 未跑真实 LLM 批次；真实重试率与读感需 active 验收批次观察",
+        "severity": "medium",
+        "schedule": "R3 验收批次"
+      },
+      {
+        "id": "BL-AF208-02",
+        "impact": "missing_deflection 只记软信号，guarded_deflection 的挡回遵从率仍不稳定（历史第二份 14/17）",
+        "severity": "medium",
+        "schedule": "R3 场景/角色矩阵调 prompt，不升级硬违约"
+      },
+      {
+        "id": "BL-AF208-03",
+        "impact": "历史导出离线复算是近似：角色缺省 restrained、第二份无完整风险信号；比例不等于生产重试率",
+        "severity": "low",
+        "schedule": "active 批次用真实 role/riskSignal 重算"
+      },
+      {
+        "id": "BL-AF208-04",
+        "impact": "R3—R5（场景矩阵扩展、临床规则细化、度量与 AI 双盲验收）未实施",
+        "severity": "medium",
+        "schedule": "后续任务单"
+      },
+      {
+        "id": "BL-AF208-05",
+        "impact": "硬阈值（短答 100 字/2 句、全局 3 句/260 字）需真实批次校准，离线已见 too_long 为主要残留",
+        "severity": "low",
+        "schedule": "active 批次统计后微调"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "guarded_deflection 的“戒备挡回缺失”",
+        "taskSays": "话轮形态审计识别“戒备挡回缺失”，作为违约",
+        "reality": "改为软信号 missing_deflection：记录但不重试",
+        "action": "在交付记录与日志中显式区分 violations / signals",
+        "why": "话轮形态是可选建议；历史离线审计里机械要求挡回/半句不完整曾造成 98%～100% 误报，硬拦会逼出假台词"
+      },
+      {
+        "item": "block 重生成路径",
+        "taskSays": "生成侧审计覆盖聚合路径",
+        "reality": "regenerate() 也接回 settleRealism()，使用降温后的参数",
+        "action": "补“安全 block 重生成后仍走真人度审计”测试",
+        "why": "否则安全 block 后的重生成会绕过 R2，形成事实后门"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "R2 事件计划、硬违约审计与 active 最多一次重试落地；off/audit 零额外调用、流式不重试、block 重生成不再绕过审计；定向 23 tests、全量 4018 tests、lint/typecheck 全绿；engine-core 零 diff；历史导出主要残留已量化；R3—R5 与真实批次已登记 backlog。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

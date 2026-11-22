@@ -1,0 +1,205 @@
+{
+  "deliveredAt": "2026-11-21T03:02:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-216-1",
+    "taskId": "AF-216",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "9fd9792af0ae7f860e59d8299568dbeec4631bbc",
+    "dependsOn": ["AF-214"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-216/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af216-realism-r6-event-conditioning-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "data/phase25-exit/af216-realism-event-conditioning/report.json",
+        "data/phase25-exit/af216-realism-event-conditioning/report.prev27.json",
+        "data/phase25-exit/af216-realism-r5-regression/report.json",
+        "data/phase25-exit/af216-realism-r5-regression/summary.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "src/shared/realism/realism-event-rhythm.ts",
+        "bin/realism-event-probe.ts",
+        "test/auto-practice/af216-realism-conditioning.spec.ts",
+        "docs/worklog/completed/phase2.5/af216-realism-r6-event-conditioning-2026-11-21.md"
+      ],
+      "modified": [
+        "src/shared/realism/realism-event-plan.ts",
+        "src/shared/realism/visitor-realism-profile.ts",
+        "src/shared/realism/visitor-realism-audit.ts",
+        "src/shared/realism/index.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af216-realism-conditioning.spec.ts test/auto-practice/af204-realism.spec.ts test/auto-practice/af208-realism-event.spec.ts test/auto-practice/af208-realism-audit.spec.ts test/engine-adapters/af208-realism-retry.spec.ts test/auto-practice/af213-realism-baseline.spec.ts test/auto-practice/af214-realism-rating.spec.ts test/auto-practice/af214-realism-blind-pack.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 8,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "0.96s",
+        "note": "73 tests passed（AF-216 10 例 + R1–R5 63 例）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量检查，秒级",
+        "note": "根 tsconfig.json 全量类型检查 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存全量，数十秒",
+        "note": "0 error / 0 warning；探针 main() 已拆分为 probeOne / probeGroup / aggregateGroups / writeReport / printDryRun"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 240,
+        "machine": "同上",
+        "wallClock": "22.10s",
+        "note": "240 passed + 1 skipped files；4116 passed + 4 skipped tests。首跑有 1 个无关 Windows EBUSY 临时目录清理失败，单跑该文件 25 例全绿后复跑全量全绿"
+      },
+      {
+        "command": "node --env-file=.env --import tsx bin/realism-event-probe.ts --target-groups 9 --max-output-tokens 160",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "27 次调用，约 2 分钟",
+        "note": "3 角色 × 3 状态 × 3 次；steady/guarded/flooded 短答率 0.000/0.667/0.222；长停顿率 0.000/0.000/0.889；句中改口率 0/0/0；guardedShortAnswerHigher=true、floodedLongOrMidRepairHigher=true"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "代码、测试、交付记录与回执在同一 AF-216 任务分支完成；探针只调用模型并读本地 prompt 构造器，不启动服务、不写数据库；密钥只从 .env 读取，未写进报告或日志；报告只含分类计数、prompt hash 与 finishReason，不含台词原文；--max-output-tokens 只约束可见台词，provider 侧额外预留 400 token 思考余量。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-216 贯穿任务单、分支、提交、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / archive 全部经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-216 登记、领单、验收、归档事件连续，不改历史事件"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "不新增 env 键，不修改 provider 配置与 scripts/orchestration/"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "报告与 CLI 日志不输出台词原文；密钥不落盘"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef 为 9fd9792a"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF216-01",
+        "impact": "R5 同批复算 4/12 packet 因评分员长输出截断导致 naturalness 维度缺失；评分稳定性未压到 0，不能做灰度门禁",
+        "severity": "high",
+        "schedule": "R6-B 评分稳定性专项：只走提示词/解析加固，不碰 provider"
+      },
+      {
+        "id": "BL-AF216-02",
+        "impact": "既有 360 场 in_person=343、online_voice=0、online_text=0，线上场景切片无法验证",
+        "severity": "high",
+        "schedule": "R6-C 线上场景补样本"
+      },
+      {
+        "id": "BL-AF216-03",
+        "impact": "两轮真实探针 flooded 的 midRepairRate 均为 0；状态差异只由短答率与长停顿承载，句中改口未被模型稳定执行",
+        "severity": "medium",
+        "schedule": "另立改口专项，用更强指令或 few-shot 约束验证，不在本单宣称"
+      },
+      {
+        "id": "BL-AF216-04",
+        "impact": "真人督导师双标与仲裁仍未做，clinicalAcceptanceEligible 保持 false",
+        "severity": "high",
+        "schedule": "真人督导师到位后"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "审计函数落点",
+        "taskSays": "扩展 inspectVisitorRealism 或其同级纯函数，输出停顿/改口/短答分类",
+        "reality": "新增同级 inspectRealismEventDistribution()，inspectVisitorRealism 签名与行为不改",
+        "action": "index.ts 同时导出新旧 API，交付记录登记",
+        "why": "避免改原函数返回结构破坏既有调用与回归，同时保持只返回计数与分类"
+      },
+      {
+        "item": "探针分组参数",
+        "taskSays": "闸门命令为 --target-groups 9 --max-output-tokens 160",
+        "reality": "脚本初版只有 --roles / --states；补 --target-groups 作为分组数一致性断言，不改变调用次数",
+        "action": "最终按任务单原命令执行并通过；交付记录说明该参数语义",
+        "why": "让闸门命令可原样复现，同时不引入隐藏的采样口径变化"
+      },
+      {
+        "item": "三项差异中的改口位置",
+        "taskSays": "停顿形态、改口位置、短答偏置至少三项中两项不同",
+        "reality": "真实探针只证明短答偏置与停顿形态两项不同；改口位置只有 prompt 约束与确定性审计，模型 midRepairRate=0",
+        "action": "交付记录明确写成两项达成，不宣称三项都达成；改口专项进 backlog",
+        "why": "successCriteria 字面通过，但不能用确定性审计冒充模型真实行为证据"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "状态化节奏纯函数、条件 prompt、确定性审计与真实 LLM 探针均已落地；27 次探针按任务单原命令通过 guarded 短答与 flooded 长停顿两道门；off/audit 零注入与 R1–R5 回归、全量 4116 例、lint/typecheck 全绿；engine-core 零 diff；报告不含台词原文。flooded 句中改口率为 0，已如实登记为遗留而非成果。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

@@ -1,0 +1,83 @@
+/**
+ * Redis 命名空间常量 (大厂 Key 设计标准).
+ *
+ * 统一管理所有 Redis Key 模板, 避免散写字符串导致 key 漂移.
+ *
+ * 命名规范: `{prefix}:{namespace}:{identifier}`
+ *   - prefix: 环境隔离 (mofang:dev / mofang:prod)
+ *   - namespace: 业务域 (blacklist / queue / verification / ratelimit / cache)
+ *   - identifier: 业务 ID (jti / phone / token)
+ *
+ * 注意: BullMQ 自带 key 前缀 (bull:{queueName}:...), 跟这里解耦.
+ */
+export const REDIS_KEYS = {
+  /** JWT 黑名单 — {jti} */
+  jwtBlacklist: (jti: string): string => `blacklist:${jti}`,
+  /** 邮箱验证 token — {token} */
+  emailVerification: (token: string): string => `verify:email:${token}`,
+  /** 邮箱验证 by userId — 反查 {uid} */
+  emailVerificationByUid: (uid: string): string => `verify:email:uid:${uid}`,
+  /** 密码重置 token — {token} */
+  passwordReset: (token: string): string => `reset:pwd:${token}`,
+  /** 密码重置 by userId — 反查 */
+  passwordResetByUid: (uid: string): string => `reset:pwd:uid:${uid}`,
+  /** 短信验证码 — {phone}:{purpose} */
+  smsCode: (phone: string, purpose: string): string => `sms:${phone}:${purpose}`,
+  /** 短信发送频率限制 — {phone} */
+  smsRateLimit: (phone: string): string => `sms:ratelimit:${phone}`,
+  /** 用户失败登录计数 — {uid} */
+  loginFailedCount: (uid: string): string => `auth:fail:${uid}`,
+  /** 账号锁定 — {uid} */
+  accountLock: (uid: string): string => `auth:lock:${uid}`,
+  /** OAuth state 防 CSRF — {state} */
+  oauthState: (state: string): string => `oauth:state:${state}`,
+} as const;
+
+/**
+ * 短信验证码场景.
+ */
+export enum SmsPurpose {
+  /** 注册 */
+  Register = 'register',
+  /** 登录 */
+  Login = 'login',
+  /** 改密 */
+  ChangePassword = 'change_password',
+  /** 重置密码 */
+  ResetPassword = 'reset_password',
+  /** 绑定手机号 */
+  BindPhone = 'bind_phone',
+}
+
+/**
+ * BullMQ 队列名称常量.
+ */
+export const QUEUE_NAMES = {
+  auditLog: 'audit-log',
+  emailOutbox: 'email-outbox',
+  smsOutbox: 'sms-outbox',
+  // V2026-10-09 治本 (Phase 5): Supervisor Agent 异步督导, session 结束触发
+  supervisor: 'supervisor',
+  // V2026-10-21 治本 (V1.2 VS-A): counselor 端督导异步生成 (真接 LLM 后单次 30-120s,
+  //   同步会拖死 HTTP 连接). 独立队列名, 不复用 agent 的 'supervisor' ——
+  //   后者 payload 是 agent RunReportInput 且落 agent 自己的表, 混用会导致 job 被错消费.
+  counselorSupervision: 'counselor-supervision',
+  // V2026-10-21 治本 (V1.2 VS-C): 每轮会谈分析 (实时轻提示 + 移情/阻抗标记).
+  //   每轮都跑一次 LLM, 属高频短任务 → 独立队列 + 并发 2 (跟 counselor-supervision 的
+  //   串行 1 不同: 那边单次调用 30-120s 要压上游, 这边 low 档 3-8s 可以并发).
+  counselorTurnAnalysis: 'counselor-turn-analysis',
+  // V2026-11-05 治本 (WP65): 审议影子模式 (LLM 审议层 PoC) 的异步队列.
+  //   WP64 之前是 fire-and-forget 直接调, 有三个问题: 并发打爆上游 / 进程重启丢任务 /
+  //   没有可观测性 → 改走 BullMQ: 主流程入队就返回, Worker 按并发上限慢慢跑,
+  //   任务持久化在 Redis, 队列长度 / 成功率 / 失败原因都看得见.
+  //   独立队列名, 不复用上面几个 —— payload 与消费逻辑都完全不同, 混用会导致 job 被错消费.
+  //   并发 3 (env `ENGINE_DELIBERATION_WORKER_CONCURRENCY` 可调): 审议单次 3-8s,
+  //   比督导的 30-120s 短, 但比每轮分析的轻档重 (要读完整状态快照做对比).
+  deliberation: 'deliberation-shadow',
+  // V2026-11-08 治本 (Phase2.5 WP-D · 自动对练): AI 咨询师 + AI 来访者双向自动跑.
+  //   单场实时走 HTTP 同步返回 (前端 WS 推每轮); 批量跑走这个 BullMQ 队列.
+  //   并发 3 (env `AUTO_PRACTICE_WORKER_CONCURRENCY` 可调): 一场对练 ~15 轮 × (咨询师 LLM
+  //   1 次 + 来访渲染 LLM 1 次) ≈ 30 次 LLM 调用, 单场 2-5 分钟; 并发 3 = 同时跑 3 场,
+  //   既压得住上游配额, 又能在一小时内跑满 30+ 场的批量目标.
+  autoPractice: 'auto-practice',
+} as const;

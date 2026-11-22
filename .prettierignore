@@ -1,0 +1,15 @@
+# 框架契约包是不可变发布制品：PROVENANCE.json 固化了逐文件 SHA-256，
+# 任何格式化都会改变字节并触发 orchestration:contracts 失败。
+contracts/agent-collaboration-framework/
+
+# 运行态生成物：由 orchestration CLI 每次 run-once / watch 重写。
+# 格式化后生成器再写会制造整文件 diff，故排除在 prettier 之外。
+docs/team/agent-orchestration/orchestration-snapshot.json
+docs/team/agent-orchestration/task-state-index.json
+web/orchestration/data.js
+
+# 记录包是**审计制品**：manifest 用 SHA-256 固化了任务单与回执的原文，
+# worklog verify（pre-commit 钩子内）按原文校验。任何格式化改写都会让哈希失配
+# （AF-212 已实证：lint-staged 的 prettier 改写回执字节后只能手工重算哈希）。
+# 因此 records 整目录排除，原因与上面框架契约包同构：字节即证据。
+docs/worklog/records/

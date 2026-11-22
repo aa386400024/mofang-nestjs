@@ -1,0 +1,178 @@
+{
+  "deliveredAt": "2026-11-20T10:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-164-1",
+    "taskId": "AF-164",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "orchestrator",
+    "baselineRef": "b7ebc6195e5fa5f61ac4037f01bab8511eb6b41d",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-126",
+      "AF-127",
+      "AF-128",
+      "AF-133",
+      "AF-136",
+      "AF-137",
+      "AF-140",
+      "AF-141",
+      "AF-142",
+      "AF-146",
+      "AF-147",
+      "AF-152",
+      "AF-154",
+      "AF-155",
+      "AF-156",
+      "AF-157",
+      "AF-158",
+      "AF-159",
+      "AF-161",
+      "AF-162",
+      "AF-163",
+      "IM-073"
+    ],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/manifest.json",
+        "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "commits": [
+        "061da46dc359ab5fdc2f973d7d6518eb9957a884",
+        "233fd95"
+      ]
+    },
+    "gateResults": [
+      {
+        "exitCode": 0,
+        "command": "pnpm lint",
+        "errors": 0,
+        "warnings": 0,
+        "note": "TS 与 scripts/**/*.mjs 两段 ESLint 全绿"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm typecheck",
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json 零错误"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm test",
+        "errors": 0,
+        "warnings": 0,
+        "note": "222 files passed / 1 skipped；3914 tests passed / 4 skipped"
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "errors": 0,
+        "warnings": 0,
+        "note": "PASS 活跃=1 归档=178 记录包=179 inbox=0 legacy指针=133 无任务单=14"
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "errors": 0,
+        "warnings": 0,
+        "note": "718 条事件；schema、哈希链与索引投影一致"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm orchestration:preflight",
+        "errors": 0,
+        "warnings": 0,
+        "note": "PASS task=AF-164 status=submitted files=1 covered=1"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单 / 回执 / 交付记录 / 提交均为 AF-164"
+      },
+      {
+        "item": "priorTasks",
+        "result": "pass",
+        "note": "22 个链内任务号全部显式声明，含 IM-073 台账提交"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "仅 CLI register / promote / run-once 写状态面；无手改索引/事件"
+      },
+      {
+        "item": "scope",
+        "result": "pass",
+        "note": "本任务只新增发布任务单、交付记录与状态面；未修改业务代码"
+      },
+      {
+        "item": "release-gate",
+        "result": "pass",
+        "note": "PR #50 已创建；合并必须经 13 项必需检查，未直推 integrate"
+      }
+    ],
+    "backlogItems": [
+      {
+        "id": "IM-AF164-01",
+        "title": "PR #50 合并结果待检查完成后回写",
+        "detail": "PR https://github.com/aa386400024/mofang-nestjs/pull/50 已创建；13 项必需检查通过后 squash 合并。",
+        "impact": "合并后需复核 integrate 的 Orchestration Gate 与 merge SHA"
+      },
+      {
+        "id": "IM-AF164-02",
+        "title": "单任务 PR 守卫生效范围与批次发布冲突",
+        "detail": "pr-release.mjs 的 assertSingleTaskBranch 拒绝含多任务号的历史提交标题。",
+        "impact": "批次发布需显式 priorTasks 任务或扩展工具；本轮不修改工具代码"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "PR 创建方式",
+        "taskSays": "pr-release.mjs create --taskId AF-164",
+        "reality": "本地 guarded create 因历史提交标题 `docs(AF-154): AF-152 ...` 报多任务号错误",
+        "why": "单任务守卫无法承载批次链",
+        "action": "用 GitHub API 创建同一受保护 PR #50；检查与合并门不变"
+      },
+      {
+        "item": "提交数量",
+        "taskSays": "59 个已验收提交",
+        "reality": "AF-164 登记后 60，归档后 61",
+        "why": "59 为继承链，另外 2 个为批次任务自身状态面",
+        "action": "交付记录与 PR 说明中如实区分"
+      }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md",
+      "others": [
+        "https://github.com/aa386400024/mofang-nestjs/pull/50"
+      ]
+    },
+    "reproNotes": "本地 lint / typecheck / test / worklog verify / events verify 全绿；PR #50 head 061da46，base integrate。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "批次任务只承载发布与审计，不承载业务代码改动"
+    },
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "verdictRationale": "批次发布任务单与 priorTasks 链完整；本地闸门全绿；PR #50 已进入受保护检查流程。"
+  }
+}

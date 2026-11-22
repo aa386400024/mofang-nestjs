@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-216",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-21T02:35:30+08:00",
+  "updatedAt": "2026-11-20T19:02:26.015Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-216/task-sheet.md",
+    "sha256": "c3c22a3b5c7e49d6c8b039eca38b70384f6cae4881abe1516dd6f466da62322d",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-216/receipt-RC-AF-216-1.json",
+      "sha256": "d3d4822029d9a2b9242a76e77f6e718d86c6d8bdc14f221285e4b0e2d8825e40",
+      "receiptId": "RC-AF-216-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af216-realism-r6-event-conditioning-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af216-realism-r6-event-conditioning-2026-11-21.md"
+  ],
+  "tombstone": null
+}

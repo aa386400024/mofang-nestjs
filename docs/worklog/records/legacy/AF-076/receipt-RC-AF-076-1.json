@@ -1,0 +1,159 @@
+{
+  "deliveredAt": "2026-11-18T04:02:00Z",
+  "payload": {
+    "receiptId": "RC-AF-076-1",
+    "taskId": "AF-076",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "4ef9ae8b774d2d655447aa72340ef3b40705cff5",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af076-gate-conditional-merge-task-2026-11-18.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af076-gate-conditional-merge-2026-11-18.md",
+      "reply": null,
+      "others": [
+        "PR #24 Orchestration Gate 失败日志：run 44233089361 / job 134562616687",
+        "AF-075 conditional-pass 回执：docs/worklog/pending/archive/AF-075-receipt-RC-AF-075-1.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af076-gate-conditional-merge-task-2026-11-18.md",
+        "docs/worklog/completed/phase2.5/af076-gate-conditional-merge-2026-11-18.md"
+      ],
+      "modified": [
+        "scripts/orchestration/ci-task-gate.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "docs/team/agent-orchestration/acceptance-checklist.md",
+        "docs/team/agent-orchestration/README.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "583ms",
+        "note": "239 tests passed / 0 failed"
+      },
+      {
+        "command": "corepack pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 100s（缓存开启）",
+        "note": "0 error / 0 warning；scripts 段覆盖生效；仅 pnpm engine WARN（node v22.23.2 vs 仓库 >=26）"
+      },
+      {
+        "command": "corepack pnpm exec vitest run test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "850ms",
+        "note": "12 tests passed / 0 failed；本单未改 engine-core，沿用 AF-075 已跑结果"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "待交付后复核",
+        "note": "交付后复核"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "待交付后复核",
+        "note": "交付后复核"
+      }
+    ],
+    "reproNotes": "PR #24 的 Orchestration Gate 失败由 GitHub Actions job 134562616687 日志确认：no-active-task 与 passed-durable-receipt-missing。本单只改门禁判定与测试，不伪造 AF-075 回执。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单、交付记录、回执均为 AF-076"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register → promote → run-once；未手改索引/日志"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope 覆盖 ci-task-gate、单测与两份适配层文档；validate 见复核"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入后由 CLI 归档；events verify 见复核"
+      },
+      {
+        "item": "merge-gate-semantics",
+        "result": "pass",
+        "note": "conditional-pass 仅在有编号 backlog 且无人工复核项时可合并；硬红线未放宽"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "六组机读字段标记均在交付记录出现；reviewVerdict=passed"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "AF-075 的 IM-053（连续长跑 / stale-ack 实战）仍需下一轮真实执行任务验证，本单不代签"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "合并门判定",
+        "taskSays": "只改 conditional-pass 放行",
+        "reality": "两处判定（squash 生命周期 / PR 验收）需要同一口径",
+        "action": "抽成 mergeableDurableReceipts，两处共用",
+        "why": "避免再次漂移"
+      },
+      {
+        "item": "遗留约束",
+        "taskSays": "只看 backlog 是否存在",
+        "reality": "空对象可伪造已登记",
+        "action": "要求每条 backlog 有非空编号",
+        "why": "保留可审计性"
+      },
+      {
+        "item": "测试",
+        "taskSays": "只加通过用例",
+        "reality": "需要证明没有降低强度",
+        "action": "增加人工复核阻断、缺编号阻断两侧",
+        "why": "覆盖拒绝路径"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "单测 239 项全绿，lint 0 error / 0 warning；只放宽已登记且无人工复核项的 conditional-pass，硬红线仍阻断；无新增遗留。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

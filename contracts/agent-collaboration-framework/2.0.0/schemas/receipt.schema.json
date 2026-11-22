@@ -1,0 +1,545 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "title": "Agent Collaboration Framework - Receipt Contract",
+  "description": "回执契约（机读交付摘要）。七组字段一个都不能少；字段名与 docs/receipt-contract.md §1 逐字同名。回执与交付记录（人读正文）成对存在，同一 taskId，指针互相引用。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "contractRef",
+    "taskId",
+    "contextId",
+    "type",
+    "baselineRef",
+    "finalStatus",
+    "changedFiles",
+    "artifactRefs",
+    "gateResults",
+    "reproNotes",
+    "scopeCheck",
+    "parallelArtifactsExcluded",
+    "noOutscopeRefactor",
+    "contractChecks",
+    "fieldAlignment",
+    "backlogItems",
+    "openQuestions",
+    "manualReviewList",
+    "deviationTable",
+    "reviewVerdict",
+    "verdictRationale"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "finalStatus": {
+            "const": "canceled"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "cancellationReason"
+        ],
+        "properties": {
+          "cancellationReason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "finalStatus": {
+            "enum": [
+              "failed",
+              "rejected"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "failureReasonCode"
+        ],
+        "properties": {
+          "failureReasonCode": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reviewVerdict": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "scopeCheck": {
+            "const": "in-scope"
+          },
+          "parallelArtifactsExcluded": {
+            "const": true
+          },
+          "noOutscopeRefactor": {
+            "const": true
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "contractRef": {
+      "type": "string",
+      "pattern": "^urn:agent-collaboration-framework:schema:[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "本回执遵循的契约引用（urn:...:receipt:X.Y.Z）；单一版本语义，替代旧 schemaVersion。"
+    },
+    "schemaVersion": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "已弃用：v2 起改用 contractRef。保留字段仅为向后兼容，填写时不得替代 contractRef。"
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "与任务单、状态索引、提交信息完全一致。"
+    },
+    "contextId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "同主题归组标识；返修任务沿用。"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "implementation",
+        "review",
+        "investigation",
+        "documentation",
+        "fix",
+        "verification"
+      ],
+      "description": "任务类型；与任务单一致。"
+    },
+    "baselineRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "开工基线锚点；与任务单、索引三方一致，不填则显式为 null。"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "上游任务标识数组。"
+    },
+    "policyRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "被引用的策略锚点。"
+    },
+    "finalStatus": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "rejected",
+        "canceled"
+      ],
+      "description": "任务终态；四个终态之一（含 canceled）。取值口径与 schemas/contract-enums.json 的 terminalStatuses 一致。"
+    },
+    "changedFiles": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "added",
+        "modified",
+        "deleted"
+      ],
+      "description": "落地组：实际改动清单，按新增 / 修改 / 删除分列。",
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "新增文件路径。"
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "修改文件路径。"
+        },
+        "deleted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "删除文件路径；每条需在 deletionChecks 中说明不再被引用的核对方式。"
+        },
+        "deletionChecks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "path",
+              "check"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "被删文件路径。"
+              },
+              "check": {
+                "type": "string",
+                "minLength": 1,
+                "description": "不再被引用的核对命令或检索方式。"
+              }
+            }
+          },
+          "default": [],
+          "description": "删除项核对记录。"
+        }
+      }
+    },
+    "artifactRefs": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "taskSheet",
+        "deliveryRecord"
+      ],
+      "description": "落地组：工件指针，不复制正文。",
+      "properties": {
+        "taskSheet": {
+          "type": "string",
+          "minLength": 1,
+          "description": "任务单路径。"
+        },
+        "deliveryRecord": {
+          "type": "string",
+          "minLength": 1,
+          "description": "交付记录路径（本文件）。"
+        },
+        "reply": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "回执原文（机读本体）路径。"
+        },
+        "others": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "其他规格 / 报告指针。"
+        }
+      }
+    },
+    "gateResults": {
+      "type": "array",
+      "minItems": 1,
+      "description": "证据组：每条门禁一行，字段无空缺。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "command",
+          "exitCode",
+          "errors",
+          "warnings"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "description": "实际执行的完整命令。"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "退出码。"
+          },
+          "errors": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "错误数。"
+          },
+          "warnings": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "警告数。"
+          },
+          "specFiles": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "用例数或文件数；不适用时为 null。"
+          },
+          "machine": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "机器状态。"
+          },
+          "wallClock": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "墙钟耗时。"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "备注。"
+          }
+        }
+      }
+    },
+    "reproNotes": {
+      "type": "string",
+      "minLength": 1,
+      "description": "证据组：关键路径如何复现；失败项定性；既有债基线与本次新增分开记录。"
+    },
+    "scopeCheck": {
+      "type": "string",
+      "enum": [
+        "in-scope",
+        "deviated"
+      ],
+      "description": "范围组：改动是否全部落在授权切片内。"
+    },
+    "parallelArtifactsExcluded": {
+      "type": "boolean",
+      "description": "范围组：并行产物是否已排除（true 表示已排除）。"
+    },
+    "noOutscopeRefactor": {
+      "type": "boolean",
+      "description": "范围组：是否无相邻重构（true 表示无）。"
+    },
+    "contractChecks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "契约组：契约逐条比对结果。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "item",
+          "result"
+        ],
+        "properties": {
+          "item": {
+            "type": "string",
+            "minLength": 1,
+            "description": "契约条目。"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "not-applicable"
+            ],
+            "description": "比对结果。"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "说明。"
+          }
+        }
+      }
+    },
+    "fieldAlignment": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "result"
+      ],
+      "description": "契约组：共享字段对齐情况；真相源唯一，消费端不复算口径。",
+      "properties": {
+        "result": {
+          "type": "string",
+          "enum": [
+            "aligned",
+            "misaligned"
+          ],
+          "description": "对齐结论。"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "说明；misaligned 时必须写明差异字段与真相源。"
+        }
+      }
+    },
+    "backlogItems": {
+      "type": "array",
+      "description": "遗留组：既有技术债登记项。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "impact"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "债项标识。"
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 1,
+            "description": "影响面。"
+          },
+          "schedule": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "排期。"
+          }
+        }
+      }
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "遗留组：未决问题与依赖外部输入的点。"
+    },
+    "manualReviewList": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "遗留组：建议人工复核清单。"
+    },
+    "deviationTable": {
+      "type": "array",
+      "description": "偏差组：与任务单的出入说明；无偏差为空数组，由 deviationAbsent 显式确认。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "taskSays",
+          "reality",
+          "action",
+          "why"
+        ],
+        "properties": {
+          "taskSays": {
+            "type": "string",
+            "minLength": 1,
+            "description": "任务单写法。"
+          },
+          "reality": {
+            "type": "string",
+            "minLength": 1,
+            "description": "核实后的现实情况。"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "description": "实际处理。"
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1,
+            "description": "理由。"
+          }
+        }
+      }
+    },
+    "deviationAbsent": {
+      "type": "boolean",
+      "description": "偏差组：无偏差时显式置 true，禁止留空。"
+    },
+    "reviewVerdict": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "passed",
+        "conditional-pass",
+        "rejected",
+        null
+      ],
+      "description": "结论组：三级结论；未经验收的 failed 任务允许为 null，但必须在 failureReasonCode 说明。"
+    },
+    "verdictRationale": {
+      "type": "string",
+      "minLength": 1,
+      "description": "结论组：五类核对各条结果摘要；打回时写明原因与待补动作。"
+    },
+    "failureReasonCode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "contract-invalid",
+        "input-invalid",
+        "permission-denied",
+        "deterministic-defect",
+        "flaky-observation",
+        "preexisting-debt",
+        "timeout",
+        "dependency-blocked",
+        "external-input-missing",
+        "cancelled-by-human",
+        "dead-lettered",
+        null
+      ],
+      "description": "finalStatus 非 completed 时必填；取值口径与 schemas/contract-enums.json 的 failureReasonCodes 一致。"
+    },
+    "cancellationReason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "finalStatus 为 canceled 时必填：谁取消、依据是什么。"
+    }
+  }
+}

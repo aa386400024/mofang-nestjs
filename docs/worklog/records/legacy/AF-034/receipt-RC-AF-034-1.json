@@ -1,0 +1,97 @@
+{
+  "deliveredAt": "2026-11-17T03:16:30.000Z",
+  "payload": {
+    "receiptId": "RC-AF-034-1",
+    "taskId": "AF-034",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "baselineRef": "306870288568ef12bf0c2218cd3f748d5c651bd6",
+    "dependsOn": ["AF-032"],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af034-dispatch-config-normalization-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af034-dispatch-config-normalization-2026-11-17.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af034-dispatch-config-normalization-task-2026-11-17.md",
+        "docs/worklog/completed/phase2.5/af034-dispatch-config-normalization-2026-11-17.md"
+      ],
+      "modified": [
+        "scripts/orchestration/state-store.mjs",
+        "scripts/orchestration/task-intake.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "docs/team/agent-orchestration/README.md",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "web/orchestration/data.js"
+      ],
+      "deleted": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --reporter=dot",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "note": "168 passed / 0 failed（1.05s）"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "27 PASS / 0 FAIL"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "129 条事件，哈希链与索引投影一致"
+      }
+    ],
+    "reproNotes": "配置读出：node -e \"loadConfig().dispatch\" 返回 {channel:'gui-relay',fallbackToFile:true,deliveryLeaseMinutes:5}；领单决策 configuredChannel=gui-relay、channel=file（orchestrator-self-dispatch），证明决策读到真实配置。单测：validateConfig 保留段 + 默认值 + 非法通道 + 非法租约。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "任务单 / 交付记录 / 回执一致" },
+      { "item": "config-normalization", "result": "pass", "note": "dispatch 段保留且非法值显式报错" },
+      { "item": "state-write", "result": "pass", "note": "状态只经 commitIndex；events rechain 为显式切点纠偏" },
+      { "item": "index-schema", "result": "pass", "note": "task-state-index 1.1.0 PASS" },
+      { "item": "event-chain", "result": "pass", "note": "129 条事件 schema + 哈希链一致" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "字段与框架 schema 一致" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "AF-032 IM-028 关闭口径",
+        "taskSays": "AF-032 声明 IM-028 已关闭",
+        "reality": "决策链已接线，但决策读到的 dispatch 配置被 validateConfig 丢弃，GUI 通道实际未由调度层触发",
+        "action": "本单补齐配置归一；并在 AF-032 交付记录追加勘误行",
+        "why": "机制缺口的一半被前单判为已闭环，属于自证式闭环，必须在同一批里如实修正而不是留到下一批"
+      },
+      {
+        "item": "登记事件时间",
+        "taskSays": "任务单 createdAt 是任务属性",
+        "reality": "task-intake 仍把它当事件 at，未来整点导致 created 排在 promoted 之后",
+        "action": "两处登记调用改为只传 actor，createTask 取写入时刻；events rechain 校正已落事件",
+        "why": "同一时间戳缺陷第三次出现，入口必须一次堵完"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "配置静默丢段是本批最关键的机制缺陷，修法明确、单测覆盖、决策实值可验；闸门 168 passed / 27 PASS / 129 事件一致"
+  }
+}

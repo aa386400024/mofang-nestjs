@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-225",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-21T09:50:00+08:00",
+  "updatedAt": "2026-11-21T04:51:45.644Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-225/task-sheet.md",
+    "sha256": "ce156c9866919b621c5846fb8bd7d0507507987980095b4705bf6c2c50c275e5",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-225/receipt-RC-AF-225-1.json",
+      "sha256": "a0c06a72926619ebecab08d3e35002ec8bb423986cbfda7bcfb9baa565f0a14a",
+      "receiptId": "RC-AF-225-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-225/receipt-RC-AF-225-1-recheck.json",
+      "sha256": "178e21b28668ec0f69426f2889c9982d425f1b1086ff9fdd53ceaedee722bba2",
+      "receiptId": "RC-AF-225-1-recheck"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af225-realism-r6b-scoring-stability-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af225-realism-r6b-scoring-stability-2026-11-21.md"
+  ],
+  "tombstone": null
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-223",
+  "contextId": "phase3-orchestration-hardening",
+  "status": "completed",
+  "createdAt": "2026-11-21T02:55:00+08:00",
+  "updatedAt": "2026-11-20T19:15:11.811Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-orchestration-hardening/AF-223/task-sheet.md",
+    "sha256": "1dddd983a127d485099b2617c39bb9dc6f9a68ca830dae05d933efcbd97fcca3",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-orchestration-hardening/AF-223/receipt-RC-AF-223-1.json",
+      "sha256": "65c4f7b1f8b1cfdde4e4b8af4af2c25aa08b6473ebf264c53b30a8faf2be763b",
+      "receiptId": "RC-AF-223-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af223-task-id-reservation-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af223-task-id-reservation-2026-11-21.md"
+  ],
+  "tombstone": null
+}

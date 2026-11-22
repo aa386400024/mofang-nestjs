@@ -1,0 +1,47 @@
+{
+  "taskId": "AF-093",
+  "contextId": "phase2.5-exit-remediation",
+  "type": "documentation",
+  "baselineRef": "f98229fe9e0b21ccb662bf28076686c4d3948e0b",
+  "dependsOn": ["AF-091"],
+  "policyRefs": ["conventions.md#1.3"],
+  "changedFiles": {
+    "added": ["docs/worklog/pending/af093-phase25-exit4-readme-task-2026-11-18.md"],
+    "modified": ["docs/worklog/pending/phase2.5-README.md"],
+    "deleted": []
+  },
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/pending/af093-phase25-exit4-readme-task-2026-11-18.md",
+    "deliveryRecord": "docs/worklog/pending/phase2.5-README.md",
+    "reply": null,
+    "others": []
+  },
+  "gateResults": [
+    { "command": "node scripts/orchestration/cli.mjs events verify", "exitCode": 0, "errors": 0, "warnings": 0, "note": "PASS" }
+  ],
+  "reproNotes": "只改 README §3.2：新增 AF-091 出口④质量判读（质量未达标 / 部分可判），修正表内④行为『部分可判（协议已交付，质量未达标）』，新增 §3.2.4 记录 96 场不可重跑、AF-086 regressed、12 案 496 轮六维缺口、合成数据不可验收、AF-091 协议与 long 档、下一步。不跑 LLM 批次、不改代码与状态面。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-093" },
+    { "item": "baselineRef", "result": "pass", "note": "f98229f，与当前 integrate HEAD 一致" },
+    { "item": "receipt-contract", "result": "pass", "note": "六组必填字段齐备" },
+    { "item": "artifactRefs-exist", "result": "pass", "note": "README 与任务单存在" },
+    { "item": "engine-core-boundary", "result": "pass", "note": "未改 src/engine-core" },
+    { "item": "no-fabricated-data", "result": "pass", "note": "出口④明确写质量未达标；96 场历史批次不冒充当前库数据；合成 0.833 不冒充 80%" }
+  ],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "任务单 / 回执 / README §3.2.4 的 taskId AF-093、出口④结论、96 场与 496 轮数字一致"
+  },
+  "backlogItems": [],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [],
+  "deviationAbsent": true,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "README §3.2 已回写 AF-091 后的出口④正式判定：质量未达标 / 部分可判；保留 96 场历史批次不可重跑、AF-086 12×2 regressed、12 案 496 轮六维覆盖缺口、合成数据不可作 80% 验收；记录 AF-091 协议与 long 档，不宣称 50 分钟已达 40-50 轮。纯文档改动，事件链校验 PASS。"
+}

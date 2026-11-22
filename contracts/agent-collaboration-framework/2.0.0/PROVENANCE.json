@@ -1,0 +1,82 @@
+{
+  "fileKind": "framework-contract-bundle-provenance",
+  "schemaVersion": "1.0.0",
+  "frameworkVersion": "2.0.0",
+  "sourceRepository": "https://github.com/aa386400024/agent-collaboration-framework.git",
+  "sourceRef": "v2.0.0",
+  "sourceCommit": "c50718856aa752bac3d87e44b3f309b16fbcb051",
+  "bundledAt": "2026-11-16T00:00:00.000Z",
+  "files": [
+    {
+      "path": "schemas/agent-card.schema.json",
+      "sha256": "c29bf940e9c4a8eced71c6fb3ed55484e8081497515d22fb1065b99537171322",
+      "bytes": 3593
+    },
+    {
+      "path": "schemas/approval.schema.json",
+      "sha256": "808d417851a454e441791329e6ae84ed9fbefd255d58449486efec579b2a5a23",
+      "bytes": 3143
+    },
+    {
+      "path": "schemas/contract-enums.json",
+      "sha256": "5a3eae7c07c2265b260dc693089beec8ed1c1089e341455ca856768b6fc49028",
+      "bytes": 4368
+    },
+    {
+      "path": "schemas/delivery-package.schema.json",
+      "sha256": "85d498fd107a34f62da6e23cc1641b104bb534b36fee0bf2d5335b9bc3a46a00",
+      "bytes": 9475
+    },
+    {
+      "path": "schemas/escalation.schema.json",
+      "sha256": "ee9199d8395b38386130897eb8e9b0294d384be0e84aadd1e3a5c240aafa61f4",
+      "bytes": 4714
+    },
+    {
+      "path": "schemas/protocol-view.schema.json",
+      "sha256": "231e9436c945d6b6f0c13281eb6595ed3d8b7c385903caa2e075577aaaa3259c",
+      "bytes": 10352
+    },
+    {
+      "path": "schemas/receipt.schema.json",
+      "sha256": "db6733062828e871f45bc2509b6919ab52211afac1620b5a3b283585f31ce109",
+      "bytes": 14074
+    },
+    {
+      "path": "schemas/review-handover.schema.json",
+      "sha256": "9207edbdb88ef049a63defa883fb5a415c3861561b5b0880db21253fed2da8ac",
+      "bytes": 4452
+    },
+    {
+      "path": "schemas/state-event.schema.json",
+      "sha256": "69d830faff59868532caa92d1b3b7def88a7d842bbd1b6c84d487d0454fafd25",
+      "bytes": 4573
+    },
+    {
+      "path": "schemas/task-sheet.schema.json",
+      "sha256": "c93847af10a3a2054922e1e27c9fc6df53e7ab9011d0e3bc1ddf69b5dd4cdf7a",
+      "bytes": 11158
+    },
+    {
+      "path": "schemas/task-state-index.schema.json",
+      "sha256": "a23b86ac19e23602c1c55636cfe1a3cf97797f447c75c642c1c94c259a09a43c",
+      "bytes": 13353
+    },
+    {
+      "path": "schemas/tool-audit-event.schema.json",
+      "sha256": "15b6daf5ed7b613143b5f63bf5eba74cfd80a5e14879cf3a5bd184b0f267a1bd",
+      "bytes": 3539
+    },
+    {
+      "path": "schemas/tool-contract.schema.json",
+      "sha256": "5686adce814c8ce3224604ba01a7a019da486223bcb95f346876da07a203a951",
+      "bytes": 6916
+    },
+    {
+      "path": "schemas/versions.json",
+      "sha256": "e92664215f5dd398be9228360dc3ccefbaab2ef746f753322d8c0ca3af25ab4d",
+      "bytes": 3138
+    }
+  ],
+  "note": "不可变发布制品：内容取自框架 v2.0.0 tag；禁止手改。CI 用本包做契约硬校验，来源与哈希由 verify-framework-bundle.mjs 复核。"
+}

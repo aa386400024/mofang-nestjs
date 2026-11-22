@@ -1,0 +1,141 @@
+{
+  "deliveredAt": "2026-11-22T10:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-267-1",
+    "taskId": "AF-267",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b0f6d59702703cb161aa2dbe741632282de42b78",
+    "dependsOn": ["AF-266"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md"
+      ],
+      "modified": [
+        ".env.example",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/wp25-env-example-coverage.spec.ts test/engine-adapters/af266-model-cost-pricing.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 5 秒",
+        "note": "2 files / 16 tests 全通过（WP25 11 + AF-266 5）；日志 data/af267-targeted.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af267-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af267-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 262,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "262 files passed + 1 skipped；4269 tests passed + 4 skipped；日志 data/af267-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-267-model-price-env-wiring 自 integrate b0f6d597 切出。engine.module 新增 models 装配，.env.example 新增两个模型价键；真实 .env 未改。未暂存 web/orchestration/data.js 与 data/ 取证日志。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-267"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "AF-266 模型价 5 例无回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 b0f6d597；依赖 AF-266 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "minimax-m3-official-pricing",
+        "impact": "MiniMax M3 官方单价未核对，跨厂商成本对比有一侧仍是工程默认价"
+      },
+      {
+        "id": "provider-breakdown-consumers",
+        "impact": "auto-practice 落库与管理后台成本看板尚未消费 provider/model 明细"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "模型级 env 键已装配，.env.example 已声明，WP25 覆盖与 AF-266 模型价测试全绿；lint、tsc、全量 4269 例零失败；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

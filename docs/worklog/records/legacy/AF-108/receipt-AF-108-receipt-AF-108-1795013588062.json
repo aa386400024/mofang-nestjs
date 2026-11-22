@@ -1,0 +1,114 @@
+{
+  "taskId": "AF-108",
+  "contextId": "phase2.5-exit4-quality-remediation",
+  "type": "implementation",
+  "baselineRef": "dcd3ebd2345c504ee57e0ec8b69b362c09085115",
+  "dependsOn": ["AF-102", "AF-103", "AF-105", "AF-107"],
+  "policyRefs": ["conventions.md#1.3"],
+  "changedFiles": {
+    "added": [
+      "src/shared/llm/reasoning-text.ts",
+      "src/engine-adapters/wiring/character/character-profile.db-only.seed.ts",
+      "test/shared/af106-reasoning-text.spec.ts",
+      "test/engine-adapters/af106-character-pool.spec.ts",
+      "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md",
+      "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md"
+    ],
+    "modified": [
+      "src/shared/llm/llm-json-payload.ts",
+      "src/auto-practice/counselor/policy/visible-output.ts",
+      "src/engine-adapters/rendering/llm-render.adapter.ts",
+      "src/engine-adapters/wiring/character/character-profile.seed.ts",
+      "bin/seed-character-profiles.ts",
+      "test/engine-adapters/wp6-llm-render.spec.ts",
+      "test/engine-adapters/wp8b-stream-render.spec.ts"
+    ],
+    "deleted": []
+  },
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md",
+    "reply": null,
+    "others": []
+  },
+  "gateResults": [
+    {
+      "command": "corepack pnpm exec vitest run test/shared/af106-reasoning-text.spec.ts test/engine-adapters/af106-character-pool.spec.ts test/engine-adapters/wp6-llm-render.spec.ts test/engine-adapters/wp8b-stream-render.spec.ts",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "4 files / 49 tests passed，749ms；无 nest --watch / vite dev 常驻"
+    },
+    {
+      "command": "corepack pnpm exec tsc --noEmit -p tsconfig.json",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "0 error"
+    },
+    {
+      "command": "corepack pnpm exec eslint <11 changed files>",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "先 --fix 修格式；复跑 0 error / 0 warning"
+    },
+    {
+      "command": "corepack pnpm seed:character-profiles",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 1,
+      "note": "pnpm 引擎版本 warn；B 类新增 4 / 未变 0；DB approved=8"
+    },
+    {
+      "command": "git diff --stat HEAD -- src/engine-core",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "输出为空，engine-core 零 diff"
+    }
+  ],
+  "reproNotes": "1) 共享推理清洗三函数；2) 聚合/流式两条出口接入；3) B 类 4 角色内容种子 + 生产 seed；4) 定向 vitest / tsc / eslint 实跑；5) DB 聚合 approved=8。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-108，与任务单一致" },
+    { "item": "contextId", "result": "pass", "note": "phase2.5-exit4-quality-remediation" },
+    { "item": "baselineRef", "result": "pass", "note": "dcd3ebd，与登记时 HEAD 一致" },
+    { "item": "receipt-contract", "result": "pass", "note": "六组必填字段齐备" },
+    { "item": "artifactRefs-exist", "result": "pass", "note": "任务单 / 交付记录均存在且非空" },
+    { "item": "state-write", "result": "pass", "note": "登记 / 提级 / 领单 / 验收均经 CLI" },
+    { "item": "engine-core-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+    { "item": "no-fabricated-evidence", "result": "pass", "note": "49 例、seed 输出、approved=8 均来自实跑" }
+  ],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "任务单 / 回执 / 交付记录中的 taskId、baseline、提交、闸门数字一致"
+  },
+  "backlogItems": [
+    {
+      "id": "OI-AF108-01",
+      "title": "真实 long 批次复测与出口④判定",
+      "impact": "历史 96 场逐字稿已清理，库内无批次；不新跑同口径批次无法给正式四态结论，出口④暂时仍不可判定",
+      "reason": "本单只交付代码与 seed；96 场历史批次逐字稿已随环境迁移清理，库内无批次，需新跑同口径批次才能给正式四态结论",
+      "owner": "AF-109"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [
+    {
+      "item": "批次证据",
+      "taskSays": "后续真实批次逐字稿 <think> 占比为 0",
+      "reality": "本单未新跑 LLM 批次；历史 96 场逐字稿已清理，库内查无该批次",
+      "action": "代码与单测层已封死；真实批次验收移交 AF-109",
+      "why": "不伪造未执行的批次结论；批次证据与代码交付分开登记"
+    }
+  ],
+  "deviationAbsent": false,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "推理清洗收口到单一共享实现，聚合与流式出口实跑 49 例全绿；B 类 4 角色入库后 approved=8，seed 幂等重启未变 4；tsc / eslint 零问题，engine-core 零 diff。"
+}

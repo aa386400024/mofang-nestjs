@@ -1,0 +1,3403 @@
+{
+  "version": "synthetic-supervisor-v1",
+  "split": "validation",
+  "synthetic": true,
+  "sessions": [
+    {
+      "sessionId": "synthetic-supervisor-v1-s01",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.4883,
+            "safety": 0.4983,
+            "bond": 0.4723,
+            "valence": 0,
+            "arousal": 0.2978,
+            "verbal": 0.3041,
+            "depth": 0.3252,
+            "style": 0.2823,
+            "positive": 0.0607,
+            "negative": 0.0588,
+            "dependency": 0.0523
+          },
+          "after": {
+            "trust": 0.491,
+            "safety": 0.4986,
+            "bond": 0.4729,
+            "valence": 0.0017,
+            "arousal": 0.3027,
+            "verbal": 0.3133,
+            "depth": 0.3328,
+            "style": 0.2846,
+            "positive": 0.0627,
+            "negative": 0.0601,
+            "dependency": 0.0543
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": 0.0034,
+            "bond": 0.0085,
+            "verbal": 0.0147,
+            "depth": 0.006,
+            "style": 0.0054
+          },
+          "llmDelta": {
+            "trust": 0.0106,
+            "safety": -0.0023,
+            "bond": -0.0031,
+            "verbal": 0.0188,
+            "depth": 0.0126,
+            "style": -0.0008
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1048,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0071,
+            "safety": -0.0036,
+            "bond": 0.0002,
+            "verbal": 0.0122,
+            "depth": 0.004,
+            "style": 0.0019
+          }
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.491,
+            "safety": 0.4986,
+            "bond": 0.4729,
+            "valence": 0.0017,
+            "arousal": 0.3027,
+            "verbal": 0.3133,
+            "depth": 0.3328,
+            "style": 0.2846,
+            "positive": 0.0627,
+            "negative": 0.0601,
+            "dependency": 0.0543
+          },
+          "after": {
+            "trust": 0.4037,
+            "safety": 0.4185,
+            "bond": 0.4345,
+            "valence": -0.1075,
+            "arousal": 0.4348,
+            "verbal": 0.3613,
+            "depth": 0.2856,
+            "style": 0.343,
+            "positive": 0.0233,
+            "negative": 0.1367,
+            "dependency": 0.0298
+          },
+          "events": [
+            "boundary_cross",
+            "sensitive_touch"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0819,
+            "bond": -0.0362,
+            "verbal": 0.0555,
+            "depth": -0.0437,
+            "style": 0.0576
+          },
+          "llmDelta": {
+            "trust": -0.0775,
+            "safety": -0.0726,
+            "bond": -0.034,
+            "verbal": 0.0574,
+            "depth": -0.0555,
+            "style": 0.0617
+          },
+          "gateDecision": "run",
+          "gateReason": "key_event",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 629,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.09,
+            "safety": -0.0755,
+            "bond": -0.0405,
+            "verbal": 0.051,
+            "depth": -0.0495,
+            "style": 0.0555
+          }
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.4037,
+            "safety": 0.4185,
+            "bond": 0.4345,
+            "valence": -0.1075,
+            "arousal": 0.4348,
+            "verbal": 0.3613,
+            "depth": 0.2856,
+            "style": 0.343,
+            "positive": 0.0233,
+            "negative": 0.1367,
+            "dependency": 0.0298
+          },
+          "after": {
+            "trust": 0.3923,
+            "safety": 0.3911,
+            "bond": 0.426,
+            "valence": -0.1421,
+            "arousal": 0.4767,
+            "verbal": 0.4601,
+            "depth": 0.3571,
+            "style": 0.4144,
+            "positive": 0.0235,
+            "negative": 0.1574,
+            "dependency": 0.0442
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.008,
+            "safety": -0.0291,
+            "bond": 0,
+            "verbal": 0.095,
+            "depth": 0.0802,
+            "style": 0.0777
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.016,
+            "safety": -0.0297,
+            "bond": -0.0092,
+            "verbal": 0.0979,
+            "depth": 0.0686,
+            "style": 0.0754
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.3923,
+            "safety": 0.3911,
+            "bond": 0.426,
+            "valence": -0.1421,
+            "arousal": 0.4767,
+            "verbal": 0.4601,
+            "depth": 0.3571,
+            "style": 0.4144,
+            "positive": 0.0235,
+            "negative": 0.1574,
+            "dependency": 0.0442
+          },
+          "after": {
+            "trust": 0.399,
+            "safety": 0.3919,
+            "bond": 0.4308,
+            "valence": -0.1382,
+            "arousal": 0.4775,
+            "verbal": 0.4635,
+            "depth": 0.3601,
+            "style": 0.4159,
+            "positive": 0.0333,
+            "negative": 0.1607,
+            "dependency": 0.0464
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0023,
+            "safety": -0.0029,
+            "bond": 0.0052,
+            "verbal": 0.0073,
+            "depth": -0.0065,
+            "style": -0.0036
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.002,
+            "safety": 0.0012,
+            "bond": 0.0077,
+            "verbal": 0.0082,
+            "depth": 0.0079,
+            "style": 0
+          }
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.399,
+            "safety": 0.3919,
+            "bond": 0.4308,
+            "valence": -0.1382,
+            "arousal": 0.4775,
+            "verbal": 0.4635,
+            "depth": 0.3601,
+            "style": 0.4159,
+            "positive": 0.0333,
+            "negative": 0.1607,
+            "dependency": 0.0464
+          },
+          "after": {
+            "trust": 0.3298,
+            "safety": 0.3439,
+            "bond": 0.3697,
+            "valence": -0.1976,
+            "arousal": 0.5028,
+            "verbal": 0.4763,
+            "depth": 0.3368,
+            "style": 0.4443,
+            "positive": 0.0171,
+            "negative": 0.1939,
+            "dependency": 0.0394
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0416,
+            "bond": -0.0625,
+            "verbal": 0,
+            "depth": 0,
+            "style": 0
+          },
+          "llmDelta": {
+            "trust": -0.0627,
+            "safety": -0.0388,
+            "bond": -0.0683,
+            "verbal": 0.0172,
+            "depth": -0.0306,
+            "style": -0.0175
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 668,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.3298,
+            "safety": 0.3439,
+            "bond": 0.3697,
+            "valence": -0.1976,
+            "arousal": 0.5028,
+            "verbal": 0.4763,
+            "depth": 0.3368,
+            "style": 0.4443,
+            "positive": 0.0171,
+            "negative": 0.1939,
+            "dependency": 0.0394
+          },
+          "after": {
+            "trust": 0.3117,
+            "safety": 0.3171,
+            "bond": 0.3548,
+            "valence": -0.2275,
+            "arousal": 0.5735,
+            "verbal": 0.5586,
+            "depth": 0.3965,
+            "style": 0.5349,
+            "positive": 0.0135,
+            "negative": 0.2146,
+            "dependency": 0.0436
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0254,
+            "safety": -0.0315,
+            "bond": -0.0116,
+            "verbal": 0.0729,
+            "depth": 0.0671,
+            "style": 0.081
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": -0.0166,
+            "safety": -0.0233,
+            "bond": -0.0183,
+            "verbal": 0.0801,
+            "depth": 0.0562,
+            "style": 0.087
+          }
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.3117,
+            "safety": 0.3171,
+            "bond": 0.3548,
+            "valence": -0.2275,
+            "arousal": 0.5735,
+            "verbal": 0.5586,
+            "depth": 0.3965,
+            "style": 0.5349,
+            "positive": 0.0135,
+            "negative": 0.2146,
+            "dependency": 0.0436
+          },
+          "after": {
+            "trust": 0.3156,
+            "safety": 0.3211,
+            "bond": 0.3583,
+            "valence": -0.2091,
+            "arousal": 0.5817,
+            "verbal": 0.5591,
+            "depth": 0.3986,
+            "style": 0.5411,
+            "positive": 0.0139,
+            "negative": 0.219,
+            "dependency": 0.0482
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": 0.006,
+            "bond": 0,
+            "verbal": -0.001,
+            "depth": 0.0078,
+            "style": -0.002
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0038,
+            "safety": 0.0061,
+            "bond": 0.0029,
+            "verbal": -0.0027,
+            "depth": 0.0071,
+            "style": 0.0038
+          }
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.3156,
+            "safety": 0.3211,
+            "bond": 0.3583,
+            "valence": -0.2091,
+            "arousal": 0.5817,
+            "verbal": 0.5591,
+            "depth": 0.3986,
+            "style": 0.5411,
+            "positive": 0.0139,
+            "negative": 0.219,
+            "dependency": 0.0482
+          },
+          "after": {
+            "trust": 0.3217,
+            "safety": 0.3368,
+            "bond": 0.3754,
+            "valence": -0.1624,
+            "arousal": 0.6347,
+            "verbal": 0.5738,
+            "depth": 0.4167,
+            "style": 0.5544,
+            "positive": 0.0329,
+            "negative": 0.216,
+            "dependency": 0.0611
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0004,
+            "safety": 0.0089,
+            "bond": 0.0239,
+            "verbal": 0.0165,
+            "depth": 0.0203,
+            "style": 0.0202
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s02",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.4211,
+            "safety": 0.5161,
+            "bond": 0.4337,
+            "valence": 0,
+            "arousal": 0.2822,
+            "verbal": 0.3135,
+            "depth": 0.2819,
+            "style": 0.2841,
+            "positive": 0.0473,
+            "negative": 0.0462,
+            "dependency": 0.0517
+          },
+          "after": {
+            "trust": 0.4286,
+            "safety": 0.5208,
+            "bond": 0.4411,
+            "valence": 0.0196,
+            "arousal": 0.2922,
+            "verbal": 0.3204,
+            "depth": 0.287,
+            "style": 0.2917,
+            "positive": 0.0521,
+            "negative": 0.0508,
+            "dependency": 0.0568
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0077,
+            "safety": -0.0019,
+            "bond": 0.016,
+            "verbal": 0.0072,
+            "depth": 0.0032,
+            "style": 0.0089
+          },
+          "llmDelta": {
+            "trust": 0.0067,
+            "safety": -0.0015,
+            "bond": 0.0145,
+            "verbal": 0.0004,
+            "depth": 0.002,
+            "style": -0.0018
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 616,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0099,
+            "safety": 0.005,
+            "bond": 0.0036,
+            "verbal": 0.0111,
+            "depth": 0.0098,
+            "style": 0.0082
+          }
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.4286,
+            "safety": 0.5208,
+            "bond": 0.4411,
+            "valence": 0.0196,
+            "arousal": 0.2922,
+            "verbal": 0.3204,
+            "depth": 0.287,
+            "style": 0.2917,
+            "positive": 0.0521,
+            "negative": 0.0508,
+            "dependency": 0.0568
+          },
+          "after": {
+            "trust": 0.4328,
+            "safety": 0.5215,
+            "bond": 0.4485,
+            "valence": 0.0391,
+            "arousal": 0.3048,
+            "verbal": 0.3286,
+            "depth": 0.2948,
+            "style": 0.2985,
+            "positive": 0.0548,
+            "negative": 0.0563,
+            "dependency": 0.0606
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0052,
+            "safety": 0.0076,
+            "bond": 0.0147,
+            "verbal": 0.0066,
+            "depth": 0,
+            "style": 0.0143
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.4328,
+            "safety": 0.5215,
+            "bond": 0.4485,
+            "valence": 0.0391,
+            "arousal": 0.3048,
+            "verbal": 0.3286,
+            "depth": 0.2948,
+            "style": 0.2985,
+            "positive": 0.0548,
+            "negative": 0.0563,
+            "dependency": 0.0606
+          },
+          "after": {
+            "trust": 0.4391,
+            "safety": 0.5317,
+            "bond": 0.4635,
+            "valence": 0.0926,
+            "arousal": 0.3539,
+            "verbal": 0.337,
+            "depth": 0.3191,
+            "style": 0.3131,
+            "positive": 0.0754,
+            "negative": 0.0527,
+            "dependency": 0.0701
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0003,
+            "safety": 0.0122,
+            "bond": 0.0066,
+            "verbal": 0.0089,
+            "depth": 0.019,
+            "style": 0.0212
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0104,
+            "safety": 0.0084,
+            "bond": 0.0107,
+            "verbal": 0.0108,
+            "depth": 0.0241,
+            "style": 0.0115
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.4391,
+            "safety": 0.5317,
+            "bond": 0.4635,
+            "valence": 0.0926,
+            "arousal": 0.3539,
+            "verbal": 0.337,
+            "depth": 0.3191,
+            "style": 0.3131,
+            "positive": 0.0754,
+            "negative": 0.0527,
+            "dependency": 0.0701
+          },
+          "after": {
+            "trust": 0.4466,
+            "safety": 0.5327,
+            "bond": 0.4676,
+            "valence": 0.1022,
+            "arousal": 0.3716,
+            "verbal": 0.3439,
+            "depth": 0.3262,
+            "style": 0.3189,
+            "positive": 0.0762,
+            "negative": 0.056,
+            "dependency": 0.0702
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.002,
+            "safety": 0,
+            "bond": 0.0036,
+            "verbal": 0.0128,
+            "depth": 0.0162,
+            "style": 0.0142
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.4466,
+            "safety": 0.5327,
+            "bond": 0.4676,
+            "valence": 0.1022,
+            "arousal": 0.3716,
+            "verbal": 0.3439,
+            "depth": 0.3262,
+            "style": 0.3189,
+            "positive": 0.0762,
+            "negative": 0.056,
+            "dependency": 0.0702
+          },
+          "after": {
+            "trust": 0.4538,
+            "safety": 0.5349,
+            "bond": 0.4739,
+            "valence": 0.1221,
+            "arousal": 0.3763,
+            "verbal": 0.3439,
+            "depth": 0.3347,
+            "style": 0.319,
+            "positive": 0.0848,
+            "negative": 0.0581,
+            "dependency": 0.0728
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0083,
+            "safety": 0,
+            "bond": -0.0002,
+            "verbal": -0.0026,
+            "depth": 0.0115,
+            "style": 0.0096
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0108,
+            "safety": 0.0023,
+            "bond": 0.0084,
+            "verbal": 0.0045,
+            "depth": 0.0072,
+            "style": 0.0013
+          }
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.4538,
+            "safety": 0.5349,
+            "bond": 0.4739,
+            "valence": 0.1221,
+            "arousal": 0.3763,
+            "verbal": 0.3439,
+            "depth": 0.3347,
+            "style": 0.319,
+            "positive": 0.0848,
+            "negative": 0.0581,
+            "dependency": 0.0728
+          },
+          "after": {
+            "trust": 0.3771,
+            "safety": 0.4609,
+            "bond": 0.4207,
+            "valence": 0.0524,
+            "arousal": 0.4069,
+            "verbal": 0.3668,
+            "depth": 0.3073,
+            "style": 0.3461,
+            "positive": 0.0642,
+            "negative": 0.0929,
+            "dependency": 0.0658
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0786,
+            "safety": -0.0839,
+            "bond": -0.0595,
+            "verbal": 0,
+            "depth": -0.0285,
+            "style": 0.0223
+          },
+          "llmDelta": {
+            "trust": -0.0689,
+            "safety": -0.0824,
+            "bond": -0.0448,
+            "verbal": -0.0131,
+            "depth": -0.0313,
+            "style": 0.0278
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 921,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0764,
+            "safety": -0.0788,
+            "bond": -0.0486,
+            "verbal": 0.0216,
+            "depth": -0.024,
+            "style": 0.0267
+          }
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.3771,
+            "safety": 0.4609,
+            "bond": 0.4207,
+            "valence": 0.0524,
+            "arousal": 0.4069,
+            "verbal": 0.3668,
+            "depth": 0.3073,
+            "style": 0.3461,
+            "positive": 0.0642,
+            "negative": 0.0929,
+            "dependency": 0.0658
+          },
+          "after": {
+            "trust": 0.3623,
+            "safety": 0.4452,
+            "bond": 0.4206,
+            "valence": 0.0173,
+            "arousal": 0.4509,
+            "verbal": 0.4465,
+            "depth": 0.3826,
+            "style": 0.4375,
+            "positive": 0.0654,
+            "negative": 0.1209,
+            "dependency": 0.0761
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.017,
+            "safety": -0.019,
+            "bond": 0.0096,
+            "verbal": 0.0805,
+            "depth": 0,
+            "style": 0
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.3623,
+            "safety": 0.4452,
+            "bond": 0.4206,
+            "valence": 0.0173,
+            "arousal": 0.4509,
+            "verbal": 0.4465,
+            "depth": 0.3826,
+            "style": 0.4375,
+            "positive": 0.0654,
+            "negative": 0.1209,
+            "dependency": 0.0761
+          },
+          "after": {
+            "trust": 0.3387,
+            "safety": 0.4248,
+            "bond": 0.4084,
+            "valence": 0.0065,
+            "arousal": 0.5182,
+            "verbal": 0.544,
+            "depth": 0.4516,
+            "style": 0.5271,
+            "positive": 0.0552,
+            "negative": 0.1441,
+            "dependency": 0.0849
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0324,
+            "safety": -0.0188,
+            "bond": 0,
+            "verbal": 0.1023,
+            "depth": 0.0628,
+            "style": 0.09
+          },
+          "llmDelta": {
+            "trust": 0.0172,
+            "safety": 0.0081,
+            "bond": -0.0213,
+            "verbal": 0.0946,
+            "depth": 0.066,
+            "style": -0.0521
+          },
+          "gateDecision": "run",
+          "gateReason": "resistance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 755,
+          "expectedShouldRun": false
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s03",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.5066,
+            "safety": 0.5094,
+            "bond": 0.4171,
+            "valence": 0,
+            "arousal": 0.2841,
+            "verbal": 0.2925,
+            "depth": 0.3137,
+            "style": 0.3288,
+            "positive": 0.0551,
+            "negative": 0.0523,
+            "dependency": 0.0502
+          },
+          "after": {
+            "trust": 0.5111,
+            "safety": 0.5134,
+            "bond": 0.4233,
+            "valence": 0.0138,
+            "arousal": 0.3004,
+            "verbal": 0.2953,
+            "depth": 0.3225,
+            "style": 0.3346,
+            "positive": 0.0583,
+            "negative": 0.0572,
+            "dependency": 0.0554
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0051,
+            "safety": 0.0132,
+            "bond": 0,
+            "verbal": 0.0093,
+            "depth": 0.0045,
+            "style": 0
+          },
+          "llmDelta": {
+            "trust": -0.0046,
+            "safety": -0.0032,
+            "bond": -0.0003,
+            "verbal": -0.0046,
+            "depth": 0.0032,
+            "style": 0.0075
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 462,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.5111,
+            "safety": 0.5134,
+            "bond": 0.4233,
+            "valence": 0.0138,
+            "arousal": 0.3004,
+            "verbal": 0.2953,
+            "depth": 0.3225,
+            "style": 0.3346,
+            "positive": 0.0583,
+            "negative": 0.0572,
+            "dependency": 0.0554
+          },
+          "after": {
+            "trust": 0.5252,
+            "safety": 0.5235,
+            "bond": 0.4355,
+            "valence": 0.0688,
+            "arousal": 0.3381,
+            "verbal": 0.3113,
+            "depth": 0.3387,
+            "style": 0.3413,
+            "positive": 0.0755,
+            "negative": 0.0493,
+            "dependency": 0.0641
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.015,
+            "safety": 0.0061,
+            "bond": 0.0148,
+            "verbal": 0.0071,
+            "depth": 0.0069,
+            "style": -0.0017
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0182,
+            "safety": 0.01,
+            "bond": 0.0116,
+            "verbal": 0.0133,
+            "depth": 0.0121,
+            "style": 0.0041
+          }
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.5252,
+            "safety": 0.5235,
+            "bond": 0.4355,
+            "valence": 0.0688,
+            "arousal": 0.3381,
+            "verbal": 0.3113,
+            "depth": 0.3387,
+            "style": 0.3413,
+            "positive": 0.0755,
+            "negative": 0.0493,
+            "dependency": 0.0641
+          },
+          "after": {
+            "trust": 0.5432,
+            "safety": 0.5393,
+            "bond": 0.4587,
+            "valence": 0.1417,
+            "arousal": 0.3862,
+            "verbal": 0.3173,
+            "depth": 0.3662,
+            "style": 0.3468,
+            "positive": 0.0916,
+            "negative": 0.0445,
+            "dependency": 0.0746
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0133,
+            "safety": 0.0111,
+            "bond": 0,
+            "verbal": 0.007,
+            "depth": 0.0242,
+            "style": -0.0015
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0168,
+            "safety": 0.0156,
+            "bond": 0.02,
+            "verbal": 0.0074,
+            "depth": 0.0281,
+            "style": 0.0067
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.5432,
+            "safety": 0.5393,
+            "bond": 0.4587,
+            "valence": 0.1417,
+            "arousal": 0.3862,
+            "verbal": 0.3173,
+            "depth": 0.3662,
+            "style": 0.3468,
+            "positive": 0.0916,
+            "negative": 0.0445,
+            "dependency": 0.0746
+          },
+          "after": {
+            "trust": 0.5208,
+            "safety": 0.5179,
+            "bond": 0.4485,
+            "valence": 0.1002,
+            "arousal": 0.4421,
+            "verbal": 0.412,
+            "depth": 0.431,
+            "style": 0.4274,
+            "positive": 0.0817,
+            "negative": 0.0596,
+            "dependency": 0.0822
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0266,
+            "safety": 0,
+            "bond": -0.0017,
+            "verbal": 0.0964,
+            "depth": 0,
+            "style": 0.0874
+          },
+          "llmDelta": {
+            "trust": -0.021,
+            "safety": -0.0245,
+            "bond": -0.0016,
+            "verbal": 0.086,
+            "depth": 0.0688,
+            "style": 0.0739
+          },
+          "gateDecision": "run",
+          "gateReason": "resistance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1114,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.5208,
+            "safety": 0.5179,
+            "bond": 0.4485,
+            "valence": 0.1002,
+            "arousal": 0.4421,
+            "verbal": 0.412,
+            "depth": 0.431,
+            "style": 0.4274,
+            "positive": 0.0817,
+            "negative": 0.0596,
+            "dependency": 0.0822
+          },
+          "after": {
+            "trust": 0.521,
+            "safety": 0.518,
+            "bond": 0.4489,
+            "valence": 0.1042,
+            "arousal": 0.4618,
+            "verbal": 0.4163,
+            "depth": 0.4354,
+            "style": 0.4301,
+            "positive": 0.0829,
+            "negative": 0.065,
+            "dependency": 0.0848
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0046,
+            "safety": 0.0079,
+            "bond": -0.0005,
+            "verbal": -0.0034,
+            "depth": -0.0007,
+            "style": -0.0057
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0007,
+            "safety": 0.0022,
+            "bond": -0.0039,
+            "verbal": 0.0051,
+            "depth": -0.0003,
+            "style": 0.005
+          }
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.521,
+            "safety": 0.518,
+            "bond": 0.4489,
+            "valence": 0.1042,
+            "arousal": 0.4618,
+            "verbal": 0.4163,
+            "depth": 0.4354,
+            "style": 0.4301,
+            "positive": 0.0829,
+            "negative": 0.065,
+            "dependency": 0.0848
+          },
+          "after": {
+            "trust": 0.4405,
+            "safety": 0.4508,
+            "bond": 0.4016,
+            "valence": 0.0459,
+            "arousal": 0.4874,
+            "verbal": 0.4323,
+            "depth": 0.4095,
+            "style": 0.4404,
+            "positive": 0.0533,
+            "negative": 0.1136,
+            "dependency": 0.073
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0878,
+            "safety": 0,
+            "bond": -0.0422,
+            "verbal": 0.0217,
+            "depth": -0.0223,
+            "style": 0.0047
+          },
+          "llmDelta": {
+            "trust": -0.0886,
+            "safety": -0.0733,
+            "bond": -0.0431,
+            "verbal": 0.0248,
+            "depth": -0.0166,
+            "style": 0.0165
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 628,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0799,
+            "safety": -0.0627,
+            "bond": -0.0517,
+            "verbal": 0.0192,
+            "depth": -0.023,
+            "style": 0.0104
+          }
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.4405,
+            "safety": 0.4508,
+            "bond": 0.4016,
+            "valence": 0.0459,
+            "arousal": 0.4874,
+            "verbal": 0.4323,
+            "depth": 0.4095,
+            "style": 0.4404,
+            "positive": 0.0533,
+            "negative": 0.1136,
+            "dependency": 0.073
+          },
+          "after": {
+            "trust": 0.3776,
+            "safety": 0.4034,
+            "bond": 0.3526,
+            "valence": -0.0318,
+            "arousal": 0.5152,
+            "verbal": 0.4566,
+            "depth": 0.3797,
+            "style": 0.4532,
+            "positive": 0.0317,
+            "negative": 0.1685,
+            "dependency": 0.0656
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0493,
+            "bond": -0.0514,
+            "verbal": 0.0157,
+            "depth": 0,
+            "style": 0.0199
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.3776,
+            "safety": 0.4034,
+            "bond": 0.3526,
+            "valence": -0.0318,
+            "arousal": 0.5152,
+            "verbal": 0.4566,
+            "depth": 0.3797,
+            "style": 0.4532,
+            "positive": 0.0317,
+            "negative": 0.1685,
+            "dependency": 0.0656
+          },
+          "after": {
+            "trust": 0.2737,
+            "safety": 0.3235,
+            "bond": 0.3164,
+            "valence": -0.1469,
+            "arousal": 0.6077,
+            "verbal": 0.509,
+            "depth": 0.3355,
+            "style": 0.5027,
+            "positive": 0,
+            "negative": 0.2379,
+            "dependency": 0.0489
+          },
+          "events": [
+            "boundary_cross",
+            "sensitive_touch"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.1031,
+            "safety": -0.0725,
+            "bond": -0.0279,
+            "verbal": 0,
+            "depth": -0.047,
+            "style": 0.05
+          },
+          "llmDelta": {
+            "trust": -0.0964,
+            "safety": -0.0761,
+            "bond": -0.0392,
+            "verbal": 0.0586,
+            "depth": -0.0511,
+            "style": 0.0513
+          },
+          "gateDecision": "run",
+          "gateReason": "key_event",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1173,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0996,
+            "safety": -0.0844,
+            "bond": -0.0396,
+            "verbal": 0.0518,
+            "depth": -0.0424,
+            "style": 0.0454
+          }
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s04",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.4944,
+            "safety": 0.4807,
+            "bond": 0.4063,
+            "valence": 0,
+            "arousal": 0.282,
+            "verbal": 0.319,
+            "depth": 0.2888,
+            "style": 0.3125,
+            "positive": 0.0672,
+            "negative": 0.0479,
+            "dependency": 0.0617
+          },
+          "after": {
+            "trust": 0.4948,
+            "safety": 0.486,
+            "bond": 0.4103,
+            "valence": 0.0004,
+            "arousal": 0.2948,
+            "verbal": 0.3218,
+            "depth": 0.2987,
+            "style": 0.3209,
+            "positive": 0.0707,
+            "negative": 0.051,
+            "dependency": 0.0628
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": 0.0021,
+            "bond": 0.0108,
+            "verbal": 0.0117,
+            "depth": 0.012,
+            "style": 0.0019
+          },
+          "llmDelta": {
+            "trust": -0.0028,
+            "safety": 0.0099,
+            "bond": 0.0098,
+            "verbal": 0.0011,
+            "depth": 0.019,
+            "style": 0.0032
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 967,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0003,
+            "safety": 0.0066,
+            "bond": 0.0012,
+            "verbal": 0.0052,
+            "depth": 0.0138,
+            "style": 0.0128
+          }
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.4948,
+            "safety": 0.486,
+            "bond": 0.4103,
+            "valence": 0.0004,
+            "arousal": 0.2948,
+            "verbal": 0.3218,
+            "depth": 0.2987,
+            "style": 0.3209,
+            "positive": 0.0707,
+            "negative": 0.051,
+            "dependency": 0.0628
+          },
+          "after": {
+            "trust": 0.4701,
+            "safety": 0.4715,
+            "bond": 0.3943,
+            "valence": -0.031,
+            "arousal": 0.3562,
+            "verbal": 0.415,
+            "depth": 0.3799,
+            "style": 0.4116,
+            "positive": 0.0709,
+            "negative": 0.074,
+            "dependency": 0.0739
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0173,
+            "safety": -0.0068,
+            "bond": -0.0153,
+            "verbal": 0.0892,
+            "depth": 0.0815,
+            "style": 0.0988
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0258,
+            "safety": -0.0186,
+            "bond": -0.0146,
+            "verbal": 0.0884,
+            "depth": 0.0815,
+            "style": 0.0895
+          }
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.4701,
+            "safety": 0.4715,
+            "bond": 0.3943,
+            "valence": -0.031,
+            "arousal": 0.3562,
+            "verbal": 0.415,
+            "depth": 0.3799,
+            "style": 0.4116,
+            "positive": 0.0709,
+            "negative": 0.074,
+            "dependency": 0.0739
+          },
+          "after": {
+            "trust": 0.371,
+            "safety": 0.3779,
+            "bond": 0.341,
+            "valence": -0.1354,
+            "arousal": 0.4626,
+            "verbal": 0.4544,
+            "depth": 0.3155,
+            "style": 0.4708,
+            "positive": 0.0359,
+            "negative": 0.1376,
+            "dependency": 0.0525
+          },
+          "events": [
+            "boundary_cross",
+            "sensitive_touch"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.099,
+            "safety": -0.0913,
+            "bond": -0.0446,
+            "verbal": 0.0358,
+            "depth": 0,
+            "style": 0.055
+          },
+          "llmDelta": {
+            "trust": 0.0536,
+            "safety": -0.095,
+            "bond": -0.0439,
+            "verbal": -0.0195,
+            "depth": -0.0564,
+            "style": 0.0586
+          },
+          "gateDecision": "run",
+          "gateReason": "key_event",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 663,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0946,
+            "safety": -0.0979,
+            "bond": -0.0554,
+            "verbal": 0.035,
+            "depth": -0.0666,
+            "style": 0.0625
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.371,
+            "safety": 0.3779,
+            "bond": 0.341,
+            "valence": -0.1354,
+            "arousal": 0.4626,
+            "verbal": 0.4544,
+            "depth": 0.3155,
+            "style": 0.4708,
+            "positive": 0.0359,
+            "negative": 0.1376,
+            "dependency": 0.0525
+          },
+          "after": {
+            "trust": 0.3787,
+            "safety": 0.3796,
+            "bond": 0.346,
+            "valence": -0.1155,
+            "arousal": 0.4814,
+            "verbal": 0.4596,
+            "depth": 0.3204,
+            "style": 0.4763,
+            "positive": 0.0421,
+            "negative": 0.1386,
+            "dependency": 0.0577
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0096,
+            "safety": 0.0104,
+            "bond": -0.0003,
+            "verbal": 0.0111,
+            "depth": 0.0122,
+            "style": 0.014
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0067,
+            "safety": 0,
+            "bond": 0.0047,
+            "verbal": 0.0083,
+            "depth": 0.007,
+            "style": 0.0062
+          }
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.3787,
+            "safety": 0.3796,
+            "bond": 0.346,
+            "valence": -0.1155,
+            "arousal": 0.4814,
+            "verbal": 0.4596,
+            "depth": 0.3204,
+            "style": 0.4763,
+            "positive": 0.0421,
+            "negative": 0.1386,
+            "dependency": 0.0577
+          },
+          "after": {
+            "trust": 0.3949,
+            "safety": 0.3941,
+            "bond": 0.3663,
+            "valence": -0.0614,
+            "arousal": 0.5209,
+            "verbal": 0.47,
+            "depth": 0.3469,
+            "style": 0.4812,
+            "positive": 0.064,
+            "negative": 0.1372,
+            "dependency": 0.067
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": 0.0203,
+            "bond": 0.0175,
+            "verbal": 0.0057,
+            "depth": 0.0358,
+            "style": 0.0035
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0177,
+            "safety": 0.0101,
+            "bond": 0.0178,
+            "verbal": 0.0069,
+            "depth": 0.0304,
+            "style": 0.0031
+          }
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.3949,
+            "safety": 0.3941,
+            "bond": 0.3663,
+            "valence": -0.0614,
+            "arousal": 0.5209,
+            "verbal": 0.47,
+            "depth": 0.3469,
+            "style": 0.4812,
+            "positive": 0.064,
+            "negative": 0.1372,
+            "dependency": 0.067
+          },
+          "after": {
+            "trust": 0.401,
+            "safety": 0.3948,
+            "bond": 0.3696,
+            "valence": -0.055,
+            "arousal": 0.5327,
+            "verbal": 0.4709,
+            "depth": 0.3527,
+            "style": 0.4879,
+            "positive": 0.0689,
+            "negative": 0.1384,
+            "dependency": 0.0672
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0039,
+            "safety": 0,
+            "bond": 0.0086,
+            "verbal": -0.0016,
+            "depth": 0.0031,
+            "style": 0.0117
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0043,
+            "safety": 0.0032,
+            "bond": 0.0073,
+            "verbal": 0.0003,
+            "depth": 0.0069,
+            "style": 0.0026
+          }
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.401,
+            "safety": 0.3948,
+            "bond": 0.3696,
+            "valence": -0.055,
+            "arousal": 0.5327,
+            "verbal": 0.4709,
+            "depth": 0.3527,
+            "style": 0.4879,
+            "positive": 0.0689,
+            "negative": 0.1384,
+            "dependency": 0.0672
+          },
+          "after": {
+            "trust": 0.3457,
+            "safety": 0.3242,
+            "bond": 0.3184,
+            "valence": -0.1446,
+            "arousal": 0.5744,
+            "verbal": 0.4948,
+            "depth": 0.3177,
+            "style": 0.4993,
+            "positive": 0.0493,
+            "negative": 0.1773,
+            "dependency": 0.0536
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0461,
+            "safety": -0.07,
+            "bond": -0.0577,
+            "verbal": 0.015,
+            "depth": -0.042,
+            "style": 0.0166
+          },
+          "llmDelta": {
+            "trust": -0.0526,
+            "safety": -0.064,
+            "bond": -0.0579,
+            "verbal": 0.0262,
+            "depth": -0.027,
+            "style": 0.0032
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 599,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0567,
+            "safety": -0.0681,
+            "bond": -0.0475,
+            "verbal": 0.0264,
+            "depth": -0.0357,
+            "style": 0.0164
+          }
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.3457,
+            "safety": 0.3242,
+            "bond": 0.3184,
+            "valence": -0.1446,
+            "arousal": 0.5744,
+            "verbal": 0.4948,
+            "depth": 0.3177,
+            "style": 0.4993,
+            "positive": 0.0493,
+            "negative": 0.1773,
+            "dependency": 0.0536
+          },
+          "after": {
+            "trust": 0.3524,
+            "safety": 0.3276,
+            "bond": 0.3204,
+            "valence": -0.126,
+            "arousal": 0.5901,
+            "verbal": 0.4997,
+            "depth": 0.3221,
+            "style": 0.5049,
+            "positive": 0.0529,
+            "negative": 0.1784,
+            "dependency": 0.0546
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0012,
+            "safety": 0.0108,
+            "bond": -0.0037,
+            "verbal": 0.0049,
+            "depth": -0.0006,
+            "style": 0.0144
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0047,
+            "safety": 0.0016,
+            "bond": 0.0013,
+            "verbal": 0.0098,
+            "depth": 0.0082,
+            "style": 0.0009
+          }
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s05",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.5024,
+            "safety": 0.4828,
+            "bond": 0.4192,
+            "valence": 0,
+            "arousal": 0.2874,
+            "verbal": 0.318,
+            "depth": 0.3029,
+            "style": 0.2951,
+            "positive": 0.0623,
+            "negative": 0.0486,
+            "dependency": 0.0632
+          },
+          "after": {
+            "trust": 0.5092,
+            "safety": 0.4829,
+            "bond": 0.4247,
+            "valence": 0.011,
+            "arousal": 0.306,
+            "verbal": 0.3232,
+            "depth": 0.3038,
+            "style": 0.3043,
+            "positive": 0.0696,
+            "negative": 0.0545,
+            "dependency": 0.0639
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": 0.0024,
+            "bond": 0.0125,
+            "verbal": 0.0091,
+            "depth": -0.0049,
+            "style": 0.0038
+          },
+          "llmDelta": {
+            "trust": 0.0093,
+            "safety": 0.0075,
+            "bond": 0.0054,
+            "verbal": -0.0024,
+            "depth": 0.0029,
+            "style": 0.0066
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1074,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.5092,
+            "safety": 0.4829,
+            "bond": 0.4247,
+            "valence": 0.011,
+            "arousal": 0.306,
+            "verbal": 0.3232,
+            "depth": 0.3038,
+            "style": 0.3043,
+            "positive": 0.0696,
+            "negative": 0.0545,
+            "dependency": 0.0639
+          },
+          "after": {
+            "trust": 0.5155,
+            "safety": 0.4866,
+            "bond": 0.4298,
+            "valence": 0.0256,
+            "arousal": 0.3064,
+            "verbal": 0.3286,
+            "depth": 0.3041,
+            "style": 0.307,
+            "positive": 0.0763,
+            "negative": 0.0572,
+            "dependency": 0.0644
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0084,
+            "safety": 0.0096,
+            "bond": 0.0062,
+            "verbal": 0,
+            "depth": 0.0054,
+            "style": -0.004
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.5155,
+            "safety": 0.4866,
+            "bond": 0.4298,
+            "valence": 0.0256,
+            "arousal": 0.3064,
+            "verbal": 0.3286,
+            "depth": 0.3041,
+            "style": 0.307,
+            "positive": 0.0763,
+            "negative": 0.0572,
+            "dependency": 0.0644
+          },
+          "after": {
+            "trust": 0.4419,
+            "safety": 0.4318,
+            "bond": 0.3782,
+            "valence": -0.0478,
+            "arousal": 0.3641,
+            "verbal": 0.3513,
+            "depth": 0.2669,
+            "style": 0.3323,
+            "positive": 0.0658,
+            "negative": 0.1082,
+            "dependency": 0.0599
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0827,
+            "safety": -0.0557,
+            "bond": -0.0525,
+            "verbal": 0.0238,
+            "depth": 0,
+            "style": 0.0312
+          },
+          "llmDelta": {
+            "trust": -0.0726,
+            "safety": -0.0608,
+            "bond": -0.0451,
+            "verbal": -0.0127,
+            "depth": -0.0304,
+            "style": -0.0188
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 977,
+          "expectedShouldRun": true
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s06",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.4307,
+            "safety": 0.5285,
+            "bond": 0.4675,
+            "valence": 0,
+            "arousal": 0.3082,
+            "verbal": 0.3048,
+            "depth": 0.2842,
+            "style": 0.2893,
+            "positive": 0.05,
+            "negative": 0.0315,
+            "dependency": 0.0639
+          },
+          "after": {
+            "trust": 0.4322,
+            "safety": 0.5324,
+            "bond": 0.4754,
+            "valence": 0.0049,
+            "arousal": 0.3096,
+            "verbal": 0.3065,
+            "depth": 0.2863,
+            "style": 0.2955,
+            "positive": 0.0504,
+            "negative": 0.0354,
+            "dependency": 0.0649
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0062,
+            "safety": 0.0126,
+            "bond": 0.0139,
+            "verbal": 0.0038,
+            "depth": -0.0067,
+            "style": 0.0031
+          },
+          "llmDelta": {
+            "trust": -0.0073,
+            "safety": 0.0062,
+            "bond": 0.0102,
+            "verbal": -0.004,
+            "depth": -0.0042,
+            "style": -0.0019
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 487,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": -0.0019,
+            "safety": 0.0069,
+            "bond": 0.012,
+            "verbal": -0.0006,
+            "depth": -0.0011,
+            "style": 0.0059
+          }
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.4322,
+            "safety": 0.5324,
+            "bond": 0.4754,
+            "valence": 0.0049,
+            "arousal": 0.3096,
+            "verbal": 0.3065,
+            "depth": 0.2863,
+            "style": 0.2955,
+            "positive": 0.0504,
+            "negative": 0.0354,
+            "dependency": 0.0649
+          },
+          "after": {
+            "trust": 0.4396,
+            "safety": 0.5338,
+            "bond": 0.4763,
+            "valence": 0.0065,
+            "arousal": 0.3172,
+            "verbal": 0.3083,
+            "depth": 0.296,
+            "style": 0.3007,
+            "positive": 0.0538,
+            "negative": 0.0388,
+            "dependency": 0.0655
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.002,
+            "safety": 0.0094,
+            "bond": -0.0001,
+            "verbal": 0.0079,
+            "depth": 0.0126,
+            "style": 0.0066
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0124,
+            "safety": 0.0029,
+            "bond": 0.0048,
+            "verbal": 0.0005,
+            "depth": 0.0113,
+            "style": 0.0003
+          }
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.4396,
+            "safety": 0.5338,
+            "bond": 0.4763,
+            "valence": 0.0065,
+            "arousal": 0.3172,
+            "verbal": 0.3083,
+            "depth": 0.296,
+            "style": 0.3007,
+            "positive": 0.0538,
+            "negative": 0.0388,
+            "dependency": 0.0655
+          },
+          "after": {
+            "trust": 0.4462,
+            "safety": 0.5374,
+            "bond": 0.4804,
+            "valence": 0.0067,
+            "arousal": 0.3177,
+            "verbal": 0.3111,
+            "depth": 0.3008,
+            "style": 0.3009,
+            "positive": 0.0555,
+            "negative": 0.0427,
+            "dependency": 0.0669
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.006,
+            "safety": -0.0015,
+            "bond": 0,
+            "verbal": -0.0057,
+            "depth": -0.0034,
+            "style": 0
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": true,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0082,
+            "safety": 0.0027,
+            "bond": -0.0001,
+            "verbal": 0.0032,
+            "depth": 0.0064,
+            "style": -0.0025
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.4462,
+            "safety": 0.5374,
+            "bond": 0.4804,
+            "valence": 0.0067,
+            "arousal": 0.3177,
+            "verbal": 0.3111,
+            "depth": 0.3008,
+            "style": 0.3009,
+            "positive": 0.0555,
+            "negative": 0.0427,
+            "dependency": 0.0669
+          },
+          "after": {
+            "trust": 0.4559,
+            "safety": 0.5529,
+            "bond": 0.4958,
+            "valence": 0.086,
+            "arousal": 0.3694,
+            "verbal": 0.3221,
+            "depth": 0.3186,
+            "style": 0.3085,
+            "positive": 0.0727,
+            "negative": 0.035,
+            "dependency": 0.0699
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0078,
+            "safety": 0.0231,
+            "bond": 0.0128,
+            "verbal": 0.0075,
+            "depth": 0.0244,
+            "style": 0.0002
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.012,
+            "safety": 0.0168,
+            "bond": 0.0143,
+            "verbal": 0.0088,
+            "depth": 0.0181,
+            "style": 0.0056
+          }
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.4559,
+            "safety": 0.5529,
+            "bond": 0.4958,
+            "valence": 0.086,
+            "arousal": 0.3694,
+            "verbal": 0.3221,
+            "depth": 0.3186,
+            "style": 0.3085,
+            "positive": 0.0727,
+            "negative": 0.035,
+            "dependency": 0.0699
+          },
+          "after": {
+            "trust": 0.441,
+            "safety": 0.5322,
+            "bond": 0.482,
+            "valence": 0.0453,
+            "arousal": 0.4268,
+            "verbal": 0.4224,
+            "depth": 0.3864,
+            "style": 0.3877,
+            "positive": 0.0746,
+            "negative": 0.0649,
+            "dependency": 0.0818
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0127,
+            "bond": -0.0165,
+            "verbal": 0,
+            "depth": 0.0752,
+            "style": 0.0859
+          },
+          "llmDelta": {
+            "trust": 0.0085,
+            "safety": -0.0262,
+            "bond": -0.011,
+            "verbal": 0.1049,
+            "depth": 0.0579,
+            "style": 0.0752
+          },
+          "gateDecision": "run",
+          "gateReason": "resistance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 598,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.441,
+            "safety": 0.5322,
+            "bond": 0.482,
+            "valence": 0.0453,
+            "arousal": 0.4268,
+            "verbal": 0.4224,
+            "depth": 0.3864,
+            "style": 0.3877,
+            "positive": 0.0746,
+            "negative": 0.0649,
+            "dependency": 0.0818
+          },
+          "after": {
+            "trust": 0.4435,
+            "safety": 0.5377,
+            "bond": 0.4856,
+            "valence": 0.0632,
+            "arousal": 0.4314,
+            "verbal": 0.4236,
+            "depth": 0.3958,
+            "style": 0.3953,
+            "positive": 0.0789,
+            "negative": 0.0696,
+            "dependency": 0.0865
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0033,
+            "safety": 0.0024,
+            "bond": 0.0111,
+            "verbal": 0.0003,
+            "depth": 0.009,
+            "style": 0.0075
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0005,
+            "safety": 0.0009,
+            "bond": 0.0054,
+            "verbal": 0.0012,
+            "depth": 0.0108,
+            "style": 0.0124
+          }
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.4435,
+            "safety": 0.5377,
+            "bond": 0.4856,
+            "valence": 0.0632,
+            "arousal": 0.4314,
+            "verbal": 0.4236,
+            "depth": 0.3958,
+            "style": 0.3953,
+            "positive": 0.0789,
+            "negative": 0.0696,
+            "dependency": 0.0865
+          },
+          "after": {
+            "trust": 0.4602,
+            "safety": 0.5473,
+            "bond": 0.5034,
+            "valence": 0.1242,
+            "arousal": 0.5002,
+            "verbal": 0.4302,
+            "depth": 0.4226,
+            "style": 0.4032,
+            "positive": 0.1023,
+            "negative": 0.0649,
+            "dependency": 0.0946
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0094,
+            "safety": 0.0138,
+            "bond": 0.0156,
+            "verbal": -0.0012,
+            "depth": 0.023,
+            "style": 0.0028
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.4602,
+            "safety": 0.5473,
+            "bond": 0.5034,
+            "valence": 0.1242,
+            "arousal": 0.5002,
+            "verbal": 0.4302,
+            "depth": 0.4226,
+            "style": 0.4032,
+            "positive": 0.1023,
+            "negative": 0.0649,
+            "dependency": 0.0946
+          },
+          "after": {
+            "trust": 0.4008,
+            "safety": 0.4818,
+            "bond": 0.4459,
+            "valence": 0.0474,
+            "arousal": 0.5276,
+            "verbal": 0.458,
+            "depth": 0.4005,
+            "style": 0.4256,
+            "positive": 0.0725,
+            "negative": 0.1095,
+            "dependency": 0.0813
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0691,
+            "safety": -0.0724,
+            "bond": -0.0595,
+            "verbal": 0.0333,
+            "depth": -0.0175,
+            "style": 0.0296
+          },
+          "llmDelta": {
+            "trust": -0.0538,
+            "safety": -0.0605,
+            "bond": 0.029,
+            "verbal": -0.0159,
+            "depth": -0.0295,
+            "style": 0.0263
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1060,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0568,
+            "safety": -0.0616,
+            "bond": -0.0555,
+            "verbal": 0.0318,
+            "depth": -0.0218,
+            "style": 0.0253
+          }
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s07",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.5382,
+            "safety": 0.5468,
+            "bond": 0.4861,
+            "valence": 0,
+            "arousal": 0.3306,
+            "verbal": 0.335,
+            "depth": 0.2853,
+            "style": 0.3027,
+            "positive": 0.0639,
+            "negative": 0.0577,
+            "dependency": 0.0487
+          },
+          "after": {
+            "trust": 0.5461,
+            "safety": 0.5497,
+            "bond": 0.4922,
+            "valence": 0.0106,
+            "arousal": 0.3411,
+            "verbal": 0.3407,
+            "depth": 0.2951,
+            "style": 0.3125,
+            "positive": 0.0713,
+            "negative": 0.0629,
+            "dependency": 0.0542
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0105,
+            "safety": 0.0085,
+            "bond": -0.0012,
+            "verbal": 0,
+            "depth": 0.01,
+            "style": 0.0126
+          },
+          "llmDelta": {
+            "trust": 0.0072,
+            "safety": -0.005,
+            "bond": -0.0021,
+            "verbal": 0.002,
+            "depth": -0.0067,
+            "style": 0.014
+          },
+          "gateDecision": "run",
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 592,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.01,
+            "safety": -0.0013,
+            "bond": 0.0069,
+            "verbal": 0.0024,
+            "depth": 0.0063,
+            "style": 0.0078
+          }
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.5461,
+            "safety": 0.5497,
+            "bond": 0.4922,
+            "valence": 0.0106,
+            "arousal": 0.3411,
+            "verbal": 0.3407,
+            "depth": 0.2951,
+            "style": 0.3125,
+            "positive": 0.0713,
+            "negative": 0.0629,
+            "dependency": 0.0542
+          },
+          "after": {
+            "trust": 0.4796,
+            "safety": 0.4929,
+            "bond": 0.4369,
+            "valence": -0.0768,
+            "arousal": 0.3986,
+            "verbal": 0.366,
+            "depth": 0.27,
+            "style": 0.332,
+            "positive": 0.0464,
+            "negative": 0.0976,
+            "dependency": 0.0493
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0637,
+            "safety": -0.0637,
+            "bond": 0,
+            "verbal": 0,
+            "depth": -0.025,
+            "style": 0.0219
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.4796,
+            "safety": 0.4929,
+            "bond": 0.4369,
+            "valence": -0.0768,
+            "arousal": 0.3986,
+            "verbal": 0.366,
+            "depth": 0.27,
+            "style": 0.332,
+            "positive": 0.0464,
+            "negative": 0.0976,
+            "dependency": 0.0493
+          },
+          "after": {
+            "trust": 0.4154,
+            "safety": 0.4228,
+            "bond": 0.3845,
+            "valence": -0.139,
+            "arousal": 0.4357,
+            "verbal": 0.3887,
+            "depth": 0.2492,
+            "style": 0.3457,
+            "positive": 0.0179,
+            "negative": 0.1481,
+            "dependency": 0.0436
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0695,
+            "safety": 0,
+            "bond": -0.0475,
+            "verbal": 0.0302,
+            "depth": -0.0152,
+            "style": 0.0041
+          },
+          "llmDelta": {
+            "trust": 0.0332,
+            "safety": -0.069,
+            "bond": -0.0584,
+            "verbal": 0.0219,
+            "depth": -0.0292,
+            "style": -0.005
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 481,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0652,
+            "safety": -0.0663,
+            "bond": -0.0559,
+            "verbal": 0.0258,
+            "depth": -0.0168,
+            "style": 0.0104
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.4154,
+            "safety": 0.4228,
+            "bond": 0.3845,
+            "valence": -0.139,
+            "arousal": 0.4357,
+            "verbal": 0.3887,
+            "depth": 0.2492,
+            "style": 0.3457,
+            "positive": 0.0179,
+            "negative": 0.1481,
+            "dependency": 0.0436
+          },
+          "after": {
+            "trust": 1,
+            "safety": 0.4416,
+            "bond": 0.4043,
+            "valence": -0.0864,
+            "arousal": 0.4961,
+            "verbal": 0.4047,
+            "depth": 0.2706,
+            "style": 0.3593,
+            "positive": 0.0474,
+            "negative": 0.1466,
+            "dependency": 0.0511
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0116,
+            "safety": 0.0249,
+            "bond": 0.0204,
+            "verbal": 0.0079,
+            "depth": 0.0285,
+            "style": 0.0073
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.423,
+            "safety": 0.4416,
+            "bond": 0.4043,
+            "valence": -0.0864,
+            "arousal": 0.4961,
+            "verbal": 0.4047,
+            "depth": 0.2706,
+            "style": 0.3593,
+            "positive": 0.0474,
+            "negative": 0.1466,
+            "dependency": 0.0511
+          },
+          "after": {
+            "trust": 0.357,
+            "safety": 0.3846,
+            "bond": 0.3636,
+            "valence": -0.1694,
+            "arousal": 0.5322,
+            "verbal": 0.4246,
+            "depth": 0.2477,
+            "style": 0.3867,
+            "positive": 0.0206,
+            "negative": 0.1742,
+            "dependency": 0.0452
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0744,
+            "safety": 0,
+            "bond": -0.0418,
+            "verbal": 0.0294,
+            "depth": -0.0175,
+            "style": 0.019
+          },
+          "llmDelta": {
+            "trust": 0.0422,
+            "safety": -0.0576,
+            "bond": -0.0374,
+            "verbal": 0.0156,
+            "depth": -0.0171,
+            "style": 0.0354
+          },
+          "gateDecision": "run",
+          "gateReason": "alliance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1199,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.357,
+            "safety": 0.3846,
+            "bond": 0.3636,
+            "valence": -0.1694,
+            "arousal": 0.5322,
+            "verbal": 0.4246,
+            "depth": 0.2477,
+            "style": 0.3867,
+            "positive": 0.0206,
+            "negative": 0.1742,
+            "dependency": 0.0452
+          },
+          "after": {
+            "trust": 0.3489,
+            "safety": 0.3576,
+            "bond": 0.3483,
+            "valence": -0.1896,
+            "arousal": 0.6017,
+            "verbal": 0.5231,
+            "depth": 0.3231,
+            "style": 0.4675,
+            "positive": 0.0196,
+            "negative": 0.2003,
+            "dependency": 0.0581
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0162,
+            "safety": -0.0207,
+            "bond": -0.0124,
+            "verbal": 0.0912,
+            "depth": 0,
+            "style": 0.086
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0079,
+            "safety": -0.0244,
+            "bond": -0.0104,
+            "verbal": 0.1017,
+            "depth": 0.0731,
+            "style": 0.0849
+          }
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.3489,
+            "safety": 0.3576,
+            "bond": 0.3483,
+            "valence": -0.1896,
+            "arousal": 0.6017,
+            "verbal": 0.5231,
+            "depth": 0.3231,
+            "style": 0.4675,
+            "positive": 0.0196,
+            "negative": 0.2003,
+            "dependency": 0.0581
+          },
+          "after": {
+            "trust": 0.3347,
+            "safety": 0.3383,
+            "bond": 0.3418,
+            "valence": -0.2376,
+            "arousal": 0.6606,
+            "verbal": 0.6032,
+            "depth": 0.3966,
+            "style": 0.5528,
+            "positive": 0.0143,
+            "negative": 0.2238,
+            "dependency": 0.066
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": 0,
+            "bond": -0.0064,
+            "verbal": 0.0832,
+            "depth": 0.0674,
+            "style": 0.0846
+          },
+          "llmDelta": {
+            "trust": -0.0086,
+            "safety": -0.0153,
+            "bond": 0.0011,
+            "verbal": 0.0725,
+            "depth": 0.0699,
+            "style": 0.0913
+          },
+          "gateDecision": "run",
+          "gateReason": "resistance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 702,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0157,
+            "safety": -0.0184,
+            "bond": -0.0077,
+            "verbal": 0.083,
+            "depth": 0.075,
+            "style": 0.0898
+          }
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.3347,
+            "safety": 0.3383,
+            "bond": 0.3418,
+            "valence": -0.2376,
+            "arousal": 0.6606,
+            "verbal": 0.6032,
+            "depth": 0.3966,
+            "style": 0.5528,
+            "positive": 0.0143,
+            "negative": 0.2238,
+            "dependency": 0.066
+          },
+          "after": {
+            "trust": 0.3215,
+            "safety": 0.3278,
+            "bond": 0.3407,
+            "valence": -0.2639,
+            "arousal": 0.7222,
+            "verbal": 0.6995,
+            "depth": 0.478,
+            "style": 0.6346,
+            "positive": 0.0101,
+            "negative": 0.2448,
+            "dependency": 0.0766
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.02,
+            "safety": 0,
+            "bond": -0.0065,
+            "verbal": 0.0907,
+            "depth": 0,
+            "style": 0.0829
+          },
+          "llmDelta": null,
+          "gateDecision": "skip",
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0152,
+            "safety": -0.0074,
+            "bond": -0.0049,
+            "verbal": 0.0915,
+            "depth": 0.0811,
+            "style": 0.0816
+          }
+        }
+      ]
+    },
+    {
+      "sessionId": "synthetic-supervisor-v1-s08",
+      "split": "validation",
+      "turns": [
+        {
+          "turnIndex": 1,
+          "before": {
+            "trust": 0.5004,
+            "safety": 0.4962,
+            "bond": 0.4432,
+            "valence": 0,
+            "arousal": 0.2855,
+            "verbal": 0.306,
+            "depth": 0.3396,
+            "style": 0.2914,
+            "positive": 0.0513,
+            "negative": 0.0418,
+            "dependency": 0.0667
+          },
+          "after": {
+            "trust": 0.5048,
+            "safety": 0.4986,
+            "bond": 0.4441,
+            "valence": 0.0141,
+            "arousal": 0.2995,
+            "verbal": 0.3075,
+            "depth": 0.3481,
+            "style": 0.2959,
+            "positive": 0.0543,
+            "negative": 0.0459,
+            "dependency": 0.0716
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0061,
+            "safety": 0,
+            "bond": 0.0056,
+            "verbal": -0.0065,
+            "depth": 0.0004,
+            "style": -0.0038
+          },
+          "llmDelta": {
+            "trust": 0.0097,
+            "safety": 0.0022,
+            "bond": 0.01,
+            "verbal": 0.0045,
+            "depth": 0.0182,
+            "style": -0.0003
+          },
+          "gateDecision": null,
+          "gateReason": "first_turn_baseline",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 828,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0003,
+            "safety": -0.0003,
+            "bond": -0.001,
+            "verbal": -0.0007,
+            "depth": 0.0101,
+            "style": 0.0028
+          }
+        },
+        {
+          "turnIndex": 2,
+          "before": {
+            "trust": 0.5048,
+            "safety": 0.4986,
+            "bond": 0.4441,
+            "valence": 0.0141,
+            "arousal": 0.2995,
+            "verbal": 0.3075,
+            "depth": 0.3481,
+            "style": 0.2959,
+            "positive": 0.0543,
+            "negative": 0.0459,
+            "dependency": 0.0716
+          },
+          "after": {
+            "trust": 0.4254,
+            "safety": 0.4288,
+            "bond": 0.3901,
+            "valence": -0.0392,
+            "arousal": 0.3216,
+            "verbal": 0.328,
+            "depth": 0.3208,
+            "style": 0.3135,
+            "positive": 0.0293,
+            "negative": 0.0877,
+            "dependency": 0.0563
+          },
+          "events": [
+            "minimizing"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.0701,
+            "safety": -0.0792,
+            "bond": -0.0529,
+            "verbal": 0.0109,
+            "depth": -0.0352,
+            "style": 0
+          },
+          "llmDelta": null,
+          "gateDecision": null,
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0805,
+            "safety": -0.0652,
+            "bond": -0.0555,
+            "verbal": 0.0165,
+            "depth": -0.0267,
+            "style": 0.0148
+          }
+        },
+        {
+          "turnIndex": 3,
+          "before": {
+            "trust": 0.4254,
+            "safety": 0.4288,
+            "bond": 0.3901,
+            "valence": -0.0392,
+            "arousal": 0.3216,
+            "verbal": 0.328,
+            "depth": 0.3208,
+            "style": 0.3135,
+            "positive": 0.0293,
+            "negative": 0.0877,
+            "dependency": 0.0563
+          },
+          "after": {
+            "trust": 0.4423,
+            "safety": 0.4434,
+            "bond": 0.4046,
+            "valence": 0.0353,
+            "arousal": 0.3785,
+            "verbal": 0.3386,
+            "depth": 0.3399,
+            "style": 0.3196,
+            "positive": 0.0502,
+            "negative": 0.0792,
+            "dependency": 0.0651
+          },
+          "events": [
+            "open_probe",
+            "normalization"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0202,
+            "safety": 0.0055,
+            "bond": 0.0123,
+            "verbal": 0,
+            "depth": 0.0236,
+            "style": 0.0096
+          },
+          "llmDelta": null,
+          "gateDecision": null,
+          "gateReason": "rule_confident",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false,
+          "expectedDeltas": {
+            "trust": 0.0181,
+            "safety": 0.0123,
+            "bond": 0.0149,
+            "verbal": 0.0095,
+            "depth": 0.0161,
+            "style": 0.0031
+          }
+        },
+        {
+          "turnIndex": 4,
+          "before": {
+            "trust": 0.4423,
+            "safety": 0.4434,
+            "bond": 0.4046,
+            "valence": 0.0353,
+            "arousal": 0.3785,
+            "verbal": 0.3386,
+            "depth": 0.3399,
+            "style": 0.3196,
+            "positive": 0.0502,
+            "negative": 0.0792,
+            "dependency": 0.0651
+          },
+          "after": {
+            "trust": 0.4464,
+            "safety": 0.4492,
+            "bond": 0.4105,
+            "valence": 0.0405,
+            "arousal": 0.3976,
+            "verbal": 0.3408,
+            "depth": 0.3481,
+            "style": 0.3198,
+            "positive": 0.055,
+            "negative": 0.0797,
+            "dependency": 0.0678
+          },
+          "events": [
+            "acceptance"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0.0079,
+            "safety": -0.0009,
+            "bond": 0.0111,
+            "verbal": -0.0074,
+            "depth": 0.0013,
+            "style": 0
+          },
+          "llmDelta": null,
+          "gateDecision": null,
+          "gateReason": "calm_turn",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": false
+        },
+        {
+          "turnIndex": 5,
+          "before": {
+            "trust": 0.4464,
+            "safety": 0.4492,
+            "bond": 0.4105,
+            "valence": 0.0405,
+            "arousal": 0.3976,
+            "verbal": 0.3408,
+            "depth": 0.3481,
+            "style": 0.3198,
+            "positive": 0.055,
+            "negative": 0.0797,
+            "dependency": 0.0678
+          },
+          "after": {
+            "trust": 0.435,
+            "safety": 0.4328,
+            "bond": 0.4022,
+            "valence": 0.0111,
+            "arousal": 0.4605,
+            "verbal": 0.4397,
+            "depth": 0.4234,
+            "style": 0.3952,
+            "positive": 0.0429,
+            "negative": 0.0897,
+            "dependency": 0.0796
+          },
+          "events": [
+            "preaching"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0073,
+            "bond": -0.008,
+            "verbal": 0.1069,
+            "depth": 0.0693,
+            "style": 0.0771
+          },
+          "llmDelta": {
+            "trust": -0.0147,
+            "safety": -0.0257,
+            "bond": -0.0026,
+            "verbal": 0.1042,
+            "depth": 0.085,
+            "style": 0.081
+          },
+          "gateDecision": null,
+          "gateReason": "resistance_delta_high",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1016,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0129,
+            "safety": -0.0209,
+            "bond": -0.0078,
+            "verbal": 0.1001,
+            "depth": 0.0739,
+            "style": 0.077
+          }
+        },
+        {
+          "turnIndex": 6,
+          "before": {
+            "trust": 0.435,
+            "safety": 0.4328,
+            "bond": 0.4022,
+            "valence": 0.0111,
+            "arousal": 0.4605,
+            "verbal": 0.4397,
+            "depth": 0.4234,
+            "style": 0.3952,
+            "positive": 0.0429,
+            "negative": 0.0897,
+            "dependency": 0.0796
+          },
+          "after": {
+            "trust": 0.3531,
+            "safety": 0.3528,
+            "bond": 0.3567,
+            "valence": -0.0841,
+            "arousal": 0.5973,
+            "verbal": 0.4977,
+            "depth": 0.3873,
+            "style": 0.4692,
+            "positive": 0,
+            "negative": 0.173,
+            "dependency": 0.0612
+          },
+          "events": [
+            "boundary_cross",
+            "sensitive_touch"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0872,
+            "bond": -0.0436,
+            "verbal": 0.049,
+            "depth": -0.0354,
+            "style": 0.0748
+          },
+          "llmDelta": {
+            "trust": -0.0899,
+            "safety": -0.0887,
+            "bond": -0.0548,
+            "verbal": 0.0517,
+            "depth": -0.0435,
+            "style": 0.0788
+          },
+          "gateDecision": null,
+          "gateReason": "key_event",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 1249,
+          "expectedShouldRun": true
+        },
+        {
+          "turnIndex": 7,
+          "before": {
+            "trust": 0.3531,
+            "safety": 0.3528,
+            "bond": 0.3567,
+            "valence": -0.0841,
+            "arousal": 0.5973,
+            "verbal": 0.4977,
+            "depth": 0.3873,
+            "style": 0.4692,
+            "positive": 0,
+            "negative": 0.173,
+            "dependency": 0.0612
+          },
+          "after": {
+            "trust": 0.3532,
+            "safety": 0.3551,
+            "bond": 0.358,
+            "valence": -0.0665,
+            "arousal": 0.5984,
+            "verbal": 0.5043,
+            "depth": 0.3889,
+            "style": 0.4715,
+            "positive": 0.005,
+            "negative": 0.1748,
+            "dependency": 0.0633
+          },
+          "events": [
+            "empathy"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": 0,
+            "safety": -0.0039,
+            "bond": 0.0041,
+            "verbal": 0.0041,
+            "depth": 0,
+            "style": 0.003
+          },
+          "llmDelta": null,
+          "gateDecision": null,
+          "gateReason": "cooldown",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 0,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.0044,
+            "safety": -0.0003,
+            "bond": -0.0005,
+            "verbal": 0.0109,
+            "depth": 0.0017,
+            "style": 0.0044
+          }
+        },
+        {
+          "turnIndex": 8,
+          "before": {
+            "trust": 0.3532,
+            "safety": 0.3551,
+            "bond": 0.358,
+            "valence": -0.0665,
+            "arousal": 0.5984,
+            "verbal": 0.5043,
+            "depth": 0.3889,
+            "style": 0.4715,
+            "positive": 0.005,
+            "negative": 0.1748,
+            "dependency": 0.0633
+          },
+          "after": {
+            "trust": 0.2521,
+            "safety": 0.2629,
+            "bond": 0.3086,
+            "valence": -0.1493,
+            "arousal": 0.7471,
+            "verbal": 0.5442,
+            "depth": 0.3468,
+            "style": 0.5288,
+            "positive": 0,
+            "negative": 0.2566,
+            "dependency": 0.0481
+          },
+          "events": [
+            "boundary_cross",
+            "sensitive_touch"
+          ],
+          "riskLevel": "low",
+          "ruleDelta": {
+            "trust": -0.1028,
+            "safety": -0.0865,
+            "bond": -0.0587,
+            "verbal": 0.0473,
+            "depth": -0.0442,
+            "style": 0.0648
+          },
+          "llmDelta": {
+            "trust": -0.1041,
+            "safety": -0.0877,
+            "bond": -0.0394,
+            "verbal": 0.0475,
+            "depth": -0.048,
+            "style": 0.0629
+          },
+          "gateDecision": null,
+          "gateReason": "key_event",
+          "degraded": false,
+          "hasError": false,
+          "totalTokens": 527,
+          "expectedShouldRun": true,
+          "expectedDeltas": {
+            "trust": -0.1052,
+            "safety": -0.0905,
+            "bond": -0.0454,
+            "verbal": 0.0383,
+            "depth": -0.0373,
+            "style": 0.0574
+          }
+        }
+      ]
+    }
+  ]
+}

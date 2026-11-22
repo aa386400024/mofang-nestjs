@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-182",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "rejected",
+  "createdAt": "2026-11-20T09:45:00Z",
+  "updatedAt": "2026-11-20T09:03:47.994Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-182/task-sheet.md",
+    "sha256": "165e4e467e58fa1e05868413865b257bcb628b043e088f4e2af247cbbd88404d",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-182/receipt-RC-AF-182-1.json",
+      "sha256": "f6103b03a0de54754b1ad10f80f62dbab6c309bb203b6e07e70aa4bf2c4172a3",
+      "receiptId": "RC-AF-182-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af182-af177-late-receipt-clean-2026-11-20.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af182-af177-late-receipt-clean-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

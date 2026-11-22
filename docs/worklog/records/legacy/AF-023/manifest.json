@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-023",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.597Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-023/task-sheet.md",
+    "sha256": "967c316e6ecb9b5ebc61ca2fc2cbac31203da7aa64f2c5a869d161ffae6fc1e8",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

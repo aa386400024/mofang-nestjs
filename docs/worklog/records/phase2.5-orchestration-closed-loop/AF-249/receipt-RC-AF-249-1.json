@@ -1,0 +1,123 @@
+{
+  "deliveredAt": "2026-11-22T07:06:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-249-1",
+    "taskId": "AF-249",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "18881783605bd7f868581ee29411ba3770de78ae",
+    "dependsOn": ["AF-248"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-249/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af249-doubao-prod-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "bin/visitor-doubao-smoke.ts",
+        "docs/worklog/completed/phase2.5/af249-doubao-prod-smoke-2026-11-22.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["b5a49c5d", "6d8aeefe"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-doubao-smoke.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒（elapsedMs=970）",
+        "note": "真实豆包 Seed Character：model=doubao-seed-character-260628，chars=35，finishReason=stop，first_token=649ms，无 error chunk"
+      },
+      {
+        "command": "pnpm exec eslint bin/visitor-doubao-smoke.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10 秒",
+        "note": "首轮 1 个 no-unnecessary-type-assertion + 3 import/order，修复后 0"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "CI 同口径全量 typecheck，日志 data/af249-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 257,
+        "machine": "同上",
+        "wallClock": "约 24 秒",
+        "note": "256 files passed + 1 skipped；4235 tests passed + 4 skipped"
+      }
+    ],
+    "reproNotes": "真实调用命令与输出已写入交付记录；日志 data/af249-smoke.log 为 untracked 现场证据。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-249 贯穿任务单、分支、记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组字段齐全，backlogItems 为 {id, impact} 对象" },
+      { "item": "event-chain", "result": "pass", "note": "AF-248 → AF-249 链连续，基线为 AF-248 合并 SHA" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core" },
+      { "item": "text-privacy", "result": "pass", "note": "记录只含 80 字合成预览，不含密钥与真实用户内容" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与任务单、分支起点均为 18881783"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-stream-usage-zero",
+        "impact": "豆包 SSE 未回 usage，LlmService 把 token 记为 0；visitor 切豆包后 session cost 与预算闸门会失真，需加 stream_options.include_usage 或显式估算并标 costBasis"
+      },
+      {
+        "id": "visitor-doubao-multi-turn-smoke",
+        "impact": "本次只验证单轮短回复；多轮记忆、V5 prompt 稳定性、长对话截断与危机轮尚未在真实豆包上验证"
+      },
+      {
+        "id": "visitor-doubao-concurrency",
+        "impact": "未验证并发、限流、429/5xx 重试与超时行为；单次调用不能代表生产峰值"
+      }
+    ],
+    "openQuestions": [
+      "火山方舟 Seed Character 是否支持 OpenAI 兼容的 stream_options.include_usage，需实测确认"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "真实生产链路一次调用成功，AF-248 的 key/端点/模型接线得到实证；脚本只读 env、不泄密、不写库；lint、CI 同口径 tsc 与全量测试全绿；发现的 usage=0 已明确登记为后续任务而非就地扩围。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

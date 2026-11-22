@@ -1,0 +1,188 @@
+{
+  "deliveredAt": "2026-11-22T11:40:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-269-1",
+    "taskId": "AF-269",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "8efe879040b63108bd65105c1037a15d468fd319",
+    "dependsOn": ["AF-268"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/manifest.json"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30 秒",
+        "note": "新增 FaultMode 与故障服务类型闭合；日志 data/af269-tsc.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af269-lint.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode rate-limit --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.2 秒",
+        "note": "primaryProbe=429 af269 simulated rate limit，probe 51ms；providerHint=minimax，fallbackUsed=true，degraded=false，finishReason=stop，chars=36，elapsed=2177ms，ttft=1918ms，usage 821/141/116；日志 data/af269-rate-limit.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode server-error --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.1 秒",
+        "note": "primaryProbe=500 af269 simulated server error，probe 50ms；providerHint=minimax，fallbackUsed=true，degraded=false，finishReason=stop，chars=42，elapsed=2080ms，ttft=1702ms，usage 821/103/77；日志 data/af269-server-error.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode timeout --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5 分 8 秒",
+        "note": "primaryProbe=Request timed out.，probe 2023ms（provider requestTimeoutMs=2000 只作用于探针 callOnce）；providerHint=minimax，fallbackUsed=true，degraded=false，finishReason=stop，chars=43，elapsed=307355ms，ttft=307019ms；流式路径不受 config.timeoutMs 约束，等 SDK headersTimeout 约 300s；日志 data/af269-timeout-gate.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --turns 3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "3.1 秒",
+        "note": "3/3 providerHint=doubao，fallbackUsed=false，degraded=false，finishReason=stop；wall 3111ms，usage 2338/45/2383；日志 data/af269-normal3.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 262,
+        "machine": "同上",
+        "wallClock": "27.0 秒",
+        "note": "262 files passed + 1 skipped；4269 tests passed + 4 skipped；日志 data/af269-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-269-fault-fallback-smoke 自 integrate 8efe8790 切出。仅改 bin/visitor-render-smoke.ts：FaultMode 扩为 auth/network/rate-limit/server-error/timeout，新增本机 HTTP 故障服务（429/500/挂起），豆包候选 baseUrl 指临时服务且 maxRetries=0，probe 记录 elapsedMs，expectFallback 时 max-tokens 默认 800。真实 .env 未改，仍为 VISITOR_LLM_PROVIDER=doubao / VISITOR_DOUBAO_MODEL=doubao-seed-character-260628。未暂存 web/orchestration/data.js 与 data/ 取证日志、环境备份。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-269"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "AF-264 auth/network 开关与 AF-265 并发、AF-268 门面模式保持兼容；全量 4269 例零回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，也未改生产 LlmRenderAdapter / classifyFailure"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 8efe8790；依赖 AF-268 已归档并合并进 integrate"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-stream-timeout-unbounded",
+        "impact": "流式渲染不吃 ENGINE_RENDER_TIMEOUT_MS / provider requestTimeoutMs，上游挂起时主候选约 300s 才切备；语音对练首包会被拖死，需独立生产修复任务"
+      },
+      {
+        "id": "visitor-auth-failure-fallback-policy",
+        "impact": "401 仍快速降级不切 MiniMax，是否保对练连续性待产品决策"
+      },
+      {
+        "id": "visitor-retry-after-backoff",
+        "impact": "429 的 Retry-After 退避未实现也未验证；当前同候选一次失败即切备"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "gate 命令不带 --max-tokens，三类故障各跑一次真实回退",
+        "reality": "MiniMax M3 reasoning token 计入 completion，默认 300 会在 500 模式截断正文并制造假降级",
+        "action": "--expect-fallback 且未显式给 --max-tokens 时默认 800，仅 smoke 工具内生效",
+        "why": "保证任务单登记的原样 gate 命令可稳定复跑，且不改变生产 completion 预算"
+      },
+      {
+        "taskSays": "超时真实切备，验收只要求 exit 0 / fallback / 非降级",
+        "reality": "超时模式 render 实际挂 307355ms 才切备；流式路径不受 config.timeoutMs 约束",
+        "action": "如实记录延迟，不在本任务改生产适配器；登记 visitor-stream-timeout-unbounded 独立 backlog",
+        "why": "任务非目标明确不改 LlmRenderAdapter / classifyFailure；证据任务不越界做生产修复"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三类真实 HTTP 故障均成功触发豆包主候选失败并切到 MiniMax，fallbackUsed=true、degraded=false、finishReason=stop、输出非兜底；正常 3 轮全走豆包；tsc、lint、全量 4269 例全绿；engine-core 零改动。超时延迟 307s 是已定位的生产缺口，已单列 backlog，不构成本任务验收失败。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

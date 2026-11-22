@@ -1,0 +1,2749 @@
+{
+  "version": "1.1.0",
+  "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.1.0",
+  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
+  "projection": {
+    "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
+    "lastEventSeq": 1227,
+    "rebuiltAt": null
+  },
+  "tasks": [
+    {
+      "taskId": "AF-229",
+      "status": "ready",
+      "history": [
+        {
+          "at": "2026-11-21T10:02:33.160Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始 R6-D2 AI 层面校准与 thinking 对照"
+        },
+        {
+          "at": "2026-11-21T10:02:46.184Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        },
+        {
+          "at": "2026-11-21T17:22:20.645Z",
+          "from": "submitted",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "租约超时释放（持单待人工确认，不自动重派）"
+        },
+        {
+          "at": "2026-11-21T17:31:39.749Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        },
+        {
+          "at": "2026-11-21T18:16:30.655Z",
+          "from": "submitted",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "租约超时释放（持单待人工确认，不自动重派）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
+      "type": "implementation",
+      "baselineRef": "a99032327c7adc70011d7e2bd18e5932172a2b50",
+      "dependsOn": [
+        "AF-227"
+      ],
+      "priorTasks": [
+        "AF-227",
+        "AF-228"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-21T09:40:00.000Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/",
+          "test/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/af229-calibration-analysis.spec.ts",
+          "check": "校准与 thinking 对照纯函数用例全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "typecheck 0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo",
+          "check": "CI 同款全量类型检查 0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试通过",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "使用 R6-D 同批 24 个评测 packet 之外、同一 48 packet 池中的另外 24 个作为留出锚点，三场景各 8 个，不重复使用评测 packet 拟合校准。",
+        "对 MiniMax 与豆包禁思考、豆包自动思考三个 arm，分别按总体与五维拟合仿射校准，锚点拟合、评测集独立评估。",
+        "报告校准前后总体绝对差、跨模型 κ、exact、within±1、场景方向，并给出锚点留一法 MAE、slope、R2 与稳定性区间。",
+        "在同一批评测 packet 上成对比较豆包 thinking disabled 与 auto：模型内 κ、跨模型 κ、绝对差、分数方差/唯一值、reasoning token、截断与解析重试。",
+        "预登记 AI 层面判据：校准后总体绝对差不超过 0.3、跨模型 κ 不低于 0.4、五维 within±1 不低于 0.8、场景方向不翻转、锚点留一法 MAE 不超过 0.5 且斜率大于 0。",
+        "thinking 对照只给 AI 层面建议，不据此声称临床达标；真人双标仍标记为待上线阶段补做。",
+        "不修改既有 R6-D 阈值、不放宽证据校验、不合并模型分数、不扩到 48/96/360 线上样本。",
+        "定向测试、lint、typecheck、CI 同款 tsc、全量测试全绿；交付记录、回执、归档与受保护 PR 齐全。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md",
+          "kind": "report"
+        },
+        {
+          "name": "锚点校准与 thinking 对照报告",
+          "path": "data/phase25-exit/af229-ai-calibration-thinking/report.json",
+          "kind": "dataset"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-21T10:02:33.159Z"
+    },
+    {
+      "taskId": "AF-231",
+      "status": "ready",
+      "history": [
+        {
+          "at": "2026-11-21T17:22:09.017Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-21T17:22:20.671Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        },
+        {
+          "at": "2026-11-21T17:31:24.666Z",
+          "from": "submitted",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "R6-D3 Lite 原生评分 prompt V1 与 12 packet 开发集",
+      "type": "implementation",
+      "baselineRef": "1b4762a133a1794f7cd31a43580da9ce2f465f0e",
+      "dependsOn": [
+        "AF-227"
+      ],
+      "priorTasks": [
+        "AF-229",
+        "AF-230"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-21T15:50:00.000Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/",
+          "test/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-231/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/af229-lite-prompt.spec.ts",
+          "check": "Lite prompt 契约用例全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec vitest run test/auto-practice/af229-calibration-analysis.spec.ts",
+          "check": "promptVariant/端点透传用例全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "typecheck 0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo",
+          "check": "CI 同款全量类型检查 0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试通过",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "新增 Lite 专用评分 prompt 模块，与既有共享 prompt 并存，输出仍走 AF-214 行协议，可被现有解析器直接解析。",
+        "运行时与跨模型 CLI 支持 `--doubao-prompt shared|lite-v1`，报告写入 prompt 变体，不混淆两条轨道。",
+        "12 个开发 packet 必须与 AF-229 的 24 评测 + 24 锚点交集为 0，三场景各 4 个，清单与场景/轮次/字符数落盘。",
+        "在同一 12 packet 上跑共享 prompt 基线与 Lite V1 两轮，记录 parse、跨模型 κ、绝对差、exact、within±1、模型内 κ、分数分布、reasoning token 与截断。",
+        "V1 未达预登记阈值时，必须给出 V2 的具体修法（5/4 门槛、全 4 默认、overall 规则等）与不继续跑 24/48 的理由；不得把 V1 写成达标。",
+        "不跑 48 全量，不扩 96/360 线上样本，不改 R6-D 阈值，不改 evidence 校验，不合并模型分数。",
+        "报告保持 ai_proxy_candidate，humanSupervision=false，clinicalAcceptanceEligible=false；真人双标仍待上线阶段补做。",
+        "定向测试、lint、typecheck、CI 同款 tsc、全量测试全绿；交付记录、机读回执、归档与受保护 PR 齐全。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "Lite prompt V1 实现记录",
+          "path": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md",
+          "kind": "report"
+        },
+        {
+          "name": "12 packet 基线报告",
+          "path": "data/phase25-exit/af229-lite-dev-12/baseline/report.json",
+          "kind": "dataset"
+        },
+        {
+          "name": "12 packet Lite V1 报告",
+          "path": "data/phase25-exit/af229-lite-dev-12/v1/report.json",
+          "kind": "dataset"
+        },
+        {
+          "name": "V1 对照结果",
+          "path": "data/phase25-exit/af229-lite-dev-12/v1-vs-baseline.json",
+          "kind": "dataset"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-21T17:22:09.016Z"
+    }
+  ],
+  "archivedTasks": [
+    {
+      "taskId": "TD-5",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-6",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-7",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-8",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-9",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-10",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-11",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-12",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-13",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-14",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-15",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-16",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
+      }
+    },
+    {
+      "taskId": "TD-17",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
+      }
+    },
+    {
+      "taskId": "TD-18",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
+      }
+    },
+    {
+      "taskId": "TD-19",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
+      }
+    },
+    {
+      "taskId": "TD-20",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
+      }
+    },
+    {
+      "taskId": "TD-21",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+      }
+    },
+    {
+      "taskId": "AF-001",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
+      }
+    },
+    {
+      "taskId": "AF-002",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": null,
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-003",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
+      }
+    },
+    {
+      "taskId": "AF-004",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+      }
+    },
+    {
+      "taskId": "AF-005",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-006",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-007",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-008",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-009",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-010",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-011",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-012",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-013",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md",
+        "reply": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+      }
+    },
+    {
+      "taskId": "AF-014",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-015",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-016",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-017",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-018",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-019",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-020",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-021",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-implementation-2026-11-17.md"
+      }
+    },
+    {
+      "taskId": "AF-022",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md"
+      }
+    },
+    {
+      "taskId": "DR-001",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/team/agent-orchestration/transport/tasks/DR-001.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/dr001-af013-channel-drill-delivery-2026-11-17.md",
+        "reply": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+      }
+    },
+    {
+      "taskId": "AF-023",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-025",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af025-receipt-chain-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-026",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/archive/AF-026-task-sheet-2026-11-17.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af026-orchestration-receipt-chain-and-cancel-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-027",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/archive/AF-027-task-sheet-2026-11-17.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af027-orchestration-receipt-chain-rework-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-028",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/archive/AF-028-task-sheet-2026-11-17.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af028-task-promote-and-docs-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-024",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/archive/AF-024-task-sheet-2026-11-17.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af024-gui-dispatch-implementation-2026-11-17.md",
+        "reply": "docs/worklog/pending/af024-channel-review-by-executor.md"
+      }
+    },
+    {
+      "taskId": "AF-029",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af029-acceptance-guard-closure-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-030",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af030-acceptance-guard-closure-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af030-acceptance-guard-closure-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-031",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af031-task-sheet-encoding-closure-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af031-task-sheet-encoding-closure-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-032",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af032-dispatch-decision-wiring-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af032-dispatch-decision-wiring-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-033",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af033-gui-delivery-failure-drill-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-034",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af034-dispatch-config-normalization-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af034-dispatch-config-normalization-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-035",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af035-gui-delivery-failure-drill-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af035-gui-delivery-failure-drill-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-036",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af036-held-reason-passthrough-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af036-held-reason-passthrough-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-037",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af037-scope-recheck-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-038",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af038-scope-attribution-recheck-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af038-scope-attribution-recheck-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-040",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af040-improvement-closeout-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af040-improvement-closeout-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-042",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af042-wp38-timeout-budget-rework-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af042-wp38-timeout-budget-rework-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-043",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af043-improvement-closeout-rework-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af043-improvement-closeout-rework-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-039",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af039-improvement-closeout-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-041",
+      "status": "failed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af041-wp38-timeout-budget-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-044",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af044-leftover-backlog-closeout-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af044-leftover-backlog-closeout-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-046",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-045",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af045-orchestration-hardening-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-048",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af048-orchestrator-resource-domain-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af048-orchestrator-resource-domain-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-049",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af049-orchestrator-governance-docs-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af049-orchestrator-governance-docs-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-047",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af047-dev-orchestration-mandatory-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af047-dev-orchestration-mandatory-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-050",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af050-v7-parallel-artifact-acceptance-fix-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af050-v7-parallel-artifact-acceptance-fix-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-051",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af051-af047-rework-verification-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af051-af047-rework-verification-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-052",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af052-orchestration-delivery-release-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-053",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-054",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af054-merge-gate-snapshot-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-055",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af055-merge-gate-snapshot-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-056",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-057",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-058",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af058-squash-lifecycle-gate-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-059",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-060",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-061",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-063",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-064",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af064-wp-k-missing-batch-exit-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-065",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af065-batch-scenario-type-passthrough-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af065-batch-scenario-type-passthrough-2026-11-17.md",
+        "reply": "docs/worklog/pending/relay-response-20261117-2128.md"
+      }
+    },
+    {
+      "taskId": "AF-066",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af066-local-gate-archived-delivery-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-067",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af067-regression-evaluator-boundary-tests-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md",
+        "reply": "docs/worklog/pending/relay-response-20261117-2248.md"
+      }
+    },
+    {
+      "taskId": "AF-068",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af068-af065-scenario-type-landing-2026-11-17.md",
+        "reply": "docs/worklog/pending/relay-response-20261117-2310.md"
+      }
+    },
+    {
+      "taskId": "AF-070",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af070-security-debt-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af070-security-debt-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-071",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af071-af070-rework-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af071-af070-rework-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-072",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af072-af071-ci-chain-rework-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af072-af071-ci-chain-rework-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-069",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af069-relay-supervisor-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af069-relay-supervisor-implementation-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-073",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af073-phase25-exit4-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af073-phase25-exit4-formal-verdict-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-074",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af074-framework-closeout-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af074-framework-closeout-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-075",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af075-framework-closeout-scope-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af075-framework-closeout-rework-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-076",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af076-gate-conditional-merge-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af076-gate-conditional-merge-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-077",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af077-pr-release-conditional-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af077-pr-release-conditional-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-078",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af078-squash-scope-union-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af078-squash-scope-union-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-079",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af079-improvement-closeout-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-080",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af080-improvement-closeout-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af080-improvement-closeout-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-081",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af081-improvement-closeout-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af081-improvement-closeout-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-082",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af082-commit-envelope-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af082-commit-envelope-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-083",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af083-final-envelope-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af083-final-envelope-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-084",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af084-orchestration-hardening-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af084-orchestration-hardening-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-085",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af085-phase25-exit2-verification-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af085-phase25-exit2-verification-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-086",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af086-phase25-exit2-real-exam-double-run-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-087",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af087-phase25-exit345-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-088",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af088-phase25-exit345-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af088-phase25-exit345-evidence-2026-11-18.md",
+        "reply": "docs/worklog/pending/relay-response-AF088-20261118-1630.md"
+      }
+    },
+    {
+      "taskId": "AF-089",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af089-phase25-session-realism-exit4-protocol-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-090",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af090-phase25-session-realism-exit4-protocol-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-091",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af091-phase25-session-realism-exit4-protocol-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af091-phase25-session-realism-2026-11-18.md",
+        "reply": "docs/worklog/pending/relay-response-AF091-20261118-1745.md"
+      }
+    },
+    {
+      "taskId": "AF-092",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af092-af091-implementation-commit-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-093",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af093-phase25-exit4-readme-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/pending/phase2.5-README.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-096",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af096-af095-rework-quality-acceptance-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-097",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af097-af095-quality-rework-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-098",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af098-state-plane-acceptance-fix-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-099",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af099-quality-linear-delivery-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-100",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af100-quality-linear-delivery-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-101",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-102",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af102-long-session-visible-output-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af102-long-session-visible-output-2026-11-18.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF102-20261118-2010.md"
+      }
+    },
+    {
+      "taskId": "AF-104",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af104-postfix-long-batch-quality-verdict-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-103",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af103-visitor-role-preflight-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af103-visitor-role-preflight-delivery-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-105",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af105-ci-test-assembly-fix-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-106",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af106-reasoning-leak-and-roster-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-107",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-108",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-109",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af109-exit4-quality-verdict-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-110",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af110-long-session-acceptance-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-111",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af111-long-session-acceptance-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af111-long-session-acceptance-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-112",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af112-af111-acceptance-metadata-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af112-af111-acceptance-metadata-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-113",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-114",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af114-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-115",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af115-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-116",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-117",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af117-ci-fix-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af117-ci-fix-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-118",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af118-ci-fix-acceptance-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-119",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af119-ci-fix-acceptance-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af119-ci-fix-acceptance-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-120",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af120-ci-fix-scope-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af120-ci-fix-scope-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-121",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af121-single-release-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-122",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af122-single-release-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-123",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af123-single-release-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af123-single-release-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-124",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af124-repair-chain-gate-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af124-repair-chain-gate-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-125",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-126",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-129",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af129-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-127",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-130",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af130-long-batch-reevaluation-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-131",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af131-independent-review-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-132",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-133",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af133-long-session-closure-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-134",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af134-scope-rescope-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-135",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af135-af133-acceptance-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af135-af133-acceptance-2026-11-19.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF133-20261119-1505.md"
+      }
+    },
+    {
+      "taskId": "AF-136",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af136-post-af133-quality-recheck-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-137",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
+      }
+    },
+    {
+      "taskId": "AF-138",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af138-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-139",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af139-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-140",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af140-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-141",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af141-af140-test-scope-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-142",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-143",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af143-final-closing-channel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-144",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af144-final-closing-channel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-145",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af145-final-closing-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-146",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af146-final-closing-quality-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-147",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af147-kappa-track-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-148",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af148-af147-acceptance-rework-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-149",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af149-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-150",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af150-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-151",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af151-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-152",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af152-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-153",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af153-quality-admin-close-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-154",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-155",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af155-admin-runtime-smoke-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-128",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-156",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af156-admin-audit-version-health-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af156-admin-audit-version-health-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-157",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af157-admin-naive-locale-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af157-admin-naive-locale-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-158",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af158-annotation-warning-ux-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-159",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af159-admin-health-auth-watch-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af159-admin-health-auth-watch-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-160",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/inbox/af160-worklog-record-bundles-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-161",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af161-worklog-record-bundles-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-162",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-163",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-164",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-165",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-165/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-166",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af166-release-code-snapshot-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-168",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-168/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af168-release-code-snapshot-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-167",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-167/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-169",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-169/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af169-release-docs-snapshot-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-171",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-171/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af171-release-gate-dependency-fix-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-172",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-172/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-173",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-173/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af173-integrate-gate-hydration-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-174",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-174/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-175",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-175/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-176",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-176/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af176-deterministic-structure-close-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-177",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-177/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af177-kappa48-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-178",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-178/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-179",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-179/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af179-af177-late-receipt-repair-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-180",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-180/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af180-af177-late-receipt-closure-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-181",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-181/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af181-af177-late-receipt-final-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-182",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-182/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af182-af177-late-receipt-clean-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-183",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-183/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-184",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-184/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af184-af177-late-receipt-two-stage-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-185",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-185/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af185-exit4-evidence-consolidation-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-186",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-186/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af186-exit4-legacy-closure-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-187",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-187/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-188",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-188/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af188-af187-encounter-closure-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-189",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-189/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af189-af187-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-190",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-190/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-191",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-191/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af191-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-193",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-193/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af193-executor-card-records-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-192",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-192/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-194",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-194/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af194-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-197",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-197/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af197-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-198",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af198-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-199",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af199-executor-card-records-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-200",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-200/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-201",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-201/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af201-scene-default-voice-boundary-matrix-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-202",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-202/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af202-scene-default-voice-boundary-matrix-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-203",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-203/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-204",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-204/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-205",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-205/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-206",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-206/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-207",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-207/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af207-visitor-realism-r0-r1-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-208",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-209",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-209/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af209-realism-r3-register-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-210",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-provider-fallback/AF-210/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-211",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-provider-fallback/AF-211/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-212",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-provider-fallback/AF-212/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-213",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-213/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af213-realism-r4-prompt-echo-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-214",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-214/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af214-realism-ai-double-blind-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-222",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-222/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af222-01-cross-machine-hardening-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-223",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-223/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af223-task-id-reservation-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-215",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-215/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-216",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-216/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af216-realism-r6-event-conditioning-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-224",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-224/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af224-judge-layer-doc-intake-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-225",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-225/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af225-realism-r6b-scoring-stability-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-226",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-227",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-228",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-228/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-230",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-230/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-232",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-233",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-233/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af233-af232-ci-tsc-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-234",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-235",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-235/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af235-squash-gate-active-task-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-236",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-236/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af236-squash-gate-active-task-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-237",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-237/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-238",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-238/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af238-seed-v2-stability-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-239",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-239/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af239-p95-aggregation-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-240",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-240/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af240-seed-v3-difficulty-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-241",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-241/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af241-seed-v4-insight-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-242",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-243",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-243/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af243-seed-v5-contact-defense-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-244",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-244/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af244-seed-v51-emotion-tags-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-245",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-247",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-248",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-249",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-249/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af249-doubao-prod-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-250",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-250/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af250-doubao-stream-usage-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-251",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-251/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af251-unknown-emotion-projection-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-252",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-252/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af252-visitor-render-provider-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-253",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-256",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-256/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af256-af254-cancel-record-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-257",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-257/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af257-cancel-task-archive-notes-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-258",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-259",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-260",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af260-render-multi-turn-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-261",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-261/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-262",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-262/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af262-visitor-cutover-local-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-263",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-263/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af263-visitor-cutover-local-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-264",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-264/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af264-visitor-fallback-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-265",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-265/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af265-visitor-concurrency-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-266",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-266/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af266-model-cost-pricing-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-267",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-268",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-269",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-270",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-271",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af271-rollback-cutover-rehearsal-2026-11-22.md",
+        "reply": null
+      }
+    }
+  ],
+  "archivedNotes": {
+    "AF-009": "交接契约 schema 与 transport reviews 接线；编排层 61 passed",
+    "AF-010": "派发接线 + 回执 watcher 与两层幂等；编排层 68 passed",
+    "AF-011": "文件域互斥纯函数 + claim 拦截 + V7 残留护栏；76 passed",
+    "AF-012": "分支流程 CLI + 纯函数治理；82 passed",
+    "AF-013": "GUI 通道规则纯函数模块 + CLI channel 只读视图；真实只读演练 DR-001 闭环；89 passed",
+    "AF-014": "README §2/§4 + 三份角色卡 limits + 任务单模板对齐 §6.1 L1–L4 分层；纯文档零源码改动；IM-016 登记 conventions/回执模板旧口径另案",
+    "AF-015": "通道可靠性锚定§4:任务级预算/退避/终态出口/定性三分法/逐次留痕;94 passed;零业务源码改动",
+    "AF-016": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动",
+    "AF-017": "回执正文抽取双通道;116 passed;零业务源码改动",
+    "AF-018": "适配层迁移到框架 v2.0.0；契约 1.1.0 / 工具一文件 / 交付包 1.0.0；保留 34 条归档与 DR-001；129 passed",
+    "AF-019": "适配层收尾：development 退役 + CI Actions 升级 + 记录闭环；36 条归档 / 11 条说明；7/7 PASS；130 passed",
+    "AF-020": "P0-P2 闭环：CI 契约硬门/发布流水线/事件溯源；validate 9/9；编排 135 passed",
+    "AF-021": "AF-021 非生产收尾交付完成",
+    "AF-022": "AF-022 发布链路保护兼容交付完成",
+    "AF-023": "AF-023 静态交付记录补登索引并归档",
+    "AF-025": "跨资源域，按角色切片重开 AF-026",
+    "AF-029": "依赖口径写错，改由 AF-030 承接",
+    "AF-064": "scope 越 executor 资源域，改立项 AF-065",
+    "AF-066": "资源域跨角色，改立项 AF-067",
+    "AF-079": "AF-079 scope 含 orchestrator 资源域外文档，取消后由 AF-080 重登记执行",
+    "AF-087": "scope 重签发 → AF-088",
+    "AF-089": "角色域冲突，取消后重登记 AF-090",
+    "AF-090": "资源域不匹配，取消后重登记 AF-091",
+    "AF-092": "提交闸门完成，取消归档",
+    "AF-096": "改走拆分任务 AF-097/AF-098",
+    "AF-099": "改走 AF-100 精确 scope",
+    "AF-110": "scope 重签发 → AF-111",
+    "AF-118": "AF-118 依赖配错，取消后重签",
+    "AF-121": "AF-121 scope 越域，重签",
+    "AF-122": "AF-122 scope 仍越域，重签",
+    "AF-138": "scope 重签发 → AF-139",
+    "AF-139": "scope 重签发 → AF-140",
+    "AF-142": "取消并归档：README 3864 为 AF-140 当时口径",
+    "AF-149": "scope 重签发 → AF-150",
+    "AF-150": "scope 重签发 → AF-151",
+    "AF-151": "scope 重签发 → AF-152",
+    "AF-153": "scope 重签发 → AF-154",
+    "AF-200": "scope 漏列，重签发后续任务",
+    "AF-203": "scope 重签发 → AF-204",
+    "AF-205": "scope 重签发 → AF-206",
+    "AF-206": "scope 重签发 → AF-207",
+    "AF-215": "角色域不匹配取消，改由 AF-216 执行",
+    "AF-262": "scope-domain-conflict；AF-263 承接"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "deliveredAt": "2026-11-20T10:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-166-1",
+    "taskId": "AF-166",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "856788d066852bff6653abf118b0b14db843305c",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-126",
+      "AF-127",
+      "AF-128",
+      "AF-133",
+      "AF-136",
+      "AF-137",
+      "AF-140",
+      "AF-141",
+      "AF-142",
+      "AF-146",
+      "AF-147",
+      "AF-152",
+      "AF-154",
+      "AF-155",
+      "AF-156",
+      "AF-157",
+      "AF-158",
+      "AF-159",
+      "AF-161",
+      "AF-162",
+      "AF-163",
+      "AF-164",
+      "IM-073"
+    ],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/manifest.json",
+        "docs/worklog/completed/phase2.5/af166-release-code-snapshot-2026-11-20.md",
+        "bin/session-structure-audit.ts",
+        "src/auto-practice/metrics/session-structure-audit.ts"
+      ],
+      "modified": [
+        "bin/ai-double-blind.ts",
+        "test/auto-practice/ai-double-blind.spec.ts",
+        "test/auto-practice/practice-runner-decide-turn.spec.ts",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "commits": ["a85e492cd99477e262dc413bd132d2a58fd9cee6"]
+    },
+    "gateResults": [
+      {
+        "exitCode": 0,
+        "command": "pnpm lint",
+        "errors": 0,
+        "warnings": 0,
+        "note": "ESLint TS 与 scripts 两段全绿"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo",
+        "errors": 0,
+        "warnings": 0,
+        "note": "与 CI 同口径全量类型检查零错误"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm test",
+        "errors": 0,
+        "warnings": 0,
+        "note": "222 files passed / 1 skipped；3914 tests passed / 4 skipped"
+      },
+      {
+        "exitCode": 0,
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "errors": 0,
+        "warnings": 0,
+        "note": "空输出，内核零改动"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单 / 提交标题 / 回执 / 交付记录均为 AF-166"
+      },
+      {
+        "item": "scope",
+        "result": "pass",
+        "note": "仅 src / bin / test / admin-dashboard 与任务状态面"
+      },
+      {
+        "item": "engine-core",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面经 CLI 登记、提级、领取"
+      }
+    ],
+    "backlogItems": [
+      {
+        "id": "IM-AF166-01",
+        "title": "远端 Orchestration Gate 结果待 AF-167 统一观察",
+        "detail": "代码侧提交在本地通过 preflight；远端逐提交门需在 AF-167 分支推送后统一确认。",
+        "impact": "若远端仍判历史问题，按 AF-167 交付记录回写"
+      },
+      {
+        "id": "IM-AF166-02",
+        "title": "admin-dashboard 未独立跑前端闸门",
+        "detail": "前端文件仅随发布快照原样带入，未新增改动。",
+        "impact": "如需前端独立验收，另开前端任务"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "任务拆分",
+        "taskSays": "AF-165 单任务承载整棵发布快照",
+        "reality": "拆为 AF-166 代码侧与 AF-167 文档侧",
+        "why": "单任务跨 orchestrator / executor 资源域，调度器拒绝派发",
+        "action": "保留逐提交门禁，不用放宽 CI 的方式绕过"
+      },
+      {
+        "item": "提交粒度",
+        "taskSays": "单提交发布快照",
+        "reality": "两个任务提交 + 两个归档提交",
+        "why": "保持每个任务的活动状态与 scope 证据",
+        "action": "PR 合并后审计链完整"
+      }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af166-release-code-snapshot-2026-11-20.md",
+      "others": []
+    },
+    "reproNotes": "AF-166 提交 a85e492；本地 lint / 全量 tsc / 全量 test / engine-core diff 全绿。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "字段与 task-sheet 1.1.0 / receipt 1.0.0 对齐"
+    },
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "verdictRationale": "代码侧快照完整，CI 同口径类型与全量测试全绿，范围与红线均满足。"
+  }
+}

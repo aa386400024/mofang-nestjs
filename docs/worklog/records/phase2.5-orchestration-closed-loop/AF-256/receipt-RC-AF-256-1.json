@@ -1,0 +1,114 @@
+{
+  "deliveredAt": "2026-11-22T08:19:39+08:00",
+  "payload": {
+    "receiptId": "RC-AF-256-1",
+    "taskId": "AF-256",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "executor",
+    "baselineRef": "393cb30c",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-256/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af256-af254-cancel-record-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af254-render-doubao-smoke-2026-11-22.md",
+        "docs/worklog/completed/phase2.5/af256-af254-cancel-record-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-256/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-256/manifest.json"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "PASS（活跃=2 归档=259 记录包=261 inbox=0 legacy指针=133 无任务单=14）"
+      },
+      {
+        "command": "git diff HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "AF-256 从 integrate 393cb30c 切出，只补归档文档与状态面；web/orchestration/data.js 并行本地改动未暂存；未改生产 .env。修复对象是 AF-255 PR #102 的 worklog strict 失败：AF-254 任务单声明交付记录但文件缺失。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-256 贯穿任务单、分支、提交标题、记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-256 从 integrate 393cb30c 独立切出，不依赖未合入任务"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      },
+      {
+        "item": "archive-immutability",
+        "result": "pass",
+        "note": "不改 AF-254 任务单正文与 canceled 终态"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 393cb30c；AF-254 归档记录未改"
+    },
+    "backlogItems": [],
+    "openQuestions": ["无新增遗留；沿用 AF-255 已登记的三项 backlog"],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只补 AF-254 交付记录，不改业务代码",
+        "reality": "实际只新增两份文档与 CLI 状态面，没有代码 diff",
+        "action": "记录真实范围，不引用其他任务闸门",
+        "why": "AF-254 已取消归档，不能在原任务上追加提交，只能由新任务补记录"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-254 声明路径已存在且明确无交付；worklog strict 恢复 PASS；六组机读字段齐全；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

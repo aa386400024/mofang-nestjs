@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "TD-17",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.564Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/TD-17/task-sheet.md",
+    "sha256": "29d86e98adbe8e35dd9dce1dd2e542769a5ecaef492935b0600af264d0c444af",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

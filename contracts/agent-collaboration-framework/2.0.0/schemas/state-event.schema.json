@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:state-event:1.0.0",
+  "title": "Agent Collaboration Framework - State Event Contract",
+  "description": "状态事件契约。状态索引的唯一写入面：每次状态迁移追加一条事件（JSON Lines 一行一条），索引由事件投影重建。事件不可修改、不可删除；重复投递靠 idempotencyKey 去重。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "eventId",
+    "eventSeq",
+    "taskId",
+    "type",
+    "from",
+    "to",
+    "by",
+    "at",
+    "idempotencyKey"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "pattern": "^EV-[0-9]+$",
+      "description": "事件唯一标识，形如 EV-0001；同一日志内唯一。"
+    },
+    "eventSeq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "全局递增序号；同一日志内严格递增，用于投影定位与断点续读。"
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "任务唯一标识；与 schemas/contract-enums.json 的 taskIdPattern 一致。"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "created",
+        "promoted",
+        "claimed",
+        "released",
+        "started",
+        "interrupted",
+        "resumed",
+        "submitted",
+        "verified",
+        "rejected",
+        "failed",
+        "canceled",
+        "dead-lettered",
+        "archived"
+      ],
+      "description": "事件类型；取值口径与 schemas/contract-enums.json 的 eventTypes 一致。"
+    },
+    "from": {
+      "type": "string",
+      "enum": [
+        "backlog",
+        "ready",
+        "submitted",
+        "working",
+        "input-required",
+        "completed",
+        "failed",
+        "canceled",
+        "rejected",
+        "auth-required"
+      ],
+      "description": "迁移起点状态。"
+    },
+    "to": {
+      "type": "string",
+      "enum": [
+        "backlog",
+        "ready",
+        "submitted",
+        "working",
+        "input-required",
+        "completed",
+        "failed",
+        "canceled",
+        "rejected",
+        "auth-required"
+      ],
+      "description": "迁移终点状态；必须命中 contract-enums 的 transitions[from]。"
+    },
+    "by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "执行迁移的角色或执行方标识。"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "事件发生时间（ISO 8601 带时区）；同一任务的事件必须单调不减。"
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "幂等键；重复投递同一键不产生第二条事件。推荐 <taskId>:<type>:<attempt>。"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "事件原因；released / rejected / canceled / dead-lettered 时必填。"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "事件附载：仅承载该事件新引入、且投影需要落地的字段。",
+      "properties": {
+        "agent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "claimed / released 时的执行方。"
+        },
+        "claimedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "claimed 时的领取时间。"
+        },
+        "waitingOn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "interrupted 时的等待项。"
+        },
+        "triggerReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "interrupted 时的触发原因。"
+        },
+        "verdict": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "verified / rejected 时的验收结论对象（result / rationale / failureReasonCode）。"
+        },
+        "deadLetterReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "dead-lettered 时的死信原因。"
+        },
+        "baselineRef": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "created 时的基线锚点。"
+        }
+      }
+    }
+  }
+}

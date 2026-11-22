@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-017",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.589Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-017/task-sheet.md",
+    "sha256": "1c838716e5344371d01f2853a3d666b6d0152672c2c5d0333b49f6cc54c3bbdf",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

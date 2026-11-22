@@ -1,0 +1,139 @@
+{
+  "deliveredAt": "2026-11-22T06:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-245-1",
+    "taskId": "AF-245",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "c2baed2ddc386cc0ab4aa1496782b4c4f6046243",
+    "dependsOn": ["AF-243"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "bin/visitor-sim-persona-delta.ts",
+        "test/auto-practice/af245-persona-delta.spec.ts",
+        "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af245-persona-delta.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "2/2 通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；首轮 8 error 已修复后复跑"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "tsc -b tsconfig.check.json"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 253,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "253 files passed + 1 skipped；4222 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-persona-delta.ts --files data/phase25-exit/af243-seed-v5/r1/scores.json,data/phase25-exit/af243-seed-v5/r2/scores.json,data/phase25-exit/af243-seed-v5/r3/scores.json --baseline E --candidate H",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 秒",
+        "note": "12 个 persona×难度单元；改善 7 / 持平 5 / 回落 0"
+      }
+    ],
+    "reproNotes": "只读 AF-243 三轮 scores.json，不重跑生成与评分；同一命令可对任意两个 arm 复用。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-245 贯穿任务单、分支、记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执七组字段齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-245 事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core，diff 为空" },
+      { "item": "text-privacy", "result": "pass", "note": "记录不含完整台词与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef 与分支基线均为 c2baed2d"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-provider-routing",
+        "impact": "生产 visitor 仍固定走 MINIMAX_LLM_MODEL；V5 进灰度需要默认关闭的 provider 路由/feature flag 与回滚条件"
+      },
+      {
+        "id": "unknown-emotion-projection",
+        "impact": "[emotion:anxious] 需在投影层归一化或剥离，不能靠 prompt 硬枚举；生产语义层只认 5 个情绪"
+      },
+      {
+        "id": "persona-sample-density",
+        "impact": "每 persona×难度仅 3 场×2 评分员，当前只能排除系统性回落，无法证明每个 persona 稳定提升"
+      }
+    ],
+    "openQuestions": [
+      "V5 是否直接进主候选，还是先做投影层归一化 + 小样本真人对照",
+      "生产灰度开关默认值与回滚阈值尚未定义"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "输出形态",
+        "taskSays": "输出 Markdown 表与 delta",
+        "reality": "CLI 只打印，不落报告文件；完整表进交付记录",
+        "action": "保持 CLI 无副作用",
+        "why": "审计结果应跟随任务记录，避免 data/ 下散落报告"
+      },
+      {
+        "item": "最小实现范围",
+        "taskSays": "读单个 scores.json",
+        "reality": "增加 --files 多轮合并",
+        "action": "支持逗号分隔多文件",
+        "why": "避免为三轮合并再写一次性脚本"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "工具与单测落地，三轮合并审计给出可复核的 7 改善 / 5 持平 / 0 回落，并明确增益来自关系在场、不集中于单一 persona；闸门全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

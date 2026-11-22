@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-120",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.698Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-120/task-sheet.md",
+    "sha256": "225398938a173e11168853fbfcebb2ac702c1530d5ca4af989b0263794becf0f",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af120-ci-fix-scope-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

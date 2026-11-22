@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-262",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-22T09:20:00+08:00",
+  "updatedAt": "2026-11-22T01:16:27.042Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-262/task-sheet.md",
+    "sha256": "f1a9e5718a5a95597e1767243e94923ba711819a50738719f79c3eb0c616fa45",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af262-visitor-cutover-local-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af262-visitor-cutover-local-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}

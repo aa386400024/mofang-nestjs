@@ -1,0 +1,178 @@
+{
+  "deliveredAt": "2026-11-22T08:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-258-1",
+    "taskId": "AF-258",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "7435b12f",
+    "dependsOn": ["AF-257"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "src/engine-adapters/wiring/llm-service-chat-caller.ts",
+        "test/engine-adapters/af258-llm-service-chat-caller.spec.ts",
+        "bin/visitor-render-smoke.ts",
+        "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/manifest.json"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["11a2a749"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af258-llm-service-chat-caller.spec.ts test/engine-adapters/af252-visitor-render-provider.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "10/10 通过：AF-258 4 + AF-252 6；日志 data/af258-vitest.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；日志 data/af258-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af258-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 260,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "260 files passed + 1 skipped；4258 tests passed + 4 skipped；日志 data/af258-test.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --max-tokens 160 --timeout-ms 45000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "691ms",
+        "note": "providerHint=doubao；model=doubao-seed-character-260628；chars=15；usage=745/13/758；fallbackUsed=false；degraded=false；guardLevel=pass；日志 data/af258-smoke.log"
+      },
+      {
+        "command": "git diff HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "AF-258 从最新 integrate 7435b12f 独立切出；代码与 AF-255 的 e3c39abd 一致，仅单测文件名改为 af258-*；PR #102 因旧分支事件序号与 AF-257 后的 integrate 重叠而关闭。smoke 只在进程内覆写三个 env 变量，不写回 .env；未打印 key 与完整 prompt；web/orchestration/data.js 并行本地改动未暂存。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "提交标题只含 AF-258；AF-255 分支不追加提交"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-258 从 7435b12f 切出，事件从 AF-257 之后连续编号"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      },
+      {
+        "item": "smoke-evidence",
+        "result": "pass",
+        "note": "真实豆包请求命中主候选、文本非空、usage 非全 0、无回退无降级"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 7435b12f；AF-255 旧分支已关闭，不混入本任务"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-per-provider",
+        "impact": "usage 已回传，但 session cost 仍按 token 汇总；豆包与 MiniMax 单价不同，需按 provider 分账"
+      },
+      {
+        "id": "visitor-render-router-smoke",
+        "impact": "本 smoke 使用 LlmServiceChatCaller 直连 LlmService，未覆盖生产 RouterChatCaller 路由与重试分支"
+      },
+      {
+        "id": "visitor-render-multi-turn-smoke",
+        "impact": "只验证单轮最小 RenderSpec；多轮、长对话、并发、429/5xx 与超时行为尚未验证"
+      }
+    ],
+    "openQuestions": [
+      "生产 RouterChatCaller 链路的真实豆包 smoke 是否在切换前补做，还是与切换任务合并验证"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "从最新 integrate 重新交付 AF-255 的同一批代码",
+        "reality": "代码与行为一致，单测文件名改为 af258-*，交付记录与回执重新生成",
+        "action": "在记录中显式说明 AF-255 / PR #102 被关闭的原因",
+        "why": "旧分支事件序号与 AF-257 后的 integrate 重叠，rebase 会产生两套同序号事件，不能伪造哈希链"
+      },
+      {
+        "taskSays": "smoke 应走生产 ChatCaller 链路",
+        "reality": "仍使用 LlmServiceChatCaller 直连 LlmService，没有使用 RouterChatCaller",
+        "action": "显式标注边界，真实调用覆盖 RenderConfigFactory → LlmRenderAdapter → ChatCaller → LlmService → 豆包",
+        "why": "先用最小适配面证明渲染适配器与豆包 provider 端到端出话；Router 分支另列 backlog"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "scope 与提交事实一致；六组机读字段齐全；定向 10 例、lint、CI 同口径 tsc、全量 4258 例全绿；真实豆包渲染 smoke 命中主候选、文本非空、usage 非全 0、无回退无降级；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

@@ -1,0 +1,315 @@
+// V2026-10-19 治本 (V1.1 §6.5 — training_sessions entity, 跟 xin_su_app V0.5 client TrainingSession 1:1 wire):
+//   原因: counselor-mode-v1.1 §6.5 拍板 training_sessions 表 (9 场景单次训练 session
+//     持久化, 跟 V0.3 §13 baseline 0 破坏). V0.5 client 用 MockTrainingSessionRepository
+//     内存 mock 走 Repository.createMock / appendVisitorResponse, V1.x server 端落库
+//     后客户端通过 POST /training/sessions API 创建, GET 拉取, PATCH 5 状态机流转,
+//     POST /:id/finish 关闭 + 异步派发 BullMQ 督导生成.
+//
+//   跟 V0.3 §13 baseline 关系: V0.3 TrainingSession 4 态 (active/paused/completed/
+//     abandoned) 是 server 端会话生命周期, V0.5 stage 5 状态机 (idle/listening/
+//     thinking/speaking/finished) 是 client UI 对话状态, 两个正交概念. V1.x server
+//     API 双轨支持 (V0.3 4 态保留, V1.1 新增 5 态走 training_sessions.status).
+//
+//   跟 W1-2 long_term_case_session 关系: 1:1 wire (transcript ChatMessage shape 复用
+//     W1-2 SessionTranscriptTurn 3 字段 + V1.5 V0.5 client 2 字段 {id, isTyping} 增量).
+//
+//   修法 (跟 long-term-case-session.entity.ts V1.1 风格一致):
+//     - UUID PK + char(36) id
+//     - tenantId + userId char(36) 双索引 (V0.x 多租户, A9 一人一租户)
+//     - scenarioId varchar(50) (11 场景: skill_listening/skill_questioning/skill_voice/
+//       workplace/anxiety/grief/parenting/relationship/script_polish/case_concept/case_ethics)
+//     - 5 状态机: TrainingSessionStatus enum (Idle/Listening/Thinking/Speaking/Finished,
+//       跟 V0.5 client 1:1 wire)
+//     - 6 字段 persona (personaName/personaAge/personaOccupation/personaComplaint/
+//       personaBackground + difficulty 1 字段 共 5+1 字段, 跟 V0.5 client TrainingSession
+//       1:1 wire)
+//     - 9 字段 VisitorPreset: visitorStyle(enum 5) + emotionBaseline(float) +
+//       defenseLevel(float) + randomSeed(varchar) + mode(enum 3) +
+//       styleVariance/emotionVariance/defenseVariance(enum 3 each) = 9 字段
+//     - transcript json (ChatMessage[] 数组, 跟 long_term_case_session.transcript
+//       SessionTranscriptTurn 1:1 wire shape + isTyping 增量)
+//     - supervisionReportId char(36) nullable (V1.x W3-4 多流派督导接通后填,
+//       V0.5 mock 跳固定 3 条限制解除)
+//     - startedAt/endedAt datetime nullable (V0.5 stage 2 Timer.periodic 1s tick 计时,
+//       V1.x server 端真接)
+//     - 5 索引: PRIMARY + idx_ts_tenant_user + idx_ts_scenario + idx_ts_status +
+//       idx_ts_user_started
+//     - 软删 deletedAt (跟 V3 其他模块一致)
+//
+//   反双胞胎:
+//     - 不复用 V0.3 §13 TrainingSession entity 字段: V0.3 4 态 (active/paused/completed/
+//       abandoned) 跟 V1.1 5 状态机 (idle/listening/thinking/speaking/finished) 正交,
+//       新建表避免 1:1 wire 破坏
+//     - 不用 type: 'enum' 列类型: V0.x pattern 风格走 varchar + 应用层 enum 校验,
+//       V0.5 V2026-10-12 治本一致, 避免 DB schema 跟 enum 字符串 drift
+//     - 不在 transcript 字段加 emotion_score: 跟 V0.5 client ChatMessage 1:1 wire
+//     - 不加 DB-level FK (supervisionReportId → supervision_feedback.id): V0.5 mock
+//       跳固定 3 条, V1.x W3-4 接后改应用层校验 (跟 knowledge_chunks.itemId V0.x
+//       pattern 一致)
+//     - 不存 vector 字段: V1.x JSON 足够 (transcript 数组), V2.x RAG 升级再切
+//     - 不加 polymorphic sessionType 字段: V0.5 阶段只接 V0.5 client 一种, 跟 W1-2
+//       long_term_case_session 区分 (不同表 + 不同 enum, 不走 polymorphic 1 表多 type)
+//
+//   验证 (大炮跑 pnpm migration:run 后):
+//     1. SHOW TABLES LIKE 'training_sessions'; # 1 张表
+//     2. SHOW INDEX FROM training_sessions; # 5 索引 (PRIMARY + 4 复合)
+//     3. DESCRIBE training_sessions; # 25 列
+//     4. SELECT * FROM training_sessions LIMIT 0; # 空表
+//
+//   时间戳: 2026-10-19
+
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+
+import type { InformedConsentEntry, SessionTechStats } from '../domain/session-core/session-core.types.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
+
+/**
+ * 单次对话消息 (transcript json 数组元素, 跟 xin_su_app V0.5 client ChatMessage 1:1 wire).
+ *
+ * 5 字段结构: id + role (ChatRole 3 档) + text (含 (sighs)/(sniffs)/<#X.X#> 语气词
+ * 标签的原始文本) + timestamp (毫秒级) + isTyping (UI 层 typing indicator 标记,
+ * V0.5 stage 简化不落 transcript).
+ */
+export interface TrainingTranscriptTurn {
+  /** 消息 ID (UUID, V0.5 mock 用 DateTime.now().microsecondsSinceEpoch) */
+  id: string;
+  /** 角色 (counselor / visitor / system) */
+  role: ChatRole;
+  /** 原始文本, 含 (sighs) / (sniffs) / <#1.5#> 等语气词标签 */
+  text: string;
+  /** 毫秒级时间戳, 跟录音对齐 */
+  timestamp: number;
+  /** Typing indicator 标记 (UI 层用, V0.5 stage 简化不落 transcript) */
+  isTyping?: boolean;
+}
+
+/**
+ * training_sessions 表.
+ *
+ * 跟 xin_su_app V0.5 client `TrainingSession` 1:1 wire (Repository.createMock
+ * 返回字段跟本表 schema 1:1), 跟 V1.1 §6.5 1:1.
+ *
+ * 9 场景单次训练 session 持久化: workplace / anxiety / grief / parenting / relationship
+ * (5 场景 V0.5 实装) + skill_listening / skill_questioning / skill_voice /
+ * script_polish / case_concept / case_ethics (6 场景 V0.5 占位入口, V1.x W7-8 续做).
+ */
+@Entity('training_sessions')
+@Index('idx_ts_tenant_user', ['tenantId', 'userId'])
+@Index('idx_ts_scenario', ['scenarioId'])
+@Index('idx_ts_status', ['status'])
+@Index('idx_ts_user_started', ['userId', 'startedAt'])
+export class TrainingSession {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  // V0.x: tenantId = userId (一人一租户, A9). V1.x 多租户上线后 backfill.
+  @Column({ type: 'char', length: 36, name: 'tenant_id' })
+  tenantId!: string;
+
+  @Column({ type: 'char', length: 36, name: 'user_id' })
+  userId!: string;
+
+  // 场景 id (11 值, 跟 V0.5 client TrainingScenario.id 1:1 wire)
+  // - skill_listening / skill_questioning / skill_voice (专项技能)
+  // - workplace / anxiety / grief / parenting / relationship (全流程模拟, V0.5 5 实装)
+  // - script_polish (话术工坊, V0.5 P0-2 已实装)
+  // - case_concept / case_ethics (个案训练)
+  @Column({ type: 'varchar', length: 50, name: 'scenario_id' })
+  scenarioId!: string;
+
+  // 难度 (varchar 存 enum 字符串 'L1' / 'L2' / 'L3', 跟 V0.5 client TrainingDifficulty
+  // enum 1:1 wire, V0.5 client L1=10min / L2=15min / L3=20min)
+  @Column({ type: 'varchar', length: 20 })
+  difficulty!: TrainingDifficulty;
+
+  // 时长 (分钟): L1=10 / L2=15 / L3=20
+  @Column({ type: 'int', name: 'duration_minutes' })
+  durationMinutes!: number;
+
+  // 5 状态机 (V0.5 client TrainingSessionStatus enum 1:1 wire)
+  @Column({ type: 'varchar', length: 20, default: TrainingSessionStatus.IDLE })
+  status!: TrainingSessionStatus;
+
+  // ─── 来访者 persona 5 字段 (跟 V0.5 client TrainingSession 1:1 wire) ───
+  @Column({ type: 'varchar', length: 100, name: 'persona_name' })
+  personaName!: string;
+
+  @Column({ type: 'int', name: 'persona_age' })
+  personaAge!: number;
+
+  @Column({ type: 'varchar', length: 200, name: 'persona_occupation' })
+  personaOccupation!: string;
+
+  @Column({ type: 'text', name: 'persona_complaint' })
+  personaComplaint!: string;
+
+  @Column({ type: 'text', name: 'persona_background' })
+  personaBackground!: string;
+
+  // ─── VisitorPreset 9 字段 (V0.5 client 1:1 wire, V1.x server 端持久化) ───
+  @Column({ type: 'varchar', length: 20, name: 'visitor_style' })
+  visitorStyle!: VisitorStyle;
+
+  @Column({ type: 'float', name: 'emotion_baseline' })
+  emotionBaseline!: number;
+
+  @Column({ type: 'float', name: 'defense_level' })
+  defenseLevel!: number;
+
+  // YYYY-MM-DD-HH-mm-ss-{0-99} 格式, V0.5 client 自动生成, server 不强校验
+  @Column({ type: 'varchar', length: 50, name: 'random_seed' })
+  randomSeed!: string;
+
+  // 训练模式 3 档 (V0.5 stage 2 A1 大炮 2026-10-16 17:10 拍板)
+  @Column({ type: 'varchar', length: 20 })
+  mode!: VisitorMode;
+
+  // 3 维度 variance (V0.5 stage 2 B1 大炮 2026-10-16 17:10 拍板)
+  @Column({ type: 'varchar', length: 10, name: 'style_variance' })
+  styleVariance!: DimensionVariance;
+
+  @Column({ type: 'varchar', length: 10, name: 'emotion_variance' })
+  emotionVariance!: DimensionVariance;
+
+  @Column({ type: 'varchar', length: 10, name: 'defense_variance' })
+  defenseVariance!: DimensionVariance;
+
+  // 对话 transcript (跟 W1-2 long_term_case_session.transcript 1:1 wire shape,
+  // ChatMessage[] 数组, 跟 V0.5 client 1:1 wire)
+  @Column({ type: 'json' })
+  transcript!: TrainingTranscriptTurn[];
+
+  // 督导报告关联 (V1.x W3-4 多流派督导接通后填, V0.5 mock 跳固定 3 条限制解除)
+  // ─── v1.2 VS-C (M2 知情同意 + M3 技术统计) ───
+  //
+  // V2026-10-21 治本 (V1.2 VS-C — ALTER 增量列, 4 列):
+  //   原因: v1.2 spec §5.4「在 training_sessions 表加 3 个字段 (ALTER TABLE, 不加新表)」+
+  //     §12.2「training_sessions 加 informed_consent_* + tech_stats (json)」.
+  //   反双胞胎:
+  //     - 不写进 user_consent 表: spec §5.3 明确 src/consent 是**产品合规层**
+  //       (真人用户 ↔ 产品), M2 是**训练业务层** (受训咨询师 ↔ AI 来访), 两者完全正交
+  //     - 知情同意用 tinyint 存 0/1 而不是 boolean: MySQL 无原生 boolean, 跟仓库既有
+  //       supervision_schools.is_active 口径一致 (代码里用 === 1 判断)
+  //     - tech_stats 落 json 而不是拆 15 个数值列: 指标会随 spec §6.3 增补 (如"沉默占比"),
+  //       拆列 = 每加一个指标一次 DDL; json 存整体, 前端按契约取
+  //   验证: 1. tsc 0 错  2. migration:run 后 SHOW COLUMNS FROM training_sessions 看到 4 个新列
+  //   时间戳: 2026-10-21
+
+  /**
+   * 是否需要走知情同意环节 (默认开启, 用户可在高级设置关闭).
+   *
+   * spec §5.1「内置流程（默认开启）」+ §5.4「用户可在高级设置关闭」.
+   */
+  @Column({ type: 'tinyint', name: 'informed_consent_required', default: 1 })
+  informedConsentRequired!: number;
+
+  /**
+   * 4 要素是否已讲全 (AI 判定, 0/1).
+   *
+   * spec §5.2「AI 判断 4 要素是否讲全」. 缺失任意 1 项 → 督导报告记为「知情同意缺失」.
+   */
+  @Column({ type: 'tinyint', name: 'informed_consent_passed', default: 0 })
+  informedConsentPassed!: number;
+
+  /**
+   * 4 要素逐项覆盖明细 (json, 可空).
+   *
+   * 每项含 element / covered / visitorResponse / coveredAtTurn, 供前端"哪几要素已讲"展示.
+   */
+  @Column({ type: 'json', name: 'informed_consent_transcript', nullable: true })
+  informedConsentTranscript!: InformedConsentEntry[] | null;
+
+  /**
+   * 会谈技术统计 (json, 可空).
+   *
+   * spec §6.3: 督导 LLM 在生成 feedback 时**顺带**输出, 复用同一次调用不额外花钱.
+   */
+  @Column({ type: 'json', name: 'tech_stats', nullable: true })
+  techStats!: SessionTechStats | null;
+
+  /**
+   * 每轮 BDI 调试快照 (json, 可空).
+   *
+   * WP19: 引擎适配器在每轮完成时写入内存缓冲, 会话关闭时 flush 到本列.
+   * 调试器 SPA 通过 /admin/api/sessions/:id 读取.
+   */
+  @Column({ type: 'json', name: 'turn_debug_trace', nullable: true })
+  turnDebugTrace?: unknown;
+
+  @Column({ type: 'char', length: 36, name: 'supervision_report_id', nullable: true })
+  supervisionReportId!: string | null;
+
+  // ─── V2026-11-06 治本 (WP38 — 角色版本绑定) ───
+  //
+  //   为什么这两列要加 (任务单 §2.1 第 4 条):
+  //     会话要能回答"这场训练用的是哪一版角色" —— 否则督导复盘时看到的行为差异
+  //     无从归因 (是角色变了, 还是学员变了?). 绑版本 = 把"角色配置"也变成可追溯量.
+  //
+  //   口径:
+  //     · character_template_id —— 建会话那一刻的公共人物模板 id (逻辑外键, 不加 DB FK);
+  //       落桥手上只有 templateId, 没有它就查不到"谁在用这个角色" (主版本锁定要查).
+  //     · character_version —— 建会话那一刻的 semver 版本号 (例 "1.2.0").
+  //
+  //   ⚠️ 两列都可空:
+  //     · 迁移前建的会话没有这两列的值 (零回归, 不回填 —— 回填等于伪造"当时用的是哪版");
+  //     · 兜底人设通道 (无公共人物) 本来就没有角色.
+  //
+  //   时间戳: 2026-11-06
+  /** 角色模板 id (vpt_* slug; 可空 = 兜底人设通道 / 迁移前的老会话). */
+  @Column({ type: 'varchar', length: 64, name: 'character_template_id', nullable: true })
+  characterTemplateId!: string | null;
+
+  /** 角色版本号 (semver 字符串, 例 "1.2.0"; 可空 = 同上). */
+  @Column({ type: 'varchar', length: 32, name: 'character_version', nullable: true })
+  characterVersion!: string | null;
+
+  // ─── V2026-11-07 治本 (degraded 会话打标) ───
+  //
+  //   为什么加这两列: 切灰度前要确保"坏会话不污染考核数据" —— 连续失败的会话
+  //   照样参与考核统计. 要过滤它们, 就得先有一个"这场是坏的"的**持久标记**,
+  //   否则每次统计都要重新回放一遍会话去数失败轮次 (拿不到失败轮次的事实, 也太贵).
+  //
+  //   口径:
+  //     · degraded —— 是否降级 (0/1). 用 tinyint 而不是 boolean (MySQL 无原生 boolean),
+  //       跟 ~informed_consent_required~ 同款; 代码里用 === 1 判断.
+  //       默认 0 = 迁移前的存量会话**全部**是"好会话" (零回归, 不回填).
+  //     · degraded_reason —— 打标原因 ('high_failure_rate' / 'consecutive_failures';
+  //       可空 = 没打标). 是**元数据**, 不含任何心理内容 (隐私红线).
+  //
+  //   ⚠️ 是**终态**: 会话结束后不再变 (任务单 §七 "不自动恢复", "不删除会话").
+  //
+  //   时间戳: 2026-11-07
+  /**
+   * 是否为 degraded 会话 (0 = 正常; 1 = 会话结束时判定为坏会话).
+   */
+  @Column({ type: 'tinyint', name: 'degraded', default: 0 })
+  degraded!: number;
+
+  /**
+   * degraded 打标原因 (可空 = 没打标).
+   */
+  @Column({ type: 'varchar', length: 50, name: 'degraded_reason', nullable: true })
+  degradedReason!: string | null;
+
+  // V0.5 stage 2 Timer.periodic 1s tick 计时 (V1.x server 端)
+  @Column({ type: 'datetime', name: 'started_at', nullable: true })
+  startedAt!: Date | null;
+
+  @Column({ type: 'datetime', name: 'ended_at', nullable: true })
+  endedAt!: Date | null;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
+
+  // 软删 (跟 V3 其他模块一致)
+  @Column({ type: 'datetime', name: 'deleted_at', nullable: true })
+  deletedAt!: Date | null;
+}
