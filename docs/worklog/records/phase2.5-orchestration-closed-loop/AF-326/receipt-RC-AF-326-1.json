@@ -1,0 +1,282 @@
+{
+  "deliveredAt": "2026-11-23T02:50:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-326-1",
+    "taskId": "AF-326",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "db2e2efdd77feb45dd38007e432fd4cc109a7a1b",
+    "dependsOn": ["AF-323"],
+    "priorTasks": ["AF-324", "AF-325"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-326/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af326-classifier-prompt-v2-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af326-classifier-shadow-recheck-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["7c8b1ad44d65454dff29380118e21e2e8ce11d3a"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af326-classifier-prompt-v2-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af326-classifier-shadow-recheck-2026-11-23.md"
+      ],
+      "modified": [
+        "src/engine-adapters/cognition/model-event-classifier.ts",
+        "test/engine-adapters/model-event-classifier.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/model-event-classifier.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "0.60s",
+        "note": "71 例通过；含新增 2 例 prompt v2 契约"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo；与 CI 同口径"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 288,
+        "machine": "同上",
+        "wallClock": "19.60s",
+        "note": "288 文件通过 / 1 跳过（289）；4437 例通过 / 4 跳过（4441）"
+      },
+      {
+        "command": "pnpm audit:classifier-shadow -- --rule-only --sample-per-session 10 --limit 70",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "70 轮 / 可用 70 / 降级 0；exact 70/70、Jaccard 1.0000、neutral 0.5714"
+      },
+      {
+        "command": "pnpm audit:classifier-shadow -- --sample-per-session 10 --limit 70",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3min",
+        "note": "70 次调用 / 可用 66 / 降级 4（5.71%）；exact 33/66（0.5000）、Jaccard 0.5581、neutral 规则 0.5758 vs 模型 0.5606（差 1.52pp）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入后执行；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执归档后执行；记录包哈希与 durable 回执字节一致"
+      }
+    ],
+    "reproNotes": "复现顺序：pnpm exec vitest run test/engine-adapters/model-event-classifier.spec.ts；pnpm typecheck；pnpm lint；pnpm test；pnpm audit:classifier-shadow -- --rule-only --sample-per-session 10 --limit 70；pnpm audit:classifier-shadow -- --sample-per-session 10 --limit 70；git diff --stat HEAD -- src/engine-core；回执摄入后 node scripts/orchestration/cli.mjs events verify；归档后 node scripts/orchestration/cli.mjs worklog verify --strict。审计只读 data/debug-sessions，不落原文。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-326 经 CLI register / promote / run-once 领单；分支名与提交标题唯一任务号"
+      },
+      {
+        "item": "rescope-audit",
+        "result": "pass",
+        "note": "AF-324 scope-domain-conflict → cancel；AF-325 依赖已取消任务 → task rescope 重签发 AF-326，priorTasks 保留链路"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 与 journal 由 CLI 维护；events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "prompt-version",
+        "result": "pass",
+        "note": "常量、观测记录、测试统一为 model-event-classifier-v2"
+      },
+      {
+        "item": "sensitive-touch-binding",
+        "result": "pass",
+        "note": "66 个可用轮 0 次输出；词表为空时 user prompt 显式禁止"
+      },
+      {
+        "item": "neutral-alignment",
+        "result": "pass",
+        "note": "规则 0.5758 / 模型 0.5606，差 1.52pp，满足 ≤10pp"
+      },
+      {
+        "item": "shadow-only",
+        "result": "pass",
+        "note": "审计固定 effectiveMode shadow；生产判定仍来自规则轨，零变化"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "规则轨不是人工金标准；未宣称临床有效性；真人标定独立排期"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef db2e2efd 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 7c8b1ad4 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF326-B1",
+        "impact": "3s 超时导致 4/70（5.71%）降级，高于 5% 建议线；llm_active 前需评估 P50 / P95 延迟并把超时预算做成可配置审计参数。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF326-B2",
+        "impact": "exact 0.5000 低于早期建议 0.60；剩余差异集中在 open_probe（模型 9 / 规则 1）与 empathy（模型 23 / 规则 22），需要人工双标或咨询师金标准判定谁对。",
+        "owner": "clinical-review",
+        "status": "open"
+      },
+      {
+        "id": "AF326-B3",
+        "impact": "样本仍是每场尾部 10 轮、7/8 场、单模型单次；未做全量 20 轮 × 8 场与跨模型复评。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF326-B4",
+        "impact": "规则轨 judgment 1 / minimizing 4，模型轨均为 0；模型对负向标签可能漏判，需单独抽样核对。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF326-B5",
+        "impact": "模型轨 raw 输出未落盘，观测只能聚合标签；无法从报告反查单轮模型原文，这是隐私红线的预期代价。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF326-B6",
+        "impact": "typings/global.d.ts 仍未声明 AF-322 新增 3 个 env 键，与本单无关。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF326-B7",
+        "impact": "AF-321 记录包 manifest.status 仍为 backlog 与实际 canceled 不一致；worklog verify --strict PASS，字段语义治理另排。",
+        "owner": "orchestration",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "open_probe 剩余 9 次与 empathy 23 次，是模型对、规则漏，还是模型仍过判",
+      "3s 超时预算是否提升到 6s / 8s，以及降级轮是否应重试补样",
+      "真人双标的最小样本量与咨询师资质要求"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "taskId 原定 AF-324",
+        "reality": "AF-324 被 scope-domain-conflict 拦下；AF-325 依赖已取消任务无法 promote",
+        "action": "AF-324 cancel；AF-325 task rescope 为 AF-326，priorTasks 保留审计链",
+        "why": "不修改资源域、不绕过依赖校验，按框架 rescope 保留链路"
+      },
+      {
+        "taskSays": "多标签只在两个行为独立成立时输出",
+        "reality": "多标签是真实语料过判主要来源",
+        "action": "进一步收紧为默认一个、最多两个",
+        "why": "仍允许独立成立的复合轮，同时压掉凑数标签"
+      },
+      {
+        "taskSays": "prompt v2 一次成型",
+        "reality": "首版 56 可用 exact 0.2321 / Jaccard 0.3720 / neutral 差 35.71pp",
+        "action": "第二版补充 empathy / open_probe / 主功能三条约束后才达到 0.5000 / 0.5581 / 1.52pp",
+        "why": "按真实失败样本二次收紧，不把首版数字当结论"
+      },
+      {
+        "taskSays": "至少 7 场 × 10 轮",
+        "reality": "70 次抽样覆盖 7 场 × 10 轮，66 轮可用、4 轮降级",
+        "action": "报告写清 70 次调用 / 66 可用，不把降级轮算进 exact / Jaccard",
+        "why": "抽样覆盖满足，可用轮如实披露"
+      },
+      {
+        "taskSays": "降级率早期建议 ≤5%",
+        "reality": "实测 4/70（5.71%），未达标",
+        "action": "记为 AF326-B1，不在本单改审计 CLI",
+        "why": "3s 超时由审计 CLI 固定，本单只改 prompt"
+      },
+      {
+        "taskSays": "exact 早期建议 ≥0.60",
+        "reality": "实测 0.5000，未达标",
+        "action": "不把规则轨当金标准去凑 exact，保持 shadow",
+        "why": "任务单硬门槛是 neutral 差、样本覆盖与 sensitive_touch 约束"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-326 收紧模型分类器 prompt v2，版本/标签口径/sensitive_touch 词表绑定/neutral 对齐均有代码与单测证据。定向 71 例、全量 4437 例、lint 0/0、typecheck exit 0、engine-core 零 diff。真实 shadow 70 次调用 / 66 可用，neutral 差从 61.54pp 压到 1.52pp，exact 0.0769→0.5000，Jaccard 0.1859→0.5581，sensitive_touch 8→0。生产模式不变，模型轨继续 shadow；不宣称临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
