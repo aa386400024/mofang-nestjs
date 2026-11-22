@@ -1,0 +1,174 @@
+{
+  "deliveredAt": "2026-11-22T11:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-270-1",
+    "taskId": "AF-270",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "ffd465e908eda08c6f4e4d158c95635f2eb32d5c",
+    "dependsOn": ["AF-269"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/manifest.json",
+        "test/engine-adapters/af270-stream-timeout.spec.ts"
+      ],
+      "modified": [
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30 秒",
+        "note": "AbortController 与 timeout 类型闭合；日志 data/af270-tsc.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af270-lint.log"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af270-stream-timeout.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "1.0 秒",
+        "note": "3/3 passed：首包挂起 100ms 超时切备；首包后长流不误杀；外部 signal 取消即中止；日志 data/af270-test.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode timeout --expect-fallback --timeout-ms 5000 --expect-fallback-within-ms 15000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "8.0 秒",
+        "note": "primaryProbe=Request timed out. 2031ms；主候选日志『流式首包超时 (5000ms)』；providerHint=minimax，fallbackUsed=true，degraded=false，finishReason=stop，chars=35，wallElapsedMs=8001ms，ttft=7731ms；日志 data/af270-smoke.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 263,
+        "machine": "同上",
+        "wallClock": "24.3 秒",
+        "note": "263 files passed + 1 skipped；4272 tests passed + 4 skipped；日志 data/af270-fulltest.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-270-stream-first-delta-timeout 自 integrate ffd465e9 切出。生产改动仅在 LlmRenderAdapter.openStream：按 config.timeoutMs 建 AbortController、合并 handlers.signal、首 delta 后清定时器、超时主动 abort 并返回可重试『流式首包超时』。smoke 新增 --expect-fallback-within-ms 机读延迟上限。未改 ENGINE_RENDER_TIMEOUT_MS 默认值与 provider SDK 配置；真实 .env 未改。未暂存 web/orchestration/data.js 与 data/ 取证日志。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-270"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "AF-269 timeout smoke 兼容；AF-264/265/268 smoke 开关未变；全量 4272 例零回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 ffd465e9；依赖 AF-269 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-stream-midstream-stall-timeout",
+        "impact": "首包已到后上游中途停顿时无总时长/无增量心跳超时，长回复可能卡住且不能切备"
+      },
+      {
+        "id": "visitor-cancel-no-fallback-policy",
+        "impact": "外部取消仍按可重试失败进入备候选，候选耗尽会吐兜底句；是否应『取消即静默停止』待产品决策"
+      },
+      {
+        "id": "visitor-concurrency-timeout-combo",
+        "impact": "并发 + 超时故障组合未验证，abort 连接释放与并发额度回收缺少证据"
+      },
+      {
+        "id": "visitor-provider-retry-audit",
+        "impact": "生产 provider 的 SDK 重试策略与 abort 后的重试风暴未审计；smoke 的 maxRetries=0 不代表生产"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "用 config.timeoutMs 约束流式调用",
+        "reality": "本任务只约束首包等待窗口；首包到达后清除定时器，不限制整段生成总时长",
+        "action": "实现首包超时并在交付记录与 backlog 明确全流 stall 未覆盖",
+        "why": "目标是治理『连接成功但不回首包』这一实际挂死；全流总超时会误杀正常长回复，需要独立设计心跳语义"
+      },
+      {
+        "taskSays": "外部 signal 取消同样中止",
+        "reality": "中止后仍按既有可重试失败语义尝试备候选，候选耗尽则降级吐兜底",
+        "action": "保持既有语义，仅保证不挂死；取消是否应静默停止登记为独立产品决策 backlog",
+        "why": "本任务不改取消产品语义，避免把超时治理扩大成行为变更"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "真实上游挂起场景在 5 秒配置下 8.0 秒完成切备，较 AF-269 的 307 秒下降约 38 倍；3 例定向单测覆盖首包挂起、长流不误杀、外部取消；tsc/lint/全量 4272 例全绿；engine-core 零改动。首包后中途 stall 与取消语义已显式登记 backlog，不构成本任务失败。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

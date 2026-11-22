@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T03:29:06.348Z",
+  "generatedAt": "2026-11-22T03:44:23.803Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,6 +99,46 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-270",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "流式渲染首包超时受 ENGINE_RENDER_TIMEOUT_MS 约束，修复上游挂起时约 300s 才切备",
+      "status": "submitted",
+      "verdict": "passed",
+      "verdictRationale": "机读护栏全绿且无人工复核项",
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-270",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T03:34:25.654Z",
+        "leaseDeadline": "2026-11-22T04:04:25.650Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-270.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T03:34:25.654Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-270.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1874,6 +1914,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-446",
+      "recordedAt": "2026-11-22T03:34:35.134Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-270",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-270-stream-first-delta-timeout"
+      ]
+    },
+    {
+      "auditId": "AUD-445",
+      "recordedAt": "2026-11-22T03:34:25.846Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-270",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-270",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-270.json"
+      ]
+    },
+    {
+      "auditId": "AUD-444",
+      "recordedAt": "2026-11-22T03:34:01.930Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-270",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-443",
       "recordedAt": "2026-11-22T03:01:04.191Z",
       "actorRef": "orchestrator",
@@ -2060,67 +2147,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-431",
-      "recordedAt": "2026-11-22T01:48:06.797Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-265",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-265-visitor-concurrency-smoke"
-      ]
-    },
-    {
-      "auditId": "AUD-430",
-      "recordedAt": "2026-11-22T01:48:03.080Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-265",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-265",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-265.json"
-      ]
-    },
-    {
-      "auditId": "AUD-429",
-      "recordedAt": "2026-11-22T01:47:56.247Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-265",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 443,
+    "total": 446,
     "byResult": {
-      "allowed": 443,
+      "allowed": 446,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 442,
+      "TOOL-QUEUE-SCHEDULER": 445,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 443
+      "orchestrator": 446
     }
   },
   "protocolView": {
@@ -2175,6 +2215,32 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-270",
+        "title": "流式渲染首包超时受 ENGINE_RENDER_TIMEOUT_MS 约束，修复上游挂起时约 300s 才切备",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-269"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md"
           }
         ]
       }
@@ -6891,6 +6957,16 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-270",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-270/task-sheet.md"
+      },
+      {
+        "taskId": "AF-270",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af270-stream-first-delta-timeout-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
