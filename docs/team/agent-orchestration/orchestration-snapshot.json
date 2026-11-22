@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T11:44:18.314Z",
+  "generatedAt": "2026-11-22T11:51:11.967Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-303",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "渲染验收器补齐「主候选失败→备候选成功」回退成功路径",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-303",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T11:51:11.904Z",
+        "leaseDeadline": "2026-11-22T12:21:11.901Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-303.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T11:51:11.904Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-303.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,6 +1825,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-528",
+      "recordedAt": "2026-11-22T11:50:23.560Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-303",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-527",
       "recordedAt": "2026-11-22T11:33:13.803Z",
       "actorRef": "orchestrator",
@@ -2004,40 +2062,50 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-513",
-      "recordedAt": "2026-11-22T10:01:01.103Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-296",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-296",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-296.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 527,
+    "total": 528,
     "byResult": {
-      "allowed": 527,
+      "allowed": 528,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 526,
+      "TOOL-QUEUE-SCHEDULER": 527,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 527
+      "orchestrator": 528
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-303",
+        "title": "渲染验收器补齐「主候选失败→备候选成功」回退成功路径",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7306,9 +7374,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-303",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/task-sheet.md"
+      },
+      {
+        "taskId": "AF-303",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },

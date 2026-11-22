@@ -4,10 +4,98 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1384,
+    "lastEventSeq": 1387,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-303",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T11:50:23.350Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-22T11:51:11.901Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "渲染验收器补齐「主候选失败→备候选成功」回退成功路径",
+      "type": "implementation",
+      "baselineRef": "d6243222f6c7eb2cb3ccc48b71184714118c2922",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-302",
+        "AF-299"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T11:50:22.979Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/visitor-render-acceptance.ts",
+          "bin/lib/render-acceptance-checks.ts",
+          "test/engine-adapters/af302-render-acceptance-checks.spec.ts",
+          "docs/runbooks/render-telemetry-alerting.md",
+          "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/"
+        ],
+        "modules": [
+          "engine-adapters"
+        ],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec tsx bin/visitor-render-acceptance.ts --only single-fallback",
+          "check": "回退成功路径真实自证",
+          "threshold": "exit=0 且 PASS 1 / FAIL 0"
+        },
+        {
+          "command": "pnpm exec vitest run test/engine-adapters/af302-render-acceptance-checks.spec.ts",
+          "check": "断言纯函数单测",
+          "threshold": "exit=0 且 0 failed"
+        }
+      ],
+      "successCriteria": [
+        "新增 `single-fallback` 场景：`--fail-primary --fail-primary-mode server-error --expect-fallback`。",
+        "期望按 2026-11-22 真实取证 `data/af303-smoke.log`：`rounds{success}=1`、`attempts{doubao,retry}=1`、`attempts{minimax,success}=1`、`failure{doubao,server}=1`、`fallback{doubao→minimax,cause=server}=1`、`degraded_total` 全标签和为 0、`cooldown_served_total=0`。",
+        "全量运行 6 场景 PASS / FAIL 0 / 未执行 0；反向验证把 `rounds{success}` 改成 0 必须精确 FAIL 且 exit 1。",
+        "Runbook §5.1 故障矩阵补「回退成功」行，§5.2 场景清单与耗时改六条。",
+        "闸门：定向测试全绿、typecheck 0、全量 lint 0、全量测试全绿、`src/engine-core` 零改动。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "AF-303 交付记录",
+          "path": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-22T11:50:23.349Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
