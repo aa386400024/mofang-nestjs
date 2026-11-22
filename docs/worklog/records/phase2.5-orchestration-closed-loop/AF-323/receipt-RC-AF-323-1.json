@@ -1,0 +1,305 @@
+{
+  "deliveredAt": "2026-11-23T01:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-323-1",
+    "taskId": "AF-323",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "3f12ae0834a28ac0dee1dac5a378e0dd4d7a4bb8",
+    "dependsOn": ["AF-322"],
+    "priorTasks": [
+      "AF-315",
+      "AF-316",
+      "AF-317",
+      "AF-320",
+      "AF-321",
+      "AF-322"
+    ],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af323-classifier-shadow-audit-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["e2834654b6d0b04ff514bd293b73b1e5a068dc6e"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af323-classifier-shadow-audit-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md",
+        "scripts/ops/quality/af322-classifier-shadow-audit.mjs",
+        "scripts/ops/quality/af322-classifier-shadow-audit.ts",
+        "scripts/orchestration/__tests__/af322-classifier-shadow-audit.spec.mjs"
+      ],
+      "modified": [
+        ".github/workflows/ci.yml",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "package.json",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "scripts/orchestration/branch-workflow.mjs",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs scripts/orchestration/__tests__/af322-classifier-shadow-audit.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "2.66s",
+        "note": "2 文件通过；265 例通过（orchestration 260 + 审计统计 5）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 15s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo；与 CI 完全同口径"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec eslint scripts/ops/quality/af322-classifier-shadow-audit.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "新 TS 审计脚本单独校验；修复未使用导入、数字分隔符、prettier 换行与 import 顺序后 0/0"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 288,
+        "machine": "同上",
+        "wallClock": "19.86s",
+        "note": "288 文件通过 / 1 跳过（289）；4435 例通过 / 4 跳过（4439）"
+      },
+      {
+        "command": "pnpm audit:classifier-shadow -- --rule-only --sample-per-session 3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "规则轨基线；覆盖 7/8 场、21 轮、degraded 0、exact 21/21、Jaccard 1.0000、neutral 0.6190"
+      },
+      {
+        "command": "pnpm audit:classifier-shadow -- --sample-per-session 2 --limit 14",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "真实 shadow；14 轮 / 7 场 / 可用 13 / 降级 1；exact 1/13（0.0769）、Jaccard 0.1859、neutral 规则 0.6923 vs 模型 0.0769"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-323 status=submitted files=15 covered=7"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "提交与领单事件后执行；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入并归档后执行；记录包哈希与 durable 回执字节一致"
+      }
+    ],
+    "reproNotes": "复现顺序：pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs scripts/orchestration/__tests__/af322-classifier-shadow-audit.spec.mjs；pnpm typecheck；pnpm lint；pnpm exec eslint scripts/ops/quality/af322-classifier-shadow-audit.ts；pnpm test；pnpm audit:classifier-shadow -- --rule-only --sample-per-session 3；pnpm audit:classifier-shadow -- --sample-per-session 2 --limit 14；pnpm orchestration:preflight；node scripts/orchestration/cli.mjs events verify；归档后 node scripts/orchestration/cli.mjs worklog verify --strict。审计只读 data/debug-sessions，不落原文。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-323 经 CLI 登记、promote、run-once 领单；分支名与提交标题唯一任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 与 journal 由 CLI 维护；events verify 通过"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "登记、promote、领单、提交均有事件；哈希链连续"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "toolchain-consistency",
+        "result": "pass",
+        "note": "本地 pnpm typecheck 与 CI Typecheck 使用同一命令与同一 tsBuildInfoFile"
+      },
+      {
+        "item": "branch-guard",
+        "result": "pass",
+        "note": "af316-receipt、AF-317-receipt、fix-af322-alignment、af321-af322-merge、fooaf316 全部拒绝；正例通过"
+      },
+      {
+        "item": "audit-privacy",
+        "result": "pass",
+        "note": "输出只有 id / 计数 / 比率 / 标签 / 模型标识；不打印、不落盘原文"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "审计不是人工金标准；未宣称临床有效性；真人标定独立排期"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 3f12ae08 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 e2834654 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF323-B1",
+        "impact": "真实 shadow 只有 14 轮（13 可用）、每场尾部 2 轮、覆盖 7/8 场；不是全量分布，也不是人工金标准。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF323-B2",
+        "impact": "模型轨 neutral 0.0769 vs 规则轨 0.6923，sensitive_touch 8/13、open_probe 9/13，prompt 对普通探问与敏感触碰边界过宽。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF323-B3",
+        "impact": "影子通过阈值未定；Jaccard、核心标签重合、neutral 率、degraded 率权重没有人工金标准。",
+        "owner": "clinical-review",
+        "status": "open"
+      },
+      {
+        "id": "AF323-B4",
+        "impact": "真实调用 1 轮在 3 次 3s 超时后降级；llm_active 前需评估 P50 / P95 与超时预算。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF323-B5",
+        "impact": "typings/global.d.ts 未声明 AF-322 新增 3 个 env 键；代码走 ConfigService.get() 无类型缺口，typings 不在任何 Agent Card 资源域。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF323-B6",
+        "impact": "管理台成本 totalCost / totalCostCny 兼容仍为既有技术债，与本单无关。",
+        "owner": "admin-dashboard",
+        "status": "open"
+      },
+      {
+        "id": "AF323-B7",
+        "impact": "AF-321 记录包 manifest.status 仍为 backlog，与实际 canceled 不一致；worklog verify --strict 当前 PASS，字段语义需后续经 CLI 治理。",
+        "owner": "orchestration",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "影子审计通过阈值如何定：Jaccard、核心标签重合、neutral 率、degraded 率各自权重",
+      "模型轨 prompt 如何收紧 sensitive_touch 与 open_probe，同时不牺牲 empathy 识别",
+      "真人标定的最小样本量与咨询师资质要求"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "分支护栏拒绝嵌入其他词中间的任务号",
+        "reality": "首版 regex 只匹配段首或连字符后，fooaf316 漏网",
+        "action": "改为任意位置 /af-?\\d{3}/，并补 fooaf316 用例",
+        "why": "按任务单字面要求修正，避免把常见形态当成全部"
+      },
+      {
+        "taskSays": "审计报告需要标签分布",
+        "reality": "只有 exact / Jaccard 无法解释模型轨为何过判",
+        "action": "统计层新增 labelRows，按标签聚合两轨计数",
+        "why": "标签分布是定位 prompt 过宽的直接证据"
+      },
+      {
+        "taskSays": "rule-only 模式输出置信度",
+        "reality": "规则轨没有模型置信度，显示 0.0000 会被误读",
+        "action": "无有限置信度时输出 null / n/a",
+        "why": "避免把缺失值当成低置信"
+      },
+      {
+        "taskSays": "默认每场抽样 3 轮",
+        "reality": "真实模型调用成本与耗时需要控制",
+        "action": "真实 shadow 实跑用 --sample-per-session 2 --limit 14",
+        "why": "报告明确样本只取尾部 2 轮并列为限制"
+      },
+      {
+        "taskSays": "任务单未列 fooaf316 用例",
+        "reality": "需要验证任意位置匹配",
+        "action": "纳入同一拒绝用例参数化列表",
+        "why": "防止以后把 regex 改回段首匹配"
+      },
+      {
+        "taskSays": "新审计 CLI 不在主 lint 覆盖范围",
+        "reality": "主 lint 只覆盖 src/test/bin 与 scripts/**/*.mjs/cjs",
+        "action": "单独跑 pnpm exec eslint 并修复 4 error + 5 warning 到 0/0",
+        "why": "新 TS 脚本不应留 lint 债"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-323 收口类型检查同口径、CI 命令不漂移、分支名任意位置任务号护栏、真实语料影子审计 CLI 与统计单测。定向 265 例、全量 4435 例、lint 0/0、typecheck exit 0、preflight PASS。影子审计给出明确不切换 llm_active 的结论，模型轨保持 shadow，生产行为零变化；临床边界明确不宣称有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

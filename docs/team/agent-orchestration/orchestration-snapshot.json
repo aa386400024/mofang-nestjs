@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T17:12:56.570Z",
+  "generatedAt": "2026-11-22T17:23:07.230Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-323",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "工具链收口与真实语料分类器影子审计",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-323",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T17:12:56.488Z",
-        "leaseDeadline": "2026-11-22T17:42:56.487Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-323.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1815,6 +1784,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-043",
+      "recordedAt": "2026-11-22T17:13:00.287Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-323",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-323-toolchain-shadow-audit"
+      ]
+    },
+    {
+      "auditId": "AUD-042",
+      "recordedAt": "2026-11-22T17:12:56.646Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-323",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-323",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-323.json"
+      ]
+    },
+    {
       "auditId": "AUD-041",
       "recordedAt": "2026-11-22T17:12:49.152Z",
       "actorRef": "orchestrator",
@@ -2020,84 +2019,25 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-315.json"
       ]
-    },
-    {
-      "auditId": "AUD-028",
-      "recordedAt": "2026-11-22T15:18:58.058Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-315",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-027",
-      "recordedAt": "2026-11-22T14:24:59.524Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-314",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-314-practice-session-model-display"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 41,
+    "total": 43,
     "byResult": {
-      "allowed": 41,
+      "allowed": 43,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 40,
+      "TOOL-QUEUE-SCHEDULER": 42,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 41
+      "orchestrator": 43
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-323",
-        "title": "工具链收口与真实语料分类器影子审计",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-322"
-        ],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7514,6 +7454,24 @@
             "ref": "docs/worklog/completed/phase2.5/af322-bdi-decision-trace-closure-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-323",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7528,22 +7486,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-323",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md"
-      },
-      {
-        "taskId": "AF-323",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7551,5 +7496,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 312
+  "archivedCount": 313
 }
