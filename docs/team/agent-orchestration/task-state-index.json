@@ -4,120 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1460,
+    "lastEventSeq": 1462,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-330",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T19:15:36.370Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始实现"
-        },
-        {
-          "at": "2026-11-22T19:15:43.417Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "来访者真人度 prompt 分层消融 A/B",
-      "type": "verification",
-      "baselineRef": "3835953bf0cc98f3c17d658b309ad6263db8c25a",
-      "dependsOn": [
-        "AF-329"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T19:15:36.077Z",
-      "deadline": "2026-11-23T19:00:00+08:00",
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "bin/",
-          "test/",
-          "src/shared/realism/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [
-          "visitor-realism"
-        ],
-        "interfaces": [
-          "realism-prompt-ablation"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-330/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/shared/realism/realism-prompt-ablation.spec.ts test/shared/realism/realism-prompt-ab.spec.ts",
-          "check": "定向单测全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量测试全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "输出为空",
-          "threshold": "exit=0"
-        }
-      ],
-      "successCriteria": [
-        "用 AF-329 的生产同款块构造 5 个分支：off、full、quota、event、context；每个分支的块必须是生产块的逐字子集，full 必须等于生产块，off 必须为空。",
-        "两个合成人设（焦虑依恋、回避依恋），每人设 5 分支 × 6 个合成咨询师轮次 × 2 次重复，真实调用豆包 Seed Character。",
-        "输出每人设每分支的轮数、失败数、六类计数、事件/轮、轮次率、密度/百字、修正/轮，以及相对同人设 off 的差值；只输出数字，不输出完整台词。",
-        "报告必须如实写方向与方差；不因为结果不符合预期而调 prompt 或挑选重复。",
-        "不修改生产 prompt、不切 RENDER_REALISM_MODE、不写库、不启服务；只做离线性验证。",
-        "单测覆盖 5 分支构造、逐字子集、人设差异、失败计入与聚合，至少 10 例。",
-        "定向测试、typecheck、lint、全量测试、engine-core 零 diff 全部通过。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-2026-11-23.md",
-          "kind": "report"
-        },
-        {
-          "name": "消融实测报告",
-          "path": "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-report-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-22T19:15:36.369Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2963,6 +2853,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-330",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-330/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-2026-11-23.md",
         "reply": null
       }
     }
