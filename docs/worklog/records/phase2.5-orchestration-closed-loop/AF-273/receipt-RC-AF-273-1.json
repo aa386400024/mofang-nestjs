@@ -1,0 +1,230 @@
+{
+  "deliveredAt": "2026-11-22T12:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-273-1",
+    "taskId": "AF-273",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "fa0c793184f0395d9eda76e775067223a9a0b215",
+    "dependsOn": ["AF-271"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-273/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af273-rollback-failover-guard-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "test/engine-adapters/af273-rollback-failover-guard.spec.ts",
+        "docs/worklog/completed/phase2.5/af273-rollback-failover-guard-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-273/task-sheet.md"
+      ],
+      "modified": [
+        "src/engine-adapters/wiring/render-config.factory.ts",
+        "bin/visitor-render-smoke.ts",
+        "bin/visitor-switch-check.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af273-rollback-failover-guard.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "6/6 passed；覆盖回滚自动补豆包、Seed Character、显式 fallback 优先、零回归、REQUIRE_FAILOVER、正向切流"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af273-rollback-failover-guard.spec.ts test/engine-adapters/af252-visitor-render-provider.spec.ts test/engine-adapters/wp-h-render-availability.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "同上",
+        "wallClock": "1.5 秒",
+        "note": "29/29 passed；AF-252 与 WP-H 候选/熔断行为零回归"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "类型闭合；日志 data/af273-tsc.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af273-lint.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "ok=true；primary=doubao，candidates=doubao,minimax，fallback=minimax；真实 .env 未改；日志 data/af273-check-doubao.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary minimax --simulate-visitor-provider minimax",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "ok=true；primary=minimax，candidates=minimax,doubao，fallback=doubao，doubao 模型 seed-character；日志 data/af273-check-minimax.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 3 --fail-primary --fail-primary-mode rate-limit --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.3 秒",
+        "note": "probe 50ms 429；3/3 providerHint=doubao，model=doubao-seed-character-260628，fallbackUsed=true，degraded=false，finishReason=stop；wall=2271ms；TTFT 735/742/482ms；chars 9/21/26；tokens 2322/43/2365；日志 data/af273-rollback-rate-limit.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 3 --fail-primary --fail-primary-mode server-error --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.3 秒",
+        "note": "probe 54ms 500；3/3 回退豆包，零降级，stop；wall=2258ms；TTFT 706/771/756ms；chars 16/20/19；tokens 2335/41/2376；日志 data/af273-rollback-server-error.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 3 --fail-primary --fail-primary-mode timeout --timeout-ms 5000 --expect-fallback-within-ms 30000 --expect-fallback",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "17.1 秒",
+        "note": "probe 2030ms Request timed out；3/3 回退豆包，零降级，stop；wall=17063ms；TTFT 5679/5666/5552ms；chars 14/19/16；tokens 2328/34/2362；日志 data/af273-rollback-timeout.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 264,
+        "machine": "同上；本机串行执行，未并行跑第二条全量或 watch 任务",
+        "wallClock": "24.69 秒",
+        "note": "264 files passed + 1 skipped；4278 tests passed + 4 skipped；日志 data/af273-full-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-273-rollback-failover-guard 自 integrate fa0c7931 切出。RenderConfigFactory 对显式 VISITOR_LLM_PROVIDER=minimax 自动补 doubao 备候选，且豆包备候选沿用 Visitor Seed Character 模型；显式 ENGINE_RENDER_FALLBACK_PROVIDERS 优先。smoke 支持 doubao/minimax 主候选故障注入，429/500/timeout 均真实回退。smoke 只在进程内覆写 env，未写 .env；未暂存 web/orchestration/data.js 与 data/ 取证日志。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-273"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "未设置 VISITOR_LLM_PROVIDER 的部署仍单候选零回归；AF-252 6 例、WP-H 17 例全绿；全量 4278 例零回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，仅改 engine-adapters 装配与 bin smoke 工具"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 fa0c7931；依赖 AF-271 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-rollback-concurrency-long-context",
+        "impact": "回滚态只验证 3 轮串行故障；并发 + 超时组合、40 轮长上下文、成本分账仍未验证"
+      },
+      {
+        "id": "visitor-rollback-auth-policy",
+        "impact": "MiniMax 401 是否与豆包 401 同策略快速降级，未单独验证"
+      },
+      {
+        "id": "visitor-rollback-fallback-key-guard",
+        "impact": "自动补豆包备候选只保证候选存在，未把 LLM_DOUBAO_API_KEY 缺失升级为装配期硬门；缺 key 时回退候选会运行期失败"
+      },
+      {
+        "id": "minimax-official-pricing",
+        "impact": "MiniMax M3 官方单价仍未核对，回滚态成本仍走全局回落价"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "回滚态自动补豆包备候选",
+        "reality": "只在显式 VISITOR_LLM_PROVIDER=minimax 且无显式 fallback 时补；未设置总开关的 MiniMax 部署保持单候选",
+        "action": "用 visitorProviderOverride 返回 minimax 区分显式回滚与未配置",
+        "why": "避免全局候选链漂移；回滚保底只对明确选择 visitor 主候选的部署生效"
+      },
+      {
+        "taskSays": "回滚态真实故障回退 smoke",
+        "reality": "故障服务与回退均在进程内，未改 .env、未重启服务",
+        "action": "用 --simulate-visitor-provider 模拟回滚，再用 switch-check 恢复自检证明无残留",
+        "why": "睡眠时段避免生产配置残留；部署级演练留到变更窗口"
+      },
+      {
+        "taskSays": "回滚态豆包备候选",
+        "reality": "豆包在 visitor 链路无论主备都应使用 Seed Character，原 modelFor 只在 visitor=doubao 时生效",
+        "action": "对显式 visitor 总开关下的所有豆包候选统一走 VISITOR_DOUBAO_MODEL / seed-character",
+        "why": "避免故障切备后角色模型口径突变，保证来访者表现可比"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "回滚态候选链已从单候选变为 minimax+doubao，豆包备候选使用 Seed Character；429/500/timeout 三条真实 smoke 共 9 轮全部回退豆包、零降级、stop；当前 .env 仍 doubao，模拟回滚与恢复自检均通过；定向 6/6、关联 29/29、全量 4278 例、tsc/lint 全绿，engine-core 零改动。并发长上下文、401 策略、缺 key 硬门与 MiniMax 官方价已显式登记 backlog。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
