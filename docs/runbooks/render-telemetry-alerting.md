@@ -163,6 +163,20 @@ max by (candidate) (clamp_min(visitor_render_candidate_cooldown_until_seconds - 
 sum(increase(visitor_render_cancelled_total[10m]))
 ```
 
+### 5.1 故障矩阵真实回放（AF-299）
+
+下表每条命令都在本机起临时故障上游，不消耗真实模型额度；`--dump-render-metrics` 打出的是**本轮进程内**计数增量，不是线上累计值。判读时先认 `rounds` 结局，再对 `failure`/`degraded` 的 cause，最后看候选级计数器。
+
+| 故障形态 | 命令（在 `--provider doubao --caller router --turns 1` 基础上追加） | 关键期望指标 | 已知口径差异 |
+| --- | --- | --- | --- |
+| 双候选 5xx | `--fail-primary --fail-backup --fail-primary-mode server-error --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `attempts{retry}=1`、两候选 `failure{server}=1`、`fallback{from=doubao,to=minimax,cause=server}=1`、`cooldown_served_total=0` | 无 |
+| 双候选首包超时 | `--fail-primary --fail-backup --fail-primary-mode timeout --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `stream_timeout{phase=first-delta}=1`、两候选 `failure{first-delta}=1`、`fallback{cause=first-delta}=1`、wall ≈ 16s（8s×2 候选） | cause 记成 `first-delta` 而非 `timeout`：流式路径先触发首包预算；`failure{timeout}` 在这条路径上不会出现 |
+| 双候选 401 | `--fail-primary --fail-backup --fail-primary-mode auth --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `auth_failure_total=1`、两候选 `failure{auth}=1`、`fallback{cause=auth}=1` | 无 |
+| 双候选连接失败 | `--fail-primary --fail-backup --fail-primary-mode network --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `failure{other}=1`、`fallback{cause=other}=1`、`auth_failure`/`stream_timeout` 空 | `RenderFailureCause` 暂无 `network` 枚举，连接错误落到 `other`；判读时结合 probe 的 `Connection error`，不能把 `other` 一律当未知崩溃（backlog `visitor-render-network-cause-classify`） |
+| 单候选首包后停摆 | `--fail-primary --fail-primary-mode midstream-stall --expect-degraded` | `rounds{degrade}=1`、`degraded{idle}=1`、`stream_timeout{phase=idle}=1`、`failure{idle}=1`、`attempts{degrade}=1`、`fallback_total` 空、wall ≈ 30s（idle 预算） | 已有首包（TTFT ≈ 53ms，`first_delta_seconds_count=1`）；不走候选切换，直接收尾降级 |
+
+回放记录归档在 `data/af299-{server-error,timeout,auth,network,midstream}.log`；`eval` 只看 `ok=true` 不够，必须核对上表至少两条相互独立的指标（例如 `rounds` 结局 + `failure` cause），避免单一指标误判。
+
 ---
 
 ## 6. 看板
