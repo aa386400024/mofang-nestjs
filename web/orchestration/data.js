@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T09:28:05.533Z",
+  "generatedAt": "2026-11-22T09:40:54.240Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,46 +49,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-294",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "smoke 双候选故障注入与 exhausted 真实取证",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-294/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af294-smoke-fail-backup-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-294",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T09:28:05.465Z",
-        "leaseDeadline": "2026-11-22T09:58:05.462Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-294.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T09:28:05.465Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-294.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1866,6 +1826,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-509",
+      "recordedAt": "2026-11-22T09:28:16.082Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-294",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-294-smoke-fail-backup"
+      ]
+    },
+    {
+      "auditId": "AUD-508",
+      "recordedAt": "2026-11-22T09:28:05.647Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-294",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-294",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-294.json"
+      ]
+    },
+    {
       "auditId": "AUD-507",
       "recordedAt": "2026-11-22T09:27:39.727Z",
       "actorRef": "orchestrator",
@@ -2071,52 +2061,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-288.json"
       ]
-    },
-    {
-      "auditId": "AUD-494",
-      "recordedAt": "2026-11-22T08:08:20.142Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-288",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-493",
-      "recordedAt": "2026-11-22T07:53:33.425Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-287",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-287-candidate-cooldown"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 507,
+    "total": 509,
     "byResult": {
-      "allowed": 507,
+      "allowed": 509,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 506,
+      "TOOL-QUEUE-SCHEDULER": 508,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 507
+      "orchestrator": 509
     }
   },
   "protocolView": {
@@ -2145,30 +2103,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-294",
-        "title": "smoke 双候选故障注入与 exhausted 真实取证",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-294/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af294-smoke-fail-backup-2026-11-22.md"
           }
         ]
       }
@@ -7229,6 +7163,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-294",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-294/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af294-smoke-fail-backup-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7253,16 +7205,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-294",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-294/task-sheet.md"
-      },
-      {
-        "taskId": "AF-294",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af294-smoke-fail-backup-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7276,5 +7218,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 292
+  "archivedCount": 293
 };

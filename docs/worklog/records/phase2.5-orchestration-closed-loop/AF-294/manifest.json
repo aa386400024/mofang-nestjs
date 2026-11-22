@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-294",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T17:30:00+08:00",
-  "updatedAt": "2026-11-22T09:27:33.080Z",
+  "updatedAt": "2026-11-22T09:40:54.155Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-294/task-sheet.md",
     "sha256": "45fc147bd254730538adf39f54ab689e0827b81b94d342290f4a4b439a0a021d",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-294/receipt-RC-AF-294-1.json",
+      "sha256": "066d77c7fd5fa1e7e6da74a27dc0e84e61465331acb35e4f0451b1bc36ad877b",
+      "receiptId": "RC-AF-294-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af294-smoke-fail-backup-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af294-smoke-fail-backup-task-2026-11-22.md"
