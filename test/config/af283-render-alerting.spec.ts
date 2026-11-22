@@ -101,6 +101,33 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(authBlock).toContain('$labels.candidate');
   });
 
+  it('突发 Spike 告警都带 1m 持续条件, 鉴权告警不误加', () => {
+    const text = readFileSync(ALERTS, 'utf8');
+    const spikes = [
+      ['VisitorRenderStreamTimeoutSpike', 'VisitorRenderFailureCauseSpike', 'visitor_render_stream_timeout_total', 'by (phase)'],
+      ['VisitorRenderFailureCauseSpike', 'VisitorRenderCooldownServedSpike', 'visitor_render_failure_total', 'by (cause)'],
+      ['VisitorRenderCooldownServedSpike', 'VisitorRenderCandidateCooldownSpike', 'visitor_render_cooldown_served_total', null],
+      [
+        'VisitorRenderCandidateCooldownSpike',
+        'AuditLogProcessingFailure',
+        'visitor_render_candidate_cooldown_seconds_count',
+        'by (candidate, cause)',
+      ],
+    ] as const;
+
+    for (const [name, next, metric, grouping] of spikes) {
+      const block = text.slice(text.indexOf(name), text.indexOf(next));
+      expect(block).toContain(`sum(increase(${metric}[10m]))`);
+      expect(block).toContain('and');
+      expect(block).toContain(`sum(increase(${metric}[1m]))`);
+      if (grouping) expect(block).toContain(grouping);
+    }
+
+    const authBlock = text.slice(text.indexOf('VisitorRenderAuthFailure'), text.indexOf('VisitorRenderFirstDeltaSlow'));
+    expect(authBlock).not.toContain('[1m]');
+    expect(authBlock).toContain('sum(increase(visitor_render_auth_failure_total[5m])) by (candidate)');
+  });
+
   it('告警 annotation 里的每个 $labels.X 都出现在 expr 的 by(...) 中', () => {
     const text = readFileSync(ALERTS, 'utf8');
     const blocks: { name: string; lines: string[] }[] = [];

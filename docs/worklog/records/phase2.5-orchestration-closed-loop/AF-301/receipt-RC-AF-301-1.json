@@ -1,0 +1,173 @@
+{
+  "deliveredAt": "2026-11-22T19:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-301-1",
+    "taskId": "AF-301",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "2a00b9ddd4d60021715630c491c281ce3832a61d",
+    "dependsOn": [],
+    "priorTasks": ["AF-292", "AF-298", "AF-300"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af301-target4.log",
+        "data/af301-guard-negative.log",
+        "data/af301-yaml-parse.log",
+        "data/af301-typecheck.log",
+        "data/af301-lint-full.log",
+        "data/af301-test-full.log",
+        "data/af301-preflight.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md"
+      ],
+      "modified": [
+        "docker/prometheus/alerts.yml",
+        "test/config/af283-render-alerting.spec.ts",
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["9445de40", "9cee73e8"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/af283-render-alerting.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "271ms",
+        "note": "10 passed；四条 Spike 含 1m 条件、Auth 不含；日志 data/af301-target4.log"
+      },
+      {
+        "command": "同一测试 + 临时删 FailureCauseSpike 1m 两行",
+        "exitCode": 1,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "319ms",
+        "note": "1 failed / 9 passed，精确报缺 and；日志 data/af301-guard-negative.log"
+      },
+      {
+        "command": "node yaml.parse docker/prometheus/alerts.yml",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "15 条规则可解析；含 1m 条件恰为 4 条 Spike；日志 data/af301-yaml-parse.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "日志 data/af301-typecheck.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "首轮 vitest/valid-expect 拒第二参数、Prettier 换行；去参数并 eslint --fix 后通过；日志 data/af301-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "24.21s",
+        "note": "279 passed / 1 skipped files，4365 passed / 4 skipped；日志 data/af301-test-full.log"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "PASS task=AF-301 status=submitted files=4 covered=3；日志 data/af301-preflight.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "四条 Spike 用 10m 强度 + 1m 持续同维度 and；反向删除 FailureCauseSpike 的 1m 行后静态守卫精确失败，恢复后 10/10。YAML 用仓库已装 yaml 解析，含 1m 条件的规则数恰为 4。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-301 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "lifecycle-window", "result": "pass", "note": "四条 Spike 同维度 1m 持续条件，Auth 不误加"},
+      {"item": "no-threshold-change", "result": "pass", "note": "阈值与 for 未改"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=2a00b9dd 为 AF-300 合并后的 integrate HEAD"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-alert-onset-latency",
+        "impact": "Spike 告警开始阶段仍受 for:5m 约束，突发故障 5 分钟内不 firing",
+        "suggestion": "评估短窗 + 抑制规则，不简单降 for，避免抖动"
+      },
+      {
+        "id": "visitor-render-low-traffic-spike",
+        "impact": "每分钟不足一轮时 1m 条件可能为 0，Spike 漏报",
+        "suggestion": "按灰度实际流量决定是否补无流量提示，或改为原始计数看板"
+      },
+      {
+        "id": "visitor-render-timeout-cause-naming",
+        "impact": "流式首包超时记 first-delta，按 timeout 报警会漏判",
+        "suggestion": "补路径对照或统一命名，另单执行"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "四条 Spike 全部加 1m 条件",
+        "reality": "FirstDeltaSlow 是直方图分位，不是次数 Spike，未加；实际改的是 StreamTimeout/FailureCause/CooldownServed/CandidateCooldown",
+        "action": "只给按次数判定的四条加，FirstDeltaSlow 保持分位语义",
+        "why": "给分位加 1m 增量条件会变成“最小值/计数”混合语义，无法表达 P95 是否仍高"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "四条 Spike 均有 10m 强度 + 1m 持续的同维度条件，故障停止后不再被旧窗口拖着 firing；Auth 保持单次即报；反向验证能拦住缺失条件；YAML 可解析；typecheck/lint/全量测试全绿；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

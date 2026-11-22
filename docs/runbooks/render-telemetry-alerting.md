@@ -43,13 +43,17 @@
 | `VisitorRenderDegradedRateHigh` | 10m provider 降级率 >3%（分母排除 cancelled/guard） | warning | 看 `degraded_total` 的 cause 与 `failure_total` cause 分布；区分上游故障 vs guard |
 | `VisitorRenderRoundInvariantMismatch` | 10m `degraded_total` 增量 > 对应 `rounds` 增量 | warning | 先查重复/漏记轮次（AF-297 的 sink、degrade 路径），不要先调阈值；对照看板 id 18 outcome 分布 |
 | `VisitorRenderFirstDeltaSlow` | 10m 首包 P95 >2s | warning | 查上游冷启动、模型档位、网络；对比 AF-277 回滚态基线 |
-| `VisitorRenderStreamTimeoutSpike` | 10m 超时 >5（按 phase） | warning | `first-delta` 看建流/冷启动；`idle` 看上游断流与网关空闲超时 |
+| `VisitorRenderStreamTimeoutSpike` | 10m 超时 >5（按 phase），且最近 1m 同 phase 仍有超时 | warning | `first-delta` 看建流/冷启动；`idle` 看上游断流与网关空闲超时 |
 | `VisitorRenderFallbackRateHigh` | 10m 回退率 >10% | warning | 看 `fallback{cause}` 与主候选 `failure`；主候选是否持续限流/5xx |
-| `VisitorRenderFailureCauseSpike` | 10m 单 cause >10 | warning | 按 cause 走 §3 处置表 |
-| `VisitorRenderCooldownServedSpike` | 10m 全损 >3 轮 | warning | 看 `health()` 快照与冷却时长；确认是持续故障还是退避后自愈，再决定人工回滚 |
-| `VisitorRenderCandidateCooldownSpike` | 10m 单候选单 cause 进冷却 >5 次 | warning | 看候选熔断次数与 P95 时长；区分“同一候选反复进退冷却”与“多候选轮换故障” |
+| `VisitorRenderFailureCauseSpike` | 10m 单 cause >10，且最近 1m 同 cause 仍有失败 | warning | 按 cause 走 §3 处置表 |
+| `VisitorRenderCooldownServedSpike` | 10m 全损 >3 轮，且最近 1m 仍有全损 | warning | 看 `health()` 快照与冷却时长；确认是持续故障还是退避后自愈，再决定人工回滚 |
+| `VisitorRenderCandidateCooldownSpike` | 10m 单候选单 cause 进冷却 >5 次，且最近 1m 同 candidate+cause 仍进冷却 | warning | 看候选熔断次数与 P95 时长；区分“同一候选反复进退冷却”与“多候选轮换故障” |
 
 阈值是**灰度初版**，不是 SLA：AF-268/AF-277/AF-278 实测 TTFT 0.5–1.3s、回滚态 0.6–5.0s，生产样本足够后按 P95/P99 重新校准。改阈值只改 `docker/prometheus/alerts.yml`，同步更新本节。
+
+**生命周期分窗（AF-301）**：四条 Spike 规则用“10m 判强度 + 1m 判是否仍在发生”的 `and` 组合。故障停止后，最近 1m 没有新事件，表达式转为 false，告警不再被 10m 旧样本拖着继续 firing；`for: 5m` 仍会让它在**开始**阶段滞后 5 分钟，这是有意的防抖。`VisitorRenderAuthFailure` 不加快期条件：任一次 401 都说明配置坏了，低流量时也不能自动消警。
+
+取舍：极低流量（每分钟不足一轮）时，1m 条件可能读到 0，Spike 告警不触发；这类场景先看 `failure_total` 原始计数，不依赖 Spike 频率告警。
 
 > 部署现状：`prometheus.yml` 已加载 `alerts.yml`，Prometheus UI 的 Alerts 页可见；**通知外发需要 Alertmanager**，当前 compose 未启用（见 `prometheus.yml` 注释）。没有 Alertmanager 时，“可告警”= 规则会 firing + Grafana 可查，不等于会发钉钉/短信。
 
@@ -205,6 +209,7 @@ sum(increase(visitor_render_cancelled_total[10m]))
 - `degraded{exhausted}` 与 `cooldown_served_total` 时间窗不完全对齐：前者是轮次终局，后者在 `next()` 时自增；同一轮两者都应出现，短暂错位属正常。
 - `fallback_total` 统计的是**主备切换尝试**，不是“回退成功”。两候选同时 429 时仍会先发生一次 doubao→minimax 切换，随后 minimax 也失败，轮次终局是 `rounds{exhausted}`、`degraded{exhausted}` 各 1；因此回退率 100% 不代表用户拿到了可用回复，必须与 `rounds` 结局一起读。
 - 比率类告警全部是 `increase(...[10m])` + `for: 5–10m`，存在 5–10 分钟**结构性滞后**：故障发生后最快也要等窗口累积，再过 `for` 时长才 firing。它不是秒级探针，不能用“刚出问题但告警没响”反推系统正常；看板 30s 刷新也不等于告警实时。突发故障先看 `failure_total` 与 `rounds` 的即时增量，告警用于确认持续性。
+- 四条 Spike 类告警（stream timeout / failure cause / cooldown served / candidate cooldown）已加最近 1m 持续条件：故障停止后最多 1 分钟就会转 false，不再被 10m 旧样本拖着继续 firing；但开始时仍受 `for: 5m` 约束。`VisitorRenderAuthFailure` 故意不加快期条件，避免低流量时自动消警掩盖坏 key。
 - `cancelled` 只进“取消占比”的分母，不参与 provider 降级率/回退率的分母：取消既不进降级/回退分子，也不进它们的分母。AF-298 之前 barge-in 会稀释降级率（25% 取消时 4% 真实降级显示为 3.0%），现在不会；如果看到降级率与体验失败率不一致，先看 guard 占比（体验失败率含 guard）。
 - `rounds{exhausted}` 已可用真实 smoke 复现：`--fail-primary --fail-backup --fail-primary-mode rate-limit --expect-exhausted --turns 1 --dump-render-metrics`，两候选同时指向本机临时 429 上游，不消耗真实额度。
 - `visitor_render_first_delta_seconds` 量 raw chunk，TTFT 量首个可见闭合句；纯推理流可能零信号（backlog `visitor-first-delta-vs-ttft-semantics`）。

@@ -187,8 +187,11 @@ groups:
           description: "首包 P95 {{ $value }}s (>2s, 10 分钟); 检查上游延迟、模型档位与网络"
 
       - alert: VisitorRenderStreamTimeoutSpike
+        # 10m 判强度, 1m 判是否仍在发生: 只靠 10m 窗口, 故障停止后还会被旧样本拖着 firing.
         expr: |
           sum(increase(visitor_render_stream_timeout_total[10m])) by (phase) > 5
+            and
+          sum(increase(visitor_render_stream_timeout_total[1m])) by (phase) > 0
         for: 5m
         labels:
           severity: warning
@@ -217,9 +220,12 @@ groups:
           description: "10 分钟回退率 {{ $value | humanizePercentage }} (>10%); 查看 failure_total 的 cause 分布"
 
       - alert: VisitorRenderFailureCauseSpike
-        # 按 cause 分面: rate-limit / server / timeout / auth / guard 才能分开判读.
+        # 按 cause 分面: rate-limit / server / network / timeout / auth / guard 才能分开判读.
+        # 加 1m 持续条件: 某 cause 刚停 1m 后不再 firing, 避免把已结束故障当成仍在发生.
         expr: |
           sum(increase(visitor_render_failure_total[10m])) by (cause) > 10
+            and
+          sum(increase(visitor_render_failure_total[1m])) by (cause) > 0
         for: 5m
         labels:
           severity: warning
@@ -230,8 +236,11 @@ groups:
 
       - alert: VisitorRenderCooldownServedSpike
         # 全损是"整轮无候选可用", 与候选试完败分开计数; 有备候选或半开探测可用时不记.
+        # 1m 条件: 全损停止后不再因为 10m 窗口里还有旧样本继续 firing.
         expr: |
           sum(increase(visitor_render_cooldown_served_total[10m])) > 3
+            and
+          sum(increase(visitor_render_cooldown_served_total[1m])) > 0
         for: 5m
         labels:
           severity: warning
@@ -242,8 +251,11 @@ groups:
 
       - alert: VisitorRenderCandidateCooldownSpike
         # 候选级归因: 哪个候选被熔、因为什么; 频率异常时先看单候选是否在反复进退冷却.
+        # 1m 条件: 该 candidate+cause 最近一分钟不再进冷却, 就不再算"正在激增".
         expr: |
           sum(increase(visitor_render_candidate_cooldown_seconds_count[10m])) by (candidate, cause) > 5
+            and
+          sum(increase(visitor_render_candidate_cooldown_seconds_count[1m])) by (candidate, cause) > 0
         for: 5m
         labels:
           severity: warning
