@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T09:07:23.425Z",
+  "generatedAt": "2026-11-22T09:21:30.717Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,46 +49,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-292",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "渲染轮次分母与鉴权告警标签修正",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-292",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T09:07:23.352Z",
-        "leaseDeadline": "2026-11-22T09:37:23.349Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-292.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T09:07:23.352Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-292.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1866,6 +1826,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-506",
+      "recordedAt": "2026-11-22T09:07:33.474Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-292",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-292-render-round-denominator"
+      ]
+    },
+    {
+      "auditId": "AUD-505",
+      "recordedAt": "2026-11-22T09:07:23.531Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-292",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-292",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-292.json"
+      ]
+    },
+    {
       "auditId": "AUD-504",
       "recordedAt": "2026-11-22T09:07:04.097Z",
       "actorRef": "orchestrator",
@@ -2071,52 +2061,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-287.json"
       ]
-    },
-    {
-      "auditId": "AUD-491",
-      "recordedAt": "2026-11-22T07:53:07.376Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-287",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-490",
-      "recordedAt": "2026-11-22T07:30:04.387Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-286",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-286",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-286.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 504,
+    "total": 506,
     "byResult": {
-      "allowed": 504,
+      "allowed": 506,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 503,
+      "TOOL-QUEUE-SCHEDULER": 505,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 504
+      "orchestrator": 506
     }
   },
   "protocolView": {
@@ -2145,30 +2103,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-292",
-        "title": "渲染轮次分母与鉴权告警标签修正",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md"
           }
         ]
       }
@@ -7211,6 +7145,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af291-af289-acceptance-scope-fix-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-292",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7235,16 +7187,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-292",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md"
-      },
-      {
-        "taskId": "AF-292",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7258,5 +7200,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 291
+  "archivedCount": 292
 };
