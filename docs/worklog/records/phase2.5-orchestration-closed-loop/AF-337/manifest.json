@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-337",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-23T05:10:00+08:00",
-  "updatedAt": "2026-11-22T21:03:45.981Z",
+  "updatedAt": "2026-11-22T21:14:57.528Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-337/task-sheet.md",
     "sha256": "58ea1ee365f9ae5ab42175c2231408728d7e22feee7552878da9641051b29ca1",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-337/receipt-RC-AF-337-1.json",
+      "sha256": "5891d033c1eeba2d288bd99c98a777dedcc9aee5ae9958ea89304b711a2dd655",
+      "receiptId": "RC-AF-337-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af337-realism-paired-arm-extension-2026-11-23.md",
   "legacyPaths": [
     "docs/worklog/inbox/af337-realism-paired-arm-extension.md"
