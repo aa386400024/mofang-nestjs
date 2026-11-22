@@ -129,7 +129,7 @@ export interface ModelClassifierContextPort {
 export const SHARED_RULE_TRACK = new RuleBasedClassifier();
 
 /** prompt 版本 (写进观测, 供口径核对 —— 风险 J). */
-export const MODEL_CLASSIFIER_PROMPT_VERSION = 'model-event-classifier-v1';
+export const MODEL_CLASSIFIER_PROMPT_VERSION = 'model-event-classifier-v2';
 
 /**
  * 低置信阈值 (低于它 → 回落规则轨 + 记 low_confidence).
@@ -221,27 +221,33 @@ export function computeModelClassifierAgreement(ruleKinds: readonly string[], mo
  */
 const MODEL_CLASSIFIER_SYSTEM_PROMPT = [
   '你是心理咨询培训里的「咨询师行为判定器」.',
-  '给你咨询师本轮发言 (以及可选的上一轮来访话语), 判断这一轮咨询师的行为标签.',
+  '只判定【本轮咨询师发言】本身做了什么; 来访者话语只是上下文, 不要因为来访者痛苦就替咨询师加标签.',
   '',
   '可选标签 (只能从下面这份清单里选, 不要自造):',
-  '- empathy: 共情 / 反映来访者的感受;',
-  '- acceptance: 接纳 / 允许来访者有这样的感受;',
-  '- normalization: 正常化 / 把困扰放进普遍经验;',
-  '- open_probe: 开放式提问;',
-  '- affirmation: 肯定来访者已有的资源与努力;',
+  '- empathy: 咨询师明确说出或反映来访者当下的情绪 / 感受词 (如难受、害怕、委屈、生气、焦虑、孤独、累、压力); 分析因果、给建议或做心理教育时顺带提到情绪词不算;',
+  '- acceptance: 明确接纳 / 允许来访者有这样的感受 (如「可以有这种感受」「这很正常」);',
+  '- normalization: 明确把困扰放进普遍经验 (如「很多人都会这样」);',
+  '- open_probe: 明确邀请来访者展开新内容、新细节或新角度的开放式问句或邀请; 常见成立形式: 能多说一点吗 / 当时发生了什么 / 你怎么看 / 你觉得呢 / 愿意多讲讲吗;',
+  '- affirmation: 明确肯定来访者已有的资源与努力 (如「你一直在坚持」「你已经做了很多」);',
   '- judgment: 评判 / 给来访者的处境或想法打分;',
   '- preaching: 说教 / 讲道理;',
   '- minimizing: 淡化 / 轻描淡写;',
   '- boundary_cross: 越界 (承诺治愈 / 双重关系 / 替来访者做决定);',
-  '- sensitive_touch: 触碰来访者当下的敏感议题;',
+  '- sensitive_touch: 咨询师发言明确触碰到来访者当下的敏感议题;',
   '- neutral: 本轮没有命中任何行为标签;',
-  '- holding_present: 咨询师在场但没有推进干预 —— 温和稳定地陪着, 不评判也不机械 (在场状态事件);',
-  '- cold_absent: 咨询师实质缺席 —— 心不在焉 / 敷衍 / 模板化 / 只顾自己 (在场状态事件).',
+  '- holding_present: 咨询师以简短、稳定的陪伴维持在场, 且没有推进任何干预;',
+  '- cold_absent: 咨询师实质缺席 —— 心不在焉 / 敷衍 / 模板化 / 只顾自己.',
   '',
   '判定口径:',
-  '- 一轮可以给多个标签, 但只给确实成立的, 不要为了凑数多选;',
-  '- 没有命中任何行为标签时给 neutral;',
-  '- holding_present 与 cold_absent 描述的是咨询师的在场状态, 可以与 neutral 同时出现, 也可以单独出现.',
+  '1. 先判断本轮有没有具体行为标签 (empathy 到 sensitive_touch); 有就只输出这些标签, 不再输出 neutral / holding_present / cold_absent.',
+  '2. 没有任何具体行为标签时, 默认给 neutral. 只有整轮明显是「简短稳定的陪伴」才给 holding_present, 只有明显心不在焉或模板化才给 cold_absent; 三者互斥.',
+  '3. 默认只给一个具体行为标签; 只有两个行为分别由两个独立分句明确表达时才给第二个, 最多 2 个. 不要因为语气温和就推断 acceptance / normalization / affirmation / empathy.',
+  '4. open_probe 只认明确邀请来访者展开新内容的问句或邀请. 封闭式提问 (是不是 / 对不对 / 有没有 / 多久 / 几个)、澄清、复核事实、心理教育后的提问都不算; 能用一个短事实回答的问句也不算.',
+  '   行动许可 / 练习确认 / 二选一 / 问「愿不愿意试一次」/ 问「哪一句想改」都不算 open_probe.',
+  '5. 如果一整轮主要是分析、给建议、布置练习或做心理教育, 即使句末带问号, 也先判这一轮的主功能; 附带的问题通常不是 open_probe.',
+  '6. sensitive_touch 只在【来访者的敏感议题词表】明确列出并被本轮咨询师发言实际触及时输出; 词表为空或没有明确触及时, 一律不输出.',
+  '7. 如果本轮主要是在复述事实、确认信息、回应「嗯 / 好 / 继续」、给建议或做心理教育, 且没有明确命中具体行为标签, 给 neutral.',
+  '8. 不确定时选 neutral, 不要猜一个「看起来更像」的标签; 过度标注比漏标危害更大.',
 ].join('\n');
 
 /** 输出契约 (拼到 system prompt 尾部). */
@@ -277,7 +283,9 @@ function buildModelClassifierUserPrompt(input: {
     ...(input.previousVisitorText ? ['【上一轮来访话语】\n' + input.previousVisitorText] : []),
     '【连续未命中任何行为标签的轮数】' + String(input.neutralStreak),
     '【连续判为 cold_absent 的轮数】' + String(input.coldStreak),
-    ...(input.sensitiveTopics.length > 0 ? ['【来访者的敏感议题词表】\n' + input.sensitiveTopics.join('、')] : []),
+    ...(input.sensitiveTopics.length > 0
+      ? ['【来访者的敏感议题词表】\n' + input.sensitiveTopics.join('、')]
+      : ['【来访者的敏感议题词表】\n（空：本轮未提供，禁止输出 sensitive_touch）']),
     '【轮次】' + String(input.turnIndex),
   ];
   return blocks.join('\n\n');

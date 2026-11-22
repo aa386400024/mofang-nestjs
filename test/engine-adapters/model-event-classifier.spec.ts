@@ -39,6 +39,7 @@ import {
   type ModelClassifierObserver,
 } from '../../src/engine-adapters/cognition/model-classifier-observation.js';
 import {
+  MODEL_CLASSIFIER_PROMPT_VERSION,
   ModelEventClassifier,
   computeModelClassifierAgreement,
   normalizeModelClassifierFallbackCode,
@@ -797,7 +798,7 @@ describe('模型轨 · 观测表 (字段白名单 · 隐私红线)', () => {
       fallbackReason: null,
       latencyBucket: 'lt_500ms',
       modelId: 'MiniMax-M3',
-      promptVersion: 'model-event-classifier-v1',
+      promptVersion: MODEL_CLASSIFIER_PROMPT_VERSION,
       strength: 1,
       degraded: false,
     };
@@ -813,6 +814,43 @@ describe('模型轨 · 观测表 (字段白名单 · 隐私红线)', () => {
     expect(expire).toHaveBeenCalledWith(`${base}:degraded`, 3600);
     expect(set).toHaveBeenCalledWith(`${base}:model`, 'MiniMax-M3', 3600);
     expect(incr).toHaveBeenCalledTimes(3);
+  });
+
+  it('prompt v2 收紧 open_probe / sensitive_touch / 在场状态的判定口径', async () => {
+    const { classifier, llm } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['neutral'], confidence: 0.9 })]),
+    });
+
+    await classifier.classifyAsync(NEUTRAL_TEXT, { sessionId: 's1' });
+
+    const systemPrompt = llm.calls[0]?.systemPrompt ?? '';
+    expect(MODEL_CLASSIFIER_PROMPT_VERSION).toBe('model-event-classifier-v2');
+    expect(systemPrompt).toContain('只判定【本轮咨询师发言】本身做了什么');
+    expect(systemPrompt).toContain('封闭式提问');
+    expect(systemPrompt).toContain('澄清、复核事实、心理教育后的提问都不算');
+    expect(systemPrompt).toContain('词表为空或没有明确触及时, 一律不输出');
+    expect(systemPrompt).toContain('neutral / holding_present / cold_absent');
+    expect(systemPrompt).toContain('三者互斥');
+    expect(systemPrompt).toContain('最多 2 个');
+    expect(systemPrompt).not.toContain('可以与 neutral 同时出现');
+
+    const userPrompt = llm.calls[0]?.userPrompt ?? '';
+    expect(userPrompt).toContain('（空：本轮未提供，禁止输出 sensitive_touch）');
+  });
+
+  it('敏感议题词表非空 → user prompt 同时给出词表并保留禁止误判约束', async () => {
+    const { classifier, llm } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['neutral'], confidence: 0.9 })]),
+    });
+
+    await classifier.classifyAsync(NEUTRAL_TEXT, {
+      sessionId: 's1',
+      sensitiveTopics: ['自伤', '自杀'],
+    });
+
+    const userPrompt = llm.calls[0]?.userPrompt ?? '';
+    expect(userPrompt).toContain('【来访者的敏感议题词表】\n自伤、自杀');
+    expect(userPrompt).not.toContain('禁止输出 sensitive_touch');
   });
 });
 
