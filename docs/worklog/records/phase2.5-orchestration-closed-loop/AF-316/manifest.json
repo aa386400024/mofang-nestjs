@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-316",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T23:50:00+08:00",
-  "updatedAt": "2026-11-22T15:50:43.165Z",
+  "updatedAt": "2026-11-22T15:56:12.613Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md",
     "sha256": "d4e57be3a5ee7cd84d89f071b38dfd156759aaac78a5dfc636ecc04efa7e6a97",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/receipt-RC-AF-316-1.json",
+      "sha256": "5561a5c5c61fd450c7c59cf17adae424c248479199f8c691598a1b9d410c6cd2",
+      "receiptId": "RC-AF-316-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-af316-bdi-decision-sensitivity-rework-2026-11-22.md"

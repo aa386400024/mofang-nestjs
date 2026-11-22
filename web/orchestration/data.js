@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T15:51:18.178Z",
+  "generatedAt": "2026-11-22T15:56:12.681Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-316",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "BDI 决策敏感性与临床校准修复（AF-315 返修闭环）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-316",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T15:51:18.109Z",
-        "leaseDeadline": "2026-11-22T16:21:18.107Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-316.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T15:51:18.109Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-316.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1826,6 +1785,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-032",
+      "recordedAt": "2026-11-22T15:51:18.250Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-316",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-316",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-316.json"
+      ]
+    },
+    {
       "auditId": "AUD-031",
       "recordedAt": "2026-11-22T15:50:47.403Z",
       "actorRef": "orchestrator",
@@ -2047,65 +2021,25 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/task-state-index.json",
         "docs/team/agent-orchestration/orchestration-state.json"
       ]
-    },
-    {
-      "auditId": "AUD-017",
-      "recordedAt": "2026-11-22T10:59:39.813Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-310",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-310",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-310.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 31,
+    "total": 32,
     "byResult": {
-      "allowed": 31,
+      "allowed": 32,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 30,
+      "TOOL-QUEUE-SCHEDULER": 31,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 31
+      "orchestrator": 32
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-316",
-        "title": "BDI 决策敏感性与临床校准修复（AF-315 返修闭环）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7432,6 +7366,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af315-bdi-decision-sensitivity-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-316",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7446,22 +7398,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-316",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-316/task-sheet.md"
-      },
-      {
-        "taskId": "AF-316",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7469,5 +7408,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 307
+  "archivedCount": 308
 };
