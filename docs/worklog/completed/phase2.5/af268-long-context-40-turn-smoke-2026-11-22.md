@@ -120,6 +120,15 @@ doubao × 40
 - 未验证超长会话（>100 轮）下摘要压缩是否会造成关键信息丢失；当前 40 轮只覆盖一次摘要注入。
 - 未覆盖限流 / 5xx / 超时三类上游故障的候选切换；401 鉴权失败仍走快速降级（AF-264 已登记 `visitor-auth-failure-fallback-policy`）。
 
+## 回执字段速览
+
+- `gateResults`：tsc exit 0、lint 0/0、40 轮 smoke exit 0、全量 4269 passed + 4 skipped、engine-core diff 为空。
+- `scopeCheck`：in-scope，只改 `bin/visitor-render-smoke.ts` 与 AF-268 记录/交付文档。
+- `contractChecks`：taskId 单任务号、状态写入全经 CLI、回执六组字段闭合、AF-263/264/265 兼容、未触碰 engine-core。
+- `backlogItems`：`visitor-long-session-summary-loss`、`visitor-upstream-fault-fallback`。
+- `deviationTable`：`promptChars` 只量 system prompt，以 `promptTokensSeries` 补窗口证据；门面无 `degraded`，改用 `providerHint === 'degraded'`。
+- `reviewVerdict`：passed。
+
 ## commit message
 
 `feat(af268): 长上下文 40 轮门面 smoke 与摘要注入取证`
