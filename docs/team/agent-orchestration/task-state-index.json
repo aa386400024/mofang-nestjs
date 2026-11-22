@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1209,
+    "lastEventSeq": 1213,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,134 +264,6 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
-    },
-    {
-      "taskId": "AF-269",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T03:00:29.969Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "补三类上游故障回退证据"
-        },
-        {
-          "at": "2026-11-22T03:00:54.977Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        },
-        {
-          "at": "2026-11-22T03:26:35.525Z",
-          "from": "submitted",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）"
-        },
-        {
-          "at": "2026-11-22T03:26:35.553Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "租约超时后回执到达：恢复领取并验收，不重新派发"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "来访者渲染限流/5xx/超时三类故障的真实候选回退 smoke",
-      "type": "implementation",
-      "baselineRef": "8efe879040b63108bd65105c1037a15d468fd319",
-      "dependsOn": [
-        "AF-268"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T03:00:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "bin/",
-          "test/engine-adapters/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
-          "check": "新增故障模式的类型闭合",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode rate-limit --expect-fallback",
-          "check": "豆包 429 限流真实切 MiniMax，fallbackUsed=true 且 degraded=false",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode server-error --expect-fallback",
-          "check": "豆包 5xx 真实切 MiniMax，fallbackUsed=true 且 degraded=false",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --fail-primary --fail-primary-mode timeout --expect-fallback",
-          "check": "豆包超时真实切 MiniMax，fallbackUsed=true 且 degraded=false",
-          "threshold": "exit=0"
-        }
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-22T03:00:29.968Z",
-      "receipt": {
-        "receiptId": "RC-AF-269-1",
-        "finalStatus": "completed",
-        "reviewVerdict": "passed",
-        "changedFiles": {
-          "added": [
-            "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
-            "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
-            "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/manifest.json"
-          ],
-          "modified": [
-            "bin/visitor-render-smoke.ts",
-            "docs/team/agent-orchestration/orchestration-snapshot.json",
-            "docs/team/agent-orchestration/state/journal.jsonl",
-            "docs/team/agent-orchestration/task-state-index.json"
-          ],
-          "deleted": [],
-          "deletionChecks": []
-        },
-        "parallelArtifactsExcluded": true,
-        "sourceRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\receipts\\AF-269.json",
-        "archiveRef": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/receipt-RC-AF-269-1.json",
-        "ingestedAt": "2026-11-22T03:26:35.553Z"
-      }
     }
   ],
   "archivedTasks": [
@@ -2798,6 +2670,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-269",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-269/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af269-fault-fallback-smoke-2026-11-22.md",
         "reply": null
       }
     }
