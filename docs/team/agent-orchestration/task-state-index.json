@@ -4,10 +4,95 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1335,
+    "lastEventSeq": 1338,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-295",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T09:48:49.349Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-22T09:49:12.073Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "smoke 双候选故障注入与 exhausted 真实取证（AF-295 重编号）",
+      "type": "fix",
+      "baselineRef": "8fedf002b26c50f277f426c8ba917be5b52e4f0f",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-292",
+        "AF-294"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T09:48:44.051Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/visitor-render-smoke.ts",
+          "docs/runbooks/render-telemetry-alerting.md",
+          "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm typecheck",
+          "check": "TypeScript 全量类型检查",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --fail-primary --fail-backup --fail-primary-mode rate-limit --expect-exhausted --turns 1 --dump-render-metrics",
+          "check": "真实双候选 429 的 exhausted 轮次指标",
+          "threshold": "ok=true 且 rounds_total{outcome=exhausted} 恰为 1"
+        }
+      ],
+      "successCriteria": [
+        "smoke 支持 --fail-backup，与 --fail-primary 组合时把两个候选同时指向本机故障上游。",
+        "smoke 支持 --expect-exhausted，校验 providerHint=degraded、degraded=true、fallbackUsed=true，并取得 rounds_total{outcome=exhausted}。",
+        "双候选 429 真实 smoke 取得 rounds_total{outcome=exhausted}=1、两候选 failure_total{cause=rate-limit}=1、degraded_total{cause=exhausted}=1。",
+        "四轮双候选 429 取得 rounds_total{outcome=exhausted}=4，证明试完败与全员冷却两条路径都进入终局。",
+        "既有 --fail-primary 单候选回退 smoke 行为不变，失败注入参数互斥关系继续 fail fast。",
+        "不改 engine-core，不碰未跟踪半成品。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "AF-295 交付记录",
+          "path": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-22T09:48:49.348Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

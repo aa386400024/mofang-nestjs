@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T09:36:38.543Z",
+  "generatedAt": "2026-11-22T09:49:12.147Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-295",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "smoke 双候选故障注入与 exhausted 真实取证（AF-295 重编号）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-295",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T09:49:12.076Z",
+        "leaseDeadline": "2026-11-22T10:19:12.073Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-295.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T09:49:12.076Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-295.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,8 +1825,40 @@
   ],
   "toolAudits": [
     {
-      "auditId": "AUD-010",
-      "recordedAt": "2026-11-22T09:32:42.504Z",
+      "auditId": "AUD-510",
+      "recordedAt": "2026-11-22T09:48:49.539Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-295",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-509",
+      "recordedAt": "2026-11-22T09:28:16.082Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-294",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-294-smoke-fail-backup"
+      ]
+    },
+    {
+      "auditId": "AUD-508",
+      "recordedAt": "2026-11-22T09:28:05.647Z",
       "actorRef": "orchestrator",
       "correlationId": "dispatch:AF-294",
       "toolId": "TOOL-QUEUE-SCHEDULER",
@@ -1799,8 +1872,8 @@
       ]
     },
     {
-      "auditId": "AUD-009",
-      "recordedAt": "2026-11-22T09:31:33.559Z",
+      "auditId": "AUD-507",
+      "recordedAt": "2026-11-22T09:27:39.727Z",
       "actorRef": "orchestrator",
       "correlationId": "promote:AF-294",
       "toolId": "TOOL-QUEUE-SCHEDULER",
@@ -1816,57 +1889,8 @@
       ]
     },
     {
-      "auditId": "AUD-008",
-      "recordedAt": "2026-11-22T09:23:35.057Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-293",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-293",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-293.json"
-      ]
-    },
-    {
-      "auditId": "AUD-007",
-      "recordedAt": "2026-11-22T09:22:17.821Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-231",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-006",
-      "recordedAt": "2026-11-22T09:21:39.810Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-293",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-005",
-      "recordedAt": "2026-11-22T09:04:13.504Z",
+      "auditId": "AUD-506",
+      "recordedAt": "2026-11-22T09:07:33.474Z",
       "actorRef": "orchestrator",
       "correlationId": "branch:create:AF-292",
       "toolId": "TOOL-QUEUE-SCHEDULER",
@@ -1876,12 +1900,12 @@
       "result": "allowed",
       "reason": null,
       "resources": [
-        "task/AF-292-visitor-v5-parity"
+        "task/AF-292-render-round-denominator"
       ]
     },
     {
-      "auditId": "AUD-004",
-      "recordedAt": "2026-11-22T09:03:56.198Z",
+      "auditId": "AUD-505",
+      "recordedAt": "2026-11-22T09:07:23.531Z",
       "actorRef": "orchestrator",
       "correlationId": "dispatch:AF-292",
       "toolId": "TOOL-QUEUE-SCHEDULER",
@@ -1895,8 +1919,8 @@
       ]
     },
     {
-      "auditId": "AUD-003",
-      "recordedAt": "2026-11-22T09:03:35.944Z",
+      "auditId": "AUD-504",
+      "recordedAt": "2026-11-22T09:07:04.097Z",
       "actorRef": "orchestrator",
       "correlationId": "promote:AF-292",
       "toolId": "TOOL-QUEUE-SCHEDULER",
@@ -1912,25 +1936,25 @@
       ]
     },
     {
-      "auditId": "AUD-002",
-      "recordedAt": "2026-11-22T09:03:01.488Z",
+      "auditId": "AUD-503",
+      "recordedAt": "2026-11-22T08:45:12.053Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-231",
+      "correlationId": "dispatch:AF-291",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-231",
+      "taskId": "AF-291",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-231.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-291.json"
       ]
     },
     {
-      "auditId": "AUD-001",
-      "recordedAt": "2026-11-22T09:03:01.261Z",
+      "auditId": "AUD-502",
+      "recordedAt": "2026-11-22T08:44:49.483Z",
       "actorRef": "orchestrator",
-      "correlationId": "run-once",
+      "correlationId": "promote:AF-291",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1942,24 +1966,146 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
+    },
+    {
+      "auditId": "AUD-501",
+      "recordedAt": "2026-11-22T08:44:27.037Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-290",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-500",
+      "recordedAt": "2026-11-22T08:43:14.518Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-290",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-499",
+      "recordedAt": "2026-11-22T08:21:30.524Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-289",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-289-af-289"
+      ]
+    },
+    {
+      "auditId": "AUD-498",
+      "recordedAt": "2026-11-22T08:21:20.727Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-289",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-289",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-289.json"
+      ]
+    },
+    {
+      "auditId": "AUD-497",
+      "recordedAt": "2026-11-22T08:21:06.974Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-289",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-496",
+      "recordedAt": "2026-11-22T08:08:47.422Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-288",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-288-doubao-long-soak"
+      ]
     }
   ],
   "auditSummary": {
-    "total": 10,
+    "total": 510,
     "byResult": {
-      "allowed": 10,
+      "allowed": 510,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 10
+      "TOOL-QUEUE-SCHEDULER": 509,
+      "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 10
+      "orchestrator": 510
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-295",
+        "title": "smoke 双候选故障注入与 exhausted 真实取证（AF-295 重编号）",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7066,9 +7212,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-295",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md"
+      },
+      {
+        "taskId": "AF-295",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
