@@ -20,13 +20,15 @@ function service(enabled: boolean): MetricsService {
 }
 
 describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
-  it('十一类指标可按 candidate / model / phase / cause 标签读出', async () => {
+  it('十二类指标可按 candidate / model / phase / cause / outcome 标签读出', async () => {
     const metrics = service(true);
     const telemetry = new RenderMetricsTelemetry(metrics);
 
     telemetry.onAttemptOutcome('minimax', 'MiniMax-M3', 'success');
     telemetry.onAttemptOutcome('minimax', 'MiniMax-M3', 'retry');
     telemetry.onAttemptOutcome('doubao', 'doubao-seed-character-260628', 'success');
+    telemetry.onRoundOutcome('success');
+    telemetry.onRoundOutcome('exhausted');
     telemetry.onFirstDelta('minimax', 'MiniMax-M3', 1200);
     telemetry.onStreamTimeout('minimax', 'first-delta');
     telemetry.onStreamTimeout('minimax', 'idle');
@@ -51,6 +53,14 @@ describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
           labels: { candidate: 'doubao', model: 'doubao-seed-character-260628', outcome: 'success' },
           value: 1,
         }),
+      ]),
+    );
+
+    const rounds = samples.find((sample) => sample.name === 'visitor_render_rounds_total');
+    expect(rounds?.values).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ labels: { outcome: 'success' }, value: 1 }),
+        expect.objectContaining({ labels: { outcome: 'exhausted' }, value: 1 }),
       ]),
     );
 
@@ -134,6 +144,7 @@ describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
 
     expect(() => {
       telemetry.onAttemptOutcome('minimax', 'MiniMax-M3', 'retry');
+      telemetry.onRoundOutcome('guard');
       telemetry.onFirstDelta('minimax', 'MiniMax-M3', 500);
       telemetry.onStreamTimeout('minimax', 'idle');
       telemetry.onAuthFailure('minimax');
@@ -152,10 +163,15 @@ describe('AF-278/AF-282 · 渲染指标注册与标签', () => {
       incVisitorRenderAttempt: vi.fn(() => {
         throw new Error('registry closed');
       }),
+      incVisitorRenderRound: vi.fn(() => {
+        throw new Error('registry closed');
+      }),
     } as unknown as MetricsService;
     const telemetry = new RenderMetricsTelemetry(metrics);
 
     expect(() => telemetry.onAttemptOutcome('primary', 'm', 'retry')).not.toThrow();
+    expect(() => telemetry.onRoundOutcome('success')).not.toThrow();
     expect(metrics.incVisitorRenderAttempt).toHaveBeenCalledWith('primary', 'm', 'retry');
+    expect(metrics.incVisitorRenderRound).toHaveBeenCalledWith('success');
   });
 });

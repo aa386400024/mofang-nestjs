@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-292",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T17:10:00+08:00",
+  "updatedAt": "2026-11-22T09:21:30.638Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md",
+    "sha256": "75f69525e7003090b0c14f0ddcacae130a13ae0ce751ac00426a6a235b621117",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/receipt-RC-AF-292-1.json",
+      "sha256": "550018b34de1ee4d663b65b05bcce38e5f0be68897f610cd9f479b222fff12ff",
+      "receiptId": "RC-AF-292-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af292-render-round-denominator-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}

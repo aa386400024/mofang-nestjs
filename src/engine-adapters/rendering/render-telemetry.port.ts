@@ -35,6 +35,15 @@ export type RenderFailureCause =
 export type RenderAttemptOutcome = 'success' | 'retry' | 'degrade';
 
 /**
+ * 整轮渲染的终局 (用于 rounds 计数).
+ *
+ * 与 attempts 的区别: attempts 的分母是"候选尝试", 一轮可能尝试多次;
+ * rounds 的分母是"用户请求了一轮", 降级率/回退率/取消率必须以它为分母,
+ * 否则"全员冷却直接返回"这种最该报警的轮次不会进入任何分母.
+ */
+export type RenderRoundOutcome = 'success' | 'degrade' | 'guard' | 'exhausted' | 'cancelled';
+
+/**
  * 渲染遥测端口.
  *
  * 所有方法都必须**永不抛错**: 遥测实现故障不能反向影响渲染主流程.
@@ -45,6 +54,13 @@ export interface RenderTelemetryPort {
   onAttempt?(candidateId: string, model: string): void;
   /** 候选尝试结束 (success / retry / degrade). */
   onAttemptOutcome?(candidateId: string, model: string, outcome: RenderAttemptOutcome): void;
+  /**
+   * 整轮渲染结束 (每个 render / streamRender 恰好一次).
+   *
+   * 这是降级率、回退率、取消率的统一分母: 候选尝试次数会随重试膨胀,
+   * 且"全员冷却直接返回"不产生任何候选尝试, 用 attempts 做分母会系统性高估.
+   */
+  onRoundOutcome?(outcome: RenderRoundOutcome): void;
   /** 首个可见增量到达, 带 TTFT. */
   onFirstDelta?(candidateId: string, model: string, ttftMs: number): void;
   /** 流式超时: 首包等待超时或块间空闲超时. */

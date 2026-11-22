@@ -1,0 +1,192 @@
+{
+  "deliveredAt": "2026-11-22T17:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-292-1",
+    "taskId": "AF-292",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "2b8a1cf6eb0fc2ca40ee528e9b159cf1a1b139f6",
+    "dependsOn": [],
+    "priorTasks": ["AF-291"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af292-target2.log",
+        "data/af292-typecheck.log",
+        "data/af292-eslint3.log",
+        "data/af292-smoke-success.log",
+        "data/af292-smoke-fallback.log",
+        "data/af292-lint-full.log",
+        "data/af292-test-full.log",
+        "data/af292-preflight.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
+        "test/engine-adapters/af292-render-round-outcome.spec.ts"
+      ],
+      "modified": [
+        "docker/grafana/dashboards/mofang-overview.json",
+        "docker/prometheus/alerts.yml",
+        "docs/runbooks/render-telemetry-alerting.md",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/rendering/render-metrics.telemetry.ts",
+        "src/engine-adapters/rendering/render-telemetry.port.ts",
+        "src/shared/infra/metrics/metrics.service.ts",
+        "test/config/af283-render-alerting.spec.ts",
+        "test/shared/infra/metrics/render-telemetry-metrics.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["6a682b29"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1s",
+        "note": "[ORCH-GATE] PASS task=AF-292 status=submitted files=11 covered=10；日志 data/af292-preflight.log"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af292-render-round-outcome.spec.ts test/config/af283-render-alerting.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "同上",
+        "wallClock": "763ms",
+        "note": "3 files / 15 tests passed；日志 data/af292-target2.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "热缓存，约 2s",
+        "note": "0 error；日志 data/af292-typecheck.log"
+      },
+      {
+        "command": "pnpm exec eslint <AF-292 源码/测试 7 文件>",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 70-100s",
+        "note": "本单文件 0 error / 0 warning；日志 data/af292-eslint3.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 2 --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "1692ms",
+        "note": "2/2 stop；rounds_total{success}=2；日志 data/af292-smoke-success.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --fail-primary --fail-primary-mode rate-limit --expect-fallback --turns 3 --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "4961ms",
+        "note": "3/3 stop；rounds_total{success}=3；fallback=3；failure rate-limit=3；gauge 剩余约 58.8s；日志 data/af292-smoke-fallback.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 1,
+        "errors": 5,
+        "warnings": 4,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "失败全部来自未跟踪 AF-280/AF-281 半成品（visitor-prompt-variants.ts、test/agent/visitor/af280、test/engine-adapters/af280-render-prompt-variant.spec.ts）；本单 0；日志 data/af292-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量）",
+        "exitCode": 1,
+        "errors": 4,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "23.66s",
+        "note": "277 passed / 1 failed files，4345 passed / 4 failed / 4 skipped tests；4 failed 全在未跟踪 af280-render-prompt-variant.spec.ts；本单全绿；日志 data/af292-test-full.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "AF-292 自 integrate 2b8a1cf6 切 task/AF-292-render-round-denominator；登记状态提交 1601104d，实现提交 6a682b29（11 文件 +439/-29）。新增 rounds_total 后，聚合 success 与流式 guard/degrade 均走统一终局出口；两候选 429 的 exhausted 由单测覆盖，真实 smoke 因 smoke 只能注入主候选故障，仅覆盖 success 与 rate-limit 回退。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-292 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "closed-enum", "result": "pass", "note": "outcome 仅 success/degrade/guard/exhausted/cancelled，无自由文本标签"},
+      {"item": "privacy", "result": "pass", "note": "指标与日志不含 prompt、台词、会话内容"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=2b8a1cf6 为 AF-291 合并后的 integrate HEAD；AF-292 登记提交 1601104d 未引入额外实现改动"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-smoke-no-backup-fault",
+        "impact": "smoke 只能注入主候选故障，无法真实复现两候选同时失败的 exhausted/全损轮次；current 覆盖靠单测",
+        "suggestion": "给 smoke 加 --fail-backup 或双候选故障模式，并在真实链路验证 rounds{outcome=exhausted} 与 cooldown_served_total"
+      },
+      {
+        "id": "visitor-candidate-cooldown-alert-calibration",
+        "impact": "告警窗宽/for 时长仍为灰度初版，突发计数器 5m/5m 对已结束故障持续报警；硬回滚线与 health() 动作未按评审 P1 收敛",
+        "suggestion": "按故障生命周期设计窗口与恢复条件，另单校准"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "scope.files 含 bin/visitor-render-smoke.ts",
+        "reality": "无需改动：--dump-render-metrics 已在 AF-289 落地，新指标自动导出",
+        "action": "不修改该文件，交付记录说明",
+        "why": "避免无意义改动扩大 diff"
+      },
+      {
+        "taskSays": "真实 smoke 覆盖 rounds_total",
+        "reality": "真实链路只能覆盖 success 与回退 success；exhausted 由单测覆盖",
+        "action": "记录未覆盖原因并登记 backlog",
+        "why": "smoke 无 fail-backup 开关，不能真实制造两候选全失败"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "任务单五条验收全部满足：rounds_total 覆盖五类终局且每轮一次；降级/回退分母改 rounds 且降级分子排除 guard；auth 告警带 candidate 标签；静态守卫可机械校验 $labels 与 by 集合；两条真实 smoke 取得 rounds 样本。定向 15 例、typecheck、scoped ESLint 与内核边界通过；全量 lint/test 失败仍全部来自未跟踪 AF-280/AF-281 并行产物，本单零引入。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
