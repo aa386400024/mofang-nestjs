@@ -70,12 +70,12 @@ describe('AF-315 · BDI 决策敏感性与临床校准', () => {
 
     for (let turn = 1; turn <= 20; turn += 1) {
       const out = await session.turn(handleId, { userText: EMPATHY_TEXT });
-      strategies.push(out.intention.strategy);
+      strategies.push(out.intention!.strategy);
       if (firstGateTurn === null && out.snapshot.safety >= 0.6) firstGateTurn = out.turnIndex;
 
       // 首轮不得进入深度探索 —— 还在建立接触.
       if (out.turnIndex === 1) {
-        expect(['recounting', 'simple_response']).toContain(out.intention.strategy);
+        expect(['recounting', 'simple_response']).toContain(out.intention!.strategy);
       }
       // 数值不越界、不 NaN.
       expect(Number.isFinite(out.snapshot.safety)).toBe(true);

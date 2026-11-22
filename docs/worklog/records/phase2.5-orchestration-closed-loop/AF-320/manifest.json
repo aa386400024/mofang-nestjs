@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-320",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-23T00:20:00+08:00",
+  "updatedAt": "2026-11-22T16:08:42.170Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-320/task-sheet.md",
+    "sha256": "59c7856114d61629d60f05fadab4f7c8caf718b9d86d427a144302e481698517",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af320-ci-type-narrowing-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af320-ci-type-narrowing-2026-11-23.md"
+  ],
+  "tombstone": null
+}
