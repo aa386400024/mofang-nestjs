@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-334",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T04:36:00+08:00",
+  "updatedAt": "2026-11-22T20:31:26.787Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-334/task-sheet.md",
+    "sha256": "361d667d25eac349d6b612716eea02081331ba41532d59b3213ad7f53b489f61",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af334-realism-long-session-ablation-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af334-realism-long-session-ablation-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
