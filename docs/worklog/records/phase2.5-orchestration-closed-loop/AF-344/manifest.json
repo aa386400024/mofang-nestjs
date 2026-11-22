@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-344",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T07:20:00+08:00",
+  "updatedAt": "2026-11-22T23:13:26.385Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-344/task-sheet.md",
+    "sha256": "7d23486f0f5c3457c374400de1144defe3f5ddd6e907d67e1c73700844105e33",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af343-realism-signature-judge-evidence-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af344-realism-signature-judge-evidence.md"
+  ],
+  "tombstone": null
+}

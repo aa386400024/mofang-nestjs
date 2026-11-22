@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1517,
+    "lastEventSeq": 1540,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -2961,6 +2961,51 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-341/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af341-realism-tightened-recheck-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-342",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/team/agent-orchestration/transport/tasks/AF-342.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af342-realism-signature-judge-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-343",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-343/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af343-realism-signature-judge-evidence-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-344",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-344/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af343-realism-signature-judge-evidence-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-345",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-345/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af344-realism-signature-judge-evidence-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-346",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-346/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af343-realism-signature-judge-evidence-2026-11-23.md",
         "reply": null
       }
     }

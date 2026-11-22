@@ -1,0 +1,221 @@
+{
+  "deliveredAt": "2026-11-23T07:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-342-1",
+    "taskId": "AF-342",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "e91497412a3f0c6d1245f49ef206e4df75229b47",
+    "dependsOn": ["AF-341", "AF-338"],
+    "priorTasks": ["AF-341", "AF-340", "AF-339", "AF-338"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af342-realism-signature-judge-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["7d1d200cd44c5e7e997d6c84010164bb80f9b40e"],
+      "added": [
+        "src/shared/realism/realism-humanization-judge.ts",
+        "bin/visitor-realism-humanization-judge.ts",
+        "test/shared/realism/realism-humanization-judge.spec.ts",
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af342-realism-signature-judge-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-342/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-humanization-judge.ts --samples ... --out data/phase25-exit/af342-realism-signature-judge/report.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "约 2s",
+        "note": "112 个归档样本，0 模型调用；off 误报 0/16，full 签名覆盖 16/16"
+      },
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-humanization-judge.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 16,
+        "machine": "同上",
+        "wallClock": "254ms",
+        "note": "16/16 通过"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 297,
+        "tests": 4554,
+        "machine": "同上",
+        "wallClock": "20.41s",
+        "note": "297 文件通过 / 1 跳过（298）；4554 例通过 / 4 跳过（4558）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-342 status=submitted files=7"
+      }
+    ],
+    "reproNotes": "CLI 只读 rep-*.json；`--samples` 用 arm=dir 逗号分隔。回验数据：af336 off、af337 full/minimal、af339 typed/noshape、af340 shape-capped、af341 tightened。判据常量在模块顶部，改阈值后原命令可直接复跑。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-342 经 CLI register / promote / run-once；分支 task/AF-342-realism-signature-judge"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "只改 src/shared/realism、bin、test；engine-core 零 diff"
+      },
+      {
+        "item": "no-production-change",
+        "result": "pass",
+        "note": "未改生产块、RENDER_REALISM_MODE、humanization-v1；判据只在离线 CLI 与影子层"
+      },
+      {
+        "item": "scope-extension",
+        "result": "pass",
+        "note": "无追加；112 样本全部来自既有归档"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "原始 JSON 留 gitignored 目录；报告只含聚合数字与判定"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "结构代理判据，不宣称临床真人度、疗效或诊断"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef e9149741；任务单 implementation；回执 finalStatus completed；提交 7d1d200c 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF342-B1",
+        "impact": "三个人设阈值基于 16 个 off 样本，样本量小；换模型、换家族、换语种需重校准。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF342-B2",
+        "impact": "焦虑签名只看 repair/turn >= 0.05，一次改口即通过，偏宽，可能把偶发噪声当成特征保留。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF342-B3",
+        "impact": "判据尚未接入评测流水线；需影子模式并行记录 humanization-v1 与签名判据 2-4 周。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF342-B4",
+        "impact": "无真人咨询师听感评估，humanized 只表示签名保留且密度未过载，不表示语言质量高。",
+        "owner": "clinical",
+        "status": "open"
+      },
+      {
+        "id": "AF342-B5",
+        "impact": "密度上限 4.943817 是 full-only 报警线，不是产品验收线；验收线需业务决定。",
+        "owner": "product",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "是否把签名判据接入影子评测并与 humanization-v1 并行记录",
+      "焦虑阈值是否提高到 0.083（每 12 轮一次）以减少噪声",
+      "产品验收是否采用 humanized 三态，还是只保留 off-like/overloaded 报警"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "零调用回验 7 个臂",
+        "reality": "112 样本，0 调用，off 误报 0/16，full 覆盖 16/16",
+        "action": "完成",
+        "why": "—"
+      },
+      {
+        "taskSays": "不改生产 / 不替换 humanization-v1",
+        "reality": "未改",
+        "action": "保持影子层",
+        "why": "判据先验证"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-342 新增签名判据 v1 与 16 例单测，用 112 个已归档样本零调用回验：off 误报 0/16、full 签名覆盖 16/16、minimal 与 typed-noshape 32/32 判 off-like；焦虑 tightened 8/8 humanized、回避 tightened 8/8 off-like，证明判据抓的是人设签名而非密度。typecheck、lint、全量 4554 例、engine-core 零 diff 通过；未改生产与阈值。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本轮 0 次模型调用；仅本地解析 56 份 rep 文件。"
+  }
+}
