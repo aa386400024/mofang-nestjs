@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-335",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-23T04:54:00+08:00",
-  "updatedAt": "2026-11-22T20:47:52.773Z",
+  "updatedAt": "2026-11-22T20:51:30.958Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/task-sheet.md",
     "sha256": "dbc991bc2fce1f895d3d445ab77082c6ac60f82b99c794f8259f304e456b27ef",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/receipt-RC-AF-335-1.json",
+      "sha256": "258000e816b936c98f00a3079330deb0f9b98a0927db9dcbf7c0053fa2c30e25",
+      "receiptId": "RC-AF-335-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-2026-11-23.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-af335-realism-threshold-sensitivity-task-2026-11-23.md"

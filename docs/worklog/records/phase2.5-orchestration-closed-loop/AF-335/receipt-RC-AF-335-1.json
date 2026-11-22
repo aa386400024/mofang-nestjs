@@ -1,0 +1,248 @@
+{
+  "deliveredAt": "2026-11-23T04:56:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-335-1",
+    "taskId": "AF-335",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "9106b77ef6f7a477c2e7fa7af405354f03284fbd",
+    "dependsOn": ["AF-334"],
+    "priorTasks": ["AF-334", "AF-333", "AF-332"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["8ba814fb50cfaac2945f5eccf89273c5f515b3b5"],
+      "added": [
+        "src/shared/realism/realism-sample-separation.ts",
+        "bin/visitor-realism-gate-sensitivity.ts",
+        "test/shared/realism/realism-sample-separation.spec.ts",
+        "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/task-sheet.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-sample-separation.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 11,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "0.20s",
+        "note": "11/11 通过；覆盖完全分离、重叠、相等边界、空样本、单样本、NaN/Infinity、阈值等于负样本最大值、混淆矩阵与 countAbove"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-gate-sensitivity.ts --summaries \"af333/.../summary.json,af334/.../summary.json\" --out .../report.json --personas \"anxious,guarded\" --arms \"full,minimal,tightened\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.3s",
+        "note": "读 2 份 summary；anxious off 8 样本 vs full 可分 [3.583062, 5.785124)、midpoint 4.684093；guarded [4.280156, 6.060606)、midpoint 5.170381；minimal/tightened 均不可分"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 295,
+        "tests": 4521,
+        "machine": "同上",
+        "wallClock": "19.39s",
+        "note": "295 文件通过 / 1 跳过（296）；4521 例通过 / 4 跳过（4525）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-335 status=submitted files=11 covered=3"
+      }
+    ],
+    "reproNotes": "复现顺序：先跑 pnpm exec vitest run test/shared/realism/realism-sample-separation.spec.ts；再执行 pnpm exec tsx bin/visitor-realism-gate-sensitivity.ts --summaries \"data/phase25-exit/af333-realism-long-session/summary.json,data/phase25-exit/af334-realism-long-session-ablation/summary.json\" --out data/phase25-exit/af335-realism-threshold-sensitivity/report.json --personas \"anxious,guarded\" --arms \"full,minimal,tightened\"；最后跑 typecheck、lint、全量 4521 例与 engine-core 零 diff。分析只读本地 JSON，不调模型。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-335 经 CLI register / promote / run-once / branch create；分支名与提交标题只含一个任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "separation-purity",
+        "result": "pass",
+        "note": "separatingBand/confusionAt/countAbove 为纯函数；零 IO；非有限值过滤；空样本返回 null/抛错"
+      },
+      {
+        "item": "threshold-semantics",
+        "result": "pass",
+        "note": "统一采用 value > threshold 为正；阈值等于负样本最大值时该样本判负，单测覆盖"
+      },
+      {
+        "item": "no-gate-change",
+        "result": "pass",
+        "note": "未改 humanization-v1 阈值、未改生产 prompt、未切 RENDER_REALISM_MODE"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "仓库报告只含数字；原始 JSON 留 gitignored 取证目录"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "8+8 合成样本的工程敏感性；无真实咨询语料、无真人督导；不宣称临床真人度、疗效或统计显著性"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 9106b77e 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 8ba814fb 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF335-B1",
+        "impact": "只有 full 与 off 可分：anxious [3.583062, 5.785124)、guarded [4.280156, 6.060606)；统一阈值只能落在 [4.280156, 5.785124)，中点 5.032640。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF335-B2",
+        "impact": "minimal/tightened 与 off 结构性重叠，任何单一密度阈值都无法拒绝它们而不误伤 off；gate 不能认证 active。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF335-B3",
+        "impact": "8+8 样本不足：off 最大值 4.280156 已接近 full 下界 5.785124；再多几个 5+ 的 off 样本会让完全可分消失。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF335-B4",
+        "impact": "调 humanization-v1 的 2.50 只能把假阳性搬成假阴性；需先定假阳性预算，再报告 full 检出率。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF335-B5",
+        "impact": "tightened 只有 4 个样本，且其分布跨 2.857143–4.285714；不足以判断长会话稳定性。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF335-B6",
+        "impact": "未做句子级事件归因；事件层/形态层的最小可保留子集仍未知。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "统一阈值 5.03 是否只作为 full-only 报警线，不参与 active 认证",
+      "是否按人设分开设报警线（4.68 / 5.17）",
+      "off 重复数扩到 16–20 后，full 是否仍完全可分",
+      "minimal/tightened 是否只走 allowlist，不靠密度 gate 自动放行"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "至少 8 例单测",
+        "reality": "11 例",
+        "action": "多覆盖边界",
+        "why": "补阈值等于负样本最大值、NaN/Infinity 与空样本"
+      },
+      {
+        "taskSays": "多份 summary.json 敏感性",
+        "reality": "通过 --summaries 读 AF-333/334 两份 summary",
+        "action": "按任务单交付",
+        "why": "合并 8 个 off 样本，full/minimal 8、tightened 4"
+      },
+      {
+        "taskSays": "不调 threshold / 不改生产",
+        "reality": "未改 humanization-v1 与生产 prompt",
+        "action": "保持生产 off",
+        "why": "本单只做敏感性工具与报告"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-335 交付可复跑的分离度纯模块、分析 CLI 与 11 例单测；用 AF-333/334 的 8 个 off 样本得到 full 可分区间（anxious 4.684、guarded 5.170）、minimal/tightened 不可分、统一阈值只能落在 [4.280156, 5.785124)，并明确 gate 不能认证 active。定向 11 例、全量 4521 例、lint 0/0、typecheck exit 0、engine-core 零 diff；未改生产 prompt、未调阈值、未把工程数字包装成临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
