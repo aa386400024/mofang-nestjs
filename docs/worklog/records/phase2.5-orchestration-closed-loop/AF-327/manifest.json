@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-327",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T02:45:00+08:00",
+  "updatedAt": "2026-11-22T18:42:10.273Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-327/task-sheet.md",
+    "sha256": "b7dcb368bc0280fd9fcc315bfc57b10e5b4327e9fd9a330dc5e91bd50a22122e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af327-humanization-acceptance-v1-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af327-humanization-acceptance-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
