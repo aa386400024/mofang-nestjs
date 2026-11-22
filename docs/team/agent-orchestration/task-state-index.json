@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1136,
+    "lastEventSeq": 1139,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,6 +264,87 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-258",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T00:27:52.590Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "从最新 integrate 重新交付"
+        },
+        {
+          "at": "2026-11-22T00:27:59.502Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "从最新 integrate 重新交付引擎渲染豆包 smoke",
+      "type": "implementation",
+      "baselineRef": "7435b12fd50f30ae37a08ded543a401aba1e76dd",
+      "dependsOn": [
+        "AF-257"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T00:27:52.199Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/engine-adapters/wiring/",
+          "test/engine-adapters/",
+          "bin/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/engine-adapters/af258-llm-service-chat-caller.spec.ts",
+          "check": "LlmService ChatCaller 映射与错误语义全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "check": "CI 全量 typecheck 0 error",
+          "threshold": "exit=0"
+        }
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T00:27:52.589Z"
     }
   ],
   "archivedTasks": [
