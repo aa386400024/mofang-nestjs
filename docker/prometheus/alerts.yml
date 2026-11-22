@@ -119,15 +119,16 @@ groups:
     interval: 30s
     rules:
       - alert: VisitorRenderDegradedRateHigh
-        # 分母 = 所有终局轮次 (success/degrade/guard/exhausted/cancelled), 不是候选尝试.
-        # 候选尝试会随重试膨胀, 且"全员冷却直接返回"不产生任何尝试 —— 用 attempts
-        # 做分母会系统性高估降级率, 最该报警的全损轮次反而进不了分母.
+        # provider 健康度口径: 分母排除 cancelled 与 guard (AF-298).
+        # barge-in 是正常交互, 若进分母会随业务形态稀释 provider 信号:
+        # 25% barge-in 时 4% 真实降级会被读成 3.0%, 恰好卡在 >3% 阈值下面.
+        # 体验失败率是另一条曲线 (分子含 guard, 分母仅排除 cancelled), 见看板 id 10.
         # 分子排除 cause=guard: 守卫命中是正确拦截, 不指向 provider.
         expr: |
           sum(increase(visitor_render_degraded_total{cause!="guard"}[10m]))
             /
           clamp_min(
-            sum(increase(visitor_render_rounds_total[10m])),
+            sum(increase(visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}[10m])),
             0.001
           )
             > 0.03
@@ -137,7 +138,25 @@ groups:
           team: ai-engine
         annotations:
           summary: "来访者渲染降级率过高"
-          description: "10 分钟真实降级率 {{ $value | humanizePercentage }} (>3%, 分母为终局轮次, 已排除 barge-in 与 guard); 查看 visitor_render_degraded_total 的 cause 与 failure_total"
+          description: "10 分钟 provider 降级率 {{ $value | humanizePercentage }} (>3%, 分母已排除 cancelled 与 guard); 查看 visitor_render_degraded_total 的 cause 与 failure_total"
+
+      - alert: VisitorRenderRoundInvariantMismatch
+        # AF-298 / AF-292 A4: 恒等式守卫.
+        # 每个降级轮次恰好调一次 onDegraded ⇒ degraded_total 的增量应等于
+        # rounds{outcome=degrade|guard|exhausted} 的增量. 分子比轮次多 ⇒
+        # 某条路径重复记了降级; 分子有值而轮次为 0 ⇒ 漏记 rounds 分母.
+        # 用 unless 而不是 !=: 两侧都无样本时不应制造告警.
+        expr: |
+          sum(increase(visitor_render_degraded_total[10m]))
+            unless
+          sum(increase(visitor_render_rounds_total{outcome=~"degrade|guard|exhausted"}[10m]))
+        for: 10m
+        labels:
+          severity: warning
+          team: ai-engine
+        annotations:
+          summary: "来访者渲染轮次恒等式不自洽"
+          description: "10 分钟内 degraded_total 增量与 rounds{degrade|guard|exhausted} 增量不一致; 检查 onRoundOutcome/onDegraded 是否重复或漏记, 先看看板 id 18 的 outcome 分布"
 
       - alert: VisitorRenderAuthFailure
         # 鉴权失败没有"可接受频率": 任何一次都说明密钥/配额/账号配置坏了.
@@ -179,13 +198,13 @@ groups:
           description: "10 分钟内 {{ $labels.phase }} 超时 {{ $value }} 次 (>5); 首包超时看上游冷启动, idle 看上游断流"
 
       - alert: VisitorRenderFallbackRateHigh
-        # 与降级率同一分母: 终局轮次. 分子是回退事件, 一轮最多一次主备切换.
-        # 用 attempts 做分母会让"重试越多分母越大", 回退率被稀释.
+        # 与 provider 降级率同分母: success|degrade|exhausted, 排除 cancelled 与 guard.
+        # 分子是主备切换尝试, 一轮最多一次; 用 attempts 做分母会让重试越多分母越大.
         expr: |
           sum(increase(visitor_render_fallback_total[10m]))
             /
           clamp_min(
-            sum(increase(visitor_render_rounds_total[10m])),
+            sum(increase(visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}[10m])),
             0.001
           )
             > 0.10

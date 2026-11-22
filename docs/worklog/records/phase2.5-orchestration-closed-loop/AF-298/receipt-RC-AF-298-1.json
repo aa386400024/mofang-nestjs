@@ -1,0 +1,158 @@
+{
+  "deliveredAt": "2026-11-22T18:39:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-298-1",
+    "taskId": "AF-298",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "54d71994d2d10763c74c3b1dc58ec7dbe04d09de",
+    "dependsOn": [],
+    "priorTasks": ["AF-292", "AF-296", "AF-297"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-298/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af298-render-ratio-three-views-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af298-target.log",
+        "data/af298-guard-negative.log",
+        "data/af298-typecheck.log",
+        "data/af298-lint-full.log",
+        "data/af298-test-full.log",
+        "data/af298-preflight.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af298-render-ratio-three-views-2026-11-22.md"
+      ],
+      "modified": [
+        "docker/prometheus/alerts.yml",
+        "docker/grafana/dashboards/mofang-overview.json",
+        "test/config/af283-render-alerting.spec.ts",
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["994ff212", "7fe4c06b"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/af283-render-alerting.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "293ms",
+        "note": "9 passed；日志 data/af298-target.log"
+      },
+      {
+        "command": "同一测试 + 临时去掉 A 曲线分母 outcome 过滤",
+        "exitCode": 1,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "254ms",
+        "note": "精确报缺 outcome=~...，证明守卫能拦住旧分母；日志 data/af298-guard-negative.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "日志 data/af298-typecheck.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "日志 data/af298-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "23.85s",
+        "note": "279 passed / 1 skipped files，4363 passed / 4 skipped tests；日志 data/af298-test-full.log"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "PASS task=AF-298 status=submitted files=5 covered=4；日志 data/af298-preflight.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "看板 id 10 三分曲线与 alerts.yml 同口径；反向删除 outcome 过滤后守卫精确失败，恢复后 9/9 全绿。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-298 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "three-views", "result": "pass", "note": "provider 健康度/体验失败/取消占比三处同口径"},
+      {"item": "invariant-guard", "result": "pass", "note": "恒等式告警用 unless，静态守卫断言存在"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=54d71994 为 AF-297 合并后的 integrate HEAD"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-perceived-failure-alert-threshold",
+        "impact": "体验失败率（含 guard）目前只有曲线，无阈值告警；缺灰度基线",
+        "suggestion": "灰度收集 1–2 周后按 P95 定阈值与 for 窗口，再上告警"
+      },
+      {
+        "id": "visitor-render-round-label-rename",
+        "impact": "rounds_total{outcome} 与 attempts_total{outcome} 值域不同，PromQL 易混用",
+        "suggestion": "评估改 result 标签，覆盖指标/告警/看板/Runbook 与历史数据"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "外审建议取消率 = cancelled / rounds{outcome!=\"cancelled\"}",
+        "reality": "non-cancelled 分母在 barge-in 多数时会让比例超过 100%，不符合“占比”语义",
+        "action": "改为 cancelled / rounds_total，保持“取消占全部交互”",
+        "why": "看板与 Runbook 以占比判读容量与交互形态，不允许出现 >100% 的率"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三口径在看板/告警/Runbook 三处一致，恒等式告警可机械守卫；反向改动已验证拦截；定向 9 例、typecheck、全量 lint/test 全绿；未改阈值与业务代码。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

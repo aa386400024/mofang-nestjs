@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-298",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T18:31:00+08:00",
+  "updatedAt": "2026-11-22T10:38:26.149Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-298/task-sheet.md",
+    "sha256": "d223a55e246f9e2bc66bcc39fcdd48e0e28ce46a7b5933a3db725ea19c8d2a0d",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-298/receipt-RC-AF-298-1.json",
+      "sha256": "56a125e23d1bbb14aee55ab853b2f5b344a657ad90a972700fd531e14a44005c",
+      "receiptId": "RC-AF-298-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af298-render-ratio-three-views-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af298-render-ratio-three-views-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}

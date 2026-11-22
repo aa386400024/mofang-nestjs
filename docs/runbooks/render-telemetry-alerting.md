@@ -21,12 +21,17 @@
 | `visitor_render_first_delta_seconds` | raw chunk 首包预算的分布（P95 用分位） | 首个**可见闭合句**的 TTFT（同名不同义，已知 backlog） |
 | `visitor_render_auth_failure_total` | 401/403 | 配额耗尽/限流（看 `failure{cause=rate-limit}`） |
 
-**口径红线（AF-292 之后）**
+**口径红线（AF-292 / AF-298 之后）**
 
-- 降级率/回退率的分母是 `rounds_total`（所有终局轮次），不再是 `attempts{outcome=~"success|degrade"}`。原因：`attempts` 会随重试膨胀；“全员冷却直接返回”不产生任何尝试，用 `attempts` 做分母会让最该报警的全损轮次反而进不了分母。
-- 降级分子排除 `cause="guard"`：守卫命中是正确拦截，不指向 provider；`rounds{guard}` 单列观察。
-- barge-in 高频是**正常语音交互**。`rounds{cancelled}` 进统一分母，但绝不作为回滚依据。
+- 三条比率各司其职，不要再合成一个“降级率”：
+  - **provider 降级率**：分子 `degraded_total{cause!="guard"}`，分母 `rounds{outcome=~"success|degrade|exhausted"}`（排除 cancelled 与 guard）。这是灰度判据与 `VisitorRenderDegradedRateHigh` 用的口径。
+  - **体验失败率**：分子全量 `degraded_total`（含 guard），分母 `rounds{outcome!="cancelled"}`。给产品/体验判断“用户该听到却没听到”的比例。
+  - **取消占比**：分子 `cancelled_total`，分母 `rounds_total`。只描述 barge-in/暂停在全部交互中的占比，不参与 provider 健康度判读。
+- 比率分母绝不用 `attempts`：`attempts` 会随重试膨胀；“全员冷却直接返回”不产生任何尝试，用 `attempts` 做分母会让最该报警的全损轮次反而进不了分母。
+- provider 降级分子排除 `cause="guard"`：守卫命中是正确拦截，不指向 provider；guard 由体验失败率与 `rounds{guard}` 单独承载。
+- barge-in 高频是**正常语音交互**。provider 降级率与回退率的分母已排除 `rounds{cancelled}`，25% barge-in 不再把 4% 真实降级稀释成 3.0%；取消只进“取消占比”，绝不作为回滚依据。
 - `degraded_total{cause=exhausted}` 表示“这一轮没有可用候选”；先对照 `cooldown_served_total`：同步上涨=熔断挡掉，没涨=候选真的试完败。单次失败的 429、5xx、超时还是 guard，一律去 `failure_total{cause}` 看。
+- **恒等式**：每个降级轮次恰好调一次 `onDegraded`，所以 `degraded_total` 的增量必须等于 `rounds{outcome=~"degrade|guard|exhausted"}` 的增量。两者不等时先查是否重复/漏记轮次，而不是先调阈值。
 
 ---
 
@@ -35,7 +40,8 @@
 | 告警 | 触发条件（初版） | 级别 | 第一动作 |
 | --- | --- | --- | --- |
 | `VisitorRenderAuthFailure` | 5m 内单 candidate auth 失败 >0（按 candidate 聚合） | critical | 立即查该候选 provider key / 配额 / 账号状态；任一候选鉴权坏掉就不放量 |
-| `VisitorRenderDegradedRateHigh` | 10m 真实降级率 >3% | warning | 看 `degraded_total` 的 cause 与 `failure_total` cause 分布；区分上游故障 vs guard |
+| `VisitorRenderDegradedRateHigh` | 10m provider 降级率 >3%（分母排除 cancelled/guard） | warning | 看 `degraded_total` 的 cause 与 `failure_total` cause 分布；区分上游故障 vs guard |
+| `VisitorRenderRoundInvariantMismatch` | 10m `degraded_total` 增量 > 对应 `rounds` 增量 | warning | 先查重复/漏记轮次（AF-297 的 sink、degrade 路径），不要先调阈值；对照看板 id 18 outcome 分布 |
 | `VisitorRenderFirstDeltaSlow` | 10m 首包 P95 >2s | warning | 查上游冷启动、模型档位、网络；对比 AF-277 回滚态基线 |
 | `VisitorRenderStreamTimeoutSpike` | 10m 超时 >5（按 phase） | warning | `first-delta` 看建流/冷启动；`idle` 看上游断流与网关空闲超时 |
 | `VisitorRenderFallbackRateHigh` | 10m 回退率 >10% | warning | 看 `fallback{cause}` 与主候选 `failure`；主候选是否持续限流/5xx |
@@ -75,16 +81,20 @@
 | 阶段 | 放量 | 进入下一阶段的条件 | 停止/回滚条件 |
 | --- | --- | --- | --- |
 | S0 影子 | 0%（只跑 smoke/离线） | 定向 smoke 3/3 命中豆包，fallback/degraded 均 false | 任一 auth 失败 |
-| S1 小流量 | 5% 会话 | 30m 内 auth=0；降级率 ≤2%；首包 P95 ≤2s；回退率 ≤5% | 降级率 >3% 持续 10m，或 auth 任一 |
-| S2 半量 | 25% 会话 | 60m 内降级率 ≤3%；首包 P95 ≤2s；failure 单 cause ≤5/10m | 降级率 >5% 持续 10m；首包 P95 >3s 持续 15m |
-| S3 全量 | 100% | 24h 内降级率 ≤3%；无 auth；无持续 5xx/429 尖峰 | 降级率 >5% 持续 10m；auth 任一；上游 5xx 连续 3 个 5m 窗口 |
+| S1 小流量 | 5% 会话 | 30m 内 auth=0；provider 降级率 ≤2%；首包 P95 ≤2s；回退率 ≤5% | provider 降级率 >3% 持续 10m，或 auth 任一 |
+| S2 半量 | 25% 会话 | 60m 内 provider 降级率 ≤3%；首包 P95 ≤2s；failure 单 cause ≤5/10m | provider 降级率 >5% 持续 10m；首包 P95 >3s 持续 15m |
+| S3 全量 | 100% | 24h 内 provider 降级率 ≤3%；无 auth；无持续 5xx/429 尖峰 | provider 降级率 >5% 持续 10m；auth 任一；上游 5xx 连续 3 个 5m 窗口 |
+
+**窗口纪律**：表中的 “30m/60m/24h” 必须用对应窗口自己算（例如 `increase(visitor_render_degraded_total{cause!="guard"}[30m]) / clamp_min(increase(visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}[30m]), 0.001)`），**不要直接读 10m 告警面板的值当 30m 判据**。告警的 `increase[10m] + for:10m` 本身有 5–10 分钟结构性滞后，只用于触发观察，不是阶段放行数字。
 
 **硬回滚线（不看阶段，触发即回滚）**
 
 1. `increase(visitor_render_auth_failure_total[5m]) > 0`：鉴权坏了，继续放量只会全量降级。
-2. `degraded_rate > 5%` 持续 10 分钟：说明备候选也接不住。
+2. `provider_degraded_rate > 5%` 持续 10 分钟：说明备候选也接不住。
 3. 首包 P95 >3s 持续 15 分钟：语音对练体验已经不可用。
 4. 同一 cause 的 `failure_total` >20/10m 且备候选成功率 <90%：上游系统性故障。
+
+> 单次 401 即回滚（第 1 条）是当前保守口径；AF-275 已支持鉴权失败切备，若 key 轮换期出现瞬时 401，可先确认备候选接管。按 ≥2 次/5m 校准属于 backlog `visitor-auth-rollback-threshold`。
 
 **不是回滚线**：`cancelled_total` 上升（barge-in 变多只说明用户在打断）、单次 `guard`（安全拦截是正确行为）。
 
@@ -114,18 +124,28 @@ pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --tu
 Prometheus 侧核对（UI 或 API）：
 
 ```promql
-# 真实降级率（分母=终局轮次，分子排除 guard）
+# provider 降级率（分母排除 cancelled/guard）
 sum(increase(visitor_render_degraded_total{cause!="guard"}[10m]))
 /
-clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)
+clamp_min(sum(increase(visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}[10m])), 0.001)
+
+# 体验失败率（分子含 guard，分母排除 cancelled）
+sum(increase(visitor_render_degraded_total[10m]))
+/
+clamp_min(sum(increase(visitor_render_rounds_total{outcome!="cancelled"}[10m])), 0.001)
+
+# 轮次恒等式对账（两边应相等；degraded 多出即重复/漏记）
+sum(increase(visitor_render_degraded_total[10m]))
+unless
+sum(increase(visitor_render_rounds_total{outcome=~"degrade|guard|exhausted"}[10m]))
 
 # 轮次结局分布（success/degrade/guard/exhausted/cancelled）
 sum(increase(visitor_render_rounds_total[10m])) by (outcome)
 
-# 回退率（分母同轮次，分子是主备切换事件）
+# 回退率（分母排除 cancelled/guard，分子是主备切换事件）
 sum(increase(visitor_render_fallback_total[10m]))
 /
-clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)
+clamp_min(sum(increase(visitor_render_rounds_total{outcome=~"success|degrade|exhausted"}[10m])), 0.001)
 
 # 失败原因分布
 sum(increase(visitor_render_failure_total[10m])) by (cause)
@@ -149,7 +169,7 @@ sum(increase(visitor_render_cancelled_total[10m]))
 
 `docker/grafana/dashboards/mofang-overview.json` 新增九块：
 
-1. 来访者渲染：降级率 / 取消率（两条线分开，避免把 barge-in 读成故障）；
+1. 来访者渲染：provider 降级率 / 体验失败率 / 取消占比（三条线分开：前两条决定健康度与体验，取消只描述 barge-in 形态）；
 2. 来访者渲染：首包 P95（first-delta）；
 3. 来访者渲染：候选级失败原因（按 cause 堆叠）；
 4. 来访者渲染：候选回退率。
@@ -157,7 +177,7 @@ sum(increase(visitor_render_cancelled_total[10m]))
 6. 来访者渲染：候选熔断次数（10m，按 candidate/cause）。
 7. 来访者渲染：候选熔断时长 P95（10m，按 candidate）。
 8. 来访者渲染：候选冷却剩余（实时，按 candidate；`until - time()` clamp 到 0）。
-9. 来访者渲染：轮次结局（10m，按 outcome；降级率/回退率的统一分母）。
+9. 来访者渲染：轮次结局（10m，按 outcome；provider 降级率/回退率的分母来源）。
 
 看板刷新 30s；Grafana 通过 `docker/grafana/provisioning/dashboards/dashboards.yml` 自动加载。
 
@@ -166,11 +186,11 @@ sum(increase(visitor_render_cancelled_total[10m]))
 ## 7. 已知盲区（不要用本 Runbook 过度解读）
 
 - `cooldown_served_total` 只回答“这一轮是不是全员冷却导致无候选可用”；“哪个候选被熔断、熔了多久”看 `candidate_cooldown_seconds`（AF-287），“此刻是否仍在冷却、还剩多久”看 `candidate_cooldown_until_seconds`（AF-289）。三者都是进程内状态，多实例部署时需按实例分别观察；gauge 是最后一次状态变化时写入的绝对到期时刻，若候选在恢复后长时间没有新请求，面板最多显示为 0（`until - time()` 为负被 clamp），不会伪报仍在冷却。
-- `rounds_total` 是“轮次终局”的唯一分母；它不区分轮内试了几个候选。排查单候选坏掉要看 `attempts_total`/`failure_total`。`rounds{cancelled}` 进分母但不进降级分子，所以取消率与降级率可以同时出现而不互相污染。
+- `rounds_total` 是“轮次终局”的唯一分母；它不区分轮内试了几个候选。排查单候选坏掉要看 `attempts_total`/`failure_total`。provider 降级率/回退率分母已排除 `cancelled`，取消只出现在“取消占比”；体验失败率分母仅排除 `cancelled`、分子含 guard。
 - `degraded{exhausted}` 与 `cooldown_served_total` 时间窗不完全对齐：前者是轮次终局，后者在 `next()` 时自增；同一轮两者都应出现，短暂错位属正常。
 - `fallback_total` 统计的是**主备切换尝试**，不是“回退成功”。两候选同时 429 时仍会先发生一次 doubao→minimax 切换，随后 minimax 也失败，轮次终局是 `rounds{exhausted}`、`degraded{exhausted}` 各 1；因此回退率 100% 不代表用户拿到了可用回复，必须与 `rounds` 结局一起读。
-- 比率类告警全部是 `increase(...[10m])` + `for: 5m`，存在 5–10 分钟**结构性滞后**：故障发生后最快也要等窗口累积，再过 5 分钟才 firing。它不是秒级探针，不能用“刚出问题但告警没响”反推系统正常；看板 30s 刷新也不等于告警实时。突发故障先看 `failure_total` 与 `rounds` 的即时增量，告警用于确认持续性。
-- `cancelled` 只进统一分母 `rounds{cancelled}`，不进降级/回退分子。barge-in 占比高时，降级率会被分母稀释（例如 25% 取消时，4% 的真实降级可能显示为 3.0%），所以判读降级率必须同时看 `rounds` 结局分布；不要用取消率去解释 provider 健康度。
+- 比率类告警全部是 `increase(...[10m])` + `for: 5–10m`，存在 5–10 分钟**结构性滞后**：故障发生后最快也要等窗口累积，再过 `for` 时长才 firing。它不是秒级探针，不能用“刚出问题但告警没响”反推系统正常；看板 30s 刷新也不等于告警实时。突发故障先看 `failure_total` 与 `rounds` 的即时增量，告警用于确认持续性。
+- `cancelled` 只进“取消占比”的分母，不参与 provider 降级率/回退率的分母：取消既不进降级/回退分子，也不进它们的分母。AF-298 之前 barge-in 会稀释降级率（25% 取消时 4% 真实降级显示为 3.0%），现在不会；如果看到降级率与体验失败率不一致，先看 guard 占比（体验失败率含 guard）。
 - `rounds{exhausted}` 已可用真实 smoke 复现：`--fail-primary --fail-backup --fail-primary-mode rate-limit --expect-exhausted --turns 1 --dump-render-metrics`，两候选同时指向本机临时 429 上游，不消耗真实额度。
 - `visitor_render_first_delta_seconds` 量 raw chunk，TTFT 量首个可见闭合句；纯推理流可能零信号（backlog `visitor-first-delta-vs-ttft-semantics`）。
 - 聚合路径（调用出口不支持流式）没有 first-delta / stream_timeout 指标（backlog `visitor-aggregate-path-telemetry`）。
