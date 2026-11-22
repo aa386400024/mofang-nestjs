@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T09:49:12.147Z",
+  "generatedAt": "2026-11-22T09:53:50.691Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-295",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "smoke 双候选故障注入与 exhausted 真实取证（AF-295 重编号）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-295",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T09:49:12.076Z",
-        "leaseDeadline": "2026-11-22T10:19:12.073Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-295.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T09:49:12.076Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-295.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1825,6 +1784,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-511",
+      "recordedAt": "2026-11-22T09:49:12.257Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-295",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-295",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-295.json"
+      ]
+    },
+    {
       "auditId": "AUD-510",
       "recordedAt": "2026-11-22T09:48:49.539Z",
       "actorRef": "orchestrator",
@@ -2047,65 +2021,25 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-496",
-      "recordedAt": "2026-11-22T08:08:47.422Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-288",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-288-doubao-long-soak"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 510,
+    "total": 511,
     "byResult": {
-      "allowed": 510,
+      "allowed": 511,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 509,
+      "TOOL-QUEUE-SCHEDULER": 510,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 510
+      "orchestrator": 511
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-295",
-        "title": "smoke 双候选故障注入与 exhausted 真实取证（AF-295 重编号）",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7198,6 +7132,24 @@
             "ref": "docs/worklog/completed/phase2.5/af280-visitor-v5-parity-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-295",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7212,22 +7164,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-295",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md"
-      },
-      {
-        "taskId": "AF-295",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7235,5 +7174,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 294
+  "archivedCount": 295
 }

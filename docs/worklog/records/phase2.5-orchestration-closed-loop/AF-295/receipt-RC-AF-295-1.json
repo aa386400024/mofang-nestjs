@@ -1,0 +1,190 @@
+{
+  "deliveredAt": "2026-11-22T18:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-295-1",
+    "taskId": "AF-295",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "8fedf002b26c50f277f426c8ba917be5b52e4f0f",
+    "dependsOn": [],
+    "priorTasks": ["AF-292", "AF-294"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-295/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af295-typecheck.log",
+        "data/af294-eslint3.log",
+        "data/af295-smoke-exhausted.log",
+        "data/af295-smoke-allcooldown.log",
+        "data/af295-smoke-fallback.log",
+        "data/af295-lint-full.log",
+        "data/af295-test-full.log",
+        "data/af295-preflight2.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["e9de4d74", "352e76c7"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1s",
+        "note": "[ORCH-GATE] PASS task=AF-295 status=submitted files=3 covered=2；日志 data/af295-preflight2.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "热缓存，约 2s",
+        "note": "0 error；日志 data/af295-typecheck.log"
+      },
+      {
+        "command": "pnpm exec eslint bin/visitor-render-smoke.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 70-100s",
+        "note": "0 error；日志 data/af294-eslint3.log（同一份实现）"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --fail-primary --fail-backup --fail-primary-mode rate-limit --expect-exhausted --turns 1 --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "18ms",
+        "note": "ok=true；rounds{exhausted}=1；两候选 failure rate-limit 各 1；degraded{exhausted}=1；日志 data/af295-smoke-exhausted.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --fail-primary --fail-backup --fail-primary-mode rate-limit --expect-exhausted --turns 4 --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "95ms",
+        "note": "ok=true；前 3 轮试完败、两候选各进 60s 冷却；第 4 轮零尝试直接全损；rounds{exhausted}=4、degraded{exhausted}=4、cooldown_served=2；日志 data/af295-smoke-allcooldown.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --fail-primary --fail-primary-mode rate-limit --expect-fallback --turns 1 --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "回归 ok=true；providerHint=minimax、rounds{success}=1、degraded 空；日志 data/af295-smoke-fallback.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "AF-280/AF-281 已并入后转绿；日志 data/af295-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "25.09s",
+        "note": "279 passed / 1 skipped files，4357 passed / 4 skipped tests，0 failed；日志 data/af295-test-full.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "原拟 AF-294 与并行 V5 任务撞号；对方先合入 integrate 8fedf002，本单重编号为 AF-295，并将实现补丁 cherry-pick 到 8fedf002 之上。真实 smoke 的 429 来自本机临时上游，不消耗真实额度。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-295 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "closed-enum", "result": "pass", "note": "故障模式与 outcome 均为封闭枚举"},
+      {"item": "privacy", "result": "pass", "note": "日志与指标不含 prompt、台词、会话内容"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=8fedf002 为 integrate 当前 HEAD"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-fallback-rate-attempt-vs-success",
+        "impact": "fallback_total 记切换尝试；exhausted 轮也会 +1，回退率 100% 不代表回退成功",
+        "suggestion": "拆出成功回退率或在告警/Runbook 中与 rounds outcome 联读"
+      },
+      {
+        "id": "visitor-cooldown-served-per-round",
+        "impact": "cooldown_served_total 按无候选 next() 次数计数，含本轮试完后的再次 next；4 轮全损实测为 2，不是整轮数",
+        "suggestion": "改为每轮最多一次，或改名为 no_candidate_next_total 并更新帮助文本"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "exhausted 轮 fallback_total 为空",
+        "reality": "实测 fallback_total=1：先发生 doubao→minimax 切换尝试，再由 minimax 失败收尾",
+        "action": "按实际语义记录，Runbook 写明回退率是尝试率",
+        "why": "fallback_total 的既有定义是切换次数，不是成功回退次数"
+      },
+      {
+        "taskSays": "全损轮 rounds 与 cooldown_served 同时 +1",
+        "reality": "cooldown_served=2，因第 3 轮试完后的再次 next 也自增一次",
+        "action": "记录口径发现并拟登记 backlog",
+        "why": "现有 runtime 统计的是无候选 next 次数，不是整轮全损次数"
+      },
+      {
+        "taskSays": "任务号 AF-294",
+        "reality": "AF-294 被并行 V5 任务占用并先合入 integrate",
+        "action": "全单重编号为 AF-295，补丁 cherry-pick 到 8fedf002",
+        "why": "避免与已合入记录包冲突，保持任务号唯一"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "双候选故障注入与 exhausted 真实取证完成：单轮试完败 rounds{exhausted}=1，四轮全损 rounds{exhausted}=4 且第 4 轮零尝试，既有单候选回退 smoke 回归通过；全量 lint 0、全量测试 0 failed，内核边界通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
