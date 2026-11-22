@@ -1,0 +1,152 @@
+{
+  "deliveredAt": "2026-11-22T10:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-266-1",
+    "taskId": "AF-266",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "db6783491a0141902d7f486df101db59bc91a78b",
+    "dependsOn": ["AF-265"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-266/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af266-model-cost-pricing-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af266-model-cost-pricing-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-266/task-sheet.md",
+        "test/engine-adapters/af266-model-cost-pricing.spec.ts"
+      ],
+      "modified": [
+        "src/engine-adapters/observability/session-cost.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af266-model-cost-pricing.spec.ts test/engine-adapters/af261-provider-cost.spec.ts test/engine-adapters/wp24-session-cost-log.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "3 files / 29 tests 全通过（AF-266 5 + AF-261 6 + WP24 18）；模型价、provider 价、回落价与分桶守恒均覆盖；日志 data/af266-targeted.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af266-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af266-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 262,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "262 files passed + 1 skipped；4269 tests passed + 4 skipped；日志 data/af266-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-266-model-cost-pricing 自 integrate db678349 切出。OFFICIAL_MODEL_PRICING 只收录火山方舟官方页已核对的 doubao/doubao-seed-character-260628（0.0008/0.002 元/千 tokens，2026-11-22 查）；未知模型继续 provider/全局回落。未暂存 web/orchestration/data.js 与 data/ 取证日志。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-266"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "AF-261 provider 分账与 WP24 成本日志 18 例均无回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，仅改 observability 与测试"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 db678349；依赖 AF-265 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-model-price-env-wiring",
+        "impact": "模型级 env 覆盖键未装配进 engine.module，部署方暂无按账单纠偏入口"
+      },
+      {
+        "id": "minimax-m3-official-pricing",
+        "impact": "MiniMax M3 官方单价未核对，跨厂商成本对比有一侧仍是工程默认价"
+      },
+      {
+        "id": "provider-breakdown-consumers",
+        "impact": "auto-practice 落库与管理后台成本看板尚未消费 provider/model 维度明细"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "目标 5：env 支持 LLM_PRICE_*_MODEL_* 一类模型覆盖键",
+        "reality": "装配新 env 键后 WP25 要求 .env.example 声明，本任务 scope 不含 .env.example，暂存会被 preflight 判越界",
+        "action": "保留 resolveSessionCostPricingTable 的 models 入参与单测，engine.module 暂不装配；另立任务补 env 装配与模板声明",
+        "why": "保证本任务单能过闸门且不越界；参数能力与内置官方价已经生效，缺的只是部署侧入口"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "角色模型桶按 0.0008/0.002 计价并被标为 model，未知模型回落 provider 价，跨 provider 总价等于明细之和；定向 29 例、lint、CI 同口径 tsc、全量 4269 例全绿；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
