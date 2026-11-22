@@ -1,0 +1,176 @@
+{
+  "deliveredAt": "2026-11-22T08:50:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-259-1",
+    "taskId": "AF-259",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b13f4e1b63d2b4bac572780bbafc2c76332e996a",
+    "dependsOn": ["AF-258"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af259-render-router-doubao-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-259/manifest.json"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["16353120"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af258-llm-service-chat-caller.spec.ts test/engine-adapters/af252-visitor-render-provider.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "10/10 通过：AF-258 4 + AF-252 6；日志 data/af259-vitest.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；日志 data/af259-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af259-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 260,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "首次全量 1 例无关 waitFor 超时（admin-debug 标题生成），单跑该文件 28/28 通过后全量重跑 260 files passed + 1 skipped / 4258 tests passed + 4 skipped；日志 data/af259-test-rerun.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --max-tokens 160 --timeout-ms 45000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "781ms",
+        "note": "callerPath=router；providerHint=doubao；model=doubao-seed-character-260628；chars=22；usage=745/17/762；fallbackUsed=false；degraded=false；guardLevel=pass；日志 data/af259-smoke-gate.log"
+      },
+      {
+        "command": "git diff HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-259-render-router-doubao-smoke 自 integrate b13f4e1b 切出；router 路径真实构造 ProviderRegistryService + DoubaoChatProvider + LlmRouterService + RouterChatCaller，并在进程内设 LLM_DEFAULT_CHAT_PROVIDER=doubao；smoke 只在进程内覆写 env，不写回 .env；未打印 key 与完整 prompt；web/orchestration/data.js 并行本地改动未暂存。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-259"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "smoke-evidence",
+        "result": "pass",
+        "note": "真实生产 RouterChatCaller 路径命中主候选、文本非空、usage 非全 0、无回退无降级"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      },
+      {
+        "item": "env-boundary",
+        "result": "pass",
+        "note": "未改生产 .env；只在 smoke 进程内覆写开关"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 b13f4e1b；依赖 AF-258 已归档"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-per-provider",
+        "impact": "usage 已回传，但 session cost 仍按 token 汇总；豆包与 MiniMax 单价不同，需按 provider 分账"
+      },
+      {
+        "id": "visitor-render-multi-turn-smoke",
+        "impact": "只验证单轮最小 RenderSpec；多轮、长对话、并发、429/5xx、超时与重试行为尚未验证"
+      },
+      {
+        "id": "visitor-render-router-retry-smoke",
+        "impact": "只覆盖路由成功分支，未覆盖主候选失败后切 MiniMax 回退的真实网络分支"
+      }
+    ],
+    "openQuestions": [
+      "生产 RouterChatCaller 回退分支是否需要单独的真实失败注入 smoke，还是与多轮压测合并验证"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "--caller router|llm-service，默认 router",
+        "reality": "已实现；router 路径当前仅支持 --provider doubao",
+        "action": "在 CLI 中加前置校验，并在记录中说明",
+        "why": "本任务只注册豆包 provider；允许 minimax 会调到未注册 provider，产生假路由结论"
+      },
+      {
+        "taskSays": "router 路径用真实 ProviderRegistryService + DoubaoChatProvider + LlmRouterService + RouterChatCaller",
+        "reality": "完全按生产构造链装配，LLM_DEFAULT_CHAT_PROVIDER 在进程内设为 doubao",
+        "action": "输出新增 callerPath 字段，区分两条链路",
+        "why": "防止把 AF-258 的 llm-service 结果误认为生产 router 结果"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "scope 与提交事实一致；六组机读字段齐全；定向 10 例、lint、CI 同口径 tsc、全量 4258 例全绿；真实生产 RouterChatCaller 豆包 smoke 命中主候选、文本非空、usage 非全 0、无回退无降级；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
