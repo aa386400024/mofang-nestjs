@@ -2,6 +2,7 @@
 //   职责: 把 provider/model/温度/thinking 组合成评分端点，并执行单次评分员调用。
 //   边界: 只做离线评分；不启动服务、不写库；日志不输出台词原文。
 
+import { buildLiteRaterPrompt, type LitePromptVariant } from './realism-rater-lite-prompt.js';
 import {
   buildRealismRaterCompactPrompt,
   buildRealismRaterPrompt,
@@ -27,6 +28,8 @@ export interface RaterSpec {
   readonly thinking?: RaterThinkingMode;
   /** MiniMax 缺省 low；豆包关闭思考时不传，避免与 thinking 冲突。 */
   readonly reasoningEffort?: ChatReasoningEffort;
+  /** 评分 prompt 变体；缺省 shared。Lite 实验显式传 lite-v1 / lite-v2。 */
+  readonly promptVariant?: 'shared' | LitePromptVariant;
 }
 
 export interface RaterResolvedConfig {
@@ -40,6 +43,7 @@ export interface RaterResolvedConfig {
   readonly thinking: RaterThinkingMode;
   readonly reasoningEffort?: ChatReasoningEffort;
   readonly modelKwargs?: Readonly<Record<string, unknown>>;
+  readonly promptVariant: 'shared' | LitePromptVariant;
 }
 
 export interface RaterEndpoint extends RaterResolvedConfig {
@@ -81,6 +85,10 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
   if (spec.provider !== 'doubao' && thinking !== 'auto') {
     throw new Error(`thinking=${thinking} 仅支持 doubao，${spec.provider} 不支持`);
   }
+  const promptVariant = spec.promptVariant ?? 'shared';
+  if (promptVariant !== 'shared' && spec.provider !== 'doubao') {
+    throw new Error(`${promptVariant} prompt 仅支持 doubao，${spec.provider} 不支持`);
+  }
 
   let model: string;
   let baseUrl: string | undefined;
@@ -115,6 +123,7 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
     // 豆包关闭思考时不再下发 reasoning_effort；MiniMax 保持既有 low 以压首字延迟。
     ...(thinking === 'disabled' ? {} : { reasoningEffort: spec.reasoningEffort ?? 'low' }),
     ...(modelKwargs === undefined ? {} : { modelKwargs }),
+    promptVariant,
   };
 }
 
@@ -171,7 +180,7 @@ async function callOnce(input: {
   const content = response.content;
   const tags = [...content.matchAll(/<([a-zA-Z\u4E00-\u9FA5][a-zA-Z0-9_:.\u4E00-\u9FA5-]{0,20})>/g)].map((match) => match[1]).slice(0, 6);
   console.log(
-    `[CALL] provider=${providerLabel(input.endpoint.provider)} model=${input.endpoint.model} finish=${response.finishReason} chars=${content.length} promptTokens=${response.usage.promptTokens} completionTokens=${response.usage.completionTokens} reasoningTokens=${response.usage.reasoningTokens ?? 0} tags=${JSON.stringify(tags)}`,
+    `[CALL] provider=${providerLabel(input.endpoint.provider)} model=${input.endpoint.model} promptVariant=${input.endpoint.promptVariant} finish=${response.finishReason} chars=${content.length} promptTokens=${response.usage.promptTokens} completionTokens=${response.usage.completionTokens} reasoningTokens=${response.usage.reasoningTokens ?? 0} tags=${JSON.stringify(tags)}`,
   );
   return {
     content,
@@ -208,13 +217,20 @@ export async function ratePacketWithRater(input: {
   readonly maxParseRetries: number;
   readonly maxOutputTokens: number;
 }): Promise<RaterAttemptResult> {
-  const prompt = buildRealismRaterPrompt(input.packet, input.raterId);
+  const liteVariant = input.endpoint.promptVariant === 'shared' ? null : input.endpoint.promptVariant;
+  const prompt =
+    liteVariant === null
+      ? buildRealismRaterPrompt(input.packet, input.raterId)
+      : buildLiteRaterPrompt(input.packet, input.raterId, liteVariant);
   const calls: RaterCallResult[] = [];
   let lastError = '';
   for (let attempt = 0; attempt <= input.maxParseRetries; attempt += 1) {
-    const activePrompt = attempt === 0 ? prompt : buildRealismRaterCompactPrompt(input.packet, input.raterId, lastError);
+    const activePrompt =
+      attempt === 0 || liteVariant !== null ? prompt : buildRealismRaterCompactPrompt(input.packet, input.raterId, lastError);
     if (attempt > 0) {
-      console.warn(`[PROTOCOL] ${input.packet.packetId} ${input.raterId} 第 ${attempt + 1} 次切 compact 行协议，原因=${lastError}`);
+      console.warn(
+        `[PROTOCOL] ${input.packet.packetId} ${input.raterId} 第 ${attempt + 1} 次${liteVariant === null ? '切 compact 行协议' : `沿用 ${liteVariant} prompt 重试`}，原因=${lastError}`,
+      );
     }
     const retrySuffix =
       attempt === 0
