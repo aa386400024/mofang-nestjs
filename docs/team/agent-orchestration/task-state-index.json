@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1322,
+    "lastEventSeq": 1325,
     "rebuiltAt": null
   },
   "tasks": [
@@ -136,6 +136,100 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-292",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T09:07:03.900Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始实现轮次分母与鉴权告警标签修正"
+        },
+        {
+          "at": "2026-11-22T09:07:23.349Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "渲染轮次分母与鉴权告警标签修正",
+      "type": "fix",
+      "baselineRef": "2b8a1cf6eb0fc2ca40ee528e9b159cf1a1b139f6",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-291"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T09:07:03.530Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/engine-adapters/rendering/render-telemetry.port.ts",
+          "src/engine-adapters/rendering/llm-render.adapter.ts",
+          "src/engine-adapters/rendering/render-metrics.telemetry.ts",
+          "src/shared/infra/metrics/metrics.service.ts",
+          "docker/prometheus/alerts.yml",
+          "docker/grafana/dashboards/mofang-overview.json",
+          "docs/runbooks/render-telemetry-alerting.md",
+          "test/shared/infra/metrics/render-telemetry-metrics.spec.ts",
+          "test/config/af283-render-alerting.spec.ts",
+          "test/engine-adapters/af292-render-round-outcome.spec.ts",
+          "bin/visitor-render-smoke.ts",
+          "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/"
+        ],
+        "modules": [],
+        "interfaces": [
+          "RenderTelemetryPort",
+          "MetricsService"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-292/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm typecheck",
+          "check": "TypeScript 全量类型检查",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec vitest run test/engine-adapters/af292-render-round-outcome.spec.ts test/config/af283-render-alerting.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts",
+          "check": "本单定向测试",
+          "threshold": "全绿"
+        }
+      ],
+      "successCriteria": [
+        "轮次级 visitor_render_rounds_total{outcome} 在每个 render/streamRender 轮次恰好记一次，覆盖 success/degrade/guard/exhausted/cancelled。",
+        "降级率与回退率的分母改用 rounds_total，降级分子排除 cause=guard，避免守卫正确行为指向 provider。",
+        "VisitorRenderAuthFailure 表达式带 by (candidate)，annotation 的 $labels.candidate 不再为空。",
+        "告警静态守卫能机械校验 $labels.X 必须出现在 expr 的 by(...) 中。",
+        "不新增业务语义，不改 engine-core，不碰 AF-280/AF-281 未跟踪半成品。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "AF-292 交付记录",
+          "path": "docs/worklog/completed/phase2.5/af292-render-round-denominator-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-22T09:07:03.899Z"
     }
   ],
   "archivedTasks": [
