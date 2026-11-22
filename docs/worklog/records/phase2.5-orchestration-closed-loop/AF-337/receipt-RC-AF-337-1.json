@@ -1,0 +1,255 @@
+{
+  "deliveredAt": "2026-11-23T05:16:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-337-1",
+    "taskId": "AF-337",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "c1b119d674786cd520381acbc46bf0cee2fbe3d0",
+    "dependsOn": ["AF-336"],
+    "priorTasks": ["AF-336", "AF-335", "AF-334", "AF-333"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-337/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af337-realism-paired-arm-extension-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af337-realism-paired-arm-extension-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["df7c7bb9f58dba953375f586a6fd9a7b7bcd0ed2"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af337-realism-paired-arm-extension-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af337-realism-paired-arm-extension-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-337/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-337/task-sheet.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "8 × pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --turn-set long --arms \"full,minimal\" --reps 1 --turns 12 --out .../reps/rep-N.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "约 260s",
+        "note": "8 次独立重复，每次 2 人设 × 2 分支 × 12 轮 = 48 次调用；有效 384 次、0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-baseline-variance.ts --dir .../reps --out .../summary.json --arms \"full,minimal\" --personas \"anxious,guarded\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.3s",
+        "note": "新 8 次 full：anxious 中位 7.680962、min 5.685619；guarded 中位 7.034976、min 5.607477"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-gate-sensitivity.ts --summaries \"af333,af334,af336,af337 summary.json\" --out .../sensitivity/report.json --personas \"anxious,guarded\" --arms \"full,minimal,tightened\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.3s",
+        "note": "off 16 / full 16 / minimal 16 / tightened 4；full 仍可分：anxious midpoint 4.918281、guarded 4.943817；minimal/tightened 不可分"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 295,
+        "tests": 4521,
+        "machine": "同上",
+        "wallClock": "18.61s",
+        "note": "295 文件通过 / 1 跳过（296）；4521 例通过 / 4 跳过（4525）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-337 status=submitted files=8"
+      }
+    ],
+    "reproNotes": "复现顺序：8 次执行 AF-333 CLI 的 long/full+minimal（--arms \"full,minimal\" --reps 1 --turns 12，分别输出 rep-1..8.json）；汇总新 8 份；用 AF-335 CLI 读 af333/af334/af336/af337 四份 summary，得到 off 16 / full 16 / minimal 16 / tightened 4 的分离区间；最后跑 typecheck、lint、全量 4521 例与 engine-core 零 diff。注意 CLI --reps 上限 5、--out 只接受文件路径，不可传目录。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-337 经 CLI register / promote / run-once / branch create；分支名与提交标题只含一个任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "reuse-only",
+        "result": "pass",
+        "note": "不新增业务代码，复用 AF-333 CLI、AF-332 分布 CLI、AF-335 敏感性 CLI"
+      },
+      {
+        "item": "waste-accounted",
+        "result": "pass",
+        "note": "首次 --reps 8 --out 目录完成 240 次调用后 EISDIR，未留存样本；报告与回执均登记为无效消耗"
+      },
+      {
+        "item": "no-gate-change",
+        "result": "pass",
+        "note": "未改 humanization-v1 阈值、未改生产 prompt、未切 RENDER_REALISM_MODE"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "仓库报告只含数字；原始 JSON 留 gitignored 取证目录"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "16+16 合成样本工程观测；无真实咨询语料、无真人督导；不宣称临床真人度、疗效或阈值稳定性"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef c1b119d6 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 df7c7bb9 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF337-B1",
+        "impact": "16 对 16 下 full 仍完全可分，但空档只剩 1.33–1.53：anxious [4.150943, 5.685619)、guarded [4.280156, 5.607477)。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF337-B2",
+        "impact": "新 8 个 full 的下界比旧 8 个更低（焦虑 5.785124→5.685619、回避 6.060606→5.607477），full 尾部也在波动。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF337-B3",
+        "impact": "统一 full-only 报警线收窄为 [4.280156, 5.607477)、中点 4.943817；16 个 minimal 全部低于线，说明候选全落 off 侧。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF337-B4",
+        "impact": "minimal 16 与 off 16 完全重叠，tightened 4 也重叠；不可分，候选只能 allowlist。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF337-B5",
+        "impact": "首次 --reps 8 --out 目录浪费 240 次调用；CLI 的 --reps 上限 5、--out 只接受文件，应在运行手册或 CLI 帮助中显式标注。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF337-B6",
+        "impact": "未做同会话配对采样（每对同一时间窗），只是同协议独立重复；空档不是置信区间。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "full-only 报警线是否以 4.943817 落地，且只报警不认证",
+      "下一轮是否做同会话配对采样，而不是继续独立重复",
+      "是否按人设分别设线（anxious 4.918281、guarded 4.943817）",
+      "minimal/tightened 是否只走 allowlist"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "8 次 12 轮 full+minimal，384 调用",
+        "reality": "有效 384 调用，0 失败；另 240 次首次无效调用",
+        "action": "已如实登记",
+        "why": "首次 --reps 8 --out 目录写法错误，未留存样本"
+      },
+      {
+        "taskSays": "合并 full/minimal 各 16",
+        "reality": "各 16",
+        "action": "按任务单交付",
+        "why": "旧 8 + 新 8"
+      },
+      {
+        "taskSays": "不改生产 / 不调阈值",
+        "reality": "未改生产、humanization-v1、RENDER_REALISM_MODE",
+        "action": "保持生产 off",
+        "why": "本单只扩样复核"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-337 有效新增 8 次 full+minimal 共 384 次调用、0 失败，把 full/minimal 各扩到 16；full 与 off 仍完全可分（anxious midpoint 4.918281、guarded 4.943817），空档收窄到 1.33–1.53；minimal 16 与 tightened 4 仍不可分。typecheck、lint、全量 4521 例、engine-core 零 diff 全部通过；未改生产 prompt、未调阈值、未把工程数字包装成临床有效性。首次 240 次无效调用已如实登记。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本轮真实消耗 624 次调用：有效 384、无效 240。"
+  }
+}
