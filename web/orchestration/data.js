@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T08:01:44.402Z",
+  "generatedAt": "2026-11-22T08:08:37.325Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,6 +49,46 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-288",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "verification",
+      "title": "豆包主候选 20 轮长对练 soak 与 8 路并发真实 smoke",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-288",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T08:08:37.257Z",
+        "leaseDeadline": "2026-11-22T08:38:37.252Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-288.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T08:08:37.257Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-288.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1826,6 +1866,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-494",
+      "recordedAt": "2026-11-22T08:08:20.142Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-288",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-493",
       "recordedAt": "2026-11-22T07:53:33.425Z",
       "actorRef": "orchestrator",
@@ -2042,37 +2099,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-283-render-alerting-runbook"
       ]
-    },
-    {
-      "auditId": "AUD-479",
-      "recordedAt": "2026-11-22T06:50:26.517Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-283",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 493,
+    "total": 494,
     "byResult": {
-      "allowed": 493,
+      "allowed": 494,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 492,
+      "TOOL-QUEUE-SCHEDULER": 493,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 493
+      "orchestrator": 494
     }
   },
   "protocolView": {
@@ -2101,6 +2141,34 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-288",
+        "title": "豆包主候选 20 轮长对练 soak 与 8 路并发真实 smoke",
+        "type": "verification",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-285",
+          "AF-286",
+          "AF-287"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md"
           }
         ]
       }
@@ -7095,6 +7163,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-288",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-288/task-sheet.md"
+      },
+      {
+        "taskId": "AF-288",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af288-doubao-long-soak-concurrency-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
