@@ -21,7 +21,9 @@ import { buildEngineRenderPort, RenderConfigFactory } from '../src/engine-adapte
 import { RouterChatCaller } from '../src/engine-adapters/wiring/router-chat-caller.js';
 import type { RenderContextTurn, RenderResult, RenderSpec } from '../src/engine-core/index.js';
 import { AIProviderId, LLMCapability } from '../src/llm/common/enums/llm.enums.js';
+import type { ChatCompletionRequest } from '../src/llm/common/interfaces/chat-provider.interface.js';
 import { DoubaoChatProvider } from '../src/llm/providers/doubao.provider.js';
+import { MinimaxChatProvider } from '../src/llm/providers/minimax.provider.js';
 import { LlmRouterService } from '../src/llm/registry/llm-router.service.js';
 import { ProviderRegistryService } from '../src/llm/registry/provider-registry.service.js';
 
@@ -56,6 +58,10 @@ function numberArg(name: string, fallback: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) fail(`${name} 必须是正数`);
   return parsed;
+}
+
+function hasFlag(name: string): boolean {
+  return process.argv.includes(name);
 }
 
 function loadEnvOnce(): void {
@@ -127,11 +133,13 @@ interface RunTurnOptions {
   turns: number;
   maxTokens: number;
   provider: string;
+  expectFallback: boolean;
+  expectDegraded: boolean;
 }
 
 /** 跑一轮真实渲染并校验边界；任一条不满足直接非 0 退出。 */
 async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary; text: string }> {
-  const { port, counselorText, history, turn, turns, maxTokens, provider } = options;
+  const { port, counselorText, history, turn, turns, maxTokens, provider, expectFallback, expectDegraded } = options;
   if (port.streamRender === undefined) fail('渲染端口没有 streamRender，无法做端到端 smoke');
   const startedAt = Date.now();
   let firstDeltaAt: number | undefined;
@@ -148,14 +156,30 @@ async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary;
   if (outcome.text.trim().length === 0) {
     fail(`${turnLabel}渲染输出为空（degraded=${String(outcome.degraded)} provider=${outcome.providerHint ?? '-'}）`, 2);
   }
-  if (outcome.degraded) {
+  if (outcome.degraded && !expectDegraded) {
     fail(`${turnLabel}走了降级路径：provider=${outcome.providerHint ?? '-'} finishReason=${outcome.finishReason ?? '-'}`, 2);
   }
-  if (provider === 'doubao' && outcome.providerHint !== 'doubao') {
-    fail(`${turnLabel}实际候选不是豆包：providerHint=${outcome.providerHint ?? '-'}`, 2);
-  }
-  if (outcome.fallbackUsed) {
-    fail(`${turnLabel}使用了备候选回退：provider=${outcome.providerHint ?? '-'}`, 2);
+  if (expectDegraded) {
+    if (!outcome.degraded || outcome.providerHint !== 'degraded') {
+      fail(
+        `${turnLabel}期望显式降级（provider=degraded），实际 providerHint=${outcome.providerHint ?? '-'} degraded=${String(outcome.degraded)}`,
+        2,
+      );
+    }
+  } else if (expectFallback) {
+    if (outcome.providerHint !== 'minimax') {
+      fail(`${turnLabel}期望回退到 MiniMax，实际 providerHint=${outcome.providerHint ?? '-'}`, 2);
+    }
+    if (!outcome.fallbackUsed) {
+      fail(`${turnLabel}期望 fallbackUsed=true，实际 false（主候选失败未被识别为回退）`, 2);
+    }
+  } else {
+    if (provider === 'doubao' && outcome.providerHint !== 'doubao') {
+      fail(`${turnLabel}实际候选不是豆包：providerHint=${outcome.providerHint ?? '-'}`, 2);
+    }
+    if (outcome.fallbackUsed) {
+      fail(`${turnLabel}使用了备候选回退：provider=${outcome.providerHint ?? '-'}`, 2);
+    }
   }
 
   const summary: TurnSummary = {
@@ -177,6 +201,107 @@ async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary;
   return { summary, text: outcome.text };
 }
 
+interface FaultFlags {
+  readonly failPrimary: boolean;
+  readonly mode: 'auth' | 'network';
+  readonly expectFallback: boolean;
+  readonly expectDegraded: boolean;
+}
+
+/** 解析并校验故障注入开关；语义互斥的组合同步拒绝，避免 smoke 自相矛盾。 */
+function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
+  const failPrimary = hasFlag('--fail-primary');
+  const expectFallback = hasFlag('--expect-fallback');
+  const expectDegraded = hasFlag('--expect-degraded');
+  const rawMode = (arg('--fail-primary-mode', 'auth') ?? 'auth').toLowerCase();
+  if (rawMode !== 'auth' && rawMode !== 'network') fail('--fail-primary-mode 只允许 auth / network');
+  const mode = rawMode;
+
+  if ((expectFallback || expectDegraded) && (callerPath !== 'router' || provider !== 'doubao')) {
+    fail('--expect-fallback / --expect-degraded 只适用于 --caller router --provider doubao');
+  }
+  if (expectFallback && expectDegraded) fail('--expect-fallback 与 --expect-degraded 不能同时使用');
+  if (failPrimary && !expectFallback && !expectDegraded) {
+    fail('--fail-primary 必须配合 --expect-fallback 或 --expect-degraded');
+  }
+  if (mode === 'auth' && expectFallback) {
+    fail('鉴权失败按生产策略直接降级、不切候选；验证真实回退请用 --fail-primary-mode network');
+  }
+  if (mode === 'network' && expectDegraded) {
+    fail('传输失败应触发候选回退；验证鉴权降级请用 --fail-primary-mode auth');
+  }
+  return { failPrimary, mode, expectFallback, expectDegraded };
+}
+
+function envText(key: string): string | undefined {
+  return process.env[key];
+}
+
+/** 构造生产路由链：豆包主候选 + MiniMax 备候选，两者都真实注册。 */
+function buildRouterChain(
+  config: ConfigService,
+  faultMode: 'auth' | 'network',
+  failPrimary: boolean,
+): { router: LlmRouterService; caller: ChatCaller } {
+  process.env['LLM_DEFAULT_CHAT_PROVIDER'] = 'doubao';
+  const configuredModel = envText('LLM_DOUBAO_MODEL')?.trim();
+  const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
+  const providerClient = new DoubaoChatProvider({
+    defaultChatModel: doubaoModel,
+    ...(failPrimary && faultMode === 'network' ? { baseUrl: 'http://127.0.0.1:9/v1', maxRetries: 0, requestTimeoutMs: 5000 } : {}),
+  });
+  const registry = new ProviderRegistryService();
+  registry.registerChat(providerClient, {
+    id: AIProviderId.DOUBAO,
+    displayName: '豆包 smoke',
+    baseUrl: providerClient.baseUrl,
+    // router 的 apiKey 由 defaultEnvApiKeyResolver 从 env 读取，这里的占位值不参与请求。
+    apiKey: '',
+    capabilities: [LLMCapability.CHAT],
+    defaultModels: { [LLMCapability.CHAT]: doubaoModel },
+    defaultChatModel: doubaoModel,
+    enabled: true,
+  });
+  // 备候选必须真实注册，否则 router 会按"未注册 → 回落默认"把 minimax 请求转回豆包，
+  // 回退 smoke 就只能看到一次假回退。
+  const minimaxModel = process.env.MINIMAX_LLM_MODEL?.trim() ?? 'MiniMax-M3';
+  const minimaxClient = new MinimaxChatProvider({
+    baseUrl: process.env.MINIMAX_BASE_URL,
+    defaultChatModel: minimaxModel,
+  });
+  registry.registerChat(minimaxClient, {
+    id: AIProviderId.MINIMAX,
+    displayName: 'MiniMax smoke',
+    baseUrl: minimaxClient.baseUrl,
+    apiKey: '',
+    capabilities: [LLMCapability.CHAT],
+    defaultModels: { [LLMCapability.CHAT]: minimaxModel },
+    defaultChatModel: minimaxModel,
+    enabled: true,
+  });
+  const router = new LlmRouterService(registry, config);
+  return { router, caller: new RouterChatCaller(router) };
+}
+
+/** 真实探一次主候选，拿到故障摘要；随后的渲染轮次复用同一故障注入。 */
+async function probePrimaryFailure(router: LlmRouterService, probeModel: string): Promise<{ ok: false; model: string; error: string }> {
+  const probeRequest: ChatCompletionRequest = {
+    model: probeModel,
+    messages: [{ role: 'user', content: 'ping' }],
+    maxCompletionTokens: 8,
+  };
+  try {
+    await router.chat(probeRequest, { providerId: AIProviderId.DOUBAO });
+    fail('预期主候选失败，但请求成功了：故障注入未生效', 3);
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      model: probeRequest.model,
+      error: truncate(error instanceof Error ? error.message : String(error), 200),
+    };
+  }
+}
+
 async function main(): Promise<void> {
   loadEnvOnce();
 
@@ -189,6 +314,7 @@ async function main(): Promise<void> {
   const timeoutMs = numberArg('--timeout-ms', DEFAULT_TIMEOUT_MS);
   const turns = Math.floor(numberArg('--turns', DEFAULT_TURNS));
   const promptOverride = arg('--prompt');
+  const faults = resolveFaultFlags(callerPath, provider);
 
   // smoke 显式模拟生产开关；不写回 .env，也不改全局 ENGINE_RENDER_PRIMARY_PROVIDER。
   process.env['VISITOR_LLM_PROVIDER'] = provider;
@@ -200,6 +326,8 @@ async function main(): Promise<void> {
   envRequired('MINIMAX_BASE_URL');
   envRequired('MINIMAX_LLM_MODEL');
   if (provider === 'doubao') envRequired('LLM_DOUBAO_API_KEY');
+  // 只在本进程注入故障，不写 .env、不打印原 key：auth 用无效 key，network 用不可达基址。
+  if (faults.failPrimary && faults.mode === 'auth') process.env['LLM_DOUBAO_API_KEY'] = 'af264-invalid-key-for-smoke';
 
   const config = {
     get: <T>(key: string): T | undefined => process.env[key] as T | undefined,
@@ -207,27 +335,11 @@ async function main(): Promise<void> {
 
   let router: LlmRouterService;
   let caller: ChatCaller;
+  let doubaoModelForProbe: string | null = null;
 
   if (callerPath === 'router') {
-    // 生产路由链：ProviderRegistry → LlmRouterService → RouterChatCaller。
-    process.env['LLM_DEFAULT_CHAT_PROVIDER'] = 'doubao';
-    const configuredModel = process.env['LLM_DOUBAO_MODEL']?.trim();
-    const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
-    const providerClient = new DoubaoChatProvider({ defaultChatModel: doubaoModel });
-    const registry = new ProviderRegistryService();
-    registry.registerChat(providerClient, {
-      id: AIProviderId.DOUBAO,
-      displayName: '豆包 smoke',
-      baseUrl: providerClient.baseUrl,
-      // router 的 apiKey 由 defaultEnvApiKeyResolver 从 env 读取，这里的占位值不参与请求。
-      apiKey: '',
-      capabilities: [LLMCapability.CHAT],
-      defaultModels: { [LLMCapability.CHAT]: doubaoModel },
-      defaultChatModel: doubaoModel,
-      enabled: true,
-    });
-    router = new LlmRouterService(registry, config);
-    caller = new RouterChatCaller(router);
+    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary));
+    doubaoModelForProbe = envText('LLM_DOUBAO_MODEL')?.trim() ?? null;
   } else {
     const llm = new LlmService(config);
     router = {
@@ -247,6 +359,16 @@ async function main(): Promise<void> {
   if (provider === 'doubao' && renderConfig.candidates[0]?.id !== 'doubao') {
     fail(`候选装配异常：VISITOR_LLM_PROVIDER=doubao，但主候选=${renderConfig.candidates[0]?.id ?? '(空)'}`);
   }
+  if (faults.expectFallback && renderConfig.candidates[1]?.id !== 'minimax') {
+    fail(`回退 smoke 需要备候选 minimax，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
+  }
+
+  const primaryProbe = faults.failPrimary
+    ? await probePrimaryFailure(
+        router,
+        renderConfig.candidates[0]?.overrides?.chat?.model ?? doubaoModelForProbe ?? 'doubao-seed-character-260628',
+      )
+    : null;
 
   const port = buildEngineRenderPort(caller, renderConfig);
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
@@ -268,6 +390,8 @@ async function main(): Promise<void> {
       turns,
       maxTokens,
       provider,
+      expectFallback: faults.expectFallback,
+      expectDegraded: faults.expectDegraded,
     });
     const summary = result.summary;
     totalPromptTokens += summary.usage?.promptTokens ?? 0;
@@ -285,6 +409,11 @@ async function main(): Promise<void> {
         ok: true,
         callerPath,
         requestedProvider: provider,
+        failPrimary: faults.failPrimary,
+        failPrimaryMode: faults.failPrimary ? faults.mode : null,
+        expectFallback: faults.expectFallback,
+        expectDegraded: faults.expectDegraded,
+        primaryProbe,
         turns,
         configuredCandidates: renderConfig.candidates.map((candidate) => ({
           id: candidate.id,
