@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T15:59:01.280Z",
+  "generatedAt": "2026-11-22T16:00:37.590Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-317",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "verification",
-      "title": "AF-316 验收回执对齐与受保护 PR 发布",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-317/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af317-af316-receipt-alignment-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-317",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T15:59:01.199Z",
-        "leaseDeadline": "2026-11-22T16:29:01.196Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-317.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T15:59:01.199Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-317.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1826,6 +1785,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-034",
+      "recordedAt": "2026-11-22T15:59:01.347Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-317",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-317",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-317.json"
+      ]
+    },
+    {
       "auditId": "AUD-033",
       "recordedAt": "2026-11-22T15:58:33.456Z",
       "actorRef": "orchestrator",
@@ -2046,67 +2020,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-311.json"
       ]
-    },
-    {
-      "auditId": "AUD-019",
-      "recordedAt": "2026-11-22T11:10:58.666Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-311",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 33,
+    "total": 34,
     "byResult": {
-      "allowed": 33,
+      "allowed": 34,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 32,
+      "TOOL-QUEUE-SCHEDULER": 33,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 33
+      "orchestrator": 34
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-317",
-        "title": "AF-316 验收回执对齐与受保护 PR 发布",
-        "type": "verification",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-317/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af317-af316-receipt-alignment-2026-11-22.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7451,6 +7383,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af316-bdi-decision-sensitivity-rework-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-317",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-317/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af317-af316-receipt-alignment-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7465,22 +7415,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-317",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-317/task-sheet.md"
-      },
-      {
-        "taskId": "AF-317",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af317-af316-receipt-alignment-2026-11-22.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7488,5 +7425,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 308
+  "archivedCount": 309
 };
