@@ -209,7 +209,7 @@ jobs:
       - name: Typecheck
         run: |
           mkdir -p node_modules/.tmp
-          pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo
+          pnpm typecheck
 
   # ============================================================
   # 2. Unit tests (TD-11 · T-E: matrix 3 片, 仅 unit 进分片)

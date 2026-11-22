@@ -28,8 +28,15 @@ function normalizeSlug(slug) {
     .replace(/^-+|-+$/g, '');
 }
 
+/** 任务编号片段：`af-123` / `af123`，不区分大小写，任意位置出现都拒绝。 */
+const TASK_NUMBER_IN_SLUG = /af-?\d{3}/;
+
 /**
  * 构造并校验任务分支名 `task/<taskId>-<slug>`。
+ *
+ * ⚠️ slug **不得**包含任务编号：分支名同时是 PR 验收门的任务号来源，
+ *   `task/AF-317-af316-...` 会被解析出两个任务号并直接拒绝。
+ *
  * @returns {{valid:boolean, errors:string[], branchName:string|null}}
  */
 export function buildBranchName(taskId, slug) {
@@ -37,6 +44,9 @@ export function buildBranchName(taskId, slug) {
   if (!TASK_ID_PATTERN.test(taskId ?? '')) errors.push(`taskId 不符合标识模式：${String(taskId)}`);
   const normalizedSlug = normalizeSlug(slug);
   if (!normalizedSlug) errors.push('slug 为空或规范化后为空');
+  if (TASK_NUMBER_IN_SLUG.test(normalizedSlug)) {
+    errors.push(`slug 不得包含任务编号（会与 taskId 混淆）：${normalizedSlug}`);
+  }
   if (errors.length > 0) return { valid: false, errors, branchName: null };
   return { valid: true, errors: [], branchName: `task/${taskId}-${normalizedSlug}` };
 }

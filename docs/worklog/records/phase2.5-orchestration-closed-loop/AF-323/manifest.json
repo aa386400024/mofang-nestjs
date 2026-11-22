@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-323",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T01:18:00.000Z",
+  "updatedAt": "2026-11-22T17:23:07.162Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/task-sheet.md",
+    "sha256": "7731103a5488cfc9a15d4e54cbfabd314cddb425d50815542e1b7f19939cf871",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-323/receipt-RC-AF-323-1.json",
+      "sha256": "5da8c02d2a08e2c6f03a28ecea600f224f6cc89b5834d63f21efcacd41f6c53d",
+      "receiptId": "RC-AF-323-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af323-toolchain-shadow-audit-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af323-toolchain-shadow-audit-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
