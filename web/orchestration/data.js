@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T21:26:22.350Z",
+  "generatedAt": "2026-11-22T21:44:28.503Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-083",
+      "recordedAt": "2026-11-22T21:31:42.127Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-339",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-339",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-339.json"
+      ]
+    },
+    {
+      "auditId": "AUD-082",
+      "recordedAt": "2026-11-22T21:31:35.002Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-339",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-081",
       "recordedAt": "2026-11-22T21:19:40.713Z",
       "actorRef": "orchestrator",
@@ -1988,50 +2020,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-068",
-      "recordedAt": "2026-11-22T20:17:08.959Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-333",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-333-realism-long-session"
-      ]
-    },
-    {
-      "auditId": "AUD-067",
-      "recordedAt": "2026-11-22T20:17:05.265Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-333",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-333",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-333.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 81,
+    "total": 83,
     "byResult": {
-      "allowed": 81,
+      "allowed": 83,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 80,
+      "TOOL-QUEUE-SCHEDULER": 82,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 81
+      "orchestrator": 83
     }
   },
   "protocolView": {
@@ -7741,6 +7743,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af338-realism-event-type-attribution-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-339",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-339/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af339-realism-typed-arm-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7765,5 +7785,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 328
+  "archivedCount": 329
 };

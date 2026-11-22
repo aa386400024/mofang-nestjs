@@ -1,0 +1,247 @@
+{
+  "deliveredAt": "2026-11-23T05:44:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-339-1",
+    "taskId": "AF-339",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "9cca72ea0b9c3ae387c32065b530bc81ec516a77",
+    "dependsOn": ["AF-338"],
+    "priorTasks": ["AF-338", "AF-337", "AF-336"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-339/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af339-realism-typed-arm-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af339-realism-typed-arm-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["d373db0e6142c793f3b89ff9f35f0715f8b11b56"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af339-realism-typed-arm-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af339-realism-typed-arm-report-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-339/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-339/task-sheet.md"
+      ],
+      "modified": [
+        "src/shared/realism/realism-prompt-tightening.ts",
+        "test/shared/realism/realism-prompt-tightening.spec.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "8 × pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --turn-set long --arms typed --reps 1 --turns 12 --out .../reps/rep-N.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "约 150s",
+        "note": "8 次 × 2 人设 × 12 轮 = 192 次调用，0 失败"
+      },
+      {
+        "command": "8 × pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --turn-set long --arms typed-noshape --reps 1 --turns 12 --out .../noshape-reps/rep-N.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 150s",
+        "note": "8 次 × 2 人设 × 12 轮 = 192 次调用，0 失败"
+      },
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-prompt-tightening.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 18,
+        "machine": "同上",
+        "wallClock": "260ms",
+        "note": "18/18 通过"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "单独重跑 exit 0；合并跑时曾出现一次无诊断 exit 1，已在交付记录备注"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 296,
+        "tests": 4535,
+        "machine": "同上",
+        "wallClock": "19.5s",
+        "note": "296 文件通过 / 1 跳过（297）；4535 例通过 / 4 跳过（4539）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-339 status=submitted files=10"
+      }
+    ],
+    "reproNotes": "8 次 typed 与 8 次 typed-noshape 分别执行 `--turn-set long --arms typed|typed-noshape --reps 1 --turns 12`；用 AF-332 分布 CLI 汇总，用 AF-338 剖面 CLI 输出六类事件；再对 off/full/minimal 已有汇总做对照。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-339 经 CLI register / promote / run-once；分支 task/AF-339-realism-typed-arm"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "只改 src/shared/realism 与 test；engine-core 零 diff"
+      },
+      {
+        "item": "no-production-change",
+        "result": "pass",
+        "note": "typed / typed-noshape 只是离线实验臂；生产块、模式开关、阈值均未改"
+      },
+      {
+        "item": "scope-extension",
+        "result": "pass",
+        "note": "任务单只要求 typed；追加 typed-noshape 作为形态层对照，理由与 384 次调用已在报告和回执写明"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "原始 JSON 留 gitignored 目录；报告只含数字"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "合成人设工程观测，不宣称临床真人度或疗效"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 9cca72ea；任务单 implementation；回执 finalStatus completed；提交 d373db0e 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF339-B1",
+        "impact": "保留形态层时事件层禁令无效：焦虑 repair 仍 0.375/turn，回避 pause 仍 1.0/turn。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF339-B2",
+        "impact": "删除形态层后密度回到 off（anxious 2.835170、guarded 2.925578），增量消失；形态层是主驱动。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF339-B3",
+        "impact": "下一轮必须先改形态层“每轮执行”语义，再做事件层配额；继续只改事件层是死路。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF339-B4",
+        "impact": "typed-noshape 的人设声音是否明显变弱，未做人工听感/可读性评估。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF339-B5",
+        "impact": "两个候选都只有 8 次 12 轮重复，不是置信区间。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF339-B6",
+        "impact": "合并跑闸门时 tsc --incremental 偶发无诊断 exit 1，单独重跑通过；需排查缓存/文件锁，不应把它当代码错误。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "形态层是否改为整场最多 N 次、按状态触发",
+      "是否拆成高频低强度 / 低频高强度两档",
+      "事件层是否退为二次约束，不再承担主配额"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只做 typed 臂",
+        "reality": "追加 typed-noshape 对照臂，384 次调用",
+        "action": "已登记范围扩展",
+        "why": "typed 被形态层架空，需要隔离形态层影响"
+      },
+      {
+        "taskSays": "8 次 typed",
+        "reality": "8 次 typed + 8 次 typed-noshape，0 失败",
+        "action": "完成",
+        "why": "对照实验"
+      },
+      {
+        "taskSays": "不改生产 / 不调阈值",
+        "reality": "未改生产块、RENDER_REALISM_MODE、humanization-v1",
+        "action": "保持生产 off",
+        "why": "实验臂仅离线"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-339 新增 typed 与 typed-noshape 两个实验臂和 18 例单测，完成 384 次真实调用 0 失败。typed 保留形态层时密度仍 5.05/6.15、窗口 0/8；typed-noshape 回到 off 的 2.84/2.93、repair 0，证明形态层而非事件层是主驱动。typecheck、lint、全量 4535 例、engine-core 零 diff 通过；未改生产与阈值。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本轮新增 384 次调用：typed 192 + typed-noshape 192，0 失败。"
+  }
+}

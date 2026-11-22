@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-339",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T05:32:00+08:00",
+  "updatedAt": "2026-11-22T21:44:28.432Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-339/task-sheet.md",
+    "sha256": "074c39af9a863b2bc18d387cae8d53f74eb8b389123ce3c993712eaeca3341a6",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-339/receipt-RC-AF-339-1.json",
+      "sha256": "17c154474652f8f2ee71c5c32a8f86c686ff21232684106affddc2488b35bf41",
+      "receiptId": "RC-AF-339-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af339-realism-typed-arm-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af339-realism-typed-arm.md"
+  ],
+  "tombstone": null
+}
