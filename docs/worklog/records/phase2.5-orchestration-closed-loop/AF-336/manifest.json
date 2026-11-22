@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-336",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T04:58:00+08:00",
+  "updatedAt": "2026-11-22T21:00:07.587Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-336/task-sheet.md",
+    "sha256": "53c142bbebe4dec27d990ac3c758038259d5b47e6c389674ab73950e7fd79bd5",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-336/receipt-RC-AF-336-1.json",
+      "sha256": "1013da514cbc7c60a46c898b5ee2d131c047bab4b049ed45f0b7aaf97fc476ff",
+      "receiptId": "RC-AF-336-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af336-realism-off-baseline-extension-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af336-realism-off-baseline-extension-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
