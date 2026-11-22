@@ -12,6 +12,8 @@ import 'reflect-metadata';
 import type { ConfigService } from '@nestjs/config';
 import { config as loadEnvFile } from 'dotenv';
 import { existsSync } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 
 import { LlmService } from '../src/agent/llm/llm.service.js';
 import type { RollingSummaryPort } from '../src/engine-adapters/persistence/rolling-session-summary.service.js';
@@ -419,12 +421,16 @@ async function executeOrchestratedSessions(options: OrchestratedBatchOptions): P
   return { turnResults, promptTokens, completionTokens, totalTokens, wallElapsedMs: Date.now() - startedAt };
 }
 
+type FaultMode = 'auth' | 'network' | 'rate-limit' | 'server-error' | 'timeout';
+
 interface FaultFlags {
   readonly failPrimary: boolean;
-  readonly mode: 'auth' | 'network';
+  readonly mode: FaultMode;
   readonly expectFallback: boolean;
   readonly expectDegraded: boolean;
 }
+
+const FALLBACK_FAULT_MODES = new Set<FaultMode>(['network', 'rate-limit', 'server-error', 'timeout']);
 
 /** 解析并校验故障注入开关；语义互斥的组合同步拒绝，避免 smoke 自相矛盾。 */
 function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
@@ -432,8 +438,10 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
   const expectFallback = hasFlag('--expect-fallback');
   const expectDegraded = hasFlag('--expect-degraded');
   const rawMode = (arg('--fail-primary-mode', 'auth') ?? 'auth').toLowerCase();
-  if (rawMode !== 'auth' && rawMode !== 'network') fail('--fail-primary-mode 只允许 auth / network');
-  const mode = rawMode;
+  if (!['auth', 'network', 'rate-limit', 'server-error', 'timeout'].includes(rawMode)) {
+    fail('--fail-primary-mode 只允许 auth / network / rate-limit / server-error / timeout');
+  }
+  const mode = rawMode as FaultMode;
 
   if ((expectFallback || expectDegraded) && (callerPath !== 'router' || provider !== 'doubao')) {
     fail('--expect-fallback / --expect-degraded 只适用于 --caller router --provider doubao');
@@ -443,10 +451,10 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
     fail('--fail-primary 必须配合 --expect-fallback 或 --expect-degraded');
   }
   if (mode === 'auth' && expectFallback) {
-    fail('鉴权失败按生产策略直接降级、不切候选；验证真实回退请用 --fail-primary-mode network');
+    fail('鉴权失败按生产策略直接降级、不切候选；验证真实回退请用 --fail-primary-mode network / rate-limit / server-error / timeout');
   }
-  if (mode === 'network' && expectDegraded) {
-    fail('传输失败应触发候选回退；验证鉴权降级请用 --fail-primary-mode auth');
+  if (FALLBACK_FAULT_MODES.has(mode) && expectDegraded) {
+    fail('可重试故障应触发候选回退；验证鉴权降级请用 --fail-primary-mode auth');
   }
   return { failPrimary, mode, expectFallback, expectDegraded };
 }
@@ -455,18 +463,62 @@ function envText(key: string): string | undefined {
   return process.env[key];
 }
 
+interface FaultServer {
+  readonly baseUrl: string;
+  close(): Promise<void>;
+}
+
+/**
+ * 起本机临时上游，按模式返回 429 / 500 / 挂起不响应。
+ * 只用于 smoke：把豆包候选 baseUrl 指过来，就能触发真实 HTTP 状态码与真实超时，
+ * 不消耗真实豆包额度，也不改 `.env`。
+ */
+async function startFaultServer(mode: FaultMode): Promise<FaultServer> {
+  const server: Server = createServer((_request, response) => {
+    if (mode === 'rate-limit') {
+      response.writeHead(429, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ error: { message: 'af269 simulated rate limit', type: 'rate_limit_error' } }));
+      return;
+    }
+    if (mode === 'server-error') {
+      response.writeHead(500, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ error: { message: 'af269 simulated server error', type: 'server_error' } }));
+    }
+    // timeout：故意不写响应，让客户端触发 requestTimeoutMs；请求对象保留到进程收尾。
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+  const address = server.address() as AddressInfo;
+  return {
+    baseUrl: `http://127.0.0.1:${address.port}/v1`,
+    close: async (): Promise<void> => {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    },
+  };
+}
+
 /** 构造生产路由链：豆包主候选 + MiniMax 备候选，两者都真实注册。 */
 function buildRouterChain(
   config: ConfigService,
-  faultMode: 'auth' | 'network',
+  faultMode: FaultMode,
   failPrimary: boolean,
+  faultBaseUrl?: string,
 ): { router: LlmRouterService; caller: ChatCaller } {
   process.env['LLM_DEFAULT_CHAT_PROVIDER'] = 'doubao';
   const configuredModel = envText('LLM_DOUBAO_MODEL')?.trim();
   const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
   const providerClient = new DoubaoChatProvider({
     defaultChatModel: doubaoModel,
-    ...(failPrimary && faultMode === 'network' ? { baseUrl: 'http://127.0.0.1:9/v1', maxRetries: 0, requestTimeoutMs: 5000 } : {}),
+    ...(failPrimary && (faultMode === 'network' || faultBaseUrl !== undefined)
+      ? {
+          baseUrl: faultBaseUrl ?? 'http://127.0.0.1:9/v1',
+          maxRetries: 0,
+          requestTimeoutMs: faultMode === 'timeout' ? 2000 : 5000,
+        }
+      : {}),
   });
   const registry = new ProviderRegistryService();
   registry.registerChat(providerClient, {
@@ -502,12 +554,16 @@ function buildRouterChain(
 }
 
 /** 真实探一次主候选，拿到故障摘要；随后的渲染轮次复用同一故障注入。 */
-async function probePrimaryFailure(router: LlmRouterService, probeModel: string): Promise<{ ok: false; model: string; error: string }> {
+async function probePrimaryFailure(
+  router: LlmRouterService,
+  probeModel: string,
+): Promise<{ ok: false; model: string; error: string; elapsedMs: number }> {
   const probeRequest: ChatCompletionRequest = {
     model: probeModel,
     messages: [{ role: 'user', content: 'ping' }],
     maxCompletionTokens: 8,
   };
+  const startedAt = Date.now();
   try {
     await router.chat(probeRequest, { providerId: AIProviderId.DOUBAO });
     fail('预期主候选失败，但请求成功了：故障注入未生效', 3);
@@ -516,6 +572,7 @@ async function probePrimaryFailure(router: LlmRouterService, probeModel: string)
       ok: false,
       model: probeRequest.model,
       error: truncate(error instanceof Error ? error.message : String(error), 200),
+      elapsedMs: Date.now() - startedAt,
     };
   }
 }
@@ -527,7 +584,7 @@ interface SmokeReport {
   readonly summaryAfter: number;
   readonly historyLimitTurns: number;
   readonly faults: FaultFlags;
-  readonly primaryProbe: { ok: false; model: string; error: string } | null;
+  readonly primaryProbe: { ok: false; model: string; error: string; elapsedMs: number } | null;
   readonly turns: number;
   readonly concurrency: number;
   readonly wallElapsedMs: number;
@@ -677,7 +734,6 @@ function resolveRunOptions(): RunOptions {
   const callerPath = (arg('--caller', 'router') ?? 'router').toLowerCase();
   if (callerPath !== 'router' && callerPath !== 'llm-service') fail('--caller 只允许 router / llm-service');
   if (callerPath === 'router' && provider !== 'doubao') fail('--caller router 目前只支持 --provider doubao');
-  const maxTokens = numberArg('--max-tokens', DEFAULT_MAX_TOKENS);
   const timeoutMs = numberArg('--timeout-ms', DEFAULT_TIMEOUT_MS);
   const turns = Math.floor(numberArg('--turns', DEFAULT_TURNS));
   const concurrency = Math.floor(numberArg('--concurrency', 1));
@@ -686,6 +742,9 @@ function resolveRunOptions(): RunOptions {
   const contextTokens = Math.floor(numberArg('--context-tokens', 512));
   const promptOverride = arg('--prompt');
   const faults = resolveFaultFlags(callerPath, provider);
+  // MiniMax M3 的 reasoning token 计入 completion 上限；回退 smoke 用 300 会在思考和
+  // 正文之间被截断，出现「有 finish_reason=length、无完整句」的假降级。回退场景默认放宽。
+  const maxTokens = numberArg('--max-tokens', faults.expectFallback ? 800 : DEFAULT_MAX_TOKENS);
 
   if (concurrency > 1 && turns !== 1) fail('--concurrency 与 --turns 互斥：并发模式固定单轮');
   if (concurrency > 1 && (faults.failPrimary || faults.expectFallback || faults.expectDegraded)) {
@@ -748,8 +807,13 @@ async function main(): Promise<void> {
   let caller: ChatCaller;
   let doubaoModelForProbe: string | null = null;
 
+  // 429 / 500 / 超时：起本机故障上游，把豆包候选 baseUrl 指过来。
+  const needsFaultServer =
+    faults.failPrimary && (faults.mode === 'rate-limit' || faults.mode === 'server-error' || faults.mode === 'timeout');
+  const faultServer = needsFaultServer ? await startFaultServer(faults.mode) : null;
+
   if (callerPath === 'router') {
-    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary));
+    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl));
     doubaoModelForProbe = envText('LLM_DOUBAO_MODEL')?.trim() ?? null;
   } else {
     const llm = new LlmService(config);
@@ -826,6 +890,7 @@ async function main(): Promise<void> {
       totalTokens: batch.totalTokens,
     },
   });
+  await faultServer?.close();
 }
 
 main().catch((error: unknown) => {
