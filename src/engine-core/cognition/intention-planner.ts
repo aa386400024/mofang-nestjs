@@ -76,10 +76,14 @@ interface DecisionSignals {
   readonly negativeDominant: boolean;
   readonly dependencyHigh: boolean;
   readonly understoodWeight: number;
+  readonly acceptedWeight: number;
   readonly avoidPainWeight: number;
   readonly avoidanceDominant: boolean;
   readonly explorationGate: number;
   readonly situationalPriority: number;
+  readonly controlWeight: number;
+  readonly reflectiveBeliefCount: number;
+  readonly lateStageEligible: boolean;
 }
 
 /** 从快照与门槛推导本轮全部决策信号 (纯函数, 无随机). */
@@ -102,18 +106,24 @@ function deriveDecisionSignals(
   const negativeDominant = snapshot.transference.negative >= 0.3 && snapshot.transference.negative >= snapshot.transference.positive + 0.1;
   const dependencyHigh = snapshot.transference.dependency >= 0.4;
   // AF-315: 愿望层。`avoid_pain` 明显压过“被理解”时，先保护自己，不往深处走。
-  const understoodWeight = Math.max(
-    snapshot.underlyingDesires.find((desire) => desire.key === 'understood')?.currentWeight ?? 0,
-    snapshot.underlyingDesires.find((desire) => desire.key === 'accepted')?.currentWeight ?? 0,
-  );
+  const understoodWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'understood')?.currentWeight ?? 0;
+  const acceptedWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'accepted')?.currentWeight ?? 0;
   const avoidPainWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'avoid_pain')?.currentWeight ?? 0;
-  const avoidanceDominant = avoidPainWeight - understoodWeight > 0.1;
-  // AF-315: `understood` 高时略微下调探索门槛；幅度很小，避免覆盖同盟短板。
-  const explorationGate = Math.max(0, thresholds.open - (understoodWeight >= 0.65 ? 0.03 : 0));
+  const avoidanceDominant = avoidPainWeight - Math.max(understoodWeight, acceptedWeight) > 0.1;
+  // AF-322: 被理解与被接纳是两个独立信号，二者都高才下调探索门槛；
+  //   用平均值近似会把“只被理解、尚未被接纳”误判成可以更深探索。
+  const explorationGate = understoodWeight >= 0.65 && acceptedWeight >= 0.55 ? Math.max(0, thresholds.open - 0.03) : thresholds.open;
   // AF-315: 情境愿望有明确高优先级诉求时，先回应具体请求 (规则轨不解析文本)。
   const situationalPriority = snapshot.situationalDesires
     .filter((desire) => desire.active)
     .reduce((max, desire) => Math.max(max, desire.priority), 0);
+  // AF-322: 整合领悟的前提是来访已经自发形成一条较高置信度的短期信念。
+  const reflectiveBeliefCount = snapshot.temporaryBeliefs.filter(
+    (belief) => belief.source === 'observed' && belief.confidence >= 0.6,
+  ).length;
+  const controlWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'control')?.currentWeight ?? 0;
+  // 直接调用方不传轮次时保持 AF-315 之前的策略边界；后段策略只在引擎显式给轮次时启用。
+  const lateStageEligible = Number.isFinite(turnNumber);
   return {
     aggregate,
     allianceGate,
@@ -125,36 +135,38 @@ function deriveDecisionSignals(
     negativeDominant,
     dependencyHigh,
     understoodWeight,
+    acceptedWeight,
     avoidPainWeight,
     avoidanceDominant,
     explorationGate,
     situationalPriority,
+    controlWeight,
+    reflectiveBeliefCount,
+    lateStageEligible,
   };
 }
 
-/** 按优先级选策略与解释 (纯函数, 无副作用). */
-function selectStrategy(
+/** 策略选择结果. */
+interface SelectedStrategy {
+  strategy: BehaviorStrategy;
+  rationale: string;
+}
+
+/**
+ * 保护性策略：防御 / 负移情 / 话量 / 依赖 / 情境诉求，优先级高于探索与后段策略。
+ *
+ * @param snapshot 当前快照
+ * @param signals 决策信号
+ * @param thresholds 已解析门槛
+ * @returns 命中策略；undefined = 继续走探索判断
+ */
+function pickProtectiveStrategy(
   snapshot: BdiSnapshot,
   signals: DecisionSignals,
   thresholds: ReturnType<typeof resolveAllianceThresholds>,
-): { strategy: BehaviorStrategy; rationale: string } {
-  const { verbal, depth } = snapshot.resistance;
-  const {
-    aggregate,
-    allianceGate,
-    allianceLow,
-    turnNumber,
-    turnTooEarly,
-    activationPeak,
-    activationBlocksExploration,
-    negativeDominant,
-    dependencyHigh,
-    understoodWeight,
-    avoidPainWeight,
-    avoidanceDominant,
-    explorationGate,
-    situationalPriority,
-  } = signals;
+): SelectedStrategy | undefined {
+  const { verbal } = snapshot.resistance;
+  const { aggregate, allianceLow, negativeDominant, dependencyHigh, turnNumber, situationalPriority } = signals;
 
   if (aggregate >= HIGH_RESISTANCE_AGG && allianceLow) {
     return {
@@ -180,6 +192,85 @@ function selectStrategy(
   if (situationalPriority >= 0.7) {
     return { strategy: 'request', rationale: `情境愿望优先级高(${situationalPriority.toFixed(2)}), 先回应来访本轮具体诉求` };
   }
+  return undefined;
+}
+
+/**
+ * 后段策略：整合领悟 / 讨论计划。
+ *
+ * 只在引擎显式给轮次时启用；`discussing_plans` 优先于 `insight` ——
+ * 掌控型愿望已升高时继续“领悟”会拖住行动。
+ *
+ * @param snapshot 当前快照
+ * @param signals 决策信号
+ * @param thresholds 已解析门槛
+ * @returns 命中策略；undefined = 未满足后段条件
+ */
+function pickLateStageStrategy(
+  snapshot: BdiSnapshot,
+  signals: DecisionSignals,
+  thresholds: ReturnType<typeof resolveAllianceThresholds>,
+): SelectedStrategy | undefined {
+  const { depth } = snapshot.resistance;
+  const {
+    lateStageEligible,
+    turnNumber,
+    controlWeight,
+    reflectiveBeliefCount,
+    allianceGate,
+    explorationGate,
+    activationBlocksExploration,
+    avoidanceDominant,
+  } = signals;
+
+  if (
+    !lateStageEligible ||
+    allianceGate < explorationGate ||
+    depth >= thresholds.openDepth ||
+    activationBlocksExploration ||
+    avoidanceDominant
+  ) {
+    return undefined;
+  }
+  if (turnNumber >= thresholds.planMinTurn && controlWeight >= 0.55) {
+    return {
+      strategy: 'discussing_plans',
+      rationale: `第 ${turnNumber} 轮且掌控愿望权重达 ${controlWeight.toFixed(2)}，同盟稳定(min=${allianceGate.toFixed(2)}, gate=${explorationGate.toFixed(2)})，进入计划讨论`,
+    };
+  }
+  if (turnNumber >= thresholds.insightMinTurn && reflectiveBeliefCount > 0) {
+    return {
+      strategy: 'insight',
+      rationale: `第 ${turnNumber} 轮、同盟稳定(min=${allianceGate.toFixed(2)}, gate=${explorationGate.toFixed(2)})且来访已有 ${reflectiveBeliefCount} 条自发信念(confidence>=0.60)，进入整合领悟`,
+    };
+  }
+  return undefined;
+}
+
+/** 按优先级选策略与解释 (纯函数, 无副作用). */
+function selectStrategy(
+  snapshot: BdiSnapshot,
+  signals: DecisionSignals,
+  thresholds: ReturnType<typeof resolveAllianceThresholds>,
+): SelectedStrategy {
+  const { depth } = snapshot.resistance;
+  const {
+    allianceGate,
+    turnNumber,
+    turnTooEarly,
+    activationPeak,
+    activationBlocksExploration,
+    understoodWeight,
+    avoidPainWeight,
+    avoidanceDominant,
+    explorationGate,
+  } = signals;
+
+  const protective = pickProtectiveStrategy(snapshot, signals, thresholds);
+  if (protective) return protective;
+  const lateStage = pickLateStageStrategy(snapshot, signals, thresholds);
+  if (lateStage) return lateStage;
+
   if (
     allianceGate >= explorationGate &&
     depth < thresholds.openDepth &&

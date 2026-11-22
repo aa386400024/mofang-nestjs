@@ -1,0 +1,277 @@
+{
+  "deliveredAt": "2026-11-23T01:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-322-1",
+    "taskId": "AF-322",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "28d63aab08e14e1ae4e5b58eac3dc6e5d45a5156",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-315",
+      "AF-316",
+      "AF-317",
+      "AF-320",
+      "AF-321"
+    ],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-322/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af322-bdi-decision-trace-closure-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-321/task-sheet.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "44c6f897b5fa3241ff1a5de71403e0c517fbe96c"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af322-bdi-decision-trace-closure-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-321/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-321/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-322/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-322/task-sheet.md",
+        "test/admin-debug/af322-trace-projection.spec.ts",
+        "test/engine-adapters/af322-bdi-residual-closure-adapter.spec.ts",
+        "test/engine-core/af322-bdi-residual-closure.spec.ts"
+      ],
+      "modified": [
+        ".env.example",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "src/admin-debug/debug-session.service.ts",
+        "src/admin-debug/trace-recorder.service.ts",
+        "src/engine-adapters/cognition/model-classifier-observation.ts",
+        "src/engine-adapters/wiring/alliance-config.ts",
+        "src/engine-adapters/wiring/engine-stream-backend.adapter.ts",
+        "src/engine-adapters/wiring/session-decay.config.ts",
+        "src/engine-core/cognition/alliance-config.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/cognition/session-decay.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "test/admin-debug/wp58-debug-session.spec.ts",
+        "test/config/wp25-env-example-coverage.spec.ts",
+        "test/engine-adapters/d2-event-kind-split.spec.ts",
+        "test/engine-adapters/model-event-classifier.spec.ts",
+        "test/engine-adapters/wp42-alliance-config.spec.ts",
+        "test/engine-core/s1-open-depth-threshold.spec.ts",
+        "test/engine-core/wp36-session-decay.spec.ts",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-core/af322-bdi-residual-closure.spec.ts test/engine-adapters/af322-bdi-residual-closure-adapter.spec.ts test/admin-debug/af322-trace-projection.spec.ts test/engine-core/wp36-session-decay.spec.ts test/engine-adapters/wp42-alliance-config.spec.ts test/config/wp25-env-example-coverage.spec.ts test/admin-debug/wp58-debug-session.spec.ts test/engine-adapters/d2-event-kind-split.spec.ts test/engine-adapters/model-event-classifier.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 9,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "4.30s",
+        "note": "9 文件通过，191 例通过；分类器单文件 69 例含新增会话级 stats 写入断言"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/af322-tcheck-full.tsbuildinfo",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 15s",
+        "note": "与 CI Typecheck 同口径；本地 pnpm typecheck 只覆盖 src，全量口径已按 CI 命令执行"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均通过"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 287,
+        "machine": "同上",
+        "wallClock": "21.20s",
+        "note": "287 文件通过 / 1 跳过（288）；4429 例通过 / 4 跳过（4433）"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "事件日志 1424 条；schema urn:agent-collaboration-framework:schema:state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=- status=- files=0 covered=0（提交后工作树干净）"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入并归档后执行；记录包哈希与 durable 回执字节一致"
+      }
+    ],
+    "reproNotes": "复现顺序：pnpm exec vitest run 上述 9 个定向文件；pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/af322-tcheck-full.tsbuildinfo；pnpm lint；pnpm test；node scripts/orchestration/cli.mjs events verify；pnpm orchestration:preflight；归档后 node scripts/orchestration/cli.mjs worklog verify --strict。分类器统计键：model_classifier_trace:stats:<tenantLen>:<tenant>:<sessionLen>:<session>:total|:degraded|:model。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-322 经 CLI 登记、promote、run-once 领单；分支名与提交标题唯一任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照均经 CLI 生成；未手改 task-state-index.json / journal.jsonl"
+      },
+      {
+        "item": "receipt-schema",
+        "result": "pass",
+        "note": "回执六组机读字段齐全；scopeCheck 为 in-scope"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "引擎纯层改动由任务单 §2.1–§2.3 明确授权；仅决策门槛、在场 delta、移情衰减"
+      },
+      {
+        "item": "mirror-contract",
+        "result": "pass",
+        "note": "AllianceThresholds 与 OpenEngineSessionInput 镜像 1:1；s1 镜像断言通过"
+      },
+      {
+        "item": "trace-compat",
+        "result": "pass",
+        "note": "TurnTrace 只追加可选字段；VoiceCatchUpBdiSnapshot 五字段不变"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "分类器统计只写计数与模型标识；trace 不新增原文、命中词或心理内容"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "所有门槛与 delta 标注为工程种子；未宣称临床有效性；真人督导标定独立排期"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 28d63aab 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 44c6f897 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF322-B1",
+        "impact": "移情半衰期 90 天、insight 第 8 轮、plan 第 12 轮、control >= 0.55、observed confidence >= 0.6、holding/cold delta 幅度均为工程种子值，需真人咨询师督导复核后才能称为临床标定。",
+        "owner": "clinical-review",
+        "status": "open"
+      },
+      {
+        "id": "AF322-B2",
+        "impact": "真实语料影子审计尚未执行；ENGINE_MODEL_CLASSIFIER_* 未在本地 .env 配置；审计脚本归 AF-323。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF322-B3",
+        "impact": "真实语料一致性口径是规则轨 vs 模型轨，不是人工金标准；必须同时看 Jaccard、核心标签重合、neutral 率与 degraded 率。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF322-B4",
+        "impact": "TurnTrace.intention.rationale 尚无长度上限与空串约束；当前由 planner 产出固定短语，后续接自由文本时需要裁剪。",
+        "owner": "backend",
+        "status": "open"
+      },
+      {
+        "id": "AF322-B5",
+        "impact": "管理台成本 totalCost / totalCostCny 兼容仍为既有技术债，与本单无关。",
+        "owner": "admin-dashboard",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "移情 90 天、insight 第 8 轮、plan 第 12 轮、control 0.55、observed confidence 0.6、holding/cold delta 幅度是否被真实咨询场景认可，需督导复核",
+      "真实语料模型轨审计的通过阈值如何定：Jaccard、核心标签重合、neutral 率与 degraded 率各自权重",
+      "TurnTrace.intention.rationale 接自由文本后是否需要最大长度与空串降级"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "分类器摘要只需返回模式、降级计数、模型标识",
+        "reality": "只有降级数没有总轮数无法算降级率",
+        "action": "额外返回 totalCount，并在 observer 增加会话级 Redis 计数键",
+        "why": "灰度核对需要分母；写入失败只 warn，不影响判定链"
+      },
+      {
+        "taskSays": "holding_present delta 为 safety/bond/verbal 三项",
+        "reality": "只动安全与联结、不动情绪，20 轮后仍可能判情绪未缓和",
+        "action": "补 valence +0.004 / arousal -0.002，幅度仍低于 cap",
+        "why": "在场状态需要同时体现安全、联结与情绪缓和"
+      },
+      {
+        "taskSays": "cold_absent delta 为 trust/safety/bond 三项",
+        "reality": "冷落在真实会话里表现为表达收缩与负性上升",
+        "action": "补 verbal/depth/style/valence/negative 五项",
+        "why": "只降信任无法覆盖冷落的表达与情绪面"
+      },
+      {
+        "taskSays": "pnpm typecheck 作为闸门",
+        "reality": "本地 pnpm typecheck 只覆盖 src，CI 覆盖整个 tsconfig.json",
+        "action": "本地跑 CI 同口径 tsc --noEmit -p tsconfig.json 并记录",
+        "why": "避免 AF-320 同类 TS18048 漏到远端；脚本口径由 AF-323 统一"
+      },
+      {
+        "taskSays": "只要求分类器摘要读取投影",
+        "reality": "只测读不测写会留下键永远为空的盲区",
+        "action": "追加 observer 写入计数单测",
+        "why": "确保 total/degraded/model 三键真实写入且有 TTL"
+      },
+      {
+        "taskSays": "任务单未列 wp58 / d2 / model-event-classifier",
+        "reality": "三处分别覆盖分类器摘要、事件 delta、observer 统计",
+        "action": "纳入定向回归",
+        "why": "属于本单直接改动面，不纳入会留下未覆盖路径"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-322 闭合决策层、在场状态、跨会话移情、生产 trace 与分类器可观测性五条链路。定向 191 例、全量 4429 例、lint 0/0、CI 同口径 typecheck exit 0、events verify PASS。所有临床门槛明确标注为工程种子，未宣称疗效；真人督导复核与真实语料审计作为非阻塞遗留进入 AF-323 与后续临床排期。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

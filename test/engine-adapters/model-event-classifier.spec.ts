@@ -31,6 +31,8 @@ import {
 } from '../../src/engine-adapters/cognition/model-classifier-mode.config.js';
 import {
   MODEL_CLASSIFIER_TRACE_KEY_PREFIX,
+  RedisModelClassifierObserver,
+  buildModelClassifierSessionStatsKey,
   buildModelClassifierTraceKey,
   resolveLatencyBucket,
   type ModelClassifierObservation,
@@ -50,6 +52,7 @@ import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-m
 import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import { RuleBasedClassifier, type ClassifyContext, type EventClassifier } from '../../src/engine-core/index.js';
+import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
 // TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
 vi.mock('ioredis', async () => {
@@ -775,6 +778,41 @@ describe('模型轨 · 观测表 (字段白名单 · 隐私红线)', () => {
     expect(resolveLatencyBucket(800)).toBe('lt_1500ms');
     expect(resolveLatencyBucket(2000)).toBe('lt_3000ms');
     expect(resolveLatencyBucket(9000)).toBe('gt_3000ms');
+  });
+
+  it('会话级统计键写入 total / degraded / model (admin debug 摘要读得到)', async () => {
+    const incr = vi.fn(async () => 1);
+    const expire = vi.fn(async () => {});
+    const set = vi.fn(async () => {});
+    const observer = new RedisModelClassifierObserver({ incr, expire, set } as unknown as RedisService, 3600);
+    const base = buildModelClassifierSessionStatsKey('tenant-1', 'session-1');
+    const sample = {
+      tenantId: 'tenant-1',
+      sessionId: 'session-1',
+      turnIndex: 1,
+      ruleKinds: ['empathy'],
+      modelKinds: ['empathy'],
+      agreement: true,
+      confidence: 0.9,
+      fallbackReason: null,
+      latencyBucket: 'lt_500ms',
+      modelId: 'MiniMax-M3',
+      promptVersion: 'model-event-classifier-v1',
+      strength: 1,
+      degraded: false,
+    };
+    const degradedSample = { ...sample, turnIndex: 2, degraded: true, fallbackReason: 'fetch_error' };
+
+    observer.record(sample);
+    observer.record(degradedSample);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(incr).toHaveBeenCalledWith(`${base}:total`);
+    expect(incr).toHaveBeenCalledWith(`${base}:degraded`);
+    expect(expire).toHaveBeenCalledWith(`${base}:total`, 3600);
+    expect(expire).toHaveBeenCalledWith(`${base}:degraded`, 3600);
+    expect(set).toHaveBeenCalledWith(`${base}:model`, 'MiniMax-M3', 3600);
+    expect(incr).toHaveBeenCalledTimes(3);
   });
 });
 

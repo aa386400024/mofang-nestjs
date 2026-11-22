@@ -15,11 +15,15 @@
 //       · 同盟最持久 (30 天) —— 关系记忆是三者里最"粘"的一个.
 //     统一半衰期会让"情绪已经平复但关系还很热络"这种真实状态无法表达.
 //
-//   为什么不衰减信念 / 欲望 / 移情:
+//   为什么不衰减信念 / 欲望:
 //     coreBeliefs / temporaryBeliefs / memoryBeliefs / underlyingDesires /
-//     situationalDesires / transference 是**稳定人格特质或认知结构** —— 它们不因为
+//     situationalDesires 是**稳定人格特质或认知结构** —— 它们不因为
 //     "隔了几天没说话"而改变. 衰减它们等于让来访者一周不见就忘了自己的核心信念,
 //     那是失忆, 不是自然回落.
+//
+//   AF-322 (2026-11-23) 移情补充: transference 三维是**关系性投射**, 不是人格结构.
+//     隔数月回来仍原样保留“这咨询师会伤害我/会抛弃我”的强度，不符合临床直觉；
+//     故给 90 天半衰期（慢于同盟 30 天），并允许 `transferenceHalfLifeMs = 0` 显式禁用.
 //
 //   ⚠️ 半衰期是**工程种子值, 非临床标定** —— 待真实对练校准.
 //     形状是对的 (半衰期可解释: 半衰期处恰好减半), 值待数据说话.
@@ -94,6 +98,14 @@ export interface SessionDecayConfig {
   /** 同盟半衰期 (ms): 作用于 trust / safety / bond. 种子值 30 天. */
   readonly allianceHalfLifeMs: number;
   /**
+   * 移情三维半衰期 (ms): 作用于 transference.positive / negative / dependency.
+   *
+   * 0 = 显式禁用（保留旧行为：移情作为稳定结构不回落）. 种子值 90 天：
+   * 移情是关系性投射，不等同于核心信念；隔数月回来时不应原样保留全部强度，
+   * 但回落速度应慢于同盟（关系记忆 30 天），故取 90 天.
+   */
+  readonly transferenceHalfLifeMs?: number;
+  /**
    * 破裂态阻抗**衰减下限** (工程种子值, 非临床标定).
    *
    * 当上一场结束时处于破裂态 (`trust < resistanceTrust || safety < resistanceSafety`),
@@ -120,6 +132,7 @@ export const DEFAULT_SESSION_DECAY_CONFIG: SessionDecayConfig = {
   emotionHalfLifeMs: 7 * DAY_MS,
   resistanceHalfLifeMs: 14 * DAY_MS,
   allianceHalfLifeMs: 30 * DAY_MS,
+  transferenceHalfLifeMs: 90 * DAY_MS,
 };
 
 /**
@@ -145,6 +158,9 @@ function resolveSessionDecayConfig(config: SessionDecayConfig | undefined): Sess
     emotionHalfLifeMs: sanitizeHalfLife(config.emotionHalfLifeMs, seed.emotionHalfLifeMs),
     resistanceHalfLifeMs: sanitizeHalfLife(config.resistanceHalfLifeMs, seed.resistanceHalfLifeMs),
     allianceHalfLifeMs: sanitizeHalfLife(config.allianceHalfLifeMs, seed.allianceHalfLifeMs),
+    // 0 = 显式禁用；非法 / 缺省 → 种子值.
+    transferenceHalfLifeMs:
+      config.transferenceHalfLifeMs === 0 ? 0 : sanitizeHalfLife(config.transferenceHalfLifeMs, seed.transferenceHalfLifeMs ?? 90 * DAY_MS),
   };
 }
 
@@ -246,6 +262,8 @@ export function applySessionDecay(
   const emotionFactor = decayFactor(age, halfLives.emotionHalfLifeMs);
   const resistanceFactor = decayFactor(age, halfLives.resistanceHalfLifeMs);
   const allianceFactor = decayFactor(age, halfLives.allianceHalfLifeMs);
+  // 0 = 显式禁用（旧行为：移情不回落）.
+  const transferenceFactor = halfLives.transferenceHalfLifeMs === 0 ? 1 : decayFactor(age, halfLives.transferenceHalfLifeMs ?? 90 * DAY_MS);
 
   // 克隆后再改 —— 快照是值语义, 不许就地改传入对象.
   const base = cloneBdiSnapshot(snapshot);
@@ -279,5 +297,10 @@ export function applySessionDecay(
     trust: clamp01(base.trust * allianceFactor),
     safety: clamp01(base.safety * allianceFactor),
     bond: clamp01(base.bond * allianceFactor),
+    transference: {
+      positive: clamp01(base.transference.positive * transferenceFactor),
+      negative: clamp01(base.transference.negative * transferenceFactor),
+      dependency: clamp01(base.transference.dependency * transferenceFactor),
+    },
   };
 }

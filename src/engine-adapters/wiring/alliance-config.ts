@@ -58,6 +58,16 @@ function resolveThreshold(raw: string | undefined, fallback: number): number {
   return value;
 }
 
+/** 解析一个 1..20 的轮次门槛 (非法 → 回退种子值). */
+function resolveTurn(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const trimmed = raw.trim();
+  if (trimmed === '') return fallback;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1 || value > 20) return fallback;
+  return value;
+}
+
 /**
  * 装配单个事件的覆写项 (两个 env 值 → 一个可选的覆写对象).
  *
@@ -160,6 +170,9 @@ export function resolveAllianceConfig(config: ConfigService): AllianceConfig {
       // S-1: 深度门槛**不接 env** (本单只打通端口), 固定透传内核种子值,
       // 让适配层产出的端口对象形状与内核种子保持一致 (两侧同为四字段).
       openDepth: seed.openDepth,
+      // AF-322: 后段策略的最早轮次可部署级调整；非法值由内核解析口回退种子值.
+      insightMinTurn: resolveTurn(config.get<string>('ENGINE_ALLIANCE_INSIGHT_MIN_TURN'), seed.insightMinTurn ?? 8),
+      planMinTurn: resolveTurn(config.get<string>('ENGINE_ALLIANCE_PLAN_MIN_TURN'), seed.planMinTurn ?? 12),
     },
   };
 }

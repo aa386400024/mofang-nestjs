@@ -158,6 +158,8 @@ describe('S-1 · ⑤ 镜像类型 1:1', () => {
       explorationMinTurn: 2,
       coreActivationGate: 0.5,
       coreActivationSafetyGate: 0.75,
+      insightMinTurn: 8,
+      planMinTurn: 12,
     };
     expect(Object.keys(mirror).sort()).toEqual(Object.keys(resolveAllianceThresholds(BASE_CONFIG)).sort());
     // 类型层: MIRROR_KEYS_MATCH 的类型是 true —— 键集合不一致时**编译不过** (不是运行时断言).

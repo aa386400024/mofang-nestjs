@@ -897,4 +897,65 @@ describe('WP58 · 引擎调试面板', () => {
       expect(withoutFull.render.promptFull).toBeUndefined();
     });
   });
+
+  // ── ⑦ AF-322: 会话详情暴露分类器运行口径 ───────────────────────────────
+  it('详情返回 classifier 模式 / 模型 / 降级与总轮数', async () => {
+    const { service, store, redis } = buildService({
+      ENGINE_MODEL_CLASSIFIER_ENABLED: 'true',
+      ENGINE_MODEL_CLASSIFIER_EFFECTIVE_MODE: 'shadow',
+      MINIMAX_COUNSELOR_LLM_MODEL: 'Stub-Classifier-M3',
+    });
+    const id = 'debug_classifier_summary';
+    await store.create({
+      id,
+      title: '分类器摘要',
+      titleSource: 'manual',
+      characterSlug: KNOWN_SLUG,
+      characterLabel: '亲密回避型 L1',
+      createdAt: '2026-11-23T00:00:00.000Z',
+      updatedAt: '2026-11-23T00:00:00.000Z',
+      status: 'completed',
+      turnCount: 5,
+      messages: [],
+      traces: [],
+      kernelState: null,
+      scenarioType: 'full_simulation',
+    });
+    const base = `model_classifier_trace:stats:${DEBUG_CHAT_TENANT_ID.length}:${DEBUG_CHAT_TENANT_ID}:${id.length}:${id}`;
+    redis.store.set(`${base}:total`, '5');
+    redis.store.set(`${base}:degraded`, '2');
+    redis.store.set(`${base}:model`, 'Stub-Classifier-M3');
+
+    const detail = await service.getPersistedSession(id);
+    expect(detail.classifier).toEqual({
+      mode: 'shadow',
+      modelId: 'Stub-Classifier-M3',
+      totalCount: 5,
+      degradedCount: 2,
+    });
+  });
+
+  it('观测面读不到计数时返回 0，不因 Redis 抖动 500', async () => {
+    const { service, store } = buildService({ ENGINE_MODEL_CLASSIFIER_ENABLED: 'true' });
+    const id = 'debug_classifier_empty';
+    await store.create({
+      id,
+      title: '空计数',
+      titleSource: 'manual',
+      characterSlug: KNOWN_SLUG,
+      characterLabel: '亲密回避型 L1',
+      createdAt: '2026-11-23T00:00:00.000Z',
+      updatedAt: '2026-11-23T00:00:00.000Z',
+      status: 'completed',
+      turnCount: 0,
+      messages: [],
+      traces: [],
+      kernelState: null,
+      scenarioType: 'full_simulation',
+    });
+    const detail = await service.getPersistedSession(id);
+    expect(detail.classifier?.totalCount).toBe(0);
+    expect(detail.classifier?.degradedCount).toBe(0);
+    expect(detail.classifier?.modelId).toBe('MiniMax-M3.1-Flash');
+  });
 });

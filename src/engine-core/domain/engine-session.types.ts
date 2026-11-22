@@ -99,6 +99,10 @@ export interface OpenEngineSessionInput {
     readonly coreActivationGate?: number;
     /** AF-315: 核心信念激活时的安全前提 (缺省 0.75). */
     readonly coreActivationSafetyGate?: number;
+    /** AF-322: 允许进入「整合领悟」的最早轮次 (缺省 8). */
+    readonly insightMinTurn?: number;
+    /** AF-322: 允许进入「讨论计划」的最早轮次 (缺省 12). */
+    readonly planMinTurn?: number;
   };
 }
 
