@@ -4,121 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1396,
+    "lastEventSeq": 1398,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-314",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T14:24:16.271Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始实现"
-        },
-        {
-          "at": "2026-11-22T14:24:50.533Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "自动对练场次卡片展示对练时间与来访者/咨询师模型",
-      "type": "implementation",
-      "baselineRef": "137bbe28de4600b168a721f83c5ec05f56d21549",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-313"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T14:05:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/auto-practice/",
-          "src/engine-adapters/wiring/",
-          "src/migration/",
-          "bin/",
-          "test/auto-practice/",
-          "test/engine-adapters/",
-          "admin-dashboard/src/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/auto-practice/practice-runner.spec.ts test/auto-practice/practice-runner-cost.spec.ts test/engine-adapters/wp8-wiring.spec.ts",
-          "check": "自动对练持久化 + 渲染装配回归全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "后端类型闭合",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm --dir admin-dashboard type-check",
-          "check": "管理台 Vue/TS 类型闭合",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量回归",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "engine-core 零改动",
-          "threshold": "输出为空"
-        }
-      ],
-      "successCriteria": [
-        "自动对练场次卡片直接展示对练开始时间、时长与成本；运行中场次时长实时按当前时间计算，不显示伪结束时间。",
-        "卡片展示来访者模型与咨询师模型；字段来自会话启动时真实装配的渲染主候选与咨询师生成模型，不再把 MINIMAX_LLM_MODEL 当作整场唯一模型。",
-        "ap_practice_sessions 新增 visitor_model_provider / visitor_model / counselor_model 三列，migration 在 bin/ormconfig.ts 与 src/migration/index.ts 双注册，历史行保持 NULL 并在前端降级显示既有 modelVersion。",
-        "卡片保留既有轮次、模式、接触方式、危机结论，不引入拥挤换行；完整模型 ID、退出原因、批次、种子、成本放入悬浮提示。",
-        "历史场次与新场次均可正常渲染，不因新增列或空值报错；不展示任何对话原文。",
-        "migration 可在远程 MySQL 幂等执行，执行后新场次写入三列成功。",
-        "定向测试、后端 lint/typecheck、管理台 type-check、全量测试全绿；engine-core 零改动。",
-        "交付记录、机读回执、归档与受保护 PR 齐全。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-22T14:24:16.270Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2838,6 +2727,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-302/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af302-render-acceptance-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-314",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
         "reply": null
       }
     }

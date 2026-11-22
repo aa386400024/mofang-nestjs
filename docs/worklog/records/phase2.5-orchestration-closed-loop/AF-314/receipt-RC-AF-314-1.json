@@ -1,0 +1,225 @@
+{
+  "deliveredAt": "2026-11-22T22:47:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-314-1",
+    "taskId": "AF-314",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "137bbe28de4600b168a721f83c5ec05f56d21549",
+    "dependsOn": [],
+    "priorTasks": ["AF-313"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "src/migration/1714900000050-AddPracticeSessionModelColumns.ts",
+        "test/auto-practice/practice-runner.spec.ts",
+        "admin-dashboard/src/views/AutoPractice.vue"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "src/migration/1714900000050-AddPracticeSessionModelColumns.ts",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-314/manifest.json",
+        "docs/worklog/completed/phase2.5/af314-practice-session-model-display-2026-11-22.md"
+      ],
+      "modified": [
+        "admin-dashboard/src/api/types.ts",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "bin/ormconfig.ts",
+        "src/auto-practice/auto-practice.module.ts",
+        "src/auto-practice/counselor-agent.service.ts",
+        "src/auto-practice/entities/practice-session.entity.ts",
+        "src/auto-practice/practice-runner.service.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "src/engine-adapters/wiring/render-config.factory.ts",
+        "src/migration/index.ts",
+        "test/auto-practice/practice-runner.spec.ts",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": [
+        "72a2ee81e71d5c2d9b4ce7f5fbd5286a5675e7fc",
+        "d34a4037"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/practice-runner.spec.ts test/auto-practice/practice-runner-cost.spec.ts test/engine-adapters/wp8-wiring.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "2.02s",
+        "note": "3 files / 58 tests passed；含新增 AF-314 落库断言"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "分钟级",
+        "note": "tsc -b tsconfig.check.json exit 0"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "后台任务完成",
+        "note": "eslint --cache 与编排脚本 lint 均 exit 0，0 error / 0 warning"
+      },
+      {
+        "command": "pnpm --dir admin-dashboard type-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "vue-tsc --build exit 0"
+      },
+      {
+        "command": "pnpm --dir admin-dashboard build-only",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.27s",
+        "note": "4718 modules transformed；AutoPractice chunk 构建成功"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 283,
+        "machine": "同上",
+        "wallClock": "26.11s",
+        "note": "283 passed + 1 skipped；4400 tests passed + 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm migration:show",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "[X] 89 AddPracticeSessionModelColumns1714900000050，远程开发库已执行"
+      },
+      {
+        "command": "GET http://127.0.0.1:3000/admin/api/auto-practice/sessions?page=1&pageSize=3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "新场次 1oG3rptwt70tSHJJOhwuA 返回 visitorModelProvider=doubao、visitorModel=doubao-seed-character-260628、counselorModel=MiniMax-M3；历史场次三列为 NULL"
+      }
+    ],
+    "reproNotes": "AF-314 自 integrate 137bbe28 切出任务分支。远程 MySQL 已执行 AddPracticeSessionModelColumns1714900000050，三列 nullable 幂等新增。后端从 af281r 重新 pnpm build 后以 node dist/app.js 启动在 3000；前端从 af281r/admin-dashboard 重新启动在 5174，替换了原指向 mofang-nestjs 工作树的旧 Vite 进程。新跑 1 轮会话验证三列落库；首次验证场次在类型导入修复前 visitor 列 NULL，保留为反向证据，不回填历史。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-314 新登记；AF-313 已归档，无重复占号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register/promote/run-once 均经 CLI；未手改状态索引与事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter、scope、gates、artifacts 与回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入与归档后 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "branch-scope",
+        "result": "pass",
+        "note": "task/AF-314-practice-session-model-display 自 137bbe28 切出；实现、测试、交付记录均在任务分支"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 137bbe28 为切出点；实现提交 72a2ee81，交付记录提交 d34a4037"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "是否把逐轮 fallback 后的实际模型写入 debug_turn_traces 并做会话级模型变更聚合；本轮只固定启动时主候选与咨询师模型"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只要求管理台卡片增加对练时间与应用模型",
+        "reality": "modelVersion 是 MINIMAX_LLM_MODEL 全局指纹，与 VISITOR_LLM_PROVIDER=doubao 的真实来访者模型不一致",
+        "action": "新增 visitor_model_provider / visitor_model / counselor_model 三列与 migration，会话启动时落库",
+        "why": "只改前端会把 MiniMax 冒充来访者模型；会话后配置漂移也无法追溯"
+      },
+      {
+        "taskSays": "成本作为辅助可见字段",
+        "reality": "新场次 totalCost 仍为 NULL，成本结算不在本任务路径",
+        "action": "totalCost 有值才显示；空值不渲染为 0",
+        "why": "不伪造 0 成本，不扩大结算链路改动面"
+      },
+      {
+        "taskSays": "其他有帮助字段可一起加",
+        "reality": "卡片已有四类元信息，再加可见行会挤压列表",
+        "action": "完整模型 ID、开始/结束时间、退出原因、成本、批次、种子放入悬浮提示",
+        "why": "保持列表密度，同时保留排障所需事实"
+      },
+      {
+        "taskSays": "前端页面应显示新字段",
+        "reality": "原 5174 Vite 进程来自 mofang-nestjs 工作树，不是 af281r",
+        "action": "停止旧进程树，从 af281r/admin-dashboard 重启 5174；3000 切到 af281r dist",
+        "why": "代码改动必须与实际服务工作树一致，否则页面仍加载旧代码"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-314 完成三列模型可观测字段与幂等 migration，管理台卡片增加对练时间、时长、来访者/咨询师模型及悬浮排障信息；历史行降级显示引擎模型。定向 58 例、typecheck、lint、管理台 type-check/build、全量 4400 例全绿，engine-core 零改动；远程迁移已执行，新场次接口三列落库正确。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
