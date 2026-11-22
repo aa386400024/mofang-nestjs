@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T20:26:18.301Z",
+  "generatedAt": "2026-11-22T20:42:36.920Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-071",
+      "recordedAt": "2026-11-22T20:31:46.550Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-334",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-334-realism-long-session-ablation"
+      ]
+    },
+    {
+      "auditId": "AUD-070",
+      "recordedAt": "2026-11-22T20:31:38.492Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-334",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-334",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-334.json"
+      ]
+    },
+    {
+      "auditId": "AUD-069",
+      "recordedAt": "2026-11-22T20:31:31.256Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-334",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-068",
       "recordedAt": "2026-11-22T20:17:08.959Z",
       "actorRef": "orchestrator",
@@ -1971,67 +2018,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-056",
-      "recordedAt": "2026-11-22T19:01:01.187Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-329",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-329-realism-prompt-ab"
-      ]
-    },
-    {
-      "auditId": "AUD-055",
-      "recordedAt": "2026-11-22T19:00:56.043Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-329",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-329",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-329.json"
-      ]
-    },
-    {
-      "auditId": "AUD-054",
-      "recordedAt": "2026-11-22T19:00:49.243Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-329",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 68,
+    "total": 71,
     "byResult": {
-      "allowed": 68,
+      "allowed": 71,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 67,
+      "TOOL-QUEUE-SCHEDULER": 70,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 68
+      "orchestrator": 71
     }
   },
   "protocolView": {
@@ -7651,6 +7651,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af333-realism-long-session-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-334",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-334/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af334-realism-long-session-ablation-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7675,5 +7693,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 323
+  "archivedCount": 324
 };
