@@ -649,6 +649,13 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
                 outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K_MINIMAX'),
               },
             },
+            // AF-267: 模型级覆盖键；官方价已内置，env 只用于部署方按当期账单纠偏。
+            models: {
+              'doubao/doubao-seed-character-260628': {
+                inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K_MODEL_DOUBAO_SEED_CHARACTER_260628'),
+                outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K_MODEL_DOUBAO_SEED_CHARACTER_260628'),
+              },
+            },
           }),
           // WP14: 学员侧处置闸门 (置位重点监测) + 风险审计插槽 (写 student_risk_events).
           studentRiskGate: studentRisk,
