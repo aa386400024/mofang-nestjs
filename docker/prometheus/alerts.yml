@@ -201,6 +201,18 @@ groups:
           summary: "来访者渲染候选失败激增 (cause={{ $labels.cause }})"
           description: "10 分钟内 cause={{ $labels.cause }} 失败 {{ $value }} 次 (>10); 对照 Runbook 的 cause→处置表"
 
+      - alert: VisitorRenderCooldownServedSpike
+        # 全损是"整轮无候选可用", 与候选试完败分开计数; 有备候选或半开探测可用时不记.
+        expr: |
+          sum(increase(visitor_render_cooldown_served_total[10m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: ai-engine
+        annotations:
+          summary: "来访者渲染熔断全损激增"
+          description: "10 分钟内 {{ $value }} 轮因全员冷却无候选可用 (>3); 先看 health 快照与冷却时长, 再决定是否人工回滚"
+
   # ============================================================
   # Audit / 审计
   # ============================================================

@@ -66,6 +66,7 @@ export class MetricsService implements OnModuleInit {
   private visitorRenderAuthFailure!: Counter<string>;
   private visitorRenderFailure!: Counter<string>;
   private visitorRenderCancelled!: Counter<string>;
+  private visitorRenderCooldownServed!: Counter<string>;
   private visitorRenderFallback!: Counter<string>;
   private visitorRenderDegraded!: Counter<string>;
 
@@ -195,6 +196,11 @@ export class MetricsService implements OnModuleInit {
       name: 'visitor_render_cancelled_total',
       help: '渲染外部取消次数 (barge-in/暂停, 按 candidate 标签; 不是降级)',
       labelNames: ['candidate'],
+      registers: [this.registry],
+    });
+    this.visitorRenderCooldownServed = new Counter({
+      name: 'visitor_render_cooldown_served_total',
+      help: '整轮无候选可用 (全员冷却且未到半开时点) 的全损次数',
       registers: [this.registry],
     });
     this.visitorRenderFallback = new Counter({
@@ -335,6 +341,13 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.visitorRenderCancelled.inc({ candidate });
+  }
+
+  incVisitorRenderCooldownServed(): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderCooldownServed.inc();
   }
 
   incVisitorRenderFallback(from: string, to: string, cause: string): void {

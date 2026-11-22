@@ -1,6 +1,6 @@
 # 来访者渲染遥测告警与灰度判读 Runbook
 
-适用版本：AF-278 指标接入、AF-282 语义修正、AF-283 告警规则与看板之后。
+适用版本：AF-278 指标接入、AF-282 语义修正、AF-283 告警规则与看板、AF-286 熔断全损可观测之后。
 适用范围：`visitor_render_*` 指标（主候选 `doubao-seed-character-260628`，备候选 MiniMax）。
 
 ---
@@ -11,7 +11,8 @@
 | --- | --- | --- |
 | `visitor_render_attempts_total{outcome}` | 候选尝试次数与终局（success/retry/degrade） | 单候选/末次候选具体错因（看 `failure_total`） |
 | `visitor_render_failure_total{cause}` | **候选级**真实失败原因 | 轮次是否最终降级（看 `degraded_total`） |
-| `visitor_render_degraded_total{cause}` | 轮次最终降级；`exhausted`=候选耗尽 | 熔断挡掉的轮次仍归 `exhausted`（已知 backlog） |
+| `visitor_render_degraded_total{cause}` | 轮次最终降级；`exhausted`=候选耗尽 | 具体是"试完败"还是"熔断挡掉"，看 `cooldown_served_total` |
+| `visitor_render_cooldown_served_total` | 整轮无候选可用（全员冷却且未到半开时点）的全损轮次 | 半开探测可用时不算；不是单候选熔断次数 |
 | `visitor_render_cancelled_total` | barge-in / 暂停 | **不是故障**，不进降级率分子/分母 |
 | `visitor_render_fallback_total{from,to,cause}` | 真的切到了下一个候选 | 候选耗尽时没有 to，不会产生假标签 |
 | `visitor_render_first_delta_seconds` | raw chunk 首包预算的分布（P95 用分位） | 首个**可见闭合句**的 TTFT（同名不同义，已知 backlog） |
@@ -21,7 +22,7 @@
 
 - 降级率分母只用 `attempts{outcome=~"success|degrade"}`（终局轮次），不含 retry，也不含 cancelled。
 - barge-in 高频是**正常语音交互**。取消率只做容量/体验观察，绝不作为回滚依据。
-- `degraded_total{cause=exhausted}` 表示“这一轮没有可用候选”；具体是 429、5xx、超时还是 guard，一律去 `failure_total{cause}` 看。
+- `degraded_total{cause=exhausted}` 表示“这一轮没有可用候选”；先对照 `cooldown_served_total`：同步上涨=熔断挡掉，没涨=候选真的试完败。单次失败的 429、5xx、超时还是 guard，一律去 `failure_total{cause}` 看。
 
 ---
 
@@ -35,6 +36,7 @@
 | `VisitorRenderStreamTimeoutSpike` | 10m 超时 >5（按 phase） | warning | `first-delta` 看建流/冷启动；`idle` 看上游断流与网关空闲超时 |
 | `VisitorRenderFallbackRateHigh` | 10m 回退率 >10% | warning | 看 `fallback{cause}` 与主候选 `failure`；主候选是否持续限流/5xx |
 | `VisitorRenderFailureCauseSpike` | 10m 单 cause >10 | warning | 按 cause 走 §3 处置表 |
+| `VisitorRenderCooldownServedSpike` | 10m 全损 >3 轮 | warning | 看 `health()` 快照与冷却时长；确认是持续故障还是退避后自愈，再决定人工回滚 |
 
 阈值是**灰度初版**，不是 SLA：AF-268/AF-277/AF-278 实测 TTFT 0.5–1.3s、回滚态 0.6–5.0s，生产样本足够后按 P95/P99 重新校准。改阈值只改 `docker/prometheus/alerts.yml`，同步更新本节。
 
@@ -56,7 +58,7 @@
 | `truncated` | `finish_reason=length` 且无完整句 | 检查 `maxCompletionTokens` 与 thinking 预算 |
 | `guard` | 输出侧安全拦截 | 看 `onSafetySignal` 日志；**不要为了降级率放过高危文本** |
 | `config` | 候选未配置模型 | 配置错误，立即修 env；不是上游问题 |
-| `exhausted` | 候选耗尽（轮次级，只在 degraded） | 结合 failure cause 判断根因；单独出现说明看板用错指标 |
+| `exhausted` | 候选耗尽（轮次级，只在 degraded） | 对照 `cooldown_served_total`：涨=熔断挡掉，不涨=候选试完败；再结合 failure cause 判断根因 |
 | `cancelled` | barge-in / 暂停（只在 cancelled） | 正常交互；不处置、不回滚 |
 
 ---
@@ -123,12 +125,13 @@ sum(increase(visitor_render_cancelled_total[10m]))
 
 ## 6. 看板
 
-`docker/grafana/dashboards/mofang-overview.json` 新增四块：
+`docker/grafana/dashboards/mofang-overview.json` 新增五块：
 
 1. 来访者渲染：降级率 / 取消率（两条线分开，避免把 barge-in 读成故障）；
 2. 来访者渲染：首包 P95（first-delta）；
 3. 来访者渲染：候选级失败原因（按 cause 堆叠）；
 4. 来访者渲染：候选回退率。
+5. 来访者渲染：熔断全损（10m）。
 
 看板刷新 30s；Grafana 通过 `docker/grafana/provisioning/dashboards/dashboards.yml` 自动加载。
 
@@ -136,7 +139,8 @@ sum(increase(visitor_render_cancelled_total[10m]))
 
 ## 7. 已知盲区（不要用本 Runbook 过度解读）
 
-- 熔断挡掉的轮次与候选试完同记 `degraded{exhausted}`，无法从指标区分（backlog `visitor-render-breaker-vs-exhausted`）。
+- `cooldown_served_total` 只回答“这一轮是不是全员冷却导致无候选可用”，不回答“哪个候选被熔断、熔了多久”；后者看 `health()` 快照与日志。它是进程级计数，多实例部署时需按实例分别观察。
+- `degraded{exhausted}` 与 `cooldown_served_total` 时间窗不完全对齐：前者是轮次终局，后者在 `next()` 时自增；同一轮两者都应出现，短暂错位属正常。
 - `visitor_render_first_delta_seconds` 量 raw chunk，TTFT 量首个可见闭合句；纯推理流可能零信号（backlog `visitor-first-delta-vs-ttft-semantics`）。
 - 聚合路径（调用出口不支持流式）没有 first-delta / stream_timeout 指标（backlog `visitor-aggregate-path-telemetry`）。
 - 当前没有 Alertmanager 外发通道；规则 firing 需人工看 Prometheus / Grafana。

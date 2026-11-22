@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-286",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T15:40:00+08:00",
+  "updatedAt": "2026-11-22T07:37:33.805Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-286/task-sheet.md",
+    "sha256": "5ec36d2ad4e20289b36a4f050db40acfd9cb124996e0ed232dc2baa45b90a412",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-286/receipt-RC-AF-286-1.json",
+      "sha256": "796d2f6cd4b4b6127ad0811877017043cb0574168c43334eb8ce63ceff004789",
+      "receiptId": "RC-AF-286-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af286-cooldown-served-observability-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-286-cooldown-served-observability-2026-11-22.md"
+  ],
+  "tombstone": null
+}

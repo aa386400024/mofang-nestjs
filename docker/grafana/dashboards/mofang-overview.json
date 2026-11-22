@@ -187,6 +187,20 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 } }
     },
     {
+      "id": 14,
+      "title": "来访者渲染: 熔断全损 (10m)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 48 },
+      "targets": [
+        {
+          "expr": "sum(increase(visitor_render_cooldown_served_total[10m]))",
+          "legendFormat": "熔断全损轮次",
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "id": 7,
       "title": "系统资源 (CPU / 内存)",
       "type": "timeseries",
