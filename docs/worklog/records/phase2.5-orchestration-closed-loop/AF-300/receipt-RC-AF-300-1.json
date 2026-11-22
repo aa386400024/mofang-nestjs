@@ -1,0 +1,163 @@
+{
+  "deliveredAt": "2026-11-22T19:01:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-300-1",
+    "taskId": "AF-300",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "75993239f9359619b955bbc1ccc493fe2901d070",
+    "dependsOn": [],
+    "priorTasks": ["AF-292", "AF-295", "AF-299"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af300-target.log",
+        "data/af300-network-smoke.log",
+        "data/af300-typecheck.log",
+        "data/af300-lint-full.log",
+        "data/af300-test-full.log",
+        "data/af300-preflight.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md"
+      ],
+      "modified": [
+        "src/engine-adapters/rendering/render-telemetry.port.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "test/engine-adapters/af282-render-telemetry-correctness.spec.ts",
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["314933c9", "b25c3f68"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af282-render-telemetry-correctness.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "805ms",
+        "note": "8 passed；新增 network 用例通过；日志 data/af300-target.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 1 --fail-primary --fail-backup --fail-primary-mode network --expect-exhausted --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "13ms render",
+        "note": "ok=true；两候选 failure{network}=1、fallback cause=network、rounds{exhausted}=1；日志 data/af300-network-smoke.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "日志 data/af300-typecheck.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "首轮 max-len 173>140 失败，拆常量数组后复跑通过；日志 data/af300-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "24.57s",
+        "note": "279 passed / 1 skipped files，4364 passed / 4 skipped；日志 data/af300-test-full.log"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "PASS task=AF-300 status=submitted files=5 covered=4；日志 data/af300-preflight.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "network smoke 本机起临时故障上游；单测用两候选 Connection error / socket hang up ECONNRESET 断言 failure、fallback、degraded，并断言不记 timeout。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-300 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "http-semantics", "result": "pass", "note": "429/5xx/401 分类未变，原有用例全绿"},
+      {"item": "metric-label", "result": "pass", "note": "network 仅作为 cause 标签值，不新增指标"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=75993239 为 AF-299 合并后的 integrate HEAD"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-timeout-cause-naming",
+        "impact": "流式首包超时记 first-delta，聚合路径可能记 timeout；按 cause=timeout 报警会漏判",
+        "suggestion": "补路径对照表或统一命名，另单执行"
+      },
+      {
+        "id": "visitor-render-perceived-failure-alert-threshold",
+        "impact": "体验失败率仍只有曲线无阈值，缺灰度基线",
+        "suggestion": "灰度 1–2 周后按 P95 定阈值"
+      },
+      {
+        "id": "visitor-render-round-label-rename",
+        "impact": "rounds_total{outcome} 与 attempts_total{outcome} 值域不同，PromQL 易混用",
+        "suggestion": "评估改 result 标签并兼容历史数据"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "连接错误归 network",
+        "reality": "实现同时覆盖 DNS（getaddrinfo/enotfound/eai_again）与 socket 层（ECONNRESET/socket hang up）",
+        "action": "合并为同一 network cause，Runbook 处置表写“出网/代理/DNS/TLS”",
+        "why": "三者处置域一致，拆多个 cause 会让看板碎片化；HTTP 状态语义未改变"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "连接层失败独立 network 有单测与真实 smoke 双重证据；429/5xx/401 原有用例全绿；typecheck/lint/全量测试通过；engine-core 零改动；Runbook 处置表与矩阵同步。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

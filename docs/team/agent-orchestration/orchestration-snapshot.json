@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T10:56:57.154Z",
+  "generatedAt": "2026-11-22T11:01:23.633Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-300",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "渲染连接类失败独立 network cause",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-300",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T10:56:57.087Z",
-        "leaseDeadline": "2026-11-22T11:26:57.085Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-300.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T10:56:57.087Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-300.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1825,6 +1784,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-522",
+      "recordedAt": "2026-11-22T10:57:08.500Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-300",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-300-af-300"
+      ]
+    },
+    {
+      "auditId": "AUD-521",
+      "recordedAt": "2026-11-22T10:56:57.259Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-300",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-300",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-300.json"
+      ]
+    },
+    {
       "auditId": "AUD-520",
       "recordedAt": "2026-11-22T10:56:24.917Z",
       "actorRef": "orchestrator",
@@ -2030,82 +2019,25 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-294.json"
       ]
-    },
-    {
-      "auditId": "AUD-507",
-      "recordedAt": "2026-11-22T09:27:39.727Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-294",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-506",
-      "recordedAt": "2026-11-22T09:07:33.474Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-292",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-292-render-round-denominator"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 520,
+    "total": 522,
     "byResult": {
-      "allowed": 520,
+      "allowed": 522,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 519,
+      "TOOL-QUEUE-SCHEDULER": 521,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 520
+      "orchestrator": 522
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-300",
-        "title": "渲染连接类失败独立 network cause",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7288,6 +7220,24 @@
             "ref": "docs/worklog/completed/phase2.5/af299-render-fault-matrix-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-300",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7302,22 +7252,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-300",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md"
-      },
-      {
-        "taskId": "AF-300",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7325,5 +7262,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 299
+  "archivedCount": 300
 }

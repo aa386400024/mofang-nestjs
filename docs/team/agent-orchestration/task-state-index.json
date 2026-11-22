@@ -4,101 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1365,
+    "lastEventSeq": 1367,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-300",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T10:56:24.725Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "人工提级"
-        },
-        {
-          "at": "2026-11-22T10:56:57.085Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "渲染连接类失败独立 network cause",
-      "type": "fix",
-      "baselineRef": "75993239f9359619b955bbc1ccc493fe2901d070",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-292",
-        "AF-295",
-        "AF-299"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T10:56:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/engine-adapters/rendering/render-telemetry.port.ts",
-          "src/engine-adapters/rendering/llm-render.adapter.ts",
-          "test/engine-adapters/af282-render-telemetry-correctness.spec.ts",
-          "docs/runbooks/render-telemetry-alerting.md",
-          "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/"
-        ],
-        "modules": [
-          "engine-adapters"
-        ],
-        "interfaces": [
-          "RenderFailureCause"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/engine-adapters/af282-render-telemetry-correctness.spec.ts",
-          "check": "network 连接错误分类用例通过，既有 cause 用例不回归",
-          "threshold": "exit=0 且 0 failed"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 1 --fail-primary --fail-backup --fail-primary-mode network --expect-exhausted --dump-render-metrics",
-          "check": "真实 network 故障回放",
-          "threshold": "ok=true 且 failure cause 为 network"
-        }
-      ],
-      "successCriteria": [
-        "RenderFailureCause 新增 network，连接类错误（Connection error/ECONNREFUSED/ENOTFOUND/fetch failed/socket hang up 等）归因 network。",
-        "HTTP 状态语义不变：429 仍 rate-limit、5xx 仍 server、401 走 auth 分支。",
-        "单测覆盖连接错误分类；af282 原有用例全绿。",
-        "network smoke 的 failure/fallback cause 从 other 变为 network。",
-        "Runbook 故障矩阵与 cause 处置表同步 network；不新增告警阈值。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "AF-300 交付记录",
-          "path": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-22T10:56:24.724Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2764,6 +2673,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-299/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af299-render-fault-matrix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-300",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
         "reply": null
       }
     }

@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-300",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T18:56:00+08:00",
-  "updatedAt": "2026-11-22T10:56:24.344Z",
+  "updatedAt": "2026-11-22T11:01:23.564Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/task-sheet.md",
     "sha256": "09fbb79318a3ec0340eea79745d28f71e3985a41575c3a6d5082f9d0be36a4b9",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-300/receipt-RC-AF-300-1.json",
+      "sha256": "0bed282b33c0976b6f5badfe8b31b9e9b14a2ee804c9beefc59c1f52456dc7c5",
+      "receiptId": "RC-AF-300-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af300-render-network-cause-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af300-render-network-cause-task-2026-11-22.md"
