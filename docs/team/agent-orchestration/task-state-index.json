@@ -4,101 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1380,
+    "lastEventSeq": 1384,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-302",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T11:32:39.957Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "一键自证验收器"
-        },
-        {
-          "at": "2026-11-22T11:33:13.620Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "渲染故障矩阵一键自证验收器",
-      "type": "implementation",
-      "baselineRef": "3aad9884c2c3a7722599003fd56dbbd9d6b42a2d",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-295",
-        "AF-299",
-        "AF-300"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T11:30:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "bin/visitor-render-acceptance.ts",
-          "bin/lib/render-acceptance-checks.ts",
-          "test/engine-adapters/af302-render-acceptance-checks.spec.ts",
-          "docs/runbooks/render-telemetry-alerting.md",
-          "docs/worklog/completed/phase2.5/af302-render-acceptance-2026-11-22.md",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-302/"
-        ],
-        "modules": [
-          "engine-adapters"
-        ],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-302/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af302-render-acceptance-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec tsx bin/visitor-render-acceptance.ts",
-          "check": "五条真实故障场景逐条自证",
-          "threshold": "exit=0 且 PASS 5 / FAIL 0"
-        },
-        {
-          "command": "pnpm exec vitest run test/engine-adapters/af302-render-acceptance-checks.spec.ts",
-          "check": "断言与 JSON 提取纯函数单测",
-          "threshold": "exit=0 且 0 failed"
-        }
-      ],
-      "successCriteria": [
-        "新增 `bin/visitor-render-acceptance.ts`，一条命令跑完五类故障场景（双 5xx / 双首包超时 / 双 401 / 双连接失败 / 单候选首包后停摆），逐条比对真实进程内指标并打印 PASS/FAIL 表。",
-        "断言逻辑抽到 `bin/lib/render-acceptance-checks.ts` 纯函数：按指标名+标签求和、缺失为 0、支持 equals/atLeast/atMost，全部可单测。",
-        "任一场景指标不符、smoke 退出码非 0 或报告不可解析 → FAIL 且进程退出码 1；`--keep-going` 可跑完全部再看结果。",
-        "支持 `--only <id,id>` 子集执行；未知 id 明确报错。",
-        "Runbook §5.1 增加「一键自证」入口、退出码语义与「进程内增量、不是线上累计值」的口径提醒。",
-        "反向验证：故意把一条期望改错，验收器必须精确报出期望值与真实值并退出 1。",
-        "闸门：定向测试全绿、typecheck 0、全量 lint 0、全量测试全绿、`src/engine-core` 零改动。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "AF-302 交付记录",
-          "path": "docs/worklog/completed/phase2.5/af302-render-acceptance-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-22T11:32:39.956Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2791,6 +2700,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-302",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-302/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af302-render-acceptance-2026-11-22.md",
         "reply": null
       }
     }
