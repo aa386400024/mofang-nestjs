@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1384,
+    "lastEventSeq": 1393,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -2695,6 +2695,24 @@
       }
     },
     {
+      "taskId": "AF-312",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-312/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af312-admin-debug-remote-store-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-313",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-313/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af313-admin-debug-remote-store-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
       "taskId": "AF-301",
       "status": "completed",
       "artifacts": {
@@ -2757,6 +2775,7 @@
     "AF-206": "scope 重签发 → AF-207",
     "AF-215": "角色域不匹配取消，改由 AF-216 执行",
     "AF-262": "scope-domain-conflict；AF-263 承接",
-    "AF-279": "旁路评审任务取消归档；评审报告保留为 AF-278 生产可用性证据，P0/P1 转新返修任务"
+    "AF-279": "旁路评审任务取消归档；评审报告保留为 AF-278 生产可用性证据，P0/P1 转新返修任务",
+    "AF-312": "scope 重签发 → AF-313"
   }
 }
