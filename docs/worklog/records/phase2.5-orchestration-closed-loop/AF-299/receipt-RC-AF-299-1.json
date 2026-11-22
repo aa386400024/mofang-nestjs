@@ -1,0 +1,238 @@
+{
+  "deliveredAt": "2026-11-22T18:53:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-299-1",
+    "taskId": "AF-299",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "eb30f22f5f3ea99c4374903097a09c6898f89de5",
+    "dependsOn": ["AF-295"],
+    "priorTasks": ["AF-292", "AF-295", "AF-296", "AF-297", "AF-298"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#2"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-299/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af299-render-fault-matrix-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af299-server-error.log",
+        "data/af299-timeout.log",
+        "data/af299-auth.log",
+        "data/af299-network.log",
+        "data/af299-midstream.log",
+        "data/af299-typecheck.log",
+        "data/af299-lint-full.log",
+        "data/af299-test-full.log",
+        "data/af299-flaky-rerun.log",
+        "data/af299-test-full2.log",
+        "data/af299-preflight.log",
+        "data/af299-preflight2.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af299-render-fault-matrix-2026-11-22.md"
+      ],
+      "modified": [
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["2a7f859d", "bc418797"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider doubao --caller router --turns 1 --fail-primary --fail-backup --fail-primary-mode server-error --expect-exhausted --dump-render-metrics",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "18ms render",
+        "note": "ok=true；rounds{exhausted}=1、degraded{exhausted}=1、两候选 failure{server}=1、fallback cause=server；日志 data/af299-server-error.log"
+      },
+      {
+        "command": "同一 smoke，--fail-primary-mode timeout --expect-exhausted",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "16018ms render",
+        "note": "ok=true；两候选 stream_timeout{first-delta}=1、failure{first-delta}=1；cause 非 timeout；日志 data/af299-timeout.log"
+      },
+      {
+        "command": "同一 smoke，--fail-primary-mode auth --expect-exhausted",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "103ms render",
+        "note": "ok=true；两候选 auth_failure_total=1、failure{auth}=1；日志 data/af299-auth.log"
+      },
+      {
+        "command": "同一 smoke，--fail-primary-mode network --expect-exhausted",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "12ms render",
+        "note": "ok=true；两候选 failure{other}=1、fallback cause=other；日志 data/af299-network.log"
+      },
+      {
+        "command": "同一 smoke，--fail-primary --fail-primary-mode midstream-stall --expect-degraded",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "30076ms render",
+        "note": "ok=true；rounds{degrade}=1、degraded{idle}=1、stream_timeout{idle}=1、failure{idle}=1；日志 data/af299-midstream.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "日志 data/af299-typecheck.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "日志 data/af299-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量首次）",
+        "exitCode": 1,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "23.70s",
+        "note": "既有 flaky：debug-session-persistence waitFor 10s 超时；日志 data/af299-test-full.log"
+      },
+      {
+        "command": "pnpm exec vitest run test/admin-debug/debug-session-persistence.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "3.02s",
+        "note": "28 passed，确认 flaky 与改动无关；日志 data/af299-flaky-rerun.log"
+      },
+      {
+        "command": "pnpm test（全量复跑）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "23.98s",
+        "note": "279 passed / 1 skipped files，4363 passed / 4 skipped；日志 data/af299-test-full2.log"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "PASS task=AF-299 status=submitted files=2 covered=1；日志 data/af299-preflight2.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src bin test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，未改代码"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "五条 smoke 均本机起临时故障上游，不消耗真实额度；每条命令与期望指标已写入 Runbook §5.1，checkout 当前分支后可直接复跑。首次全量测试的 debug-session-persistence 超时为既有 flaky，定向与全量复跑均绿。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-299 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "no-code-change", "result": "pass", "note": "src/bin/test 零改动，仅 Runbook 与交付记录"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "matrix-evidence", "result": "pass", "note": "五条故障形态均有真实日志与期望指标"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=eb30f22f 为 AF-298 合并后的 integrate HEAD"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-network-cause-classify",
+        "impact": "连接错误落 failure{cause=other}，线上无法单凭 other 定位网络层",
+        "suggestion": "评估新增 network cause 或按错误码细分；涉及指标标签与历史数据兼容，另单执行"
+      },
+      {
+        "id": "visitor-render-timeout-cause-naming",
+        "impact": "流式首包超时统一记 first-delta，按 cause=timeout 报警会漏判",
+        "suggestion": "补路径对照表或统一命名；先以 Runbook 判读纪律兜住"
+      },
+      {
+        "id": "visitor-render-flaky-debug-session-waitfor",
+        "impact": "全量测试偶发 debug-session-persistence waitFor 10s 超时，单文件与复跑通过",
+        "suggestion": "评估提高该用例 waitFor 预算或减少全量并发 worker，避免 CI 误红"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "回放四类故障：timeout 期望 failure{cause=timeout}",
+        "reality": "流式路径先触发 8s 首包预算，真实 cause 为 first-delta，且两候选 stream_timeout{phase=first-delta} 各 1",
+        "action": "Runbook §5.1 按真实 cause 写矩阵，并把 timeout→first-delta 差异列为已知口径",
+        "why": "按 timeout 跑告警会漏判；值班必须先认 stream_timeout phase 与 failure first-delta"
+      },
+      {
+        "taskSays": "network 期望有独立网络类 cause",
+        "reality": "连接错误落 failure{cause=other}，RenderFailureCause 无 network 枚举",
+        "action": "保留现状不扩 scope，Runbook 标注结合 probe Connection error 判读，登记 backlog",
+        "why": "新增 cause 会牵动指标标签、告警、看板与历史数据兼容，验证单不应顺手改契约"
+      },
+      {
+        "taskSays": "四类故障",
+        "reality": "实际回放五条，多出 midstream-stall（已有首包后停摆）",
+        "action": "单列第五行，用 --expect-degraded 取证",
+        "why": "它是唯一“已有首包后失败”的形态，不覆盖会在判读上留空洞"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "五条故障形态均真实回放并落日志，Runbook 矩阵可照着复跑；两处 cause 口径差异已显式标注并登记 backlog；代码零改动，typecheck/lint/全量测试复跑全绿，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

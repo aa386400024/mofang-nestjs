@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-299",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T18:50:00+08:00",
+  "updatedAt": "2026-11-22T10:50:59.187Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-299/task-sheet.md",
+    "sha256": "e4e03f178a1ce77e337b7315cd330430f7f55fed603b4277e9da12f7dc61b58a",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-299/receipt-RC-AF-299-1.json",
+      "sha256": "09057942f017345dcbd1b06084cc8151197ee34fa8cbdf8eb818fa8257fcfccc",
+      "receiptId": "RC-AF-299-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af299-render-fault-matrix-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af299-render-fault-matrix-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
