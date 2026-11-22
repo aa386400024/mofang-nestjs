@@ -1,0 +1,234 @@
+{
+  "deliveredAt": "2026-11-22T19:14:30+08:00",
+  "payload": {
+    "receiptId": "RC-AF-311-1",
+    "taskId": "AF-311",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "2a00b9ddd4d60021715630c491c281ce3832a61d",
+    "dependsOn": ["AF-227"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-311/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af311-lite-prompt-v2-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/phase25-exit/af229-lite-dev-12/v2-screen6/report.json",
+        "data/phase25-exit/af229-lite-dev-12/v2-screen6/summary.md",
+        "data/phase25-exit/af229-lite-dev-12/v2-screen6/gates.json",
+        "data/phase25-exit/af229-lite-dev-12/v2-screen6/gates.md",
+        "data/phase25-exit/af229-lite-dev-12/v2-screen6/run.log",
+        "data/phase25-exit/af311-v2-screen6.log",
+        "data/phase25-exit/af311-targeted.log",
+        "data/phase25-exit/af311-typecheck.log",
+        "data/phase25-exit/af311-lint.log",
+        "data/phase25-exit/af311-full-test.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "bin/realism-rater-lite-prompt.ts",
+        "test/auto-practice/af229-lite-prompt.spec.ts",
+        "test/auto-practice/af311-lite-prompt-v2.spec.ts",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-311/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-311/manifest.json",
+        "docs/worklog/completed/phase2.5/af311-lite-prompt-v2-2026-11-22.md"
+      ],
+      "modified": [
+        "bin/realism-rater-runtime.ts",
+        "bin/visitor-realism-cross-model.ts",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["773ef3bd"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af229-lite-prompt.spec.ts test/auto-practice/af311-lite-prompt-v2.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "284ms",
+        "note": "2 files / 18 tests passed；V1 12 例保持逐字口径，V2 6 例覆盖阶梯、全 4 复核、overall 与解析兼容"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "后台任务完成",
+        "note": "tsc -b tsconfig.check.json exit 0"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "后台任务完成",
+        "note": "eslint --cache 与编排脚本 lint 均 exit 0，0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 282,
+        "machine": "同上",
+        "wallClock": "24.60 秒",
+        "note": "281 files passed + 1 skipped；4378 tests passed + 8 skipped（AF-300 新增 1 例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-cross-model.ts --source D:\\work\\Project\\backend\\mofang-nestjs-af070\\data\\debug-sessions --out data/phase25-exit/af229-lite-dev-12/v2-screen6 --max-packets 60 --target-scored 6 --packet-ids 10cecca5021e6af8,836fb12e32da5190,889820c4d8c93279,7bca75a765c9cabb,685b894775c1a07d,751731f1bdd6de99 --minimax-model MiniMax-M3.1-Flash --doubao-model doubao-seed-2-1-lite-260915 --doubao-prompt lite-v2 --doubao-thinking auto",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 分钟",
+        "note": "6/6 packet、0 失败、27 次评分调用、0 截断；跨模型 κ=0.347826、总体绝对差=0.75，未过 6 packet 门；按任务单停止扩 12，不跑 24/48"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs status",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "AF-311 submitted；活跃 submitted=1，归档 300"
+      }
+    ],
+    "reproNotes": "V2 以显式 --doubao-prompt lite-v2 跑 6 个 baseline 分歧最大 packet；模型、thinking、温度、seed 与 baseline/V1 对齐，只改豆包 prompt 一个变量。6 packet 在 8fedf002 基线的 V2 代码快照上完成；最终 AF-311 在 2a00b9dd 干净重建后，5 个代码/测试目标文件从 88a7f763/4d0cb4d2 逐字继承，且这些文件在 8fedf002..2a00b9dd 区间无变更，结果沿用。报告与逐条门槛在 data/phase25-exit/af229-lite-dev-12/v2-screen6/。V2 4 分占比降到 16.67%、std 升到 1.552328，但 κ 0.347826、绝对差 0.75 两条硬门未过；同一 packet T=0.1/T=0.5 出现 1/5 反转，判定阈值计数不稳定，停止扩样。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-311 承接 AF-231 V2 方案；priorTasks 保留 AF-227 / AF-229 / AF-230 / AF-231"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI；状态文件由 CLI 生成后随任务分支提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入与归档后 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "branch-scope",
+        "result": "pass",
+        "note": "task/AF-311-lite-prompt-v2-r2 自 2a00b9dd 切出；登记与实现均在该分支"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 2a00b9dd 为任务分支切出点；代码与记录提交 773ef3bd 在其之上"
+    },
+    "backlogItems": [
+      {
+        "id": "lite-absolute-rubric-not-viable",
+        "impact": "Lite 绝对 1-5 评分在 V1/V2 两轮均未过跨模型门；V2 阈值计数在温度变化下出现 1/5 反转，不适合作为独立评分员"
+      },
+      {
+        "id": "lite-pairwise-or-defect-only",
+        "impact": "若要保留低成本第二信号，应改造成对比较/强制选择，或只做缺陷检测；该方向未立项，需大炮确认"
+      },
+      {
+        "id": "six-packet-sample-small",
+        "impact": "6 packet 仅作小筛，κ 抽样误差大；结论是不扩样，不是对 Lite 全部能力的最终定论"
+      },
+      {
+        "id": "ai-rater-not-clinical",
+        "impact": "评分双方均为 AI 代理，不是真人督导双盲；不得对外声称临床达标"
+      },
+      {
+        "id": "reasoning-not-same-subset",
+        "impact": "V2 与 baseline 的 reasoning 对比按 12 次豆包调用量级归一，不是逐 packet 同集对比；已在 gates.json 注明"
+      }
+    ],
+    "openQuestions": [
+      "是否正式放弃 Lite 独立绝对评分员路线，转为成对比较/缺陷检测，或直接只保留 Pro/MiniMax 主评分"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-295 号段承接 V2",
+        "reality": "并行进程在 integrate 上先用 AF-295 交付 smoke 双候选故障注入（bbc48ee4）并归档；本分支同号段记录包与状态链分叉",
+        "action": "按号段不复用规则，在 eb30f22f 上重发 AF-299；代码从 88a7f763 逐字继承，不覆盖已归档 AF-295",
+        "why": "状态面不可手改，合并同号段会破坏已归档记录与事件链"
+      },
+      {
+        "taskSays": "AF-299 号段承接 V2",
+        "reality": "AF-299 归档并创建 PR #144 后，integrate 又被另一条同号段渲染故障矩阵任务（75993239）占用；PR #144 合并返回 405 冲突",
+        "action": "按号段不复用规则，在 75993239 上重发 AF-310；旧分支与 PR #144 保留并关闭，不覆盖已归档 AF-299",
+        "why": "同号段双记录包无法合并；状态面不可手改，只能新号重发"
+      },
+      {
+        "taskSays": "AF-310 号段承接 V2",
+        "reality": "在 75993239 重发 AF-310 后，integrate 又被 AF-300（2a00b9dd）推进，合并冲突；在 2a00b9dd 干净重建时，CLI 因远端已存在 task/AF-310-lite-prompt-v2 分支判定号段已占用，指定下一可用 AF-311",
+        "action": "按 CLI 指定号段，在 2a00b9dd 上以 AF-311 重建；旧 AF-310 分支与 PR #146 保留并关闭",
+        "why": "远程任务分支同样占用号段；号段不复用，状态面不可手改"
+      },
+      {
+        "taskSays": "6 packet 小筛",
+        "reality": "首次 2 packet smoke 误用 Pro 模型与 thinking=disabled，仅验证端点连通；正式 6 packet 已改回与 baseline 一致的 Lite + thinking=auto 并全量重跑",
+        "action": "误配运行在评分请求前停止，未进入报告；正式报告只使用 Lite + auto 的 6 packet 结果",
+        "why": "不能把模型/thinking 不同的运行混进 A/B 证据"
+      },
+      {
+        "taskSays": "报告使用 AF-311 标题",
+        "reality": "生成器沿用 AF-227 跨模型协议标题",
+        "action": "保留生成器标题，交付记录与 gates.md 明确标注 AF-311 6 子集口径",
+        "why": "不改生成器标题，避免扩大范围"
+      },
+      {
+        "taskSays": "reasoning ≤1.3x baseline",
+        "reality": "V2 为 6 packet ×2 通道 =12 次豆包评分；baseline 报告是 12 packet ×2 通道 =24 次，无逐 packet token",
+        "action": "用 baseline 12 packet 豆包 reasoning 总量对比 V2 的 12 次评分，按调用量级归一为 0.806x，并在 gates.json 注明",
+        "why": "不为一个已失败的门重跑 baseline 24 次评分"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "V2 按任务单 §6.1–§6.3 实现并保留 V1 A/B；6 packet 小筛按预登记口径跑完，逐条门槛落盘。κ 0.347826 与绝对差 0.75 两条硬门未过，按任务单停止扩 12、不跑 24/48，并如实记录负结果。V2 仅保留为显式 opt-in，默认仍 V1/shared；定向测试 18 例、typecheck、lint、全量 4378 例全绿，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
