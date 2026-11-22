@@ -73,6 +73,32 @@ export interface SessionCostPricingTable {
   readonly fallback: SessionCostPricing;
   /** provider 覆盖价 (键为 `doubao` / `minimax` 等). */
   readonly byProvider: Readonly<Record<string, SessionCostPricing>>;
+  /**
+   * 模型覆盖价 (AF-266; 键为 `provider/model`).
+   *
+   * 同一 provider 下不同模型单价可能差数倍（如豆包 Character 与 pro），
+   * provider 级一刀切会系统性高估或低估；模型价优先于 provider 价。
+   */
+  readonly byModel?: Readonly<Record<string, SessionCostPricing>>;
+}
+
+/**
+ * 已核对官方模型价 (AF-266).
+ *
+ * 来源: 火山方舟模型详情页 `doubao-seed-character-260628`（2026-11-22 查）:
+ *   推理输入 0.8 元/百万 tokens、推理输出 2 元/百万 tokens（输入 ≤32k 档）.
+ * 换算成元/千 tokens: 0.0008 / 0.002.
+ *
+ * 只收录**查过官方页面**的型号；未核对的不进本表，继续走 provider/全局回落，
+ * 并在明细里标 `pricingSource=fallback`，不把猜测当报价。
+ */
+export const OFFICIAL_MODEL_PRICING: Readonly<Record<string, SessionCostPricing>> = {
+  'doubao/doubao-seed-character-260628': { inputPer1k: 0.0008, outputPer1k: 0.002 },
+};
+
+/** 模型价键: `provider/model` (provider 与 model 都来自 usage 事实). */
+export function modelPricingKey(provider: string, model: string): string {
+  return `${provider}/${model}`;
 }
 
 /**
@@ -239,6 +265,27 @@ function mergeProviderUsage(
 }
 
 /**
+ * 单个用量桶的定价解析 (AF-266).
+ *
+ * 优先级: 模型价 → provider 覆盖价 → 全局回落价。
+ * `estimateSessionCost` 与 `buildProviderBreakdown` 共用本函数，
+ * 避免总价与明细各写一套优先级而漂移。
+ */
+function resolveBucketPricing(
+  provider: string,
+  bucket: ProviderUsageTotals,
+  pricing: SessionCostPricing,
+  table?: SessionCostPricingTable,
+): { readonly pricing: SessionCostPricing; readonly source: 'model' | 'provider_override' | 'fallback' } {
+  const modelKey = bucket.model === undefined ? null : modelPricingKey(provider, bucket.model);
+  const modelPricing = modelKey === null ? undefined : table?.byModel?.[modelKey];
+  if (modelPricing !== undefined) return { pricing: modelPricing, source: 'model' };
+  const providerPricing = table?.byProvider[provider];
+  if (providerPricing !== undefined) return { pricing: providerPricing, source: 'provider_override' };
+  return { pricing: table?.fallback ?? pricing, source: 'fallback' };
+}
+
+/**
  * 折算预估费用.
  *
  * @param totals 本场累计量
@@ -255,8 +302,8 @@ export function estimateSessionCost(
     let total = 0;
     let allPromptAvailable = true;
     for (const [provider, bucket] of buckets) {
-      const bucketPricing = table?.byProvider[provider] ?? table?.fallback ?? pricing;
-      total += costForBucket(bucket, bucketPricing);
+      const resolved = resolveBucketPricing(provider, bucket, pricing, table);
+      total += costForBucket(bucket, resolved.pricing);
       allPromptAvailable = allPromptAvailable && bucket.promptTokensAvailable;
     }
     return { estimatedCostCny: roundCost(total), costBasis: allPromptAvailable ? 'full' : 'output_only' };
@@ -296,8 +343,8 @@ export interface ProviderCostBreakdown {
   readonly promptTokensAvailable: boolean;
   readonly estimatedCostCny: number;
   readonly costBasis: SessionCostBasis;
-  /** 该 provider 用的是覆盖价还是全局回落价. */
-  readonly pricingSource: 'provider_override' | 'fallback';
+  /** 该桶用的是模型价、provider 覆盖价还是全局回落价. */
+  readonly pricingSource: 'model' | 'provider_override' | 'fallback';
 }
 
 /**
@@ -314,9 +361,8 @@ export function buildProviderBreakdown(
   table?: SessionCostPricingTable,
 ): readonly ProviderCostBreakdown[] {
   return Object.entries(totals.byProvider ?? {}).map(([provider, bucket]) => {
-    const override = table?.byProvider[provider];
-    const bucketPricing = override ?? table?.fallback ?? pricing;
-    const cost = costForBucket(bucket, bucketPricing);
+    const resolved = resolveBucketPricing(provider, bucket, pricing, table);
+    const cost = costForBucket(bucket, resolved.pricing);
     return {
       provider,
       model: bucket.model ?? null,
@@ -326,7 +372,7 @@ export function buildProviderBreakdown(
       promptTokensAvailable: bucket.promptTokensAvailable,
       estimatedCostCny: roundCost(cost),
       costBasis: bucket.promptTokensAvailable ? 'full' : 'output_only',
-      pricingSource: override === undefined ? 'fallback' : 'provider_override',
+      pricingSource: resolved.source,
     };
   });
 }
@@ -437,6 +483,7 @@ export function resolveSessionCostPricingTable(raw: {
   readonly inputPer1k?: string | undefined;
   readonly outputPer1k?: string | undefined;
   readonly providers?: Readonly<Record<string, { readonly inputPer1k?: string | undefined; readonly outputPer1k?: string | undefined }>>;
+  readonly models?: Readonly<Record<string, { readonly inputPer1k?: string | undefined; readonly outputPer1k?: string | undefined }>>;
 }): SessionCostPricingTable {
   const fallback = resolveSessionCostPricing(raw);
   const byProvider: Record<string, SessionCostPricing> = {};
@@ -446,7 +493,18 @@ export function resolveSessionCostPricingTable(raw: {
       outputPer1k: parsePrice(override.outputPer1k, fallback.outputPer1k),
     };
   }
-  return { fallback, byProvider };
+  // AF-266: 官方模型价先落表；env 模型覆盖键按 `provider/model` 再覆盖一层。
+  const byModel: Record<string, SessionCostPricing> = { ...OFFICIAL_MODEL_PRICING };
+  for (const [key, override] of Object.entries(raw.models ?? {})) {
+    const slash = key.indexOf('/');
+    const provider = slash === -1 ? '' : key.slice(0, slash);
+    const base = byModel[key] ?? byProvider[provider] ?? fallback;
+    byModel[key] = {
+      inputPer1k: parsePrice(override.inputPer1k, base.inputPer1k),
+      outputPer1k: parsePrice(override.outputPer1k, base.outputPer1k),
+    };
+  }
+  return { fallback, byProvider, byModel };
 }
 
 /**

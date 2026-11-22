@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-266",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T10:05:00+08:00",
+  "updatedAt": "2026-11-22T02:12:39.565Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-266/task-sheet.md",
+    "sha256": "9462ce8806b4d6b967ef7a0d1ab2ee991a63e21551712c8ebff9128ac8ba935b",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-266/receipt-RC-AF-266-1.json",
+      "sha256": "9b7903f102d4c0a991078ab01f8933cf518ef9ed872ec2beb64d586568b441a1",
+      "receiptId": "RC-AF-266-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af266-model-cost-pricing-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af266-model-cost-pricing-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
