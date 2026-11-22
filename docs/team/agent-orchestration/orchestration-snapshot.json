@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T20:51:31.032Z",
+  "generatedAt": "2026-11-22T20:55:19.382Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-336",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "verification",
+      "title": "真人度 off 基线扩样与 full 分离复核",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-336/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af336-realism-off-baseline-extension-2026-11-23.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-336",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T20:55:19.311Z",
+        "leaseDeadline": "2026-11-22T21:25:19.308Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-336.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T20:55:19.311Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-336.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,6 +1825,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-075",
+      "recordedAt": "2026-11-22T20:55:12.308Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-336",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-074",
       "recordedAt": "2026-11-22T20:48:00.500Z",
       "actorRef": "orchestrator",
@@ -2000,42 +2058,52 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-331.json"
       ]
-    },
-    {
-      "auditId": "AUD-060",
-      "recordedAt": "2026-11-22T19:34:18.967Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-331",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 74,
+    "total": 75,
     "byResult": {
-      "allowed": 74,
+      "allowed": 75,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 73,
+      "TOOL-QUEUE-SCHEDULER": 74,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 74
+      "orchestrator": 75
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-336",
+        "title": "真人度 off 基线扩样与 full 分离复核",
+        "type": "verification",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-335"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-336/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af336-realism-off-baseline-extension-2026-11-23.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7700,9 +7768,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-336",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-336/task-sheet.md"
+      },
+      {
+        "taskId": "AF-336",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af336-realism-off-baseline-extension-2026-11-23.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
