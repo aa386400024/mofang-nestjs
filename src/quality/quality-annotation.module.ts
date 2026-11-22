@@ -33,6 +33,7 @@ import { QualityAnnotationService } from './quality-annotation.service.js';
 import { QualityTranscriptFreeze, TRANSCRIPT_FREEZE_DIR_ENV, TRANSCRIPT_FREEZE_ROOT_DIR } from './quality-transcript-freeze.js';
 import { AdminBasicAuthMiddleware } from '../admin-debug/admin-basic-auth.middleware.js';
 import { DebugSessionStore } from '../admin-debug/debug-session-store.js';
+import { AdminDebugSessionEntity } from '../admin-debug/entities/admin-debug-session.entity.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 import { PracticeBatch } from '../auto-practice/entities/practice-batch.entity.js';
 import { PracticeSession } from '../auto-practice/entities/practice-session.entity.js';
@@ -46,7 +47,8 @@ import { UserModule } from '../user/index.js';
 @Module({
   imports: [
     // 标注表 (读写) + 批次读侧要用的三张表 (只读).
-    TypeOrmModule.forFeature([QualityAnnotationEntity, PracticeSession, PracticeBatch, CharacterProfileEntity]),
+    // AdminDebugSessionEntity: 本模块自建 DebugSessionStore 也要走远端记录层 (AF-313).
+    TypeOrmModule.forFeature([QualityAnnotationEntity, PracticeSession, PracticeBatch, CharacterProfileEntity, AdminDebugSessionEntity]),
     // User 实体注册 (autoLoadEntities 已开) —— 供 AdminRoleGuard 注入 Repository<User>.
     TypeOrmModule.forFeature([User]),
     // 学员身份解析依赖 (JwtAuthGuard → JwtService / JwtBlacklistService) —— 中间件要用.

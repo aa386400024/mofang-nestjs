@@ -231,4 +231,9 @@ export { AddBatchMetricsColumns1714900000045 } from './1714900000045-AddBatchMet
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 export { AddQualityAnnotationBatchColumns1714900000047 } from './1714900000047-AddQualityAnnotationBatchColumns.js';
 
+// V2026-11-22 治本 (AF-313 · 调试会话远端持久化):
+//   admin_debug_sessions 专用表 —— 远端 MySQL 作为跨机器系统记录, 本地文件保留为缓存.
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+export { CreateAdminDebugSessions1714900000049 } from './1714900000049-CreateAdminDebugSessions.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

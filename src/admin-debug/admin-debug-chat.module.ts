@@ -53,6 +53,7 @@ import {
 } from './debug-session-title.generator.js';
 import { DebugSessionController } from './debug-session.controller.js';
 import { DebugSessionService } from './debug-session.service.js';
+import { AdminDebugSessionEntity } from './entities/admin-debug-session.entity.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { CharacterPoolModule } from '../engine-adapters/wiring/character/character-pool.module.js';
 import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
@@ -65,7 +66,9 @@ import { UserModule } from '../user/index.js';
 @Module({
   imports: [
     // User 实体注册 (autoLoadEntities 已开) —— 供 AdminRoleGuard 注入 Repository<User>.
-    TypeOrmModule.forFeature([User]),
+    // AdminDebugSessionEntity: 远端调试会话表 (AF-313) —— DebugSessionStore 通过
+    // DataSource 直接取 repository, 这里注册让 autoLoadEntities 把它收进 DataSource.
+    TypeOrmModule.forFeature([User, AdminDebugSessionEntity]),
     // 学员身份解析依赖 (JwtAuthGuard → JwtService / JwtBlacklistService) —— 中间件要用.
     UserModule,
     // 引擎装配层 (EngineTurnService: 调试会话要真跑引擎, 不是 mock).

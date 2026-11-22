@@ -33,120 +33,28 @@
 //   验证: npx vitest run test/admin-debug/debug-session-persistence.spec.ts
 //   时间戳: 2026-11-05 GMT+8
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 // node:fs / node:path 没 default export, unicorn/import-style 误报 — 忽略.
 // eslint-disable-next-line unicorn/import-style
 import { isAbsolute, join, resolve } from 'node:path';
+import type { DataSource } from 'typeorm';
 
-import { parseDebugKernelState, type DebugKernelState } from './debug-kernel-state.js';
-import type { DeliberationScenarioType } from '../engine-adapters/deliberation/deliberation-mode.config.js';
-import type { EncounterInput } from '../shared/encounter/encounter-scene.js';
+import type { DebugKernelState } from './debug-kernel-state.js';
+import { DebugSessionMirror } from './debug-session-mirror.js';
+import { parseDebugSessionRecord } from './debug-session-record.js';
+import type { DebugSessionMessage, DebugSessionRecord, DebugSessionSummary, DebugSessionTitleSource } from './debug-session-record.js';
 
-/**
- * 调试会话的标题来源.
- *
- * 为什么**要记来源**:
- *   自动命名 (LLM) 与人工改名会**互相覆盖** —— 用户手动改过的标题不该被后到的
- *   LLM 结果冲掉. 记下来源, 覆盖规则就有一条明确的口径:
- *   `llm` 只能覆盖 `fallback`, 永远盖不掉 `manual`.
- */
-export type DebugSessionTitleSource = 'fallback' | 'llm' | 'manual';
-
-/**
- * 调试会话的生命周期状态.
- */
-export type DebugSessionStatus = 'active' | 'completed';
-
-/**
- * 一条调试消息 (一轮里的咨询师发言 / 来访者回应).
- */
-export interface DebugSessionMessage {
-  /** 谁说的: `counselor` = 学员 (咨询师), `visitor` = AI 扮演的来访者. */
-  readonly role: 'counselor' | 'visitor';
-  /** 原文. */
-  readonly text: string;
-  /** 属于第几轮 (从 1 开始). */
-  readonly turnIndex: number;
-  /** 时刻 (ISO). */
-  readonly ts: string;
-}
-
-/**
- * 调试会话的落盘记录 (一个 JSON 文件的形状).
- */
-export interface DebugSessionRecord {
-  /** 会话 id (= 内核 sessionId; 也是文件名). */
-  readonly id: string;
-  /** 会话标题. */
-  readonly title: string;
-  /** 标题来源 (决定谁能覆盖谁). */
-  readonly titleSource: DebugSessionTitleSource;
-  /** 角色代号. */
-  readonly characterSlug: string;
-  /** 角色展示名. */
-  readonly characterLabel: string;
-  /** 创建时刻 (ISO). */
-  readonly createdAt: string;
-  /** 最后更新时刻 (ISO). */
-  readonly updatedAt: string;
-  /** 状态: `active` = 还在跑, `completed` = 已关闭. */
-  readonly status: DebugSessionStatus;
-  /** 已跑轮数. */
-  readonly turnCount: number;
-  /** 逐轮消息 (咨询师 + 来访者, 一轮两条). */
-  readonly messages: readonly DebugSessionMessage[];
-  /** 逐轮调试 trace (完整内部状态, 含 prompt 全文). */
-  readonly traces: readonly unknown[];
-  /**
-   * 内核状态快照 (恢复用; 每轮覆盖一次).
-   *
-   * V2026-11-06 (WP38 补做 · 调试会话恢复): 这是"后端重启后还能继续调试"的**唯一真相** ——
-   *   内核句柄 (BDI 状态 / 记忆 / 轨迹) 都在内存里, 进程一重启就全丢;
-   *   这份快照每轮落盘, 恢复接口按它重建内核句柄.
-   *
-   * 缺省 = null (老文件 / 还没跑过一轮) —— 恢复接口据此明确报"没有可恢复的快照",
-   *   而不是拿一个中性状态糊弄过去 (那等于"看着恢复了, 其实从头开始").
-   */
-  readonly kernelState: DebugKernelState | null;
-  /**
-   * 场景类型 (可选) —— 恢复会话时用来保持**同一场景红线** (考核场景恒 rule_only).
-   *
-   * ⚠️ **缺省 = 老记录没有这个字段** → 恢复时回落 `full_simulation`
-   *   (不施加考核红线, 与恢复前的行为逐字一致) —— 向后兼容, 无需 migration
-   *   (文件存储不是 schema, 加字段不需要改表).
-   */
-  readonly scenarioType?: DeliberationScenarioType;
-  /**
-   * 本场接触方式 (AF-187) —— 恢复会话时保持同一场景契约.
-   *
-   * 缺省 = 老记录没有该字段 → 渲染层不追加场景块, prompt 与升级前逐字一致。
-   */
-  readonly encounter?: EncounterInput;
-}
-
-/**
- * 会话列表的一行 (列表不返 messages/traces —— 那是详情的事).
- */
-export interface DebugSessionSummary {
-  readonly id: string;
-  readonly title: string;
-  readonly characterSlug: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly turnCount: number;
-  readonly status: DebugSessionStatus;
-  /**
-   * 能不能恢复 (V2026-11-06 · WP38 补做 · 调试会话恢复).
-   *
-   * true  = 有内核状态快照 → 调 resume 能接着聊 (从最后一轮继续);
-   * false = 从没跑过一轮 (没有快照) → 恢复不了, 点了只会报错.
-   *
-   * 前端据此决定「继续调试」按钮**给不给**: `active=false && resumable` 才给.
-   */
-  readonly resumable: boolean;
-}
+export type {
+  DebugSessionMessage,
+  DebugSessionRecord,
+  DebugSessionStatus,
+  DebugSessionSummary,
+  DebugSessionTitleSource,
+} from './debug-session-record.js';
 
 /**
  * 保留的会话上限.
@@ -174,6 +82,28 @@ export const DEBUG_SESSION_DIR_ENV = 'ADMIN_DEBUG_SESSION_DIR';
 export const DEFAULT_DEBUG_SESSION_DIR = 'data/debug-sessions';
 
 /**
+ * 远端持久化开关的 env 键.
+ *
+ * `on` (缺省): MySQL 为系统记录, 本地文件为写穿缓存;
+ * `off`: 逐字回到纯文件模式 (回滚开关).
+ */
+export const DEBUG_SESSION_REMOTE_ENV = 'ADMIN_DEBUG_SESSION_REMOTE';
+
+/** 远端已知 id 缓存刷新周期 (标注台 sync exists 判定用). */
+export const DEBUG_SESSION_KNOWN_IDS_REFRESH_MS = 60_000;
+
+/**
+ * 保留会话上限的 env 键.
+ *
+ * 文件模式缺省 500 (与原行为一致); DB 模式建议部署时放大到 2000+, 避免导入历史时
+ * 首次 create 就把老基线淘汰.
+ */
+export const DEBUG_SESSION_MAX_ENV = 'ADMIN_DEBUG_SESSION_MAX';
+
+/** 缺省保留上限 (与历史 MAX_DEBUG_SESSIONS 一致). */
+export const DEFAULT_DEBUG_SESSION_MAX = MAX_DEBUG_SESSIONS;
+
+/**
  * 会话 id 的合法形状.
  *
  * 为什么**要校验**: 会话 id 会被拼成文件路径. 不校验的话, 一个 `../../etc/passwd`
@@ -186,10 +116,18 @@ const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
  * 调试会话文件存储.
  */
 @Injectable()
-export class DebugSessionStore {
+export class DebugSessionStore implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DebugSessionStore.name);
-  /** 存储目录. */
+  /** 本地缓存目录. */
   private readonly dir: string;
+  /** 保留上限 (文件与远端共用一个口径). */
+  private readonly maxSessions: number;
+  /** 远端系统记录层; null = 纯文件模式. */
+  private readonly mirror: DebugSessionMirror | null;
+  /** 远端已知 id (让标注台同步 exists 判定不必读大 JSON). */
+  private readonly knownRemoteIds = new Set<string>();
+  /** knownRemoteIds 周期刷新定时器. */
+  private knownIdsTimer: ReturnType<typeof setInterval> | null = null;
   /**
    * 每个会话的写串行队列 (会话 id → 队列尾 promise).
    *
@@ -199,8 +137,31 @@ export class DebugSessionStore {
    */
   private readonly writeQueues = new Map<string, Promise<unknown>>();
 
-  constructor(config: ConfigService) {
+  constructor(config: ConfigService, @Optional() @InjectDataSource() dataSource?: DataSource) {
     this.dir = resolveStoreDir(config);
+    this.maxSessions = resolveMaxSessions(config);
+    const remoteEnabled = resolveRemoteEnabled(config);
+    this.mirror = remoteEnabled && dataSource !== undefined ? new DebugSessionMirror(dataSource) : null;
+  }
+
+  /**
+   * 启动时登记远端 id 集; 远端开启但表缺失 → 启动即失败 (fail-closed).
+   */
+  async onModuleInit(): Promise<void> {
+    if (this.mirror === null) return;
+    await this.refreshKnownIds(true);
+    this.knownIdsTimer = setInterval(() => {
+      void this.refreshKnownIds(false);
+    }, DEBUG_SESSION_KNOWN_IDS_REFRESH_MS);
+    this.knownIdsTimer.unref();
+  }
+
+  /** 停机清理刷新定时器. */
+  onModuleDestroy(): void {
+    if (this.knownIdsTimer !== null) {
+      clearInterval(this.knownIdsTimer);
+      this.knownIdsTimer = null;
+    }
   }
 
   /**
@@ -213,14 +174,31 @@ export class DebugSessionStore {
   }
 
   /**
-   * 建档 (写一个空会话文件).
+   * 会话是否存在 (本机文件或远端已知 id).
+   *
+   * 标注台用它替代 `existsSync(path.join(store.directory(), ...))` ——
+   * 远端有记录、本机还没回填缓存时也不能误判 missing.
+   *
+   * @param id 会话 id
+   * @returns 存在 → true
+   */
+  exists(id: string): boolean {
+    if (!SESSION_ID_PATTERN.test(id)) return false;
+    if (existsSync(this.filePath(id))) return true;
+    return this.knownRemoteIds.has(id);
+  }
+
+  /**
+   * 建档 (写远端系统记录 + 本地缓存).
    *
    * @param record 会话初始记录
-   * @returns 落盘的记录
+   * @returns 落盘/落库的记录
    */
   async create(record: DebugSessionRecord): Promise<DebugSessionRecord> {
     return this.enqueue(record.id, async () => {
+      if (this.mirror !== null) await this.mirror.upsert(record, { maxSessions: this.maxSessions });
       await this.writeRecord(record);
+      this.knownRemoteIds.add(record.id);
       await this.prune();
       return record;
     });
@@ -243,7 +221,7 @@ export class DebugSessionStore {
     kernelState: DebugKernelState | null = null,
   ): Promise<DebugSessionRecord | null> {
     return this.enqueue(id, async () => {
-      const current = await this.readRecord(id);
+      const current = await this.readCurrent(id);
       if (!current) return null;
       const updated: DebugSessionRecord = {
         ...current,
@@ -255,7 +233,9 @@ export class DebugSessionStore {
         // 缺省 (调用方没给) → 保留上一轮那份 —— 老调用方不会把快照写没.
         kernelState: kernelState ?? current.kernelState,
       };
+      if (this.mirror !== null) await this.mirror.upsert(updated);
       await this.writeRecord(updated);
+      this.knownRemoteIds.add(id);
       return updated;
     });
   }
@@ -275,7 +255,7 @@ export class DebugSessionStore {
    */
   async updateTitle(id: string, title: string, source: Exclude<DebugSessionTitleSource, 'fallback'>): Promise<DebugSessionRecord | null> {
     return this.enqueue(id, async () => {
-      const current = await this.readRecord(id);
+      const current = await this.readCurrent(id);
       if (!current) return null;
       if (source === 'llm' && current.titleSource === 'manual') return current;
       const updated: DebugSessionRecord = {
@@ -284,7 +264,9 @@ export class DebugSessionStore {
         titleSource: source,
         updatedAt: new Date().toISOString(),
       };
+      if (this.mirror !== null) await this.mirror.upsert(updated);
       await this.writeRecord(updated);
+      this.knownRemoteIds.add(id);
       return updated;
     });
   }
@@ -297,10 +279,12 @@ export class DebugSessionStore {
    */
   async markCompleted(id: string): Promise<DebugSessionRecord | null> {
     return this.enqueue(id, async () => {
-      const current = await this.readRecord(id);
+      const current = await this.readCurrent(id);
       if (!current) return null;
       const updated: DebugSessionRecord = { ...current, status: 'completed', updatedAt: new Date().toISOString() };
+      if (this.mirror !== null) await this.mirror.upsert(updated);
       await this.writeRecord(updated);
+      this.knownRemoteIds.add(id);
       return updated;
     });
   }
@@ -313,10 +297,12 @@ export class DebugSessionStore {
    */
   async markActive(id: string): Promise<DebugSessionRecord | null> {
     return this.enqueue(id, async () => {
-      const current = await this.readRecord(id);
+      const current = await this.readCurrent(id);
       if (!current) return null;
       const updated: DebugSessionRecord = { ...current, status: 'active', updatedAt: new Date().toISOString() };
+      if (this.mirror !== null) await this.mirror.upsert(updated);
       await this.writeRecord(updated);
+      this.knownRemoteIds.add(id);
       return updated;
     });
   }
@@ -330,6 +316,65 @@ export class DebugSessionStore {
    * @returns 会话摘要 (按创建时间倒序)
    */
   async list(): Promise<DebugSessionSummary[]> {
+    const local = await this.listLocal();
+    if (this.mirror === null) return local;
+    await this.refreshKnownIds(false);
+    const remote = await this.mirror.list();
+    return mergeSummaries(remote, local);
+  }
+
+  /**
+   * 读一个会话的完整记录.
+   *
+   * 远端开启时 MySQL 优先; 读到后回填本地缓存 (标注/冻结读路径仍可用).
+   * 远端没有该 id → 回落本地 (未被导入的历史文件).
+   *
+   * @param id 会话 id
+   * @returns 记录; 不存在 / 读失败 → null
+   */
+  async get(id: string): Promise<DebugSessionRecord | null> {
+    if (this.mirror !== null) {
+      const remote = await this.mirror.get(id);
+      if (remote !== null) {
+        this.knownRemoteIds.add(id);
+        await this.writeRecord(remote);
+        return remote;
+      }
+    }
+    return this.readRecord(id);
+  }
+
+  /**
+   * 删除一个会话 (远端 + 本地).
+   *
+   * @param id 会话 id
+   * @returns 至少一侧确实删掉了 → true
+   */
+  async remove(id: string): Promise<boolean> {
+    if (!SESSION_ID_PATTERN.test(id)) return false;
+    let remoteDeleted = false;
+    if (this.mirror !== null) {
+      remoteDeleted = await this.mirror.remove(id);
+      this.knownRemoteIds.delete(id);
+    }
+    let localDeleted = false;
+    try {
+      await rm(this.filePath(id), { force: true });
+      localDeleted = true;
+    } catch (error) {
+      this.logger.warn(`[debug_store] 调试会话文件删除失败 session=${id}: ${errorName(error)}`);
+    }
+    return remoteDeleted || localDeleted;
+  }
+
+  // ── private ────────────────────────────────────────────────────
+
+  /**
+   * 列本地缓存摘要 (坏文件跳过, 不炸整页).
+   *
+   * @returns 摘要
+   */
+  private async listLocal(): Promise<DebugSessionSummary[]> {
     const files = await this.listFiles();
     const summaries: DebugSessionSummary[] = [];
     for (const file of files) {
@@ -343,7 +388,6 @@ export class DebugSessionStore {
         updatedAt: record.updatedAt,
         turnCount: record.turnCount,
         status: record.status,
-        // 能不能恢复 = 有没有内核状态快照 (老文件 / 没跑过一轮 → false).
         resumable: record.kernelState !== null,
       });
     }
@@ -351,33 +395,35 @@ export class DebugSessionStore {
   }
 
   /**
-   * 读一个会话的完整记录.
+   * 读当前记录: 远端优先, 本地回落.
    *
    * @param id 会话 id
-   * @returns 记录; 不存在 / 读失败 → null
+   * @returns 记录 / null
    */
-  async get(id: string): Promise<DebugSessionRecord | null> {
+  private async readCurrent(id: string): Promise<DebugSessionRecord | null> {
+    if (this.mirror !== null) {
+      const remote = await this.mirror.get(id);
+      if (remote !== null) return remote;
+    }
     return this.readRecord(id);
   }
 
   /**
-   * 删除一个会话 (文件).
+   * 刷新远端已知 id 集 (启动严格模式失败即抛出).
    *
-   * @param id 会话 id
-   * @returns 确实删掉了 → true
+   * @param strict true = 失败抛给启动; false = 只告警
    */
-  async remove(id: string): Promise<boolean> {
-    if (!SESSION_ID_PATTERN.test(id)) return false;
+  private async refreshKnownIds(strict: boolean): Promise<void> {
+    if (this.mirror === null) return;
     try {
-      await rm(this.filePath(id), { force: true });
-      return true;
+      const ids = await this.mirror.listIds();
+      this.knownRemoteIds.clear();
+      for (const id of ids) this.knownRemoteIds.add(id);
     } catch (error) {
-      this.logger.warn(`[debug_store] 调试会话文件删除失败 session=${id}: ${errorName(error)}`);
-      return false;
+      if (strict) throw error;
+      this.logger.warn(`[debug_store] 远端会话 id 刷新失败: ${errorName(error)}`);
     }
   }
-
-  // ── private ────────────────────────────────────────────────────
 
   /**
    * 把写操作串到该会话的队列上.
@@ -408,7 +454,7 @@ export class DebugSessionStore {
     if (!SESSION_ID_PATTERN.test(id)) return null;
     try {
       const raw = await readFile(this.filePath(id), 'utf8');
-      return parseRecord(raw);
+      return parseDebugSessionRecord(raw);
     } catch {
       // 文件不存在 (ENOENT) 是常态 (查一个已删的会话) —— 不记日志, 返 null.
       return null;
@@ -421,7 +467,7 @@ export class DebugSessionStore {
   private async readRecordFile(file: string): Promise<DebugSessionRecord | null> {
     try {
       const raw = await readFile(file, 'utf8');
-      const record = parseRecord(raw);
+      const record = parseDebugSessionRecord(raw);
       if (!record) {
         this.logger.warn(`[debug_store] 调试会话文件内容不可解析, 已跳过 file=${file}`);
         return null;
@@ -466,7 +512,7 @@ export class DebugSessionStore {
    */
   private async prune(): Promise<void> {
     const files = await this.listFiles();
-    if (files.length <= MAX_DEBUG_SESSIONS) return;
+    if (files.length <= this.maxSessions) return;
     const dated = await Promise.all(
       files.map(async (file) => {
         const record = await this.readRecordFile(file);
@@ -474,7 +520,7 @@ export class DebugSessionStore {
       }),
     );
     // ⚠️ `toSorted` 返回**新**数组 (不改原数组) —— 淘汰名单必须从排序后的那份切.
-    const stale = dated.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(MAX_DEBUG_SESSIONS);
+    const stale = dated.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(this.maxSessions);
     for (const item of stale) {
       try {
         await rm(item.file, { force: true });
@@ -508,90 +554,46 @@ export function resolveStoreDir(config: ConfigService): string {
 }
 
 /**
- * 解析 JSON 文本 → 会话记录 (形状不对 → null).
+ * 解析远端开关 (缺省 on; off/false/0/no 关闭).
  *
- * 为什么要**逐字段兜底**: 文件可能被手工改过 / 被别的版本写过. 缺字段就当缺省,
- * 而不是整条丢弃 —— 一条消息的缺失不该让整场会话从列表里消失.
+ * @param config 配置服务
+ * @returns 是否启用远端
  */
-function parseRecord(raw: string): DebugSessionRecord | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
+export function resolveRemoteEnabled(config: ConfigService): boolean {
+  const raw = (config.get<string>(DEBUG_SESSION_REMOTE_ENV) ?? '').trim().toLowerCase();
+  if (raw.length === 0) return true;
+  return !(raw === 'off' || raw === 'false' || raw === '0' || raw === 'no');
+}
+
+/**
+ * 解析保留上限 (缺省 500; 夹在 1..10000).
+ *
+ * @param config 配置服务
+ * @returns 上限
+ */
+export function resolveMaxSessions(config: ConfigService): number {
+  const raw = (config.get<string>(DEBUG_SESSION_MAX_ENV) ?? '').trim();
+  if (raw.length === 0) return DEFAULT_DEBUG_SESSION_MAX;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return DEFAULT_DEBUG_SESSION_MAX;
+  return Math.min(Math.max(parsed, 1), 10_000);
+}
+
+/**
+ * 合并远端与本地摘要: 同 id 取 updatedAt 更新的一份.
+ *
+ * @param remote 远端摘要
+ * @param local 本地摘要
+ * @returns 合并后按创建时间倒序
+ */
+function mergeSummaries(remote: readonly DebugSessionSummary[], local: readonly DebugSessionSummary[]): DebugSessionSummary[] {
+  const merged = new Map<string, DebugSessionSummary>();
+  for (const item of remote) merged.set(item.id, item);
+  for (const item of local) {
+    const existing = merged.get(item.id);
+    if (existing === undefined || item.updatedAt > existing.updatedAt) merged.set(item.id, item);
   }
-  if (!parsed || typeof parsed !== 'object') return null;
-  const record = parsed as Record<string, unknown>;
-  const id = readString(record['id']);
-  if (id === null) return null;
-  const createdAt = readString(record['createdAt']) ?? new Date().toISOString();
-  const encounter = readEncounter(record['encounter']);
-  return {
-    id,
-    title: readString(record['title']) ?? '',
-    titleSource: readTitleSource(record['titleSource']),
-    characterSlug: readString(record['characterSlug']) ?? '',
-    characterLabel: readString(record['characterLabel']) ?? '',
-    createdAt,
-    updatedAt: readString(record['updatedAt']) ?? createdAt,
-    status: record['status'] === 'completed' ? 'completed' : 'active',
-    turnCount: readNumber(record['turnCount']) ?? 0,
-    messages: Array.isArray(record['messages']) ? (record['messages'] as DebugSessionMessage[]) : [],
-    traces: Array.isArray(record['traces']) ? (record['traces'] as unknown[]) : [],
-    // 内核快照: 老文件没这个键 → null (恢复接口会明确报"没有可恢复的快照").
-    kernelState: parseDebugKernelState(record['kernelState']),
-    // 场景类型: 老文件没这个键 → undefined (恢复时回落 full_simulation).
-    scenarioType: readScenarioType(record['scenarioType']),
-    // AF-187: 接触方式: 老文件没这个键 → undefined (prompt 逐字不变).
-    ...(encounter === undefined ? {} : { encounter }),
-  };
-}
-
-/**
- * 读场景类型 (非法值 → undefined, 由调用方按缺省处理).
- *
- * ⚠️ **为什么非法值不兜底成某个场景**: 文件可能被手工改过 —— 与其猜一个场景
- *   (可能把普通场次误判成考核, 白白关掉审议), 不如"读不到" (回落无场景限制).
- */
-function readScenarioType(value: unknown): DeliberationScenarioType | undefined {
-  if (value === 'freeform' || value === 'full_simulation' || value === 'exam') return value;
-  return undefined;
-}
-
-/**
- * 读接触方式 (缺失/非法 → undefined, prompt 逐字不变).
- */
-function readEncounter(value: unknown): EncounterInput | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const mode = (value as { mode?: unknown }).mode;
-  const channel = (value as { channel?: unknown }).channel;
-  if (typeof mode !== 'string' || mode.length === 0) return undefined;
-  return {
-    mode,
-    ...(typeof channel === 'string' && channel.length > 0 ? { channel } : {}),
-  };
-}
-
-/**
- * 读字符串 (非空).
- */
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-/**
- * 读数字 (有限).
- */
-function readNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-/**
- * 读标题来源 (非法值 → `fallback`).
- */
-function readTitleSource(value: unknown): DebugSessionTitleSource {
-  if (value === 'llm' || value === 'manual') return value;
-  return 'fallback';
+  return [...merged.values()].toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /**

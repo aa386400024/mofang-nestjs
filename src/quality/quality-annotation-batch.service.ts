@@ -10,8 +10,6 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import type { Repository } from 'typeorm';
 
 import { sortBatchSessions, type BatchSessionFact } from './quality-annotation-batch.js';
@@ -204,18 +202,17 @@ export class QualityAnnotationBatchService {
   }
 
   /**
-   * 活逐字稿文件是否在场.
+   * 活逐字稿是否在场.
    *
-   * ⚠️ 路径解析走 `DebugSessionStore.directory()` —— 那是**唯一**的目录口径
-   *   (env ADMIN_DEBUG_SESSION_DIR / 缺省 data/debug-sessions), 不自己拼.
+   * ⚠️ 存在性判定走 `DebugSessionStore.exists` —— 远端开启时它同时覆盖
+   *   本机文件缓存与 MySQL 已知 id, 不会因为"文件在另一台机器"误判 missing.
    *
    * @param debugSessionId 会话 id
    * @returns 存在 → true
    */
   private hasLiveFile(debugSessionId: string): boolean {
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(debugSessionId)) return false;
     try {
-      return existsSync(path.join(this.store.directory(), `${debugSessionId}.json`));
+      return this.store.exists(debugSessionId);
     } catch (error) {
       this.logger.warn(`[quality_annotation] 活逐字稿存在性判定失败 session=${debugSessionId}: ${errorName(error)}`);
       return false;
