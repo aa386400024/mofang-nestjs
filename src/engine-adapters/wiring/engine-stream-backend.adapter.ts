@@ -127,6 +127,7 @@ import {
   DEFAULT_SESSION_COST_PRICING,
   emptySessionUsageTotals,
   type SessionCostPricing,
+  type SessionCostPricingTable,
   type SessionUsageTotals,
 } from '../observability/session-cost.js';
 import type { SessionCloseoutService } from '../persistence/session-closeout.service.js';
@@ -338,6 +339,13 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      *   引擎侧只认插槽接口, 业务侧在自己的 onModuleInit 注册实现 —— 两侧互不认识对方的类型.
      */
     @Optional() private readonly evaluationRegistry?: SessionEvaluationRegistry,
+    /**
+     * provider 维度定价表 (AF-261).
+     *
+     * 为什么 @Optional: 与 `costPricing` 同款 —— 观测增强，缺席时回落旧口径。
+     * 放在构造参数末尾，避免移动既有位置参数导致工厂/测试错位。
+     */
+    @Optional() private readonly costPricingTable?: SessionCostPricingTable,
   ) {}
 
   /**
@@ -979,6 +987,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       sessionId,
       totals,
       pricing: this.costPricing ?? DEFAULT_SESSION_COST_PRICING,
+      ...(this.costPricingTable === undefined ? {} : { pricingTable: this.costPricingTable }),
       // 本单只在**新引擎路径**打这条日志, 所以恒为 'bdi'.
       // (WP17 已降级并入 WP13: enginePath 作为**留痕字段**是 WP13 的活,
       //  这里只是日志里标一个常量值, 不新增字段到 trace / 报告.)
@@ -1161,7 +1170,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     // WP24: 本场用量累加 (单场成本日志的数据源).
     //   累加的是**渲染结果里真实带回来的**用量, 不另调模型、不重算 ——
     //   成本必须等于"这一场真的花了多少", 而不是"我们以为花了多少".
-    this.accumulateUsage(opts.sessionId, usage, settled.result.render.model);
+    this.accumulateUsage(opts.sessionId, usage, settled.result.render.model, settled.result.render.providerHint);
 
     // V2026-11-03 治本 (WP23): 本轮跑完了 → 记进**补漏台账**.
     //   放在这里 (而不是 done chunk 之后): 这一轮是"已提交"的判据是
@@ -1260,8 +1269,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * @param sessionId 语音会话 id
    * @param usage 本轮用量 (可能缺省 = 渲染降级, 那轮没调模型)
    * @param model 本轮实际用的模型名 (缺省 = 上游没报)
+   * @param provider 本轮实际用的 provider (缺省 = 上游没报; AF-261)
    */
-  private accumulateUsage(sessionId: string, usage: TurnRenderResult['render']['usage'], model: string | undefined): void {
+  private accumulateUsage(
+    sessionId: string,
+    usage: TurnRenderResult['render']['usage'],
+    model: string | undefined,
+    provider: string | undefined,
+  ): void {
     const current = this.sessionUsage.get(sessionId) ?? emptySessionUsageTotals();
     this.sessionUsage.set(
       sessionId,
@@ -1271,6 +1286,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         ...(usage?.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens }),
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
         ...(model === undefined ? {} : { model }),
+        ...(provider === undefined ? {} : { provider }),
       }),
     );
   }

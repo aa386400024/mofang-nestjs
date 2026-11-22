@@ -61,6 +61,21 @@ export const DEFAULT_SESSION_COST_PRICING: SessionCostPricing = {
 };
 
 /**
+ * provider 维度定价表 (AF-261).
+ *
+ * 未配置的 provider 回落 `fallback`；`fallback` 本身由旧的两个全局 env 解析，
+ * 于是"不配 provider 覆盖价"时行为与 AF-250 之前逐字一致。
+ *
+ * ⚠️ provider 覆盖价必须来自当期厂商账单，仓库不内置未核对的报价。
+ */
+export interface SessionCostPricingTable {
+  /** 全局回落价 (旧 `LLM_PRICE_*` 口径). */
+  readonly fallback: SessionCostPricing;
+  /** provider 覆盖价 (键为 `doubao` / `minimax` 等). */
+  readonly byProvider: Readonly<Record<string, SessionCostPricing>>;
+}
+
+/**
  * 单轮用量增量 (从渲染结果里取到的口径).
  *
  * 全部可选: 不同上游给的东西不一样, 缺的就是"不可得", **不补零、不编造**.
@@ -75,6 +90,33 @@ export interface SessionUsageDelta {
   /** 思考 token (推理模型专用; WP9-C 已单列). */
   readonly reasoningTokens?: number;
   /** 本轮实际用的模型名 (缺省 = 上游没报). */
+  readonly model?: string;
+  /**
+   * 本轮实际用的 provider (`doubao` / `minimax`; 缺省 = 上游没报).
+   *
+   * AF-261: 一场会话可能主候选失败后切备候选，provider 是分账的最小维度。
+   */
+  readonly provider?: string;
+}
+
+/**
+ * 单个 provider 的用量桶 (AF-261).
+ *
+ * 为什么不把 token 直接摊到全局: 豆包与 MiniMax 单价不同，先分桶再计价，
+ * 才能在切备候选后仍然算出正确总成本。
+ */
+export interface ProviderUsageTotals {
+  /** 输入 token 累计 (该 provider 没报时恒 0，且 promptTokensAvailable=false). */
+  readonly promptTokens: number;
+  /** 输出 token 累计. */
+  readonly completionTokens: number;
+  /** 总 token 累计 (上游口径). */
+  readonly totalTokens: number;
+  /** 思考 token 累计. */
+  readonly reasoningTokens: number;
+  /** 该 provider 是否报过输入侧用量. */
+  readonly promptTokensAvailable: boolean;
+  /** 该 provider 最后一次模型名 (缺省 = 上游没报). */
   readonly model?: string;
 }
 
@@ -96,6 +138,12 @@ export interface SessionUsageTotals {
   readonly promptTokensAvailable: boolean;
   /** 本场用过的模型名 (最后一次; 缺省 = 上游没报). */
   readonly model?: string;
+  /**
+   * 按 provider 拆分的用量桶 (AF-261; 缺省 = 旧调用没报 provider).
+   *
+   * 可选字段保证旧调用与空起点形状不变；一旦某轮报了 provider 才开始分桶。
+   */
+  readonly byProvider?: Readonly<Record<string, ProviderUsageTotals>>;
 }
 
 /**
@@ -150,6 +198,43 @@ export function accumulateSessionUsage(totals: SessionUsageTotals, delta: Sessio
     reasoningTokens: totals.reasoningTokens + (delta.reasoningTokens ?? 0),
     promptTokensAvailable: promptAvailable,
     ...(model === undefined ? {} : { model }),
+    ...(delta.provider === undefined ? {} : { byProvider: mergeProviderUsage(totals.byProvider, delta.provider, delta) }),
+  };
+}
+
+/**
+ * 把一轮用量并入对应 provider 桶 (AF-261).
+ *
+ * 纯函数：不改传入的桶表，返回新的桶表。
+ *
+ * @param byProvider 现有桶表
+ * @param provider 本轮 provider
+ * @param delta 本轮用量
+ * @returns 新的桶表
+ */
+function mergeProviderUsage(
+  byProvider: Readonly<Record<string, ProviderUsageTotals>> | undefined,
+  provider: string,
+  delta: SessionUsageDelta,
+): Readonly<Record<string, ProviderUsageTotals>> {
+  const current = byProvider?.[provider] ?? {
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    reasoningTokens: 0,
+    promptTokensAvailable: false,
+  };
+  const model = delta.model ?? current.model;
+  return {
+    ...byProvider,
+    [provider]: {
+      promptTokens: current.promptTokens + (delta.promptTokens ?? 0),
+      completionTokens: current.completionTokens + (delta.completionTokens ?? 0),
+      totalTokens: current.totalTokens + (delta.totalTokens ?? 0),
+      reasoningTokens: current.reasoningTokens + (delta.reasoningTokens ?? 0),
+      promptTokensAvailable: current.promptTokensAvailable || delta.promptTokens !== undefined,
+      ...(model === undefined ? {} : { model }),
+    },
   };
 }
 
@@ -163,7 +248,20 @@ export function accumulateSessionUsage(totals: SessionUsageTotals, delta: Sessio
 export function estimateSessionCost(
   totals: SessionUsageTotals,
   pricing: SessionCostPricing,
+  table?: SessionCostPricingTable,
 ): { readonly estimatedCostCny: number; readonly costBasis: SessionCostBasis } {
+  const buckets = Object.entries(totals.byProvider ?? {});
+  if (buckets.length > 0) {
+    let total = 0;
+    let allPromptAvailable = true;
+    for (const [provider, bucket] of buckets) {
+      const bucketPricing = table?.byProvider[provider] ?? table?.fallback ?? pricing;
+      total += costForBucket(bucket, bucketPricing);
+      allPromptAvailable = allPromptAvailable && bucket.promptTokensAvailable;
+    }
+    return { estimatedCostCny: roundCost(total), costBasis: allPromptAvailable ? 'full' : 'output_only' };
+  }
+
   const outputCost = (totals.completionTokens / 1000) * pricing.outputPer1k;
   if (!totals.promptTokensAvailable) {
     // 输入侧不可得 → 只报输出侧, 并**明说**这是下界 (不拿 0 冒充输入侧开销).
@@ -171,6 +269,66 @@ export function estimateSessionCost(
   }
   const inputCost = (totals.promptTokens / 1000) * pricing.inputPer1k;
   return { estimatedCostCny: roundCost(inputCost + outputCost), costBasis: 'full' };
+}
+
+/**
+ * 单个 provider 桶的折算 (AF-261).
+ *
+ * @param bucket provider 用量桶
+ * @param pricing 该 provider 单价
+ * @returns 未取整费用
+ */
+function costForBucket(bucket: ProviderUsageTotals, pricing: SessionCostPricing): number {
+  const outputCost = (bucket.completionTokens / 1000) * pricing.outputPer1k;
+  if (!bucket.promptTokensAvailable) return outputCost;
+  return (bucket.promptTokens / 1000) * pricing.inputPer1k + outputCost;
+}
+
+/**
+ * 单个 provider 的成本明细 (AF-261; 写进 `session_cost_summary`).
+ */
+export interface ProviderCostBreakdown {
+  readonly provider: string;
+  readonly model: string | null;
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly totalTokens: number;
+  readonly promptTokensAvailable: boolean;
+  readonly estimatedCostCny: number;
+  readonly costBasis: SessionCostBasis;
+  /** 该 provider 用的是覆盖价还是全局回落价. */
+  readonly pricingSource: 'provider_override' | 'fallback';
+}
+
+/**
+ * 构造 provider 成本明细.
+ *
+ * @param totals 本场累计量
+ * @param pricing 全局回落价
+ * @param table provider 定价表 (可选)
+ * @returns 明细数组 (无 byProvider 时为空)
+ */
+export function buildProviderBreakdown(
+  totals: SessionUsageTotals,
+  pricing: SessionCostPricing,
+  table?: SessionCostPricingTable,
+): readonly ProviderCostBreakdown[] {
+  return Object.entries(totals.byProvider ?? {}).map(([provider, bucket]) => {
+    const override = table?.byProvider[provider];
+    const bucketPricing = override ?? table?.fallback ?? pricing;
+    const cost = costForBucket(bucket, bucketPricing);
+    return {
+      provider,
+      model: bucket.model ?? null,
+      promptTokens: bucket.promptTokens,
+      completionTokens: bucket.completionTokens,
+      totalTokens: bucket.totalTokens,
+      promptTokensAvailable: bucket.promptTokensAvailable,
+      estimatedCostCny: roundCost(cost),
+      costBasis: bucket.promptTokensAvailable ? 'full' : 'output_only',
+      pricingSource: override === undefined ? 'fallback' : 'provider_override',
+    };
+  });
 }
 
 /**
@@ -191,6 +349,12 @@ export interface SessionCostSummary {
   readonly turnCount: number;
   /** 走的哪条链路 (本单恒为 'bdi' —— 新引擎路径). */
   readonly enginePath: string;
+  /**
+   * 按 provider 的成本明细 (AF-261; 旧调用没报 provider 时缺省).
+   *
+   * 有该字段时 `estimatedCostCny` = 各桶 `estimatedCostCny` 之和。
+   */
+  readonly providerBreakdown?: readonly ProviderCostBreakdown[];
 }
 
 /**
@@ -204,8 +368,10 @@ export function buildSessionCostSummary(params: {
   readonly totals: SessionUsageTotals;
   readonly pricing: SessionCostPricing;
   readonly enginePath: string;
+  readonly pricingTable?: SessionCostPricingTable;
 }): SessionCostSummary {
-  const cost = estimateSessionCost(params.totals, params.pricing);
+  const cost = estimateSessionCost(params.totals, params.pricing, params.pricingTable);
+  const breakdown = buildProviderBreakdown(params.totals, params.pricing, params.pricingTable);
   return {
     event: 'session_cost_summary',
     sessionId: params.sessionId,
@@ -217,6 +383,7 @@ export function buildSessionCostSummary(params: {
     costBasis: cost.costBasis,
     turnCount: params.totals.turnCount,
     enginePath: params.enginePath,
+    ...(breakdown.length === 0 ? {} : { providerBreakdown: breakdown }),
   };
 }
 
@@ -251,6 +418,35 @@ export function resolveSessionCostPricing(raw: {
     inputPer1k: parsePrice(raw.inputPer1k, DEFAULT_SESSION_COST_PRICING.inputPer1k),
     outputPer1k: parsePrice(raw.outputPer1k, DEFAULT_SESSION_COST_PRICING.outputPer1k),
   };
+}
+
+/**
+ * 解析 provider 维度定价表 (AF-261).
+ *
+ * 两段式:
+ *   ① 全局 `inputPer1k` / `outputPer1k` 解析成 `fallback`（旧口径）；
+ *   ② 每个 provider 的覆盖值独立解析；非法/缺省 → 回落 `fallback`。
+ *
+ * 为什么不把 provider 覆盖价也默认成"某个数": 仓库没有核对过的厂商报价，
+ * 不编造；配了才用，没配就按旧口径并在明细里标 `pricingSource=fallback`。
+ *
+ * @param raw 原始 env 值
+ * @returns 定价表
+ */
+export function resolveSessionCostPricingTable(raw: {
+  readonly inputPer1k?: string | undefined;
+  readonly outputPer1k?: string | undefined;
+  readonly providers?: Readonly<Record<string, { readonly inputPer1k?: string | undefined; readonly outputPer1k?: string | undefined }>>;
+}): SessionCostPricingTable {
+  const fallback = resolveSessionCostPricing(raw);
+  const byProvider: Record<string, SessionCostPricing> = {};
+  for (const [provider, override] of Object.entries(raw.providers ?? {})) {
+    byProvider[provider] = {
+      inputPer1k: parsePrice(override.inputPer1k, fallback.inputPer1k),
+      outputPer1k: parsePrice(override.outputPer1k, fallback.outputPer1k),
+    };
+  }
+  return { fallback, byProvider };
 }
 
 /**
