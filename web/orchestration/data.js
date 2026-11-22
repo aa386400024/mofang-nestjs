@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T06:44:46.323Z",
+  "generatedAt": "2026-11-22T06:53:40.289Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,6 +49,46 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-283",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "渲染遥测告警规则与灰度判读 Runbook（Prometheus 规则 + Grafana 面板 + 回滚判据）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-283",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T06:53:40.223Z",
+        "leaseDeadline": "2026-11-22T07:23:40.221Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-283.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T06:53:40.223Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-283.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1702,6 +1742,8 @@ window.ORCH_SNAPSHOT = {
         "bin/",
         "test/",
         "admin-dashboard/",
+        "docker/",
+        "docs/runbooks/",
         ".env.example",
         "docs/team/agent-orchestration/agent-cards/executor.json",
         "docs/worklog/pending/",
@@ -1823,6 +1865,85 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-483",
+      "recordedAt": "2026-11-22T06:52:10.468Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-284",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-284",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-284.json"
+      ]
+    },
+    {
+      "auditId": "AUD-482",
+      "recordedAt": "2026-11-22T06:51:54.268Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-284",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-284-executor-resource-domain"
+      ]
+    },
+    {
+      "auditId": "AUD-481",
+      "recordedAt": "2026-11-22T06:51:54.018Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-284",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-480",
+      "recordedAt": "2026-11-22T06:50:32.025Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-283",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-283-render-alerting-runbook"
+      ]
+    },
+    {
+      "auditId": "AUD-479",
+      "recordedAt": "2026-11-22T06:50:26.517Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-283",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-478",
       "recordedAt": "2026-11-22T06:33:10.866Z",
@@ -1982,99 +2103,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-279.json"
       ]
-    },
-    {
-      "auditId": "AUD-468",
-      "recordedAt": "2026-11-22T06:05:05.681Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-279",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-467",
-      "recordedAt": "2026-11-22T05:37:33.484Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-278",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-278-render-telemetry-metrics"
-      ]
-    },
-    {
-      "auditId": "AUD-466",
-      "recordedAt": "2026-11-22T05:37:24.846Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-278",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-278",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-278.json"
-      ]
-    },
-    {
-      "auditId": "AUD-465",
-      "recordedAt": "2026-11-22T05:36:52.037Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-278",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-464",
-      "recordedAt": "2026-11-22T05:23:03.202Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-277",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-277-rollback-concurrency-long-context"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 478,
+    "total": 483,
     "byResult": {
-      "allowed": 478,
+      "allowed": 483,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 477,
+      "TOOL-QUEUE-SCHEDULER": 482,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 478
+      "orchestrator": 483
     }
   },
   "protocolView": {
@@ -2103,6 +2145,28 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-283",
+        "title": "渲染遥测告警规则与灰度判读 Runbook（Prometheus 规则 + Grafana 面板 + 回滚判据）",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-282"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
           }
         ]
       }
@@ -6983,6 +7047,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af282-render-telemetry-correctness-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-284",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-284/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7007,6 +7089,11 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-283",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7020,5 +7107,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 282
+  "archivedCount": 283
 };
