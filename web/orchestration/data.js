@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T07:21:10.746Z",
+  "generatedAt": "2026-11-22T07:23:27.434Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,46 +49,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-285",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "verification",
-      "title": "生产主候选上线前真实链路复核（doubao 主 + minimax 备 + 回滚开关自检）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-285",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T07:21:10.675Z",
-        "leaseDeadline": "2026-11-22T07:51:10.672Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-285.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T07:21:10.675Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-285.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1866,6 +1826,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-487",
+      "recordedAt": "2026-11-22T07:21:10.861Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-285",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-285",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-285.json"
+      ]
+    },
+    {
       "auditId": "AUD-486",
       "recordedAt": "2026-11-22T07:20:35.746Z",
       "actorRef": "orchestrator",
@@ -2088,35 +2063,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-472",
-      "recordedAt": "2026-11-22T06:13:26.241Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-281",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-281-visitor-v5-parity"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 486,
+    "total": 487,
     "byResult": {
-      "allowed": 486,
+      "allowed": 487,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 485,
+      "TOOL-QUEUE-SCHEDULER": 486,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 486
+      "orchestrator": 487
     }
   },
   "protocolView": {
@@ -2145,32 +2105,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-285",
-        "title": "生产主候选上线前真实链路复核（doubao 主 + minimax 备 + 回滚开关自检）",
-        "type": "verification",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-283"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md"
           }
         ]
       }
@@ -7087,6 +7021,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af283-render-alerting-runbook-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-285",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7111,16 +7063,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-285",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-285/task-sheet.md"
-      },
-      {
-        "taskId": "AF-285",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af285-production-candidate-smoke-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7134,5 +7076,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 284
+  "archivedCount": 285
 };
