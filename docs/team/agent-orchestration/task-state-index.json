@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1186,
+    "lastEventSeq": 1189,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,6 +264,87 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-267",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T02:18:14.946Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "补 AF-266 拆出的 env 装配"
+        },
+        {
+          "at": "2026-11-22T02:18:22.472Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "模型级成本覆盖键装配与模板声明",
+      "type": "implementation",
+      "baselineRef": "b0f6d59702703cb161aa2dbe741632282de42b78",
+      "dependsOn": [
+        "AF-266"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T02:18:10.426Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/engine-adapters/wiring/",
+          ".env.example",
+          "test/config/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/config/wp25-env-example-coverage.spec.ts test/engine-adapters/af266-model-cost-pricing.spec.ts",
+          "check": ".env.example 覆盖与模型价解析",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "check": "CI 全量 typecheck 0 error",
+          "threshold": "exit=0"
+        }
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T02:18:14.945Z"
     }
   ],
   "archivedTasks": [
