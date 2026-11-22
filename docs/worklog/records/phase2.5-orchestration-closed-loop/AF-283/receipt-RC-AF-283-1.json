@@ -1,0 +1,192 @@
+{
+  "deliveredAt": "2026-11-22T15:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-283-1",
+    "taskId": "AF-283",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "a9cdc4b8afbe2b6ee8ecfb1df238a8adf5764662",
+    "dependsOn": ["AF-282", "AF-284"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af283-render-alerting-runbook-2026-11-23.md",
+      "reply": null,
+      "others": ["docker/prometheus/alerts.yml", "docker/grafana/dashboards/mofang-overview.json", "docs/runbooks/render-telemetry-alerting.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "docker/prometheus/alerts.yml",
+        "docs/runbooks/render-telemetry-alerting.md",
+        "test/config/af283-render-alerting.spec.ts",
+        "docs/worklog/completed/phase2.5/af283-render-alerting-runbook-2026-11-23.md"
+      ],
+      "modified": [
+        "docker/grafana/dashboards/mofang-overview.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["af4bd7139a6c836046438dcfc3b9cf21581dd263"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/af283-render-alerting.spec.ts test/config/wp45-prometheus-alert-metrics.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "262ms",
+        "note": "9/9 passed；AF-283 5 例守卫 + WP45 既有 4 例回归；日志 data/af283-target1.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 6 秒",
+        "note": "tsc -b tsconfig.check.json 通过；日志 data/af283-typecheck1.log"
+      },
+      {
+        "command": "pnpm eslint test/config/af283-render-alerting.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8 秒",
+        "note": "AF-283 唯一 TS 改动文件 0 error / 0 warning；日志 data/af283-eslint1.log"
+      },
+      {
+        "command": "node -e yaml.parse(docker/prometheus/alerts.yml)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "visitor-render 组解析出 6 条规则，告警名与设计一致"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 1,
+        "errors": 4,
+        "warnings": 0,
+        "specFiles": 274,
+        "machine": "同上",
+        "wallClock": "25.40 秒",
+        "note": "4330 passed + 4 skipped；4 failed 全部在未跟踪 test/engine-adapters/af280-render-prompt-variant.spec.ts（AF-281 并行半成品），与本单文件域无关；日志 data/af283-test-full.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-283-render-alerting-runbook 自 a9cdc4b8 切出后 rebase 到 integrate 548a518a（AF-284 合并点）。alerts.yml 新增 visitor-render 组 6 条规则（降级率、鉴权失败、首包 P95、流式超时、回退率、失败原因分面）；grafana 总览新增 id 10-13 四个面板，降级率/取消率分线；runbook 写清指标能力边界、cause 处置、S0-S3 灰度判据、四条硬回滚线、非回滚线、回滚与恢复命令、四条已知盲区。降级率与回退率分母只用 attempts{outcome=~\"success|degrade\"}，不含 cancelled；Alertmanager 未启用，当前告警仅 Prometheus firing + Grafana 可查。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支 task/AF-283-render-alerting-runbook 与提交标题只含 AF-283"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / branch create / run-once 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "交付记录六组机读字段齐全，回执 JSON 完整"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "归档后 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "telemetry-privacy",
+        "result": "pass",
+        "note": "告警与面板只引用指标名、标签与聚合值，不含 prompt、台词、会话 id 或原始错误文案"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执字段与任务单字段组一致；baselineRef 为登记时 a9cdc4b8，登记后 integrate 经 AF-284 推进到 548a518a，分支已 rebase 并仅含 AF-283 提交 af4bd713，基线漂移原因见 deviationTable"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-breaker-vs-exhausted",
+        "impact": "熔断挡掉的轮次与候选试完全败仍同记 exhausted，看板无法区分上游故障与本地熔断"
+      },
+      {
+        "id": "visitor-first-delta-vs-ttft-semantics",
+        "impact": "first-delta 超时量 raw chunk，TTFT 量首个可见闭合句，同名不同义"
+      },
+      {
+        "id": "visitor-aggregate-path-telemetry",
+        "impact": "聚合路径无 first_delta / stream_timeout，且该路径零测试"
+      },
+      {
+        "id": "visitor-alertmanager-paging",
+        "impact": "规则可触发但 Alertmanager 未启用，firing 不会外发到值班通道"
+      },
+      {
+        "id": "visitor-render-auto-rollback",
+        "impact": "回滚仍为人工按 runbook 执行，无自动切流与自动恢复"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "baselineRef 为 a9cdc4b8",
+        "reality": "登记后 integrate 经 AF-284 推进到 548a518a",
+        "action": "分支 rebase 到 548a518a，仅保留 AF-283 一个提交 af4bd713",
+        "why": "登记与实现的基线漂移由上游合并导致，非本单改写历史"
+      },
+      {
+        "taskSays": "补告警规则与面板",
+        "reality": "生产样本不足以定 SLA 阈值",
+        "action": "初版阈值取保守值（3%/2s/5 次/10%），runbook 标明按 P95/P99 重校",
+        "why": "先让规则可触发可判读，不伪装成已校准的 SLA"
+      },
+      {
+        "taskSays": "告警可用",
+        "reality": "prometheus.yml 未接 Alertmanager",
+        "action": "本单不启用 Alertmanager，runbook 写明当前仅规则 firing + 看板可查",
+        "why": "接外发通道涉及通知配置与环境变更，超出本单 scope"
+      },
+      {
+        "taskSays": "灰度与回滚闭环",
+        "reality": "自动回滚需运行时写操作与 L4 批准",
+        "action": "只交付人工判据、命令与自检脚本用法",
+        "why": "避免自动化误切流，回滚动作留给人工决策"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "任务要求的三件事全部落地：6 条 Prometheus 规则、4 块 Grafana 面板、灰度/回滚 runbook，并有 5 例静态守卫锁住告警名、指标注册、分母口径与 runbook 关键条款。定向 9/9、typecheck、scoped eslint、YAML 解析均通过；engine-core 零改动。全量 test 的 4 例失败均在未跟踪 AF-280 并行 spec，已核实不在本单 scope。告警外发与自动回滚明确列为偏差与 backlog，未冒充已交付。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

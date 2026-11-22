@@ -123,6 +123,70 @@
       ]
     },
     {
+      "id": 10,
+      "title": "来访者渲染: 降级率 / 取消率",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "targets": [
+        {
+          "expr": "sum(increase(visitor_render_degraded_total[10m])) / clamp_min(sum(increase(visitor_render_attempts_total{outcome=~\"success|degrade\"}[10m])), 0.001)",
+          "legendFormat": "降级率 (排除 barge-in)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(visitor_render_cancelled_total[10m])) / clamp_min(sum(increase(visitor_render_attempts_total{outcome=~\"success|degrade\"}[10m])) + sum(increase(visitor_render_cancelled_total[10m])), 0.001)",
+          "legendFormat": "取消率 (barge-in/暂停)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 } }
+    },
+    {
+      "id": 11,
+      "title": "来访者渲染: 首包 P95 (first-delta)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(visitor_render_first_delta_seconds_bucket[10m])) by (le, candidate))",
+          "legendFormat": "p95 {{candidate}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0 } }
+    },
+    {
+      "id": 12,
+      "title": "来访者渲染: 候选级失败原因 (10m)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "targets": [
+        {
+          "expr": "sum(increase(visitor_render_failure_total[10m])) by (cause)",
+          "legendFormat": "{{cause}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "来访者渲染: 候选回退率 (10m)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "targets": [
+        {
+          "expr": "sum(increase(visitor_render_fallback_total[10m])) / clamp_min(sum(increase(visitor_render_attempts_total{outcome=~\"success|degrade\"}[10m])), 0.001)",
+          "legendFormat": "回退率",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 } }
+    },
+    {
       "id": 7,
       "title": "系统资源 (CPU / 内存)",
       "type": "timeseries",
