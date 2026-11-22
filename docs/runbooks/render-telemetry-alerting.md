@@ -169,6 +169,8 @@ sum(increase(visitor_render_cancelled_total[10m]))
 - `rounds_total` 是“轮次终局”的唯一分母；它不区分轮内试了几个候选。排查单候选坏掉要看 `attempts_total`/`failure_total`。`rounds{cancelled}` 进分母但不进降级分子，所以取消率与降级率可以同时出现而不互相污染。
 - `degraded{exhausted}` 与 `cooldown_served_total` 时间窗不完全对齐：前者是轮次终局，后者在 `next()` 时自增；同一轮两者都应出现，短暂错位属正常。
 - `fallback_total` 统计的是**主备切换尝试**，不是“回退成功”。两候选同时 429 时仍会先发生一次 doubao→minimax 切换，随后 minimax 也失败，轮次终局是 `rounds{exhausted}`、`degraded{exhausted}` 各 1；因此回退率 100% 不代表用户拿到了可用回复，必须与 `rounds` 结局一起读。
+- 比率类告警全部是 `increase(...[10m])` + `for: 5m`，存在 5–10 分钟**结构性滞后**：故障发生后最快也要等窗口累积，再过 5 分钟才 firing。它不是秒级探针，不能用“刚出问题但告警没响”反推系统正常；看板 30s 刷新也不等于告警实时。突发故障先看 `failure_total` 与 `rounds` 的即时增量，告警用于确认持续性。
+- `cancelled` 只进统一分母 `rounds{cancelled}`，不进降级/回退分子。barge-in 占比高时，降级率会被分母稀释（例如 25% 取消时，4% 的真实降级可能显示为 3.0%），所以判读降级率必须同时看 `rounds` 结局分布；不要用取消率去解释 provider 健康度。
 - `rounds{exhausted}` 已可用真实 smoke 复现：`--fail-primary --fail-backup --fail-primary-mode rate-limit --expect-exhausted --turns 1 --dump-render-metrics`，两候选同时指向本机临时 429 上游，不消耗真实额度。
 - `visitor_render_first_delta_seconds` 量 raw chunk，TTFT 量首个可见闭合句；纯推理流可能零信号（backlog `visitor-first-delta-vs-ttft-semantics`）。
 - 聚合路径（调用出口不支持流式）没有 first-delta / stream_timeout 指标（backlog `visitor-aggregate-path-telemetry`）。

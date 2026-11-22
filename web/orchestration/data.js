@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T09:53:50.691Z",
+  "generatedAt": "2026-11-22T10:05:14.913Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-513",
+      "recordedAt": "2026-11-22T10:01:01.103Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-296",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-296",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-296.json"
+      ]
+    },
+    {
+      "auditId": "AUD-512",
+      "recordedAt": "2026-11-22T10:00:36.457Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-296",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-511",
       "recordedAt": "2026-11-22T09:49:12.257Z",
       "actorRef": "orchestrator",
@@ -1990,52 +2022,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-289-af-289"
       ]
-    },
-    {
-      "auditId": "AUD-498",
-      "recordedAt": "2026-11-22T08:21:20.727Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-289",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-289",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-289.json"
-      ]
-    },
-    {
-      "auditId": "AUD-497",
-      "recordedAt": "2026-11-22T08:21:06.974Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-289",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 511,
+    "total": 513,
     "byResult": {
-      "allowed": 511,
+      "allowed": 513,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 510,
+      "TOOL-QUEUE-SCHEDULER": 512,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 511
+      "orchestrator": 513
     }
   },
   "protocolView": {
@@ -7151,6 +7151,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-296",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7175,5 +7193,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 295
+  "archivedCount": 296
 };

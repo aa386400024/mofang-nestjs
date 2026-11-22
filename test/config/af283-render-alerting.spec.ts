@@ -125,6 +125,34 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(violations.join('\n')).toBe('');
   });
 
+  it('Grafana 比率面板逐面板使用 rounds 分母, 且降级分子排除 guard', () => {
+    const dashboard = JSON.parse(readFileSync(DASHBOARD, 'utf8')) as {
+      panels: { id?: number; title?: string; targets?: { expr?: string }[] }[];
+    };
+    const ratioKeywords = ['降级率', '回退率', '取消率'];
+    const violations: string[] = [];
+    for (const panel of dashboard.panels) {
+      const title = panel.title ?? '';
+      if (!ratioKeywords.some((keyword) => title.includes(keyword))) continue;
+      const targets = panel.targets ?? [];
+      if (targets.length === 0) {
+        violations.push(`${title}: 没有任何 target`);
+        continue;
+      }
+      for (const target of targets) {
+        const expr = target.expr ?? '';
+        if (!expr.includes('visitor_render_rounds_total')) violations.push(`${title}: 分母缺 rounds_total -> ${expr}`);
+        if (expr.includes('visitor_render_attempts_total')) violations.push(`${title}: 仍用 attempts 作分母 -> ${expr}`);
+      }
+    }
+    expect(violations.join('\n')).toBe('');
+
+    const degradedPanel = dashboard.panels.find((panel) => (panel.title ?? '').includes('降级率'));
+    expect(degradedPanel, '看板缺少降级率面板').toBeDefined();
+    const degradedExprs = (degradedPanel?.targets ?? []).map((target) => target.expr ?? '').join('\n');
+    expect(degradedExprs).toContain('visitor_render_degraded_total{cause!="guard"}');
+  });
+
   it('Grafana 看板可解析, 且包含渲染面板与真实表达式', () => {
     expect(existsSync(DASHBOARD)).toBe(true);
     const dashboard = JSON.parse(readFileSync(DASHBOARD, 'utf8')) as {
@@ -160,5 +188,7 @@ describe('AF-283 · 渲染告警规则 / 看板 / Runbook', () => {
     expect(text).toContain('candidate_cooldown_until_seconds');
     expect(text).toContain('此刻是否仍在冷却');
     expect(text).toContain('Alertmanager');
+    expect(text).toContain('结构性滞后');
+    expect(text).toContain('不进降级/回退分子');
   });
 });
