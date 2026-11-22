@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1452,
+    "lastEventSeq": 1457,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -2844,6 +2844,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-328/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af328-humanization-acceptance-v1-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-329",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
         "reply": null
       }
     }

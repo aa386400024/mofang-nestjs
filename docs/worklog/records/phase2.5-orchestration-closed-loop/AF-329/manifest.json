@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-329",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T03:00:00+08:00",
+  "updatedAt": "2026-11-22T19:08:31.378Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
+    "sha256": "b4028c1cdbba2014bf8ec480116e46312d2ed1ca86bfb8e35150570bf86e09a2",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/receipt-RC-AF-329-1.json",
+      "sha256": "e6006ff67c5838b0a93daaab44c920b3460671d70bd592ab3a8dee15ee5a5af5",
+      "receiptId": "RC-AF-329-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af329-realism-prompt-ab-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

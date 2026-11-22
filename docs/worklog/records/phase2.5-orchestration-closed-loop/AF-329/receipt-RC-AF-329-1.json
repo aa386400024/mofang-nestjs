@@ -1,0 +1,212 @@
+{
+  "deliveredAt": "2026-11-23T03:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-329-1",
+    "taskId": "AF-329",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "d2036b019b51caf9787c4f449a2c806f5667eed7",
+    "dependsOn": ["AF-328"],
+    "priorTasks": ["AF-328"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-329/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["cc8862bc77f1b53a71614b1683b751f2865c177b"],
+      "added": [
+        "src/shared/realism/realism-prompt-ab.ts",
+        "bin/visitor-realism-prompt-ab.ts",
+        "test/shared/realism/realism-prompt-ab.spec.ts",
+        "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af329-realism-prompt-ab-report-2026-11-23.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-prompt-ab.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 8,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "0.55s",
+        "note": "8/8 通过；覆盖 prompt 分支、6 轮常量、情绪标签剥离、消息序列、失败即停、分支汇总与差值"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 290,
+        "tests": 4464,
+        "machine": "同上",
+        "wallClock": "19.03s",
+        "note": "290 文件通过 / 1 跳过（291）；4464 例通过 / 4 跳过（4468）"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-prompt-ab.ts --out data/phase25-exit/af329-realism-ab/report.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "3 次 A/B 共约 30s",
+        "note": "3 次独立 A/B，每次 12 调用（off/active 各 6 轮），共 36 调用 0 失败；均值 active-off 事件/轮 -0.166667、轮次率 -0.111111、密度 +0.003610、修正/轮 0；active 判据 0/3 pass，off 2/3 pass"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入前事件链一致；归档后复跑"
+      }
+    ],
+    "reproNotes": "复现顺序：pnpm exec vitest run test/shared/realism/realism-prompt-ab.spec.ts；pnpm typecheck；pnpm lint；pnpm test；pnpm exec tsx bin/visitor-realism-prompt-ab.ts --out data/phase25-exit/af329-realism-ab/report.json（另跑 report-run2.json / report-run3.json）；git diff --stat HEAD -- src/engine-core。A/B 只走生产 LlmService.streamChat 的 doubao provider，不写库、不启服务；原始 JSON 含合成台词，留在 gitignored 取证目录，不入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-329 经 CLI register / promote / run-once 领单；分支名与提交标题唯一任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "prompt-equivalence",
+        "result": "pass",
+        "note": "单测锁定 off 等于 REALISM_AB_BASE_SYSTEM、active 逐字包含生产 buildVisitorRealismPromptBlock；真实报告记录 active 多 526 字"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "CLI 与报告只输出数字与合成 id；完整台词只在 gitignored JSON 中，未入库"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "三次 A/B 均为工程文本分布；无真实咨询语料、无真人督导；不宣称临床真人度或疗效"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef d2036b01 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 cc8862bc 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF329-B1",
+        "impact": "3 次 A/B × 6 轮 × 单一人设仍是小样本；active-off 方向 2 负 1 正，不能外推为所有来访者或生产全链路。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF329-B2",
+        "impact": "真人度块一次性改优先级、场景、语域、角色声音、话轮形态、配额、事件层，无法归因是哪条在抑制 filler/pause。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF329-B3",
+        "impact": "humanization-v1 四条门槛对 6 轮短文本敏感，1 个 filler 即可改变轮次率；需用配对中位数与扩大样本重新校准。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF329-B4",
+        "impact": "三次实验 trailoff / elongation / repetition / repair 均为 0，测量器对更多真人口语现象的覆盖仍不足。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "active 块为什么在部分轮次把 filler/pause 压到 0，是配额措辞、优先级还是 Seed Character 的指令跟随",
+      "是否值得把真人度块拆成单变量变体，在 2-3 个人设、每种 5 次配对上重测",
+      "humanization-v1 是否应改为配对中位数判定，而不是单批绝对窗口"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "真实跑一次 A/B",
+        "reality": "首次 12 调用出现 active 六类全零、密度 0 的极端；单次结果无法判断方向",
+        "action": "追加 2 次同条件独立 A/B，共 3 次 36 调用；报告写均值、每次差值与判据通过率",
+        "why": "不把单次采样当结论，也不通过调 prompt 去凑判据"
+      },
+      {
+        "taskSays": "报告只含数字，不输出完整台词",
+        "reality": "原始 JSON 需要保留响应文本才能复算指标",
+        "action": "JSON 只落 gitignored data 取证目录，仓库报告与回执只保留数字",
+        "why": "复跑需要原文，但仓库交付不夹带合成或真实台词"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-329 交付可复跑的 active/off prompt A/B CLI、纯辅助模块与 8 例单测，真实 3 次 A/B 共 36 次调用 0 失败，并如实报告反向/不稳定结果：active 判据 0/3 pass、off 2/3 pass，均值事件率与轮次率均低于 off。定向 8 例、全量 4464 例、lint 0/0、typecheck exit 0、engine-core 零 diff。没有启用 active，也没有把工程数字包装成临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
