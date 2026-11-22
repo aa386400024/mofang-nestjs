@@ -42,8 +42,12 @@ async function* iterate(outcome: Outcome, signal?: AbortSignal): AsyncIterable<C
   }
   yield { delta: outcome === 'slow-reply' ? '第一句。' : '备选回复。', tokenCount: 5, isFinal: false };
   if (outcome === 'slow-reply') {
-    // 首包已到；超过 config.timeoutMs 也不能被首包定时器误杀。
-    await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS * 2));
+    // 首包已到，总时长超过 config.timeoutMs，但每块间隔都小于空闲上限：
+    // 首包定时器不能误杀整轮（AF-274 另行限制了「块间停摆」）。
+    for (let index = 0; index < 4; index += 1) {
+      await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS / 2));
+      yield { delta: '', tokenCount: 5, isFinal: false };
+    }
     yield { delta: '第二句。', tokenCount: 10, isFinal: false };
   }
   yield { delta: '', tokenCount: 10, isFinal: true, finishReason: 'stop' };

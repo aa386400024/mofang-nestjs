@@ -765,6 +765,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const streamStartedAt = Date.now();
     const opened = await this.openStream(candidate, request, handlers);
     if (!opened.ok) {
+      if (opened.cancelled === true) {
+        return { kind: 'degrade', reason: `候选 ${candidate.id} 外部取消` };
+      }
       return opened.retryable ? { kind: 'retry', reason: opened.reason } : { kind: 'degrade', reason: opened.reason };
     }
     // 首个**可见**增量已到达 → 本轮 TTFT 定了 (开头的预检/切备耗时算在上游等待里).
@@ -815,8 +818,6 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       await emitSpoken(split.closed);
     };
 
-    await feed(opened.firstDelta);
-
     // 阶段 3: 边吐边累计.
     const usage: StreamUsageAccumulator = {
       tokenCount: opened.tokenCount,
@@ -824,8 +825,12 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       completionTokens: opened.completionTokens,
     };
     try {
+      await feed(opened.firstDelta);
       for (;;) {
-        const next = await opened.iterator.next();
+        // AF-274: 首包之后每块都带空闲超时。上游「吐了一句就断流/停摆」时，
+        // SDK 仍可能挂到传输层超时（约 300s）；这里以 config.timeoutMs 为单块等待上限，
+        // 到点 abort 上游并收尾降级——已经出声，不能切备。
+        const next = await nextStreamChunk(opened.iterator, this.config.timeoutMs, opened.abort);
         if (next.done) break;
         const chunk = next.value;
         // 用量在**最后一块**才到齐 (上游的 usage 是收尾时补的), 所以这里必须读
@@ -836,9 +841,17 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         await feed(delta);
       }
     } catch (error) {
+      if (error instanceof StreamIdleTimeoutError) {
+        this.runtime.markFailure(candidate.id, this.config);
+        this.logger.warn(`[streamRender] 候选 ${candidate.id} 流式中途无增量超时 (${this.config.timeoutMs}ms), 收尾降级`);
+        return { kind: 'degrade', reason: `候选 ${candidate.id} ${error.message}` };
+      }
       // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
       this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
       return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}` };
+    } finally {
+      // 正常结束 / 中断 / 消费方抛错都要释放外部取消监听；否则长会话会累积悬挂监听。
+      opened.dispose();
     }
 
     // 收尾：把 safeVisiblePrefix 扣住的"末尾非推理块"放出来（未闭合 `<think>` 不会放）。
@@ -1005,40 +1018,27 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         readonly promptTokens?: number;
         /** 上游报的输出侧累计 token (没报 = 不可得). V2026-11-10 (WP-H 改动 7). */
         readonly completionTokens?: number;
+        /** 中止本轮流（首包后空闲超时 / 消费方中断时用）。 */
+        readonly abort: () => void;
+        /** 释放外部取消监听与定时器；流结束后必须调用。 */
+        readonly dispose: () => void;
       }
-    | { readonly ok: false; readonly retryable: boolean; readonly reason: string }
+    | { readonly ok: false; readonly retryable: boolean; readonly reason: string; readonly cancelled?: true }
   > {
     // AF-270 治本：流式 SDK 的 headersTimeout 约 300s，上游「接受连接但不回首包」时
     // 主候选会挂死，备候选永远轮不到。这里用 config.timeoutMs 建首包超时并主动 abort
     // 上游流；首 delta 一到就清定时器，正常长回复不受影响。
     const timeoutMs = Math.max(1, this.config.timeoutMs);
-    const controller = new AbortController();
-    const externalSignal = handlers.signal;
-    const abortFromExternal = (): void => controller.abort();
-    if (externalSignal?.aborted === true) {
-      controller.abort();
-    } else {
-      externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
-    }
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, timeoutMs);
-    timer.unref();
-    let cleaned = false;
-    const cleanup = (): void => {
-      if (cleaned) return;
-      cleaned = true;
-      clearTimeout(timer);
-      externalSignal?.removeEventListener('abort', abortFromExternal);
-    };
+    const guard = createStreamGuard(handlers, timeoutMs);
+    // AF-274: 首 delta 到达后不能立刻 cleanup —— 外部取消监听必须保留到流结束，
+    // 否则长流阶段的 barge-in 无法真正中止上游；首包定时器则单独清掉。
+    let keepOpen = false;
 
     try {
       const stream = this.deps.caller.stream?.(request, {
         providerId: candidate.id,
         ...(this.deps.uid ? { uid: this.deps.uid } : {}),
-        signal: controller.signal,
+        signal: guard.controller.signal,
       });
       if (!stream) {
         return { ok: false, retryable: true, reason: '调用出口无流式能力' };
@@ -1064,19 +1064,36 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         }
         const delta = chunk.delta ?? '';
         if (delta.length > 0) {
-          return { ok: true, iterator, firstDelta: delta, tokenCount, promptTokens, completionTokens };
+          keepOpen = true;
+          guard.clearFirstDeltaTimer();
+          return {
+            ok: true,
+            iterator,
+            firstDelta: delta,
+            tokenCount,
+            promptTokens,
+            completionTokens,
+            abort: guard.abort,
+            dispose: guard.cleanup,
+          };
         }
       }
     } catch (error) {
-      if (timedOut) {
+      if (guard.timedOut()) {
         this.runtime.markFailure(candidate.id, this.config);
         this.logger.warn(`[streamRender] 候选 ${candidate.id} 流式首包超时 (${timeoutMs}ms), 切下一个候选`);
         return { ok: false, retryable: true, reason: `流式首包超时 (${timeoutMs}ms)` };
       }
+      // AF-274 (P0-2): 消费方主动取消不是上游故障 —— 不记失败、不切备。
+      // 否则一次 barge-in 会同时污染主备两个候选的熔断器，3 次即全场兜底。
+      if (guard.externalAborted()) {
+        this.logger.debug(`[streamRender] 候选 ${candidate.id} 首包前被外部取消，静默结束`);
+        return { ok: false, retryable: false, cancelled: true, reason: '外部取消' };
+      }
       const failure = this.classifyFailure(candidate, error);
       return { ok: false, retryable: failure.retryable, reason: failure.reason };
     } finally {
-      cleanup();
+      if (!keepOpen) guard.cleanup();
     }
 
     // 空流: 首个 delta 前没有任何内容 → 与聚合路径"空内容"同口径, 切备.
@@ -1378,6 +1395,107 @@ function riskReasoningFloor(risk: RenderRiskLevel | undefined): ChatReasoningEff
     default:
       return undefined;
   }
+}
+
+/**
+ * 流式首包窗口的取消/超时护栏。
+ *
+ * 把「外部取消监听 + 首包定时器 + 幂等清理」从 openStream 里抽出来：
+ * 一是让主流程只关心建流/取首包；二是保证**首包后**外部监听仍保留、
+ * 定时器只清一次，不会出现 barge-in 已取消但上游还在跑的双通道。
+ */
+interface StreamGuard {
+  readonly controller: AbortController;
+  readonly abort: () => void;
+  readonly clearFirstDeltaTimer: () => void;
+  readonly cleanup: () => void;
+  readonly timedOut: () => boolean;
+  readonly externalAborted: () => boolean;
+}
+
+function createStreamGuard(handlers: StreamRenderHandlers, timeoutMs: number): StreamGuard {
+  const controller = new AbortController();
+  const externalSignal = handlers.signal;
+  const abortFromExternal = (): void => controller.abort();
+  if (externalSignal?.aborted === true) {
+    controller.abort();
+  } else {
+    externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
+  }
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  timer.unref();
+  let cleaned = false;
+  const cleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    clearTimeout(timer);
+    externalSignal?.removeEventListener('abort', abortFromExternal);
+  };
+  return {
+    controller,
+    abort: (): void => controller.abort(),
+    clearFirstDeltaTimer: (): void => clearTimeout(timer),
+    cleanup,
+    timedOut: (): boolean => timedOut,
+    externalAborted: (): boolean => externalSignal?.aborted === true,
+  };
+}
+
+/**
+ * AF-274: 首包之后的「无增量」超时。
+ *
+ * 为什么需要独立的错误类型: 首包前超时可以切备，首包后已经出声，只能收尾降级；
+ * 上层据此区分是否要记候选失败，而不是把外部取消也算成上游故障。
+ */
+class StreamIdleTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`流式中途无增量超时 (${timeoutMs}ms)`);
+    this.name = 'StreamIdleTimeoutError';
+  }
+}
+
+/**
+ * 等下一块 chunk，同时施加空闲超时；到点先 abort 上游再 reject。
+ *
+ * 计时以「上一块到达」为起点，每条 chunk（含空 delta 的用量/心跳块）都会重置，
+ * 因此限制的是上游真实停摆，不是整轮总时长。
+ */
+function nextStreamChunk(
+  iterator: AsyncIterator<ChatCompletionChunk>,
+  timeoutMs: number,
+  abort: () => void,
+): Promise<IteratorResult<ChatCompletionChunk>> {
+  return new Promise<IteratorResult<ChatCompletionChunk>>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(
+      () => {
+        if (settled) return;
+        settled = true;
+        abort();
+        reject(new StreamIdleTimeoutError(timeoutMs));
+      },
+      Math.max(1, timeoutMs),
+    );
+    timer.unref();
+    iterator.next().then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
 }
 
 /**

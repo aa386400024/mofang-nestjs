@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-274",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T12:22:00+08:00",
+  "updatedAt": "2026-11-22T04:22:07.376Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-274/task-sheet.md",
+    "sha256": "50fe04b774f74919412d0329a6050a629f3835296bee0b0afe4a073a45c53888",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af274-stream-midstream-idle-timeout-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-274-stream-idle-timeout-2026-11-22.md"
+  ],
+  "tombstone": null
+}

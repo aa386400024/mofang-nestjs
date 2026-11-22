@@ -18,6 +18,7 @@ import type { AddressInfo } from 'node:net';
 import { LlmService } from '../src/agent/llm/llm.service.js';
 import type { RollingSummaryPort } from '../src/engine-adapters/persistence/rolling-session-summary.service.js';
 import type { ChatCaller } from '../src/engine-adapters/rendering/llm-render.adapter.js';
+import type { RenderAdapterConfig } from '../src/engine-adapters/rendering/render-adapter.config.js';
 import type { StreamingRenderPort } from '../src/engine-adapters/rendering/streaming-render.port.js';
 import { MAX_HISTORY_TURNS, TurnRenderOrchestrator } from '../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import { createLlmServiceChatCaller } from '../src/engine-adapters/wiring/llm-service-chat-caller.js';
@@ -422,7 +423,8 @@ async function executeOrchestratedSessions(options: OrchestratedBatchOptions): P
   return { turnResults, promptTokens, completionTokens, totalTokens, wallElapsedMs: Date.now() - startedAt };
 }
 
-type FaultMode = 'auth' | 'network' | 'rate-limit' | 'server-error' | 'timeout';
+type FaultMode = 'auth' | 'network' | 'rate-limit' | 'server-error' | 'timeout' | 'midstream-stall';
+type ProviderChoice = 'doubao' | 'minimax';
 
 interface FaultFlags {
   readonly failPrimary: boolean;
@@ -432,6 +434,7 @@ interface FaultFlags {
 }
 
 const FALLBACK_FAULT_MODES = new Set<FaultMode>(['network', 'rate-limit', 'server-error', 'timeout']);
+const DEGRADED_FAULT_MODES = new Set<FaultMode>(['auth', 'midstream-stall']);
 
 /** 解析并校验故障注入开关；语义互斥的组合同步拒绝，避免 smoke 自相矛盾。 */
 function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
@@ -439,8 +442,8 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
   const expectFallback = hasFlag('--expect-fallback');
   const expectDegraded = hasFlag('--expect-degraded');
   const rawMode = (arg('--fail-primary-mode', 'auth') ?? 'auth').toLowerCase();
-  if (!['auth', 'network', 'rate-limit', 'server-error', 'timeout'].includes(rawMode)) {
-    fail('--fail-primary-mode 只允许 auth / network / rate-limit / server-error / timeout');
+  if (!['auth', 'network', 'rate-limit', 'server-error', 'timeout', 'midstream-stall'].includes(rawMode)) {
+    fail('--fail-primary-mode 只允许 auth / network / rate-limit / server-error / timeout / midstream-stall');
   }
   const mode = rawMode as FaultMode;
 
@@ -457,8 +460,12 @@ function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
   if (failPrimary && !expectFallback && !expectDegraded) {
     fail('--fail-primary 必须配合 --expect-fallback 或 --expect-degraded');
   }
-  if (mode === 'auth' && expectFallback) {
-    fail('鉴权失败按生产策略直接降级、不切候选；验证真实回退请用 --fail-primary-mode network / rate-limit / server-error / timeout');
+  if (DEGRADED_FAULT_MODES.has(mode) && expectFallback) {
+    fail(
+      mode === 'auth'
+        ? '鉴权失败按生产策略直接降级、不切候选；验证真实回退请用 --fail-primary-mode network / rate-limit / server-error / timeout'
+        : '首包后停摆已经出声，不能再切候选；验证收尾降级请用 --expect-degraded',
+    );
   }
   if (FALLBACK_FAULT_MODES.has(mode) && expectDegraded) {
     fail('可重试故障应触发候选回退；验证鉴权降级请用 --fail-primary-mode auth');
@@ -476,20 +483,40 @@ interface FaultServer {
 }
 
 /**
- * 起本机临时上游，按模式返回 429 / 500 / 挂起不响应。
- * 只用于 smoke：把豆包候选 baseUrl 指过来，就能触发真实 HTTP 状态码与真实超时，
- * 不消耗真实豆包额度，也不改 `.env`。
+ * 起本机临时上游，按模式返回 429 / 500 / 挂起不响应 / 首包后停摆。
+ * 只用于 smoke：把主候选 baseUrl 指过来，就能触发真实 HTTP 状态码、真实超时与真实块间停摆，
+ * 不消耗真实额度，也不改 `.env`。
  */
 async function startFaultServer(mode: FaultMode): Promise<FaultServer> {
   const server: Server = createServer((_request, response) => {
     if (mode === 'rate-limit') {
       response.writeHead(429, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ error: { message: 'af273 simulated rate limit', type: 'rate_limit_error' } }));
+      response.end(JSON.stringify({ error: { message: 'af274 simulated rate limit', type: 'rate_limit_error' } }));
       return;
     }
     if (mode === 'server-error') {
       response.writeHead(500, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ error: { message: 'af273 simulated server error', type: 'server_error' } }));
+      response.end(JSON.stringify({ error: { message: 'af274 simulated server error', type: 'server_error' } }));
+      return;
+    }
+    if (mode === 'midstream-stall') {
+      // 先给一条合法 SSE chunk（让适配器锁定候选），然后永久不再写数据。
+      // 这模拟「上游吐了一句就卡死」：生产上不能等 SDK 的 ~300s 传输层超时。
+      response.writeHead(200, {
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      });
+      response.flushHeaders();
+      response.write(
+        `data: ${JSON.stringify({
+          id: 'af274-midstream',
+          object: 'chat.completion.chunk',
+          created: Math.floor(Date.now() / 1000),
+          model: 'af274-fault-model',
+          choices: [{ index: 0, delta: { role: 'assistant', content: '最近有点累。' }, finish_reason: null }],
+        })}\n\n`,
+      );
     }
     // timeout：故意不写响应，让客户端触发 requestTimeoutMs；请求对象保留到进程收尾。
   });
@@ -601,6 +628,7 @@ interface SmokeReport {
   readonly summaryAfter: number;
   readonly historyLimitTurns: number;
   readonly expectFallbackWithinMs: number | null;
+  readonly expectDegradedWithinMs: number | null;
   readonly faults: FaultFlags;
   readonly primaryProbe: { ok: false; model: string; error: string; elapsedMs: number } | null;
   readonly turns: number;
@@ -624,6 +652,7 @@ function printReport(report: SmokeReport): void {
         summaryAfter: report.summaryAfter,
         historyLimitTurns: report.historyLimitTurns,
         expectFallbackWithinMs: report.expectFallbackWithinMs,
+        expectDegradedWithinMs: report.expectDegradedWithinMs,
         failPrimary: report.faults.failPrimary,
         failPrimaryMode: report.faults.failPrimary ? report.faults.mode : null,
         expectFallback: report.faults.expectFallback,
@@ -744,6 +773,7 @@ interface RunOptions {
   readonly contextTokens: number;
   readonly promptOverride: string | null;
   readonly expectFallbackWithinMs: number | null;
+  readonly expectDegradedWithinMs: number | null;
   readonly faults: FaultFlags;
 }
 
@@ -762,6 +792,8 @@ function resolveRunOptions(): RunOptions {
   const promptOverride = arg('--prompt');
   const rawWithin = arg('--expect-fallback-within-ms');
   const expectFallbackWithinMs = rawWithin === null ? null : Math.floor(numberArg('--expect-fallback-within-ms', 0));
+  const rawDegradedWithin = arg('--expect-degraded-within-ms');
+  const expectDegradedWithinMs = rawDegradedWithin === null ? null : Math.floor(numberArg('--expect-degraded-within-ms', 0));
   const faults = resolveFaultFlags(callerPath, provider);
   // MiniMax M3 的 reasoning token 计入 completion 上限；回退/回滚 smoke 用 300 会在思考和
   // 正文之间被截断，出现「有 finish_reason=length、无完整句」的假降级。这些场景默认放宽。
@@ -771,6 +803,12 @@ function resolveRunOptions(): RunOptions {
   }
   if (expectFallbackWithinMs !== null && expectFallbackWithinMs <= 0) {
     fail('--expect-fallback-within-ms 必须是正整数');
+  }
+  if (expectDegradedWithinMs !== null && !faults.expectDegraded) {
+    fail('--expect-degraded-within-ms 必须配合 --expect-degraded 使用');
+  }
+  if (expectDegradedWithinMs !== null && expectDegradedWithinMs <= 0) {
+    fail('--expect-degraded-within-ms 必须是正整数');
   }
 
   if (concurrency > 1 && turns !== 1) fail('--concurrency 与 --turns 互斥：并发模式固定单轮');
@@ -794,6 +832,7 @@ function resolveRunOptions(): RunOptions {
     contextTokens,
     promptOverride,
     expectFallbackWithinMs,
+    expectDegradedWithinMs,
     faults,
   };
 }
@@ -802,6 +841,38 @@ function resolveRunOptions(): RunOptions {
 function injectAuthFailure(provider: 'doubao' | 'minimax'): void {
   const authEnvKey = provider === 'doubao' ? 'LLM_DOUBAO_API_KEY' : 'MINIMAX_API_KEY';
   process.env[authEnvKey] = provider === 'doubao' ? 'af264-invalid-key-for-smoke' : 'af273-invalid-key-for-smoke';
+}
+
+function needsFaultServer(faults: FaultFlags): boolean {
+  if (!faults.failPrimary) return false;
+  return faults.mode === 'rate-limit' || faults.mode === 'server-error' || faults.mode === 'timeout' || faults.mode === 'midstream-stall';
+}
+
+function assertCandidateChain(renderConfig: RenderAdapterConfig, provider: ProviderChoice, faults: FaultFlags): void {
+  if (renderConfig.candidates[0]?.id !== provider) {
+    fail(`候选装配异常：期望主候选=${provider}，实际=${renderConfig.candidates[0]?.id ?? '(空)'}`);
+  }
+  if (!faults.expectFallback) return;
+  const expectedFallback = provider === 'doubao' ? 'minimax' : 'doubao';
+  if (renderConfig.candidates[1]?.id !== expectedFallback) {
+    fail(`回退 smoke 需要备候选 ${expectedFallback}，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
+  }
+}
+
+async function probePrimary(
+  router: LlmRouterService,
+  renderConfig: RenderAdapterConfig,
+  provider: ProviderChoice,
+  faults: FaultFlags,
+): Promise<{ ok: false; model: string; error: string; elapsedMs: number } | null> {
+  // midstream-stall 的故障特征是「聚合探针能正常返回、流式首包后停摆」，
+  // 用聚合 probe 反而测不到；改由流式轮次本身作为证据。
+  if (!faults.failPrimary || faults.mode === 'midstream-stall') return null;
+  return probePrimaryFailure(
+    router,
+    renderConfig.candidates[0]?.overrides?.chat?.model ?? (provider === 'doubao' ? 'doubao-seed-character-260628' : 'MiniMax-M3'),
+    provider === 'doubao' ? AIProviderId.DOUBAO : AIProviderId.MINIMAX,
+  );
 }
 
 async function main(): Promise<void> {
@@ -818,6 +889,7 @@ async function main(): Promise<void> {
     contextTokens,
     promptOverride,
     expectFallbackWithinMs,
+    expectDegradedWithinMs,
     faults,
   } = resolveRunOptions();
 
@@ -842,10 +914,8 @@ async function main(): Promise<void> {
   let router: LlmRouterService;
   let caller: ChatCaller;
 
-  // 429 / 500 / 超时：起本机故障上游，把主候选 baseUrl 指过来。
-  const needsFaultServer =
-    faults.failPrimary && (faults.mode === 'rate-limit' || faults.mode === 'server-error' || faults.mode === 'timeout');
-  const faultServer = needsFaultServer ? await startFaultServer(faults.mode) : null;
+  // 429 / 500 / 超时 / 首包后停摆：起本机故障上游，把主候选 baseUrl 指过来。
+  const faultServer = needsFaultServer(faults) ? await startFaultServer(faults.mode) : null;
 
   if (callerPath === 'router') {
     ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl, provider));
@@ -864,24 +934,8 @@ async function main(): Promise<void> {
   }
 
   const renderConfig = new RenderConfigFactory(config, router).build();
-
-  if (renderConfig.candidates[0]?.id !== provider) {
-    fail(`候选装配异常：期望主候选=${provider}，实际=${renderConfig.candidates[0]?.id ?? '(空)'}`);
-  }
-  if (faults.expectFallback) {
-    const expectedFallback = provider === 'doubao' ? 'minimax' : 'doubao';
-    if (renderConfig.candidates[1]?.id !== expectedFallback) {
-      fail(`回退 smoke 需要备候选 ${expectedFallback}，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
-    }
-  }
-
-  const primaryProbe = faults.failPrimary
-    ? await probePrimaryFailure(
-        router,
-        renderConfig.candidates[0]?.overrides?.chat?.model ?? (provider === 'doubao' ? 'doubao-seed-character-260628' : 'MiniMax-M3'),
-        provider === 'doubao' ? AIProviderId.DOUBAO : AIProviderId.MINIMAX,
-      )
-    : null;
+  assertCandidateChain(renderConfig, provider, faults);
+  const primaryProbe = await probePrimary(router, renderConfig, provider, faults);
 
   const port = buildEngineRenderPort(caller, renderConfig);
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
@@ -906,6 +960,11 @@ async function main(): Promise<void> {
         faults,
       });
 
+  // 块间停摆必须真的先收到首包，否则测到的是首包超时，不是 AF-274 的路径。
+  if (faults.failPrimary && faults.mode === 'midstream-stall' && batch.turnResults.some((item) => item.deltas === 0)) {
+    fail('midstream-stall 未产生任何可见增量，首包未到达，不能证明块间停摆治理', 2);
+  }
+
   printReport({
     callerPath,
     requestedProvider: provider,
@@ -913,6 +972,7 @@ async function main(): Promise<void> {
     summaryAfter,
     historyLimitTurns: MAX_HISTORY_TURNS,
     expectFallbackWithinMs,
+    expectDegradedWithinMs,
     faults,
     primaryProbe,
     turns,
@@ -931,6 +991,9 @@ async function main(): Promise<void> {
   });
   if (expectFallbackWithinMs !== null && batch.wallElapsedMs > expectFallbackWithinMs) {
     fail(`回退耗时 ${String(batch.wallElapsedMs)}ms 超过上限 ${String(expectFallbackWithinMs)}ms`, 2);
+  }
+  if (expectDegradedWithinMs !== null && batch.wallElapsedMs > expectDegradedWithinMs) {
+    fail(`降级耗时 ${String(batch.wallElapsedMs)}ms 超过上限 ${String(expectDegradedWithinMs)}ms`, 2);
   }
   await faultServer?.close();
 }
