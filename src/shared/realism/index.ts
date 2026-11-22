@@ -68,3 +68,5 @@ export {
   type RegisterSignal,
   type RegisterViolation,
 } from './visitor-register-audit.js';
+
+export { stripVisitorStageDirections } from './visitor-stage-direction.js';

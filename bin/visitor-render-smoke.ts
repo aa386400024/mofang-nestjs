@@ -628,6 +628,7 @@ interface SmokeMetricSample {
 interface SmokeReport {
   readonly callerPath: string;
   readonly requestedProvider: string;
+  readonly promptVariant: string;
   readonly orchestrated: boolean;
   readonly summaryAfter: number;
   readonly historyLimitTurns: number;
@@ -654,6 +655,7 @@ function printReport(report: SmokeReport): void {
         ok: true,
         callerPath: report.callerPath,
         requestedProvider: report.requestedProvider,
+        promptVariant: report.promptVariant,
         orchestrated: report.orchestrated,
         summaryAfter: report.summaryAfter,
         historyLimitTurns: report.historyLimitTurns,
@@ -945,7 +947,8 @@ async function main(): Promise<void> {
     });
   }
 
-  const renderConfig = new RenderConfigFactory(config, router).build();
+  const configFactory = new RenderConfigFactory(config, router);
+  const renderConfig = configFactory.build();
   assertCandidateChain(renderConfig, provider, faults);
   const primaryProbe = await probePrimary(router, renderConfig, provider, faults);
 
@@ -961,7 +964,7 @@ async function main(): Promise<void> {
     renderTelemetry = new RenderMetricsTelemetry(renderMetrics);
   }
 
-  const port = buildEngineRenderPort(caller, renderConfig, undefined, renderTelemetry);
+  const port = buildEngineRenderPort(caller, renderConfig, undefined, renderTelemetry, configFactory.visitorPromptVariant());
   if (typeof port.streamRender !== 'function') fail('渲染端口没有 streamRender，无法做端到端 smoke');
 
   const batch = orchestrated
@@ -1000,6 +1003,7 @@ async function main(): Promise<void> {
   printReport({
     callerPath,
     requestedProvider: provider,
+    promptVariant: configFactory.visitorPromptVariant(),
     orchestrated,
     summaryAfter,
     historyLimitTurns: MAX_HISTORY_TURNS,
