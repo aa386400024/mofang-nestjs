@@ -60,6 +60,14 @@ export interface RenderTelemetryPort {
   onFailure?(candidateId: string, model: string, cause: RenderFailureCause): void;
   /** 外部取消 (barge-in / 暂停), 不是渲染降级, 单独计数. */
   onCancelled?(candidateId: string, model: string): void;
+  /**
+   * 整轮无候选可用 (全部处于冷却且未到半开时点), 本轮直接全损.
+   *
+   * 与 `onDegraded('exhausted')` 分开: exhausted 只能说明"没选出候选",
+   * 既包含候选试完败, 也包含熔断挡掉; 这个回调只记后者, 让值班能分清
+   * "上游真的都挂了" 与 "刚才连续失败把候选全关了".
+   */
+  onCooldownServed?(): void;
   /** 从 from 候选切到 to 候选. */
   onFallback?(from: string, to: string, cause: RenderFailureCause): void;
   /** 本轮最终降级兜底. */

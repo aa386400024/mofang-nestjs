@@ -453,7 +453,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     /** 上一候选的失败原因; 下一轮选中新候选时用它记录 fallback. */
     let pendingFailure: { readonly from: string; readonly cause: RenderFailureCause } | null = null;
     for (let round = 0; round <= this.config.candidates.length; round += 1) {
+      // 熔断全损与"候选试完败"最终都记 exhausted; 两者的区别只在 next() 内部:
+      // 全员冷却 => 不返回候选且 cooldownServed 自增. 只在这个差值上记一次
+      // 熔断全损, 不把"本轮已试完"误记成熔断.
+      const cooldownServedBefore = this.runtime.stats().cooldownServed;
       const candidate = this.runtime.next(attempted);
+      const cooldownServedAfter = this.runtime.stats().cooldownServed;
+      if (cooldownServedAfter > cooldownServedBefore) {
+        this.notify((telemetry) => telemetry.onCooldownServed?.());
+      }
       if (!candidate) {
         return { outcome: { kind: 'degrade', reason: '候选耗尽或全部处于冷却', cause: 'exhausted' }, attempted };
       }

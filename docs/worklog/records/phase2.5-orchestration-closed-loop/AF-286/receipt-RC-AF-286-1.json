@@ -1,0 +1,176 @@
+{
+  "deliveredAt": "2026-11-22T15:42:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-286-1",
+    "taskId": "AF-286",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "3ae89bf64dfd0c31f37bbfc88b1ce6ffe8faec8f",
+    "dependsOn": ["AF-283"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-286/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af286-cooldown-served-observability-2026-11-22.md",
+      "reply": null,
+      "others": ["docker/prometheus/alerts.yml", "docker/grafana/dashboards/mofang-overview.json", "docs/runbooks/render-telemetry-alerting.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "test/engine-adapters/af286-cooldown-served.spec.ts",
+        "docs/worklog/completed/phase2.5/af286-cooldown-served-observability-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-286/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-286/manifest.json"
+      ],
+      "modified": [
+        "src/engine-adapters/rendering/render-telemetry.port.ts",
+        "src/engine-adapters/rendering/render-metrics.telemetry.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/shared/infra/metrics/metrics.service.ts",
+        "test/shared/infra/metrics/render-telemetry-metrics.spec.ts",
+        "docker/prometheus/alerts.yml",
+        "docker/grafana/dashboards/mofang-overview.json",
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["1ea958210429124d823e16aa8d306fa19cda26ae"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af286-cooldown-served.spec.ts test/engine-adapters/af282-render-telemetry-correctness.spec.ts test/shared/infra/metrics/render-telemetry-metrics.spec.ts test/config/af283-render-alerting.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "801ms",
+        "note": "17/17 passed；新增 2 例熔断全损 + AF-282 7 例 + 指标 3 例 + AF-283 守卫 5 例；日志 data/af286-target2.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 6 秒",
+        "note": "tsc -b tsconfig.check.json 通过；日志 data/af286-typecheck1.log"
+      },
+      {
+        "command": "pnpm eslint <AF-286 四个 src 文件 + 两个 test 文件>",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20 秒",
+        "note": "首轮报 3 个 prettier/sonar 问题，修复后 0 error / 0 warning；日志 data/af286-eslint2.log"
+      },
+      {
+        "command": "node -e yaml.parse(alerts.yml) && JSON.parse(dashboard)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "visitor-render 组 7 条规则（新增 VisitorRenderCooldownServedSpike）；看板 12 panels（新增 id 14）"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 1,
+        "errors": 4,
+        "warnings": 0,
+        "specFiles": 275,
+        "machine": "同上",
+        "wallClock": "24.82 秒",
+        "note": "4332 passed + 4 skipped；4 failed 全部在未跟踪 test/engine-adapters/af280-render-prompt-variant.spec.ts（AF-281 并行半成品），与本单无关；日志 data/af286-test-full.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-286-cooldown-served 自 integrate 3ae89bf6 切出。端口新增 onCooldownServed()；adapter 在 runtime.next() 前后读 stats().cooldownServed 差值，只在全员冷却导致无候选可用时上报；MetricsService 注册无标签 Counter visitor_render_cooldown_served_total；alerts 新增 VisitorRenderCooldownServedSpike（10m >3，for 5m）；Grafana 新增 id 14 熔断全损面板；Runbook 增加指标行、告警行、exhausted 判读路径并重写盲区。不新增 RenderFailureCause 枚举值。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支 task/AF-286-cooldown-served 与提交只含 AF-286"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / branch create / run-once 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "交付记录六组机读字段齐全，回执 JSON 完整"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "telemetry-privacy",
+        "result": "pass",
+        "note": "新指标无标签，只记全损次数；不含 prompt、台词、会话 id"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 integrate 3ae89bf6；依赖 AF-283 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-cooldown-candidate-attribution",
+        "impact": "cooldown_served 是进程级全损计数，无法回答哪个候选被熔断、熔了多久；只能看 health 快照与日志"
+      },
+      {
+        "id": "visitor-af283-guard-wording",
+        "impact": "AF-283 守卫 spec 标题仍写“六个告警”，新增第 7 条后文案过期"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "熔断全损可观测",
+        "reality": "新增 cause 枚举会扩散标签口径",
+        "action": "用无标签独立计数器表达全损，exhausted 轮次语义保持不变",
+        "why": "不破坏既有看板/告警标签，同时能区分两个来源"
+      },
+      {
+        "taskSays": "指标可归因",
+        "reality": "熔断时哪个候选该被归因不可知",
+        "action": "计数器不带 candidate 标签，把归因能力写进 Runbook 剩余风险与 backlog",
+        "why": "宁可不带可能误导的标签"
+      },
+      {
+        "taskSays": "AF-283 守卫保持通过",
+        "reality": "守卫测试标题仍写“六个告警”",
+        "action": "不改 test/config 守卫文案（不在本单 scope），登记 backlog",
+        "why": "守卫断言是子集，新增第 7 条不影响通过；文案整理留给 TD 单"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "盲区已真正收口：cooldown_served 从日志走进 Prometheus，告警与面板齐备，Runbook 给出 exhausted 与 cooldown 的联合判读。新增 2 例直接锁住“熔断时不产生候选尝试”这一关键行为；定向 17/17、typecheck、scoped eslint、YAML/JSON 解析通过；全量 4 例失败均在未跟踪 AF-280 并行 spec。计数器无候选标签与守卫文案过期均如实登记，没有包装成全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
