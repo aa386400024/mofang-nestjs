@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T06:53:40.289Z",
+  "generatedAt": "2026-11-22T07:07:38.351Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -48,46 +48,6 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-283",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "渲染遥测告警规则与灰度判读 Runbook（Prometheus 规则 + Grafana 面板 + 回滚判据）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-283",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T06:53:40.223Z",
-        "leaseDeadline": "2026-11-22T07:23:40.221Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-283.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T06:53:40.223Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-283.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1865,6 +1825,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-484",
+      "recordedAt": "2026-11-22T06:53:40.393Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-283",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-283",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-283.json"
+      ]
+    },
+    {
       "auditId": "AUD-483",
       "recordedAt": "2026-11-22T06:52:10.468Z",
       "actorRef": "orchestrator",
@@ -2087,35 +2062,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-469",
-      "recordedAt": "2026-11-22T06:05:37.641Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-279",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-279",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-279.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 483,
+    "total": 484,
     "byResult": {
-      "allowed": 483,
+      "allowed": 484,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 482,
+      "TOOL-QUEUE-SCHEDULER": 483,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 483
+      "orchestrator": 484
     }
   },
   "protocolView": {
@@ -2144,28 +2104,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-283",
-        "title": "渲染遥测告警规则与灰度判读 Runbook（Prometheus 规则 + Grafana 面板 + 回滚判据）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-282"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
           }
         ]
       }
@@ -7064,6 +7002,24 @@
             "ref": "docs/worklog/completed/phase2.5/af284-executor-resource-domain-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-283",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af283-render-alerting-runbook-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7088,11 +7044,6 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-283",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-283/task-sheet.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -7106,5 +7057,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 283
+  "archivedCount": 284
 }
