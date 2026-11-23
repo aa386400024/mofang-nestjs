@@ -17,9 +17,7 @@
       "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/task-sheet.md",
       "deliveryRecord": "docs/worklog/completed/phase2.5/af368-framework-v210-anchor-2026-11-23.md",
       "reply": null,
-      "others": [
-        "https://github.com/aa386400024/agent-collaboration-framework/pull/1"
-      ]
+      "others": []
     },
     "changedFiles": {
       "commits": [
@@ -70,7 +68,7 @@
         "note": "空输出"
       }
     ],
-    "reproNotes": "GitHub rebase 合并生成 main commit e6dd22d，tree 与 e412403 相同，因此 15 个 schema 哈希不变；PROVENANCE 改指 main/tag，历史候选 commit 保留在锚点文档。",
+    "reproNotes": "GitHub rebase 合并生成 main commit e6dd22d，tree 与 e412403 相同，因此 15 个 schema 哈希不变；PROVENANCE 改指 main/tag，历史候选 commit 保留在锚点文档。框架 PR：https://github.com/aa386400024/agent-collaboration-framework/pull/1",
     "scopeCheck": "in-scope",
     "parallelArtifactsExcluded": true,
     "noOutscopeRefactor": true,
