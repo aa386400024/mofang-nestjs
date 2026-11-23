@@ -89,6 +89,6 @@
 
 ## 回执冻结
 
-- 回执：`docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/receipt-RC-AF-378-1.json`
+- 回执：`docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/receipt-RC-AF-378-1-53f043a5.json`
 - receiptId：`RC-AF-378-1`
-- 内容哈希：`416ffbb59ad0b4fdae02a99f14e55b5fb6a756f1bda931e9a9441094e1e9ebf8`
+- 内容哈希：`53f043a5f0598edd1ea14efdf468244f74dea1c428d613107f62185cb47d2aae`
