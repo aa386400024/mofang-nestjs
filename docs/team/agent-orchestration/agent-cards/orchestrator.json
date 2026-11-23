@@ -24,6 +24,7 @@
     ".prettierignore",
     ".gitignore",
     ".env.example",
+    ".env.bak.rsa-fix-2026-10-15",
     "eslint.config.mjs",
     ".husky/",
     ".github/",
