@@ -1,0 +1,142 @@
+{
+  "deliveredAt": "2026-11-24T03:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-407-1",
+    "taskId": "AF-407",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "eb051e3c06914cb91cd938713dcdf301f906eac9",
+    "dependsOn": [],
+    "priorTasks": ["AF-405", "AF-406"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-407/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af407-zero-motion-attribution-carryover-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af405-zero-motion-attribution-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af406-af405-commit-compliance-2026-11-24.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["70fc3517"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af405-zero-motion-attribution-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af406-af405-commit-compliance-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af407-zero-motion-attribution-carryover-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-406/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-407/task-sheet.md"
+      ],
+      "modified": ["src/auto-practice/metrics/acceptance-thresholds.ts", "src/auto-practice/metrics/batch-metrics.compute.ts", "src/auto-practice/metrics/batch-metrics.schema.ts", "test/auto-practice/wp-k-batch-compute.spec.ts"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/wp-k-batch-compute.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "30ms",
+        "note": "21 用例全绿，与 AF-405 同一份用例"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 313,
+        "machine": "同上",
+        "wallClock": "25.85s",
+        "note": "312 passed / 1 skipped，4760 passed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "输出为空，内核零 diff"
+      }
+    ],
+    "reproNotes": "vitest 单文件 → pnpm lint → pnpm typecheck → pnpm test → git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-407 贯穿任务单、回执、交付记录与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "事件链由 CLI 写入，归档后以 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "代码与 AF-405 / AF-406 逐字一致，本单只改提交形态与任务号"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-407 重新承接已验收代码，实现提交标题唯一",
+        "reality": "AF-406 与 AF-405 的提交标题均含多个任务号，pr-release 拒绝创建 PR",
+        "action": "从 integrate 重切 AF-407 分支，只保留一个实现提交 + 一个回执提交 + 一个状态提交，标题只含 AF-407",
+        "why": "满足 pr-release 单任务号约束，同时保留 AF-405 / AF-406 冻结件作为审计证据"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "业务代码与 AF-405 逐字一致，闸门全绿；提交形态满足单任务号 + 任务单同提交的 CI 入场条件。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地计算与单测，无上游模型计费。"
+  }
+}

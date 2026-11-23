@@ -6,7 +6,7 @@
 //   intention.rationale, 物理上接触不到对话文本.
 
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
-import type { ZeroMotionBreakdown, ZeroMotionSessionDetail } from './acceptance-thresholds.js';
+import type { ZeroMotionBreakdown, ZeroMotionDimensionDelta, ZeroMotionSessionDetail } from './acceptance-thresholds.js';
 import type { BatchMetricsV1, MetricsSlice, SessionLineage, SkipReason } from './batch-metrics.schema.js';
 import { aggregateDisfluency, type DisfluencyMetrics } from './disfluency-lexicon.js';
 import {
@@ -238,7 +238,65 @@ function summarizeZeroMotionSession(session: SessionComputationInput): ZeroMotio
     counselorModeId: session.counselorModeId,
     turns: session.traces.length,
     eventTagCounts: countEventTags(session),
+    dimensionFirstLast: dimensionFirstLast(session),
+    maxExcursion: maxExcursion(session),
+    isFlat: isFlatSession(session),
+    eventTagPositions: nonNeutralTagPositions(session),
   };
+}
+
+/** 八维首值 / 末值 / 差值 (合规数值投影). */
+function dimensionFirstLast(session: SessionComputationInput): Readonly<Record<string, ZeroMotionDimensionDelta>> {
+  const firstTrace = session.traces[0];
+  const lastTrace = session.traces.at(-1) ?? firstTrace;
+  if (!firstTrace || !lastTrace) return {};
+  const out: Record<string, ZeroMotionDimensionDelta> = {};
+  for (const dim of TRACKED_DIMENSIONS) {
+    const key = DIMENSION_SNAPSHOT_KEY[dim];
+    const first = firstTrace.bdiSnapshot[key];
+    const last = lastTrace.bdiSnapshot[key];
+    out[dim] = { first, last, delta: round6(last - first) };
+  }
+  return out;
+}
+
+/**
+ * 逐轮相对首轮的最大绝对偏移.
+ *
+ * 0 = 每轮都等于首轮 (真冻结); > 0 = 中途动过 (可能净零).
+ */
+function maxExcursion(session: SessionComputationInput): number {
+  const firstTrace = session.traces[0];
+  if (!firstTrace) return 0;
+  let max = 0;
+  for (const trace of session.traces) {
+    for (const dim of TRACKED_DIMENSIONS) {
+      const key = DIMENSION_SNAPSHOT_KEY[dim];
+      const diff = Math.abs(trace.bdiSnapshot[key] - firstTrace.bdiSnapshot[key]);
+      if (diff > max) max = diff;
+    }
+  }
+  return round6(max);
+}
+
+/** 真冻结: 每一轮的八维都等于首轮. */
+function isFlatSession(session: SessionComputationInput): boolean {
+  const firstTrace = session.traces[0];
+  if (!firstTrace) return true;
+  return session.traces.every((trace) =>
+    TRACKED_DIMENSIONS.every(
+      (dim) => trace.bdiSnapshot[DIMENSION_SNAPSHOT_KEY[dim]] === firstTrace.bdiSnapshot[DIMENSION_SNAPSHOT_KEY[dim]],
+    ),
+  );
+}
+
+/** 非 neutral 事件标签出现的轮号 (去重升序, 供定位动作发生在第几轮). */
+function nonNeutralTagPositions(session: SessionComputationInput): readonly number[] {
+  const positions = new Set<number>();
+  for (const trace of session.traces) {
+    if (trace.eventTags.some((tag) => tag !== 'neutral')) positions.add(trace.turnIndex);
+  }
+  return [...positions].toSorted((a, b) => a - b);
 }
 
 /**
@@ -247,6 +305,11 @@ function summarizeZeroMotionSession(session: SessionComputationInput): ZeroMotio
  * · total   = 零变化场次总数 (与 session.zero_motion 同值, 同口径);
  * · closure = 其中事件层存在非 neutral 事件的场次 (**合理封闭**, 按任务单口径豁免);
  * · idle    = 其中纯 neutral 空转的场次 (**计入失效**).
+ *
+ * AF-405 增量诊断 (不改变上面三个字段的语义与阈值分子):
+ * · flat     = 每一轮八维都等于首轮 (真冻结);
+ * · netZero  = 首末相等但中途动过 (旧口径会误当作冻结);
+ * · untagged = eventTagCounts 为空对象 (提取缺失, 是 idle 的子集).
  *
  * 同时输出 closureSessions / idleSessions 逐场明细, 让缺失逐字稿时也能定位
  * 具体 sessionId 与事件标签分布. 逐场判定, 纯函数, 零 IO.
@@ -257,19 +320,26 @@ function summarizeZeroMotionSession(session: SessionComputationInput): ZeroMotio
 function computeZeroMotionBreakdown(sessions: readonly SessionComputationInput[]): ZeroMotionBreakdown {
   let total = 0;
   let closure = 0;
+  let flat = 0;
+  let netZero = 0;
+  let untagged = 0;
   const closureSessions: ZeroMotionSessionDetail[] = [];
   const idleSessions: ZeroMotionSessionDetail[] = [];
   for (const session of sessions) {
     if (!isZeroMotion(session)) continue;
     total += 1;
+    const detail = summarizeZeroMotionSession(session);
+    if (detail.isFlat) flat += 1;
+    else netZero += 1;
+    if (Object.keys(detail.eventTagCounts).length === 0) untagged += 1;
     if (hasNonNeutralEvent(session)) {
       closure += 1;
-      closureSessions.push(summarizeZeroMotionSession(session));
+      closureSessions.push(detail);
     } else {
-      idleSessions.push(summarizeZeroMotionSession(session));
+      idleSessions.push(detail);
     }
   }
-  return { total, closure, idle: total - closure, closureSessions, idleSessions };
+  return { total, closure, idle: total - closure, flat, netZero, untagged, closureSessions, idleSessions };
 }
 
 /**

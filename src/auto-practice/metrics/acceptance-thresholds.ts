@@ -234,6 +234,24 @@ export interface ZeroMotionSessionDetail {
   readonly turns: number;
   /** 事件标签 → 出现轮次数; 空对象 = 全程没有任何事件标签. */
   readonly eventTagCounts: Readonly<Record<string, number>>;
+  /** 八维首值 / 末值 / 差值 (旧快照缺省). */
+  readonly dimensionFirstLast?: Readonly<Record<string, ZeroMotionDimensionDelta>>;
+  /** 逐轮相对首轮的最大绝对偏移; 0 = 每轮都等于首轮 (旧快照缺省). */
+  readonly maxExcursion?: number;
+  /** true = 真冻结 (每轮八维都等于首轮); false = 中途动过 (旧快照缺省). */
+  readonly isFlat?: boolean;
+  /** 非 neutral 事件标签出现的轮号 (去重升序; 旧快照缺省). */
+  readonly eventTagPositions?: readonly number[];
+}
+
+/** 零变化场次单维首末差值 (合规数值投影). */
+export interface ZeroMotionDimensionDelta {
+  /** 首轮值. */
+  readonly first: number;
+  /** 末轮值. */
+  readonly last: number;
+  /** 末值 - 首值. */
+  readonly delta: number;
 }
 
 /**
@@ -258,6 +276,24 @@ export interface ZeroMotionBreakdown {
   readonly closureSessions?: readonly ZeroMotionSessionDetail[];
   /** 纯 neutral 空转场次的逐场明细 (旧快照缺省). */
   readonly idleSessions?: readonly ZeroMotionSessionDetail[];
+  /**
+   * 真冻结场次数 (每轮八维都等于首轮; 旧快照缺省).
+   *
+   * 诊断计数, **不改变 idle 分子**; `flat + netZero = total`.
+   */
+  readonly flat?: number;
+  /**
+   * 净零场次数 (首末相等但中途动过; 旧快照缺省).
+   *
+   * 诊断计数, **不改变 idle 分子**; 这类场次被旧口径误判为"冻结".
+   */
+  readonly netZero?: number;
+  /**
+   * 全程无事件标签的场次数 (eventTagCounts 为空对象; 旧快照缺省).
+   *
+   * 诊断计数, 是 idle 的子集; 用于区分"提取缺失"与"全程 neutral".
+   */
+  readonly untagged?: number;
 }
 
 /** 一档判据 (按 counselorModeId 划分). */

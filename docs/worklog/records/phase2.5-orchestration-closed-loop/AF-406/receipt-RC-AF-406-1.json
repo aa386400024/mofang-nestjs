@@ -1,0 +1,142 @@
+{
+  "deliveredAt": "2026-11-24T03:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-406-1",
+    "taskId": "AF-406",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "eb051e3c06914cb91cd938713dcdf301f906eac9",
+    "dependsOn": [],
+    "priorTasks": ["AF-405"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-406/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af406-af405-commit-compliance-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af405-zero-motion-attribution-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-405/manifest.json"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["20998220"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af405-zero-motion-attribution-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af406-af405-commit-compliance-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-406/task-sheet.md"
+      ],
+      "modified": [
+        "src/auto-practice/metrics/acceptance-thresholds.ts",
+        "src/auto-practice/metrics/batch-metrics.compute.ts",
+        "src/auto-practice/metrics/batch-metrics.schema.ts",
+        "test/auto-practice/wp-k-batch-compute.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/wp-k-batch-compute.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "30ms",
+        "note": "21 用例全绿，与 AF-405 同一份用例"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 313,
+        "machine": "同上",
+        "wallClock": "25.72s",
+        "note": "AF-405 收尾同一份全量：312 passed / 1 skipped，4760 passed / 4 skipped；本返修未改业务逻辑"
+      }
+    ],
+    "reproNotes": "同 AF-405：vitest 单文件 → pnpm lint → pnpm typecheck → pnpm test → git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-406 贯穿任务单、回执、交付记录与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope / gates / artifacts 齐全；回执七组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "事件链由 CLI 写入，归档后以 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "AF-405 代码与证据原样承接；返修只改提交形态与任务号"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-406-PR-PREFLIGHT",
+        "impact": "pr-release create 在推送前不校验“实现提交是否新增本任务任务单”，归档后才发现 no-active-task，需返工重开任务。建议把该检查前移到 create 阶段。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "task reissue --from AF-405 生成 AF-406",
+        "reality": "源任务已归档，reissue 要求活跃列表，CLI 直接拒绝",
+        "action": "改用 task register 登记 AF-406，并在任务单 priorTasks 写入 AF-405",
+        "why": "CLI 限制；priorTasks 保留完整审计链路"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "代码与 AF-405 逐字一致，返修只补实现提交随带任务单，满足 CI 两阶段入场条件；闸门数字复用 AF-405 实测，未改业务逻辑。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地计算与单测，无上游模型计费。"
+  }
+}

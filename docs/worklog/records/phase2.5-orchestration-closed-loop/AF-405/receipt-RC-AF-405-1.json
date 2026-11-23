@@ -1,0 +1,121 @@
+{
+  "deliveredAt": "2026-11-24T02:43:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-405-1",
+    "taskId": "AF-405",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "eb051e3c06914cb91cd938713dcdf301f906eac9",
+    "dependsOn": [],
+    "priorTasks": ["AF-404"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-405/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af405-zero-motion-attribution-2026-11-24.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["1a22abd1"],
+      "added": ["docs/worklog/completed/phase2.5/af405-zero-motion-attribution-2026-11-24.md"],
+      "modified": [
+        "src/auto-practice/metrics/acceptance-thresholds.ts",
+        "src/auto-practice/metrics/batch-metrics.compute.ts",
+        "src/auto-practice/metrics/batch-metrics.schema.ts",
+        "test/auto-practice/wp-k-batch-compute.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/wp-k-batch-compute.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "30ms",
+        "note": "21 用例全绿，含净零场次与诊断字段断言"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 313,
+        "machine": "同上",
+        "wallClock": "25.72s",
+        "note": "312 passed / 1 skipped，4760 passed / 4 skipped；首跑 debug-session-persistence 并发抖动 1 failed，单跑 28/28 绿后全量重跑全绿"
+      }
+    ],
+    "reproNotes": "pnpm exec vitest run test/auto-practice/wp-k-batch-compute.spec.ts → pnpm lint → pnpm typecheck → pnpm test → git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-405 贯穿任务单、回执、交付记录与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "事件链由 CLI 写入，归档后以 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；全量首跑抖动与重跑结果都如实记录"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "新增 flat / netZero / untagged 与八维首末、最大偏移、标签轮号均为增量诊断字段，total / closure / idle 与阈值分子未变；旧快照缺省兼容，单测、lint、typecheck、全量均通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地计算与单测，无上游模型计费。"
+  }
+}
