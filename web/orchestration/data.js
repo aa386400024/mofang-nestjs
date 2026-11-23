@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T15:00:16.497Z",
+  "generatedAt": "2026-11-23T15:01:43.834Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-390",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "Phase2.5 出口基线与真实库口径重写（AF-389 重登记）",
-      "status": "submitted",
-      "verdict": "passed",
-      "verdictRationale": "机读护栏全绿且无人工复核项",
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af389-phase25-baseline-rebaseline-2026-11-23.md",
-        "reply": "docs/team/agent-orchestration/transport/receipts/AF-390.json"
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-390",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-23T14:58:42.572Z",
-        "leaseDeadline": "2026-11-23T15:28:42.570Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-390.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2071,36 +2040,7 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-390",
-        "title": "Phase2.5 出口基线与真实库口径重写（AF-389 重登记）",
-        "type": "documentation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af389-phase25-baseline-rebaseline-2026-11-23.md"
-          },
-          {
-            "kind": "reply",
-            "ref": "docs/team/agent-orchestration/transport/receipts/AF-390.json"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8515,6 +8455,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-389/task-sheet.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-390",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af390-phase25-baseline-rebaseline-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8529,27 +8487,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-390",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md"
-      },
-      {
-        "taskId": "AF-390",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af389-phase25-baseline-rebaseline-2026-11-23.md"
-      },
-      {
-        "taskId": "AF-390",
-        "kind": "reply",
-        "ref": "docs/team/agent-orchestration/transport/receipts/AF-390.json"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -8557,5 +8497,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 365
+  "archivedCount": 366
 };
