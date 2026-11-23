@@ -4,160 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1574,
+    "lastEventSeq": 1578,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-354",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-23T02:30:22.145Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "人工提级"
-        },
-        {
-          "at": "2026-11-23T02:30:29.915Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "BDI 决策链工程闭环：启用通道、跨会话语义与阈值端口化",
-      "type": "implementation",
-      "baselineRef": "ed4bbd2d83a5a2c33c0f0a5877fbbee09cbe0e72",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-349",
-        "AF-315",
-        "AF-322",
-        "AF-351"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3",
-        "conventions.md#2.5"
-      ],
-      "createdAt": "2026-11-23T02:30:21.338Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/engine-core/cognition/",
-          "src/engine-core/domain/",
-          "src/engine-core/in-memory/",
-          "src/engine-adapters/wiring/",
-          "src/engine-adapters/deliberation/",
-          "src/engine-adapters/persistence/",
-          "test/engine-core/",
-          "test/engine-adapters/",
-          "test/config/",
-          "bin/",
-          ".env.example",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [
-          "engine-core",
-          "engine-adapters"
-        ],
-        "interfaces": [
-          "AllianceThresholds",
-          "AllianceConfig",
-          "EngineSessionOptions",
-          "IntentionLockConfig",
-          "DesireEvolutionConfig",
-          "TransitionStateOptions"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-354/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af354-bdi-engineering-closure-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec vitest run test/engine-core/af354-bdi-engineering-closure.spec.ts test/engine-adapters/af354-bdi-runtime-config.spec.ts test/engine-core/boundary.spec.ts test/config/wp25-env-example-coverage.spec.ts",
-          "check": "定向测试全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量测试全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "内核改动限定在任务单批准的 cognition/domain/in-memory 纯层",
-          "threshold": "仅本单授权文件"
-        }
-      ],
-      "successCriteria": [
-        "愿望演化 / 意图锁 / 时序权重三项 AF-349 机制新增 env 解析与生产装配通道；缺省保持关闭或 none，行为与改造前逐字一致。",
-        "意图规划器中 11 个硬编码决策阈值进入 AllianceConfig 决策阈值端口，缺省值逐字等于现有常量，可由部署 env 覆写。",
-        "跨会话接续时清空意图锁并停用上一场的情境愿望，避免会话内轮次号跨场\"续命\"；以纯函数与会话层测试覆盖。",
-        "内核意图锁开启时，审议侧 Redis 意图锁强制关闭并打启动期告警；两套锁不再同时生效。",
-        "生产环境使用 memory 形态 BDI 状态存储时，装配期输出告警（不改变缺省，不引入 Redis 强依赖）。",
-        "evolveDesires 的 changed 字段按真实差异返回，不再恒为 true。",
-        "新增只读审计 CLI：输出 8 个内置/DB 角色对四个内核愿望键的覆盖矩阵与不可达策略，不调用模型、不连库、不读心理原文。",
-        "交付记录含 gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组机读标记。",
-        "不宣称临床有效性；不新造临床数值；不可由工程闭环解决的事项显式登记 backlog。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "BDI 运行时开关解析与装配",
-          "path": "src/engine-adapters/wiring/bdi-runtime.config.ts",
-          "kind": "code"
-        },
-        {
-          "name": "决策阈值端口化",
-          "path": "src/engine-core/cognition/alliance-config.ts",
-          "kind": "code"
-        },
-        {
-          "name": "意图锁与愿望演化生产装配",
-          "path": "src/engine-adapters/wiring/engine.module.ts",
-          "kind": "code"
-        },
-        {
-          "name": "跨会话瞬时状态清理",
-          "path": "src/engine-core/in-memory/in-memory-engine-session.ts",
-          "kind": "code"
-        },
-        {
-          "name": "BDI 就绪度只读审计",
-          "path": "bin/bdi-readiness-audit.ts",
-          "kind": "code"
-        },
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af354-bdi-engineering-closure-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-23T02:30:22.144Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -3219,6 +3069,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-353/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af353-bdi-engineering-closure-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-354",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-354/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af354-bdi-engineering-closure-2026-11-23.md",
         "reply": null
       }
     }
