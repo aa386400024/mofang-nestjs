@@ -1,0 +1,95 @@
+{
+  "deliveredAt": "2026-11-24T01:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-400-1",
+    "taskId": "AF-400",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "b58d64cf958ad83dcc775b9633d25382ba4e95ec",
+    "dependsOn": [],
+    "priorTasks": ["AF-398"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-400/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af400-orchestration-health-false-positive-2026-11-24.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [],
+      "modified": ["scripts/orchestration/cli.mjs"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs status",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "回执校验失败=0，AF-382 / AF-389 不再出现"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm migration:run → pnpm exec vitest run 三个定向 spec → pnpm lint → pnpm typecheck → cd admin-dashboard && pnpm type-check → pnpm test → git diff --stat HEAD -- src/engine-core。TTS 真实试打用后台管理鉴权调用 POST /admin/api/debug/tts/render，provider 分别取 minimax-hd / minimax-turbo / doubao-seed。豆包需先在火山方舟控制台开启 Agent Plan 抵扣。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-396 贯穿任务单、回执、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 1706 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；测试数字、迁移数字、试打响应均来自真实命令输出"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "健康统计改为只遍历 index.tasks 对应运行态；status 回执校验失败归零，lint 0 error。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "MiniMax 真实试打 2 次（HD/Turbo，各 16 字符）；豆包请求因 Agent Plan 未开启未产生合成计费；未使用普通方舟 API token。"
+  }
+}
