@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-418",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T04:45:00+08:00",
+  "updatedAt": "2026-11-23T20:35:58.503Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-418/task-sheet.md",
+    "sha256": "5c58bb09bfeaa90c15b592c8d10097a1130327e155a3ce31af339cd19872339b",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-418/receipt-RC-AF-418-1.json",
+      "sha256": "797feedf8b2f1aec2d9528c49c19d32a23cc6c89e145438a81e3fa5cc693fa87",
+      "receiptId": "RC-AF-418-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af418-presence-replay-calibration-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af418-presence-replay-calibration.md"
+  ],
+  "tombstone": null
+}

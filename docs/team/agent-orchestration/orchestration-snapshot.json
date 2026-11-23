@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T20:23:03.281Z",
+  "generatedAt": "2026-11-23T20:36:20.285Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1786,6 +1786,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-261",
+      "recordedAt": "2026-11-23T20:31:21.502Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-418",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-418-presence-replay-calibration"
+      ]
+    },
+    {
+      "auditId": "AUD-260",
+      "recordedAt": "2026-11-23T20:31:17.061Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-418",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-418",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-418.json"
+      ]
+    },
+    {
       "auditId": "AUD-259",
       "recordedAt": "2026-11-23T20:19:59.616Z",
       "actorRef": "orchestrator",
@@ -1985,52 +2015,20 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-412.json"
       ]
-    },
-    {
-      "auditId": "AUD-246",
-      "recordedAt": "2026-11-23T19:39:37.426Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-412",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-245",
-      "recordedAt": "2026-11-23T19:28:44.370Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-409",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-409-presence-narrowing"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 259,
+    "total": 261,
     "byResult": {
-      "allowed": 259,
+      "allowed": 261,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 258,
+      "TOOL-QUEUE-SCHEDULER": 260,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 259
+      "orchestrator": 261
     }
   },
   "protocolView": {
@@ -8904,6 +8902,24 @@
             "ref": "docs/worklog/completed/phase2.5/af417-atomic-write-hardening-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-418",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-418/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af418-presence-replay-calibration-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8928,5 +8944,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 390
+  "archivedCount": 391
 }
