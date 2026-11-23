@@ -155,6 +155,15 @@ export interface EngineSessionHandle {
 export interface EngineTurnInput {
   /** 咨询师本轮文本 (ASR final). 空白视为非法入参. */
   readonly userText: string;
+  /**
+   * 上一轮**真实来访发言** (AF-357 · 短期信念生成的唯一来源).
+   *
+   * 缺省 = 不传 = 不生成, 既有行为逐字不变. 由渲染门面从 history 取最近一条
+   * visitor turn; 渲染降级时的兜底句不是来访真说的话, 不进这里.
+   *
+   * 为什么放在 turn 入参而不是会话构造: 它是**逐轮变化**的对话事实, 不是部署配置.
+   */
+  readonly priorVisitorText?: string;
   /** 链路 trace id, 仅用于可观测 (日志 / 指标关联), 不参与内核决策. */
   readonly traceId?: string;
   /** 中断信号 (语音侧 barge-in). 已触发时内核抛 ABORTED, 不产生状态变更. */

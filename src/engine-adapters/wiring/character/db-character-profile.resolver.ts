@@ -56,6 +56,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
 import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } from './builtin-character-registry.js';
+import { mapRoleDesiresToCore } from './character-desire-mapping.js';
 import { CharacterProfileEntity } from './character-profile.entity.js';
 import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver.js';
 
@@ -88,7 +89,7 @@ export function toCharacterSeed(row: CharacterProfileEntity): BuiltinCharacterSe
     expressionTone: row.expressionTone,
     // 拷贝一层: 避免装配结果与仓储实体共享可变引用 (值语义).
     coreBeliefs: row.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
-    underlyingDesires: row.underlyingDesires.map((desire) => ({ ...desire })),
+    underlyingDesires: mapRoleDesiresToCore(row.underlyingDesires),
     forbiddenBehaviors: [...row.forbiddenBehaviors],
     sensitiveTopics: [...row.sensitiveTopics],
     baseline: {

@@ -30,6 +30,17 @@ export interface TemporaryBelief {
   readonly confidence: number;
   /** observed=来访自发形成, introduced=咨询师引入. */
   readonly source: 'observed' | 'introduced';
+  /**
+   * 同一规范化陈述被观察到的次数 (AF-357).
+   *
+   * 缺省 = 1 (旧快照没有该字段时, 按"至少出现过一次"处理).
+   * 只用于证据强度与审计, 不参与意图规划器的门槛判定 —— 门槛只看 confidence.
+   */
+  readonly evidenceCount?: number;
+  /** 首次形成轮次 (1 起; 旧快照缺省). */
+  readonly firstFormedAtTurn?: number;
+  /** 最近一次被观察到的轮次 (1 起; 旧快照缺省). */
+  readonly lastObservedAtTurn?: number;
 }
 
 /** 记忆信念: 长时召回用, 带时效. 本期仅类型占位, 召回属 WP2. */

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-23T03:11:47.680Z",
+  "generatedAt": "2026-11-23T03:40:19.560Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-357",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "BDI 临床语义补齐：角色愿望映射与短期信念生成",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-357",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-23T03:40:19.480Z",
+        "leaseDeadline": "2026-11-23T04:10:19.477Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-357.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-23T03:40:19.480Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-357.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,6 +1825,40 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-118",
+      "recordedAt": "2026-11-23T03:40:06.525Z",
+      "actorRef": "orchestrator",
+      "correlationId": "reissue:AF-356:AF-357",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-117",
+      "recordedAt": "2026-11-23T03:38:42.813Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-356",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-116",
       "recordedAt": "2026-11-23T03:09:56.950Z",
       "actorRef": "orchestrator",
@@ -1993,57 +2068,50 @@
       "resources": [
         "task/AF-349-bdi-semantic"
       ]
-    },
-    {
-      "auditId": "AUD-103",
-      "recordedAt": "2026-11-23T00:50:09.462Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-349",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-349",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-349.json"
-      ]
-    },
-    {
-      "auditId": "AUD-102",
-      "recordedAt": "2026-11-23T00:50:01.936Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-349",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 116,
+    "total": 118,
     "byResult": {
-      "allowed": 116,
+      "allowed": 118,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 115,
+      "TOOL-QUEUE-SCHEDULER": 117,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 116
+      "orchestrator": 118
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-357",
+        "title": "BDI 临床语义补齐：角色愿望映射与短期信念生成",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8054,6 +8122,24 @@
             "ref": "docs/worklog/completed/phase2.5/af355-canceled-task-pointers-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-356",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-356/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af356-bdi-desire-belief-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8068,9 +8154,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-357",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md"
+      },
+      {
+        "taskId": "AF-357",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -8078,5 +8177,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 345
+  "archivedCount": 346
 }

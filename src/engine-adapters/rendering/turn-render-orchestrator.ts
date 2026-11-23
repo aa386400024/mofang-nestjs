@@ -637,7 +637,9 @@ export class TurnRenderOrchestrator {
     //    调用方拿不到"这一轮是谁判的"; 通道记下来, 审计表才有 source 列可填.
     // D-1 第二段: **先把上一轮来访话语交给模型轨** (内核分类发生在这一行内部, 得先备好).
     this.prepareModelClassifierContext(handleId);
-    const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
+    const { value: output, source } = await runWithProbeSource(() =>
+      this.deps.session.turn(handleId, this.withPriorVisitorText(handleId, input)),
+    );
 
     // 1.5 学员侧处置判定 (WP14): side/等级/类别三条边界 + 监测场次的强制远端探测.
     const disposal = await this.resolveDisposal(handleId, input.userText, output.safety, source);
@@ -716,7 +718,9 @@ export class TurnRenderOrchestrator {
     // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡; 探测来源通道同样包住这一段).
     // D-1 第二段: **先把上一轮来访话语交给模型轨** (内核分类发生在这一行内部, 得先备好).
     this.prepareModelClassifierContext(handleId);
-    const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
+    const { value: output, source } = await runWithProbeSource(() =>
+      this.deps.session.turn(handleId, this.withPriorVisitorText(handleId, input)),
+    );
 
     // 1.5 学员侧处置判定 (WP14): 与聚合路径**同一份**判定, 不复制一份流式专属逻辑.
     const disposal = await this.resolveDisposal(handleId, input.userText, output.safety, source);
@@ -812,6 +816,24 @@ export class TurnRenderOrchestrator {
     const context = this.resolveContext(handleId);
     if (!context) return;
     port.forgetSession(context.sessionId);
+  }
+
+  /**
+   * 把最近一条真实来访发言放进本轮内核入参 (AF-357).
+   *
+   * 为什么在门面做而不是内核自己读 history: 内核零渲染、拿不到来访文本
+   * (见 in-memory-engine-session 的 rememberTurn 说明). 门面的 history 里有
+   * "咨询师问 + 来访答" 两条腿, 最近一条 visitor 才是真来访发言;
+   * 渲染降级轮的兜底句不追加 visitor 腿, 因此天然不会进这里.
+   *
+   * @param handleId 内核会话句柄
+   * @param input 调用方本轮入参
+   * @returns 带 priorVisitorText 的入参; 没有来访发言时原样返回 (零回归)
+   */
+  private withPriorVisitorText(handleId: string, input: EngineTurnInput): EngineTurnInput {
+    const priorVisitorText = this.lastVisitorText(handleId);
+    if (!priorVisitorText) return input;
+    return { ...input, priorVisitorText };
   }
 
   /**

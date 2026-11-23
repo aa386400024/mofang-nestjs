@@ -1,8 +1,9 @@
 // AF-354 (2026-11-23 · B 层 · BDI 运行时开关装配):
-//   职责: 把 env 里的三族键装配成内核的调参端口 ——
+//   职责: 把 env 里的四族键装配成内核的调参端口 ——
 //         ① 愿望演化 `DesireEvolutionConfig`
 //         ② 跨轮意图锁 `IntentionLockConfig`
 //         ③ 时序权重 `timingWeight`
+//         ④ 短期信念生成 `BeliefOperatorConfig` (AF-357)
 //   边界: 只做"读 env → 校验 → 组装"; 不读任何心理内容、不连 DB / Redis、不起 Nest 容器.
 //
 //   为什么这一层存在 (照 WP26 / WP34 / WP42 / WP60 / WP36 的先例):
@@ -11,19 +12,21 @@
 //     内核零 process.env (boundary.spec.ts 断言⑩守着).
 //
 //   ⚠️ **缺省 = 关闭 / 不折损**:
-//     不配任何键 → 三个配置都返回 undefined → 内核走"根本没有这一步"的路径,
+//     不配任何键 → 四族配置都返回 undefined → 内核走"根本没有这一步"的路径,
 //     既有轨迹与落库 delta 逐字不变（不是"结果一样"，是"没走那条路"）.
-//     这三项都是**未标定机制**：工程种子已落，临床斜率未标定，缺省必须关闭.
+//     这四项都是**未标定机制**：工程种子已落，临床斜率未标定，缺省必须关闭.
 //
 //   ⚠️ 数值是**工程种子，非临床标定**:
 //     本解析口只负责把部署值送进去，不把任何默认值包装成临床结论.
 //     非法值（非有限 / 越界 / 非整数 / 枚举外）逐项回退内核种子，并可选告警.
 //
-//   键名口径（三族共 10 个键）:
+//   键名口径（四族共 16 个键）:
 //     愿望演化: ENGINE_DESIRE_EVOLUTION_ENABLED / MAX_DELTA_PER_TURN /
 //               BASELINE_PULL_PER_TURN / SITUATIONAL_TTL_TURNS / SITUATIONAL_PRIORITY_FLOOR
 //     意图锁:   ENGINE_INTENTION_LOCK_ENABLED / TTL_TURNS
 //     时序权重: ENGINE_TIMING_WEIGHT_KIND / SLOPE / WINDOW_TURNS
+//     信念生成: ENGINE_BELIEF_FORMATION_ENABLED / BASE_CONFIDENCE / REINFORCEMENT /
+//               MAX_PER_TURN / MIN_CHARS / MAX_CHARS
 //
 //   为什么逐个字面量读（而不是循环读计算键）:
 //     仓库 env 治理约定 (typings/global.d.ts) 要求显式声明；计算键编译器拦不住，
@@ -38,6 +41,20 @@
 import type { ConfigService } from '@nestjs/config';
 
 import type { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
+import { DEFAULT_BELIEF_OPERATOR_CONFIG, type BeliefOperatorConfig } from '../../engine-core/index.js';
+
+/** 内核信念算子种子（形成字段在 DEFAULT 中已齐备; 这里只做类型收紧，不另造数值）. */
+const BELIEF_FORMATION_DEFAULTS = DEFAULT_BELIEF_OPERATOR_CONFIG as Required<
+  Pick<
+    BeliefOperatorConfig,
+    | 'formationEnabled'
+    | 'formationBaseConfidence'
+    | 'formationReinforcement'
+    | 'formationMaxPerTurn'
+    | 'formationMinChars'
+    | 'formationMaxChars'
+  >
+>;
 
 /** 内核会话构造选项（从实现反推，不新增 core 公开导出）. */
 type EngineSessionOptions = ConstructorParameters<typeof InMemoryEngineSession>[0];
@@ -47,6 +64,8 @@ export type BdiDesireEvolutionConfig = NonNullable<EngineSessionOptions['desireE
 export type BdiIntentionLockConfig = NonNullable<EngineSessionOptions['intentionLockConfig']>;
 /** 时序权重配置（内核端口的结构类型）. */
 export type BdiTimingWeightConfig = NonNullable<EngineSessionOptions['timingWeightConfig']>;
+/** 信念算子配置（内核端口的结构类型）. */
+export type BdiBeliefConfig = NonNullable<EngineSessionOptions['beliefConfig']>;
 
 /** 告警回调（装配层接 logger；缺省 = 静默回退）. */
 export type BdiRuntimeWarn = (message: string) => void;
@@ -60,6 +79,7 @@ export interface BdiRuntimeConfig {
   readonly desireEvolutionConfig?: BdiDesireEvolutionConfig;
   readonly intentionLockConfig?: BdiIntentionLockConfig;
   readonly timingWeightConfig?: BdiTimingWeightConfig;
+  readonly beliefConfig?: BdiBeliefConfig;
 }
 
 /** env 原始值（undefined = 未配置；空串按未配置处理）. */
@@ -74,6 +94,12 @@ export interface BdiRuntimeConfigEnv {
   readonly timingWeightKind?: string;
   readonly timingWeightSlope?: string;
   readonly timingWeightWindowTurns?: string;
+  readonly beliefFormationEnabled?: string;
+  readonly beliefFormationBaseConfidence?: string;
+  readonly beliefFormationReinforcement?: string;
+  readonly beliefFormationMaxPerTurn?: string;
+  readonly beliefFormationMinChars?: string;
+  readonly beliefFormationMaxChars?: string;
 }
 
 /** 缺省关闭（工程种子；与内核 DEFAULT 保持一致，不在这里另造数值）. */
@@ -120,6 +146,24 @@ function resolveTurnCount(raw: string | undefined, fallback: number, envKey: str
   return value;
 }
 
+/** 解析整数（范围外 / 非整数 → 回退 fallback 并告警）. */
+function resolveInteger(
+  raw: string | undefined,
+  fallback: number,
+  envKey: string,
+  min: number,
+  max: number,
+  onWarn?: BdiRuntimeWarn,
+): number {
+  if (!hasValue(raw)) return fallback;
+  const value = Number(raw.trim());
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < min || value > max) {
+    onWarn?.(`${envKey}: 必须是 ${min}..${max} 的整数 (${raw})，已回退 ${fallback}`);
+    return fallback;
+  }
+  return value;
+}
+
 /** 解析正数（0 / 负数 / NaN 非法；缺省回退 fallback）. */
 function resolvePositive(raw: string | undefined, fallback: number, envKey: string, onWarn?: BdiRuntimeWarn): number {
   if (!hasValue(raw)) return fallback;
@@ -148,6 +192,14 @@ export function resolveBdiRuntimeConfigFromEnv(env: BdiRuntimeConfigEnv = {}, on
   ];
   const lockKeys = [env.intentionLockEnabled, env.intentionLockTtlTurns];
   const timingKeys = [env.timingWeightKind, env.timingWeightSlope, env.timingWeightWindowTurns];
+  const beliefKeys = [
+    env.beliefFormationEnabled,
+    env.beliefFormationBaseConfidence,
+    env.beliefFormationReinforcement,
+    env.beliefFormationMaxPerTurn,
+    env.beliefFormationMinChars,
+    env.beliefFormationMaxChars,
+  ];
 
   // 愿望演化：只有显式配置了任一键才装配；缺省不注入 = 内核没有这一步.
   const desireEvolutionConfig: BdiDesireEvolutionConfig | undefined = desireKeys.every((value) => !hasValue(value))
@@ -185,15 +237,62 @@ export function resolveBdiRuntimeConfigFromEnv(env: BdiRuntimeConfigEnv = {}, on
     }
   }
 
+  let beliefConfig: BdiBeliefConfig | undefined;
+  if (!beliefKeys.every((value) => !hasValue(value))) {
+    const formationMinChars = resolveInteger(
+      env.beliefFormationMinChars,
+      BELIEF_FORMATION_DEFAULTS.formationMinChars,
+      'ENGINE_BELIEF_FORMATION_MIN_CHARS',
+      1,
+      200,
+      onWarn,
+    );
+    const formationMaxChars = resolveInteger(
+      env.beliefFormationMaxChars,
+      Math.max(formationMinChars, BELIEF_FORMATION_DEFAULTS.formationMaxChars),
+      'ENGINE_BELIEF_FORMATION_MAX_CHARS',
+      formationMinChars,
+      500,
+      onWarn,
+    );
+    beliefConfig = {
+      ...DEFAULT_BELIEF_OPERATOR_CONFIG,
+      formationEnabled: resolveBoolean(env.beliefFormationEnabled, false, 'ENGINE_BELIEF_FORMATION_ENABLED', onWarn),
+      formationBaseConfidence: resolveUnit(
+        env.beliefFormationBaseConfidence,
+        BELIEF_FORMATION_DEFAULTS.formationBaseConfidence,
+        'ENGINE_BELIEF_FORMATION_BASE_CONFIDENCE',
+        onWarn,
+      ),
+      formationReinforcement: resolveUnit(
+        env.beliefFormationReinforcement,
+        BELIEF_FORMATION_DEFAULTS.formationReinforcement,
+        'ENGINE_BELIEF_FORMATION_REINFORCEMENT',
+        onWarn,
+      ),
+      formationMaxPerTurn: resolveInteger(
+        env.beliefFormationMaxPerTurn,
+        BELIEF_FORMATION_DEFAULTS.formationMaxPerTurn,
+        'ENGINE_BELIEF_FORMATION_MAX_PER_TURN',
+        0,
+        10,
+        onWarn,
+      ),
+      formationMinChars,
+      formationMaxChars,
+    };
+  }
+
   return {
     ...(desireEvolutionConfig ? { desireEvolutionConfig } : {}),
     ...(intentionLockConfig ? { intentionLockConfig } : {}),
     ...(timingWeightConfig ? { timingWeightConfig } : {}),
+    ...(beliefConfig ? { beliefConfig } : {}),
   };
 }
 
 /**
- * 从 ConfigService 装配三族配置（适配层入口）.
+ * 从 ConfigService 装配四族配置（适配层入口）.
  *
  * @param config 配置服务（读 env）
  * @param onWarn 可选告警回调
@@ -212,6 +311,12 @@ export function resolveBdiRuntimeConfig(config: ConfigService, onWarn?: BdiRunti
       timingWeightKind: config.get<string>('ENGINE_TIMING_WEIGHT_KIND'),
       timingWeightSlope: config.get<string>('ENGINE_TIMING_WEIGHT_SLOPE'),
       timingWeightWindowTurns: config.get<string>('ENGINE_TIMING_WEIGHT_WINDOW_TURNS'),
+      beliefFormationEnabled: config.get<string>('ENGINE_BELIEF_FORMATION_ENABLED'),
+      beliefFormationBaseConfidence: config.get<string>('ENGINE_BELIEF_FORMATION_BASE_CONFIDENCE'),
+      beliefFormationReinforcement: config.get<string>('ENGINE_BELIEF_FORMATION_REINFORCEMENT'),
+      beliefFormationMaxPerTurn: config.get<string>('ENGINE_BELIEF_FORMATION_MAX_PER_TURN'),
+      beliefFormationMinChars: config.get<string>('ENGINE_BELIEF_FORMATION_MIN_CHARS'),
+      beliefFormationMaxChars: config.get<string>('ENGINE_BELIEF_FORMATION_MAX_CHARS'),
     },
     onWarn,
   );

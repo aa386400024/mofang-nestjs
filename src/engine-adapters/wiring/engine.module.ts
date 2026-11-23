@@ -438,7 +438,7 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
         modelClassifier: ModelEventClassifier,
       ): EngineSessionPort => {
         // AF-354: 愿望演化 / 意图锁 / 时序权重 —— env 读在适配层，内核只认端口.
-        //   未配置任何键 → 三项都不出现 → 内核不走那一步（逐字零回归）.
+        //   AF-357: 再加短期信念生成；四族未配置任何键 → 都不出现 → 内核不走那一步（逐字零回归）.
         const bdiRuntime = resolveBdiRuntimeConfig(config, (message) => wiringLogger.warn(message));
         if (bdiRuntime.intentionLockConfig?.enabled) {
           // 两套锁不同时生效：内核跨轮锁接管后，审议侧 Redis 锁强制 0（见 LlmDeliberationService）.
