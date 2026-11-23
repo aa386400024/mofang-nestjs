@@ -1,0 +1,97 @@
+{
+  "deliveredAt": "2026-11-24T06:40:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-432-1",
+    "taskId": "AF-432",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "67e54372e171920fad603e667b181cfce59cb9b7",
+    "dependsOn": [],
+    "priorTasks": ["AF-431", "AF-429", "AF-427"],
+    "policyRefs": ["docs/team/conventions.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-432/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af432-receipt-durable-commit-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/worklog/records/phase2.5-orchestration-closed-loop/AF-431/receipt-RC-AF-431-1.json"]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/completed/phase2.5/af432-receipt-durable-commit-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-432/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-432/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-431/receipt-RC-AF-431-1.json"
+      ],
+      "modified": ["docs/worklog/records/phase2.5-orchestration-closed-loop/AF-431/manifest.json"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "即时",
+        "note": "PASS"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs receipt lint --taskId AF-432",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "七组字段、scope、工件与换行检查通过"
+      }
+    ],
+    "reproNotes": "git ls-files docs/worklog/records/phase2.5-orchestration-closed-loop/AF-431/ 应同时列出 manifest 与 receipt。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-432 贯穿任务单、回执、交付记录、提交标题" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 提级 / 领单 / 归档经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全，changedFiles 在 records 与 completed 范围内" },
+      { "item": "event-chain", "result": "pass", "note": "事件链只由 CLI 写入" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/" },
+      { "item": "privacy", "result": "pass", "note": "无任何对话数据" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "三条判据落地：回执入库、verify PASS、Gate 待下一次 CI 复核"
+    },
+    "backlogItems": [
+      {
+        "id": "AF432-B1",
+        "impact": "流程顺序应固化为「回执入库 → 归档 → 状态面提交」，否则会产生「归档后无在办任务可归口」的死角；建议写进 orchestration runbook。",
+        "layer": "docs",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务用途",
+        "taskSays": "把 AF-431 回执纳入版本控制并收口状态面",
+        "reality": "本单主要为解决「AF-431 已归档 → 回执入库找不到在办归属」",
+        "action": "以本单作为归属任务，回执与本单记录同提交，状态面单独提交",
+        "why": "不绕过 pre-commit 钩子，也不伪造任务状态"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "用一次最小归属任务解掉流程死角，并把正确顺序写进记录；没有为了过钩子去改状态机或绕过校验。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地提交整理。"
+  }
+}
