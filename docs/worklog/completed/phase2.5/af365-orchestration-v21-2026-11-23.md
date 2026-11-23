@@ -54,7 +54,7 @@
 | --- | ---: | --- |
 | `pnpm lint` | 0 | 0 error / 0 warning |
 | `pnpm typecheck` | 0 | 0 error |
-| `pnpm test` | 0 | 311 passed / 1 skipped（files）；4736 passed / 4 skipped（tests）；30.27s |
+| `pnpm test` | 0 | 311 passed / 1 skipped（files）；4739 passed / 4 skipped（tests）；28.19s |
 | `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 0 | 260 / 260 passed |
 | `pnpm exec vitest run scripts/orchestration/__tests__/v21-adapters.spec.mjs` | 0 | 13 / 13 passed |
 | `node scripts/orchestration/verify-framework-bundle.mjs` | 0 | `[PASS]` 2.1.0，15 个文件哈希与版本一致 |
