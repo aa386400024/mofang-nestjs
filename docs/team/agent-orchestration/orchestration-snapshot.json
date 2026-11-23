@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-23T00:50:09.382Z",
+  "generatedAt": "2026-11-23T01:14:03.985Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-349",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "BDI 决策链语义与状态机制修复批次",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-349",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-23T00:50:09.306Z",
-        "leaseDeadline": "2026-11-23T01:20:09.303Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-349.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-23T00:50:09.306Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-349.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1825,6 +1784,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-104",
+      "recordedAt": "2026-11-23T00:50:45.558Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-349",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-349-bdi-semantic"
+      ]
+    },
+    {
+      "auditId": "AUD-103",
+      "recordedAt": "2026-11-23T00:50:09.462Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-349",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-349",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-349.json"
+      ]
+    },
+    {
       "auditId": "AUD-102",
       "recordedAt": "2026-11-23T00:50:01.936Z",
       "actorRef": "orchestrator",
@@ -2038,82 +2027,25 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-089",
-      "recordedAt": "2026-11-22T23:01:19.684Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-342",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-342",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-342.json"
-      ]
-    },
-    {
-      "auditId": "AUD-088",
-      "recordedAt": "2026-11-22T23:01:11.455Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-342",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 102,
+    "total": 104,
     "byResult": {
-      "allowed": 102,
+      "allowed": 104,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 101,
+      "TOOL-QUEUE-SCHEDULER": 103,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 102
+      "orchestrator": 104
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-349",
-        "title": "BDI 决策链语义与状态机制修复批次",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7998,6 +7930,24 @@
             "ref": "docs/worklog/completed/phase2.5/af348-bdi-decision-chain-semantic-hardening-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-349",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8012,22 +7962,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-349",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md"
-      },
-      {
-        "taskId": "AF-349",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -8035,5 +7972,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 338
+  "archivedCount": 339
 }

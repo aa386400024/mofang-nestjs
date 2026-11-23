@@ -1,0 +1,265 @@
+{
+  "deliveredAt": "2026-11-23T09:13:30+08:00",
+  "payload": {
+    "receiptId": "RC-AF-349-1",
+    "taskId": "AF-349",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b7ce8628e599c6c5367e3240bfd3c6b19a22c07e",
+    "dependsOn": [],
+    "priorTasks": ["AF-315", "AF-322", "AF-345"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af349-event-classifier-v2-replay-report-2026-11-23.md",
+        "src/engine-core/cognition/rule-based-classifier.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-core/domain/intention.ts",
+        "src/engine-core/domain/bdi-snapshot.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "src/engine-adapters/wiring/engine.providers.ts",
+        "src/engine-adapters/cognition/model-event-classifier.ts",
+        "bin/af347-event-classifier-v2-replay.ts",
+        "test/engine-core/af349-bdi-decision-chain.spec.ts",
+        "test/engine-adapters/af349-rule-classifier-v2.spec.ts",
+        "test/quality/af349-event-classifier-v2-replay.spec.ts",
+        "test/engine-core/d3-timing-weight-port.spec.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["9282f47748bbd8bff9f7df7e34d8e4b56a232c07"],
+      "added": [
+        "bin/af347-event-classifier-v2-replay.ts",
+        "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af349-event-classifier-v2-replay-report-2026-11-23.md",
+        "test/engine-adapters/af349-rule-classifier-v2.spec.ts",
+        "test/engine-core/af349-bdi-decision-chain.spec.ts",
+        "test/quality/af349-event-classifier-v2-replay.spec.ts"
+      ],
+      "modified": [
+        "src/engine-adapters/cognition/model-event-classifier.ts",
+        "src/engine-adapters/wiring/engine.providers.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/cognition/rule-based-classifier.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/bdi-snapshot.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-core/domain/intention.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "test/engine-core/d3-timing-weight-port.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "约 10s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/af349-bdi-decision-chain.spec.ts test/engine-adapters/af349-rule-classifier-v2.spec.ts test/quality/af349-event-classifier-v2-replay.spec.ts test/engine-core/d3-timing-weight-port.spec.ts test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 5,
+        "tests": 51,
+        "machine": "同上",
+        "wallClock": "1.28s",
+        "note": "5 文件 / 51 例通过"
+      },
+      {
+        "command": "pnpm exec vitest run test/quality/d1-event-classifier-evidence.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 39,
+        "machine": "同上",
+        "wallClock": "215ms",
+        "note": "legacy 基线 39/39 通过"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/kernel-internal-clamp-unify.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 4,
+        "machine": "同上",
+        "wallClock": "约 10ms",
+        "note": "单一 clamp01 守卫通过"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 301,
+        "tests": 4582,
+        "machine": "同上",
+        "wallClock": "20.10s–20.82s（两次复跑）",
+        "note": "300 文件通过 / 1 跳过（301）；4578 例通过 / 4 跳过（4582）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "非空：任务单 scope 明列 engine-core 三个子目录，属批准例外；boundary 12 例通过"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-349 status=submitted files=16 covered=9"
+      }
+    ],
+    "reproNotes": "真实语料回放：pnpm exec tsx bin/af347-event-classifier-v2-replay.ts --dir data/debug-sessions --out data/phase25-exit/af349-event-classifier-replay/report.json。11 场 / 176 条 counselor 轮；legacy neutral 107（60.80%），v2 neutral 110（62.50%）；翻转 4 轮（2.27%）；strength 变化 0；事件 184→183。报告只出统计与会话 id / 轮次，不输出原文。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-349 经 CLI register / promote / run-once；单提交 9282f477"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，未手改索引或事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-349 登记与提级由 CLI 完成"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "任务单 scope 明列 src/engine-core/cognition、domain、in-memory；boundary 12 例通过"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "回放只输出会话 id / 轮次 / kind / strength / 统计，不输出原文；原始 JSON 留 data/phase25-exit 未提交"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "愿望 / 锁 / 曲线参数标注为工程种子，未宣称临床有效性"
+      },
+      {
+        "item": "zero-regression",
+        "result": "pass",
+        "note": "legacy 缺省、愿望/锁缺省关闭、时序缺省 none 均逐字保持旧口径"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef b7ce8628；任务单 implementation；回执 finalStatus completed；提交 9282f477 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF349-B1",
+        "impact": "规则轨 holding_present / cold_absent 跨轮语义未实现，当前由模型轨承担；需在守住隐私边界前提下单独设计。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF349-B2",
+        "impact": "愿望演化 0.02 / 0.01 / TTL 3 / 阈值 0.4 与锁 TTL 3 均为工程种子，需真实咨询师逐轮标注后标定。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF349-B3",
+        "impact": "时序权重 linear_decay slope 0.1、recency slope 0.25、window 6 未做临床斜率标定。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF349-B4",
+        "impact": "规则 v2 只在 11 场 / 176 轮 debug 语料回放，尚未在 D-1 96 场 / 1112 轮样本复评。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF349-B5",
+        "impact": "审议 100 场质量验收、llm_active 灰度切换、MindGuard 临床层未做。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF349-B6",
+        "impact": "愿望演化 / 意图锁 / 时序曲线是否在生产默认开启仍待批次决策；当前全部关闭或 none。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "愿望演化 / 意图锁 / 时序曲线何时从缺省关闭切到生产开启",
+      "规则 v2 是否进入 D-1 96 场 / 1112 轮复评并作为灰度门槛",
+      "规则轨跨轮语义是否需要在不暴露来访原文的前提下扩展",
+      "审议 100 场质量验收与 llm_active 灰度的进入条件"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "v2 覆盖上一轮来访话语上下文",
+        "reality": "内核边界规定事件分类只消费咨询师本轮文本",
+        "action": "规则轨 v2 不引入来访原文；跨轮语义由模型轨承担",
+        "why": "守住隐私最小化与纯层边界，不把来访原文塞进规则分类器"
+      },
+      {
+        "taskSays": "时序三形态纯函数落地",
+        "reality": "首版只接临时快照，落库快照仍等权",
+        "action": "落库路径在 cap 后按同一权重折损",
+        "why": "临时状态与落库状态必须同口径，否则意图规划与落库漂移"
+      },
+      {
+        "taskSays": "回放脚本路径 bin/af347-event-classifier-v2-replay.ts",
+        "reality": "文件名沿用 AF-347 前缀",
+        "action": "保持任务单路径",
+        "why": "避免 scope 越域；文件名不影响证据"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "四块可闭环问题均有实现、单测与真实语料取证；legacy / 关闭态 / none 三条回退路径逐字保持；typecheck 0、lint 0/0、全量 4578 例通过、boundary 12 例通过。偏差与未完成项已显式登记，未把工程种子包装成临床标定。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本单零新增模型调用；回放只读本地 debug 语料。"
+  }
+}
