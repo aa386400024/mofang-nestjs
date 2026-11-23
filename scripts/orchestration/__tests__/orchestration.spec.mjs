@@ -23,6 +23,7 @@ import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
 import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
+import { verifyWorklog } from '../worklog.mjs';
 import { PROTOCOL_CONTRACT_REF, buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
 import {
@@ -4407,6 +4408,30 @@ describe('AF-084 文本 LF / BOM 规范化', () => {
       const applied = normalizeTextFile(file, { apply: true });
       expect(applied.applied).toBe(true);
       expect(readFileSync(file, 'utf8')).toBe('# title\n\nbody\n');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('worklog 状态面解耦孤儿判定', () => {
+  it('stateFree 下孤儿记录包显式跳过并计数，常规 strict 仍报错', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orch-worklog-statefree-'));
+    try {
+      const bundleDir = join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-999');
+      mkdirSync(bundleDir, { recursive: true });
+      writeFileSync(join(bundleDir, 'manifest.json'), JSON.stringify({ taskId: 'AF-999', receipts: [] }), 'utf8');
+      const index = { tasks: [], archivedTasks: [] };
+
+      const strict = verifyWorklog(index, { rootDir: root });
+      expect(strict.ok).toBe(false);
+      expect(strict.errors).toContain('孤儿记录包：AF-999');
+      expect(strict.skippedOrphans).toEqual([]);
+
+      const stateFree = verifyWorklog(index, { rootDir: root, stateFree: true });
+      expect(stateFree.ok).toBe(true);
+      expect(stateFree.errors).toEqual([]);
+      expect(stateFree.skippedOrphans).toEqual(['AF-999']);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

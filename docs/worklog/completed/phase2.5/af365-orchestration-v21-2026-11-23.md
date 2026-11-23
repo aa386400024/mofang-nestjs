@@ -55,8 +55,8 @@
 | --- | ---: | --- |
 | `pnpm lint` | 0 | 0 error / 0 warning |
 | `pnpm typecheck` | 0 | 0 error |
-| `pnpm test` | 0 | 311 passed / 1 skipped（files）；4739 passed / 4 skipped（tests）；28.19s |
-| `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 0 | 260 / 260 passed |
+| `pnpm test` | 0 | 311 passed / 1 skipped（files）；4740 passed / 4 skipped（tests）；27.57s |
+| `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 0 | 261 / 261 passed |
 | `pnpm exec vitest run scripts/orchestration/__tests__/v21-adapters.spec.mjs` | 0 | 13 / 13 passed |
 | `node scripts/orchestration/verify-framework-bundle.mjs` | 0 | `[PASS]` 2.1.0，15 个文件哈希与版本一致 |
 | `node scripts/orchestration/cli.mjs validate` | 0 | 全部 PASS，含索引投影一致 |
@@ -105,12 +105,12 @@
 | gate 命令 `cli.mjs test` | CLI 无 `test` 子命令 | 用 `pnpm exec vitest run` + `pnpm test` 取证，不新增同名命令以免与 pnpm test 混淆 |
 | 状态面由“独立状态分支”承载 | 当前提供 `state sync` 与守卫，尚未自动创建 `state/*` 分支 | 机制先落地并保证任务分支干净；自动建状态分支涉及远端写，留待状态同步批次 |
 | 执行器会话 ack/progress/cancel | 已补齐 `ack/progress/cancel`，并有 4 例单测 | 与任务单验收口径一致 |
-| 远程保护 14 项 / Contracts 2.1.0 | 本地常量与 dry-run 已更新，远程保护尚未 apply | 需在 PR 检查面出现新 context 后再 apply，避免旧 context 缺失阻塞合并 |
+| 远程保护 14 项 / Contracts 2.1.0 | 本地常量与 dry-run 已更新；远程保护已于 PR #178 新 head 产生 `Risk Gate` 与 `Contracts (framework 2.1.0)` 后 apply，GET 复核为 14 项 | 新 context 已实际出现，apply 不会造成旧 context 缺失阻塞合并 |
 | 框架 v2.1 提交未推送、未打 tag、未开 PR | 按计划待双仓验证后处理 | 本记录只声明候选 commit，不声明发行 |
 
 ## 6. 未完成项 / 风险
 
-1. 远程 `integrate` 保护仍是 13 项旧 contexts；PR 创建后需核对新 context 是否由 head workflow 产生，再 apply 14 项保护。若 base workflow 生效，需先 apply 或临时回退 Contracts 改名。
+1. PR #178 检查面仍待跑完；`Risk Gate` 与 `Orchestration Gate` 已通过，远程保护已 apply 为 14 项，待全绿后 squash 合并。
 2. 状态面四文件在工作区仍为脏，按新守卫不进入本任务提交；需在状态分支或收尾快照单独提交。
-3. 框架仓 `e412403` 未推送、未开 PR；双仓 PR 需按发布分层执行。
+3. 框架仓 `e412403` 已推送并开 PR #1；未合并、未打 `v2.1.0` tag，发行状态以 tag 为准。
 4. 旧 `task/AF-*` 远端分支仍在（PR 已关闭但分支未清理），按需另行清理。
