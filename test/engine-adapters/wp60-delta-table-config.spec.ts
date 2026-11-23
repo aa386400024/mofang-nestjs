@@ -16,7 +16,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { resolveDeltaTableConfig } from '../../src/engine-adapters/wiring/delta-table.config.js';
-import { DEFAULT_DELTA_TABLE_CONFIG, type CounselorEventKind } from '../../src/engine-core/index.js';
+import { DEFAULT_DELTA_TABLE_CONFIG, aggregateTurnDelta, type CounselorEventKind } from '../../src/engine-core/index.js';
 
 /**
  * 造一个 ConfigService 桩 (只实现 get).
@@ -136,7 +136,7 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
     expect(Object.keys(config.deltas)).toEqual([]);
   });
 
-  it('11 个事件键都能生效 (表里没漏事件)', () => {
+  it('13 个事件键都能生效 (表里没漏事件)', () => {
     const kinds: readonly CounselorEventKind[] = [
       'empathy',
       'acceptance',
@@ -149,6 +149,8 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
       'boundary_cross',
       'sensitive_touch',
       'neutral',
+      'holding_present',
+      'cold_absent',
     ];
     const envKeys: Readonly<Record<CounselorEventKind, string | undefined>> = {
       empathy: 'ENGINE_DELTA_EMPATHY',
@@ -162,11 +164,9 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
       boundary_cross: 'ENGINE_DELTA_BOUNDARY_CROSS',
       sensitive_touch: 'ENGINE_DELTA_SENSITIVE_TOUCH',
       neutral: 'ENGINE_DELTA_NEUTRAL',
-      // D-2: 两类新 kind 本单**刻意不开 env 通道** (任务单 §3.2「不新增 env 键」) ——
-      //   临床幅度是标定批次的事, 那一单再扩这两个字面量读取.
-      //   这里显式写成 undefined: 联合一变, 编译仍逼着人显式决定, 不会静默漏掉.
-      holding_present: undefined,
-      cold_absent: undefined,
+      // AF-419: 两类在场状态事件补上 env 通道 (此前刻意关闭, 标定只能改代码).
+      holding_present: 'ENGINE_DELTA_HOLDING_PRESENT',
+      cold_absent: 'ENGINE_DELTA_COLD_ABSENT',
     };
 
     const env: Record<string, string> = {};
@@ -184,16 +184,55 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
     }
   });
 
-  it('D-2: 两类新 kind 刻意**没有** env 通道 (临床幅度留标定批次)', () => {
-    // 任务单 §3.2 明确「不新增 env 键」—— 临床幅度由标定批次经 DeltaTableConfig 覆写落地.
-    //   这里把「没有通道」钉成显式事实: 填了 env 也不生效, 且**不告警** (不是解析失败).
+  it('AF-419: 两类在场状态事件有 env 通道，且只覆写写到的维度', () => {
     const { config, warnings } = assemble({
-      ENGINE_DELTA_HOLDING_PRESENT: '{"trust":0.11}',
-      ENGINE_DELTA_COLD_ABSENT: '{"trust":0.11}',
+      ENGINE_DELTA_HOLDING_PRESENT: '{"safety":0.01,"bond":0.005}',
+      ENGINE_DELTA_COLD_ABSENT: '{"trust":-0.01}',
+    });
+
+    expect(config.deltas.holding_present).toEqual({ safety: 0.01, bond: 0.005 });
+    expect(config.deltas.cold_absent).toEqual({ trust: -0.01 });
+    // 未写到的维度不进覆写项 → 仍回内核 AF-322 种子值.
+    expect(config.deltas.holding_present?.verbal).toBeUndefined();
+    expect(warnings).toEqual([]);
+  });
+
+  it('AF-419: 在场事件覆写走同一套校验 (非法 JSON / 非法维度 / 非法值 → 丢弃 + 告警)', () => {
+    const { config, warnings } = assemble({
+      ENGINE_DELTA_HOLDING_PRESENT: '{safety: 0.01}',
+      ENGINE_DELTA_COLD_ABSENT: '{"trst":-0.01,"trust":-0.02}',
     });
 
     expect(config.deltas.holding_present).toBeUndefined();
-    expect(config.deltas.cold_absent).toBeUndefined();
+    expect(config.deltas.cold_absent).toEqual({ trust: -0.02 });
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain('ENGINE_DELTA_HOLDING_PRESENT');
+    expect(warnings[1]).toContain('trst');
+  });
+
+  it('AF-419: 在场事件空串 / 未设 → 不产生覆写项 (照常走内核种子值)', () => {
+    const { config, warnings } = assemble({
+      ENGINE_DELTA_HOLDING_PRESENT: '',
+      ENGINE_DELTA_COLD_ABSENT: ' '.repeat(3),
+    });
+
+    expect(config.deltas).toEqual({});
     expect(warnings).toEqual([]);
+  });
+
+  it('AF-420: 覆写在聚合层生效且逐维度合并 (只覆写 safety 时 bond 仍走内核种子值)', () => {
+    // 端到端钉口径: env → 端口 → aggregateTurnDelta 的三段链路真的接通,
+    //   而不是"解析出来了但内核不认". 内核种子 holding_present: safety +0.004 / bond +0.002.
+    const events = [{ kind: 'holding_present' as const, matchedTerms: [], strength: 1 }];
+    const seeded = aggregateTurnDelta(events);
+    expect(seeded.safety).toBeCloseTo(0.004, 10);
+    expect(seeded.bond).toBeCloseTo(0.002, 10);
+
+    const { config } = assemble({ ENGINE_DELTA_HOLDING_PRESENT: '{"safety":0.02}' });
+    const overridden = aggregateTurnDelta(events, undefined, config);
+    expect(overridden.safety).toBeCloseTo(0.02, 10);
+    // 未覆写维度仍回种子值 —— 覆写是"逐维度换", 不是"整行替换".
+    expect(overridden.bond).toBeCloseTo(0.002, 10);
+    expect(overridden.verbal).toBeCloseTo(-0.002, 10);
   });
 });

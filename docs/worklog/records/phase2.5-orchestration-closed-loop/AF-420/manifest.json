@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-420",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T04:50:00+08:00",
+  "updatedAt": "2026-11-23T20:48:08.583Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-420/task-sheet.md",
+    "sha256": "4f8ff48dcd2d3d16ff8e00eba6823b9efb861b392f9113a56c0ed3dd20a7058d",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-420/receipt-RC-AF-420-1.json",
+      "sha256": "6d3793ebd3a358ee85a3f4a9398e4774cc049bb399ce4130f47e780ca1f5cb9f",
+      "receiptId": "RC-AF-420-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af420-presence-delta-env-override-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-420-presence-delta-env-override.md"
+  ],
+  "tombstone": null
+}
