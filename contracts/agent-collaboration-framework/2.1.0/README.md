@@ -1,6 +1,6 @@
 # Agent Collaboration Framework 契约包（2.1.0）
 
-本目录是框架仓 `aa386400024/agent-collaboration-framework` **v2.1.0**（commit `e412403`）机读契约的不可变发布制品，供本仓 CLI 与 CI 做 schema 硬校验。
+本目录是框架仓 `aa386400024/agent-collaboration-framework` **v2.1.0**（annotated tag `06045fb` → commit `e6dd22d`）机读契约的不可变发布制品，供本仓 CLI 与 CI 做 schema 硬校验。
 
 ## 本次新增（相对 2.0.0）
 

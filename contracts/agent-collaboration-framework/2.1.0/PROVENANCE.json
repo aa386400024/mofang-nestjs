@@ -3,9 +3,11 @@
   "schemaVersion": "1.0.0",
   "frameworkVersion": "2.1.0",
   "sourceRepository": "https://github.com/aa386400024/agent-collaboration-framework.git",
-  "sourceRef": "feat/v2.1-operational-contracts",
-  "sourceCommit": "e4124037b8e5da2ac92070bb13da75f921044f9d",
-  "bundledAt": "2026-11-23T00:00:00Z",
+  "sourceRef": "main",
+  "sourceCommit": "e6dd22d42f4a4017efb660fe0ab1c099df6608ee",
+  "sourceTag": "v2.1.0",
+  "sourceTagObject": "06045fb92ffb0ec71e6cc6fa4b7632ca55be5d3e",
+  "bundledAt": "2026-11-23T08:10:00Z",
   "files": [
     {
       "path": "schemas/agent-card.schema.json",

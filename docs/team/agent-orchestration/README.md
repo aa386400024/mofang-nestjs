@@ -3,7 +3,7 @@
 > 本目录是接入通用 **agent-collaboration-framework** 的项目适配层。
 > 通用规则（角色模型、任务契约、状态机、回执契约、验收口径、可靠性、上下文与记忆、安全策略、人在环、演进路线）的唯一真相源在框架仓，本文件**只声明本项目的特定取值**（目录映射、角色绑定、工具与闸门命令、策略锚点、框架版本依赖），不复制通用规则正文。
 >
-> - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓；2.1.0 候选提交 `e4124037b8e5da2ac92070bb13da75f921044f9d`，**尚未打 tag**；最近正式发行仍为 `v2.0.0` → `67d3290`。无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用。权威锚点见 [framework-version-anchor.md](framework-version-anchor.md)）
+> - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓；`v2.1.0` 已发行，annotated tag `06045fb` → commit `e6dd22d`，PR #1 已合并；上一正式发行 `v2.0.0` → `67d3290`。无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用。权威锚点见 [framework-version-anchor.md](framework-version-anchor.md)）
 > - 适配层声明规范：框架仓 `adapters/README.md`（八类映射项：`projectId / directories / tools-gates / policyAnchors / frameworkVersionRange / roleBindings / statePlane / conformance`）
 > - 代码红线、命令规范、分层归属：`docs/team/conventions.md`；任务单模板：`docs/team/wp-task-template.md`，不在此重复。
 
@@ -28,7 +28,7 @@
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                                                                                      |
 | `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                                                                                    |
-| 框架版本                | `2.1.0` 候选（分支 `feat/v2.1-operational-contracts` → commit `e412403`；未打 tag，最近正式发行仍为 `v2.0.0`；版本轴见框架仓 `schemas/versions.json`，锚点见 [framework-version-anchor.md](framework-version-anchor.md)） |
+| 框架版本                | `2.1.0` 已发行（annotated tag `06045fb` → commit `e6dd22d`，PR #1 合并；上一正式发行 `v2.0.0`；版本轴见框架仓 `schemas/versions.json`，锚点见 [framework-version-anchor.md](framework-version-anchor.md)） |
 | 框架契约版本            | 任务单 `1.2.0` / 状态索引 `1.2.0` / 执行器会话 `1.0.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                                        |
 | 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                                                                                   |
 | `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`）                                                                   |
