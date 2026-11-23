@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-375",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T18:35:00+08:00",
+  "updatedAt": "2026-11-23T09:33:44.702Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-375/task-sheet.md",
+    "sha256": "4f399fd9556286beff74070c5e15dcc47487f5be2950faa9e324cf2ad3b7d998",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-375/receipt-RC-AF-375-1.json",
+      "sha256": "7523038d09597fbb9651cc04dc476a1d0c6e10bdcd0846b682c4059f1d1c30a1",
+      "receiptId": "RC-AF-375-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af375-integrate-state-snapshot-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-375-integrate-state-snapshot-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

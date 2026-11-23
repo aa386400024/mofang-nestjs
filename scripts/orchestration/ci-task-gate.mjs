@@ -78,10 +78,12 @@ export function resolveCommitTaskId({ message, subject }) {
   const trailer = extractTaskTrailer(message);
   const subjectId = extractCommitTaskId(subject);
   if (!trailer.present) return { taskId: subjectId, source: 'subject' };
-  if (trailer.taskId === null && subjectId) {
-    throw new Error(`Task: none 与 subject 中的任务号冲突：${subjectId}`);
+  if (trailer.taskId === null) {
+    // 纯状态面提交允许 subject 自然提及所属任务号；是否真的纯状态面由
+    // evaluateCommitSnapshot 的 state-none-with-impl 判定负责。
+    return { taskId: null, source: 'trailer', none: true };
   }
-  if (trailer.taskId !== null && subjectId !== null && trailer.taskId !== subjectId) {
+  if (subjectId !== null && trailer.taskId !== subjectId) {
     throw new Error(`Task trailer ${trailer.taskId} 与 subject 任务号 ${subjectId} 不一致`);
   }
   return { taskId: trailer.taskId, source: 'trailer', none: trailer.taskId === null };

@@ -151,12 +151,9 @@ jobs:
 
       - name: Validate worklog record bundles
         run: |
-          if [ "$ORCH_REQUIRE_ACCEPTED" = "1" ]; then
-            # PR 任务分支状态面解耦：索引不随分支提交，孤儿记录包暂不可判定，显式跳过并计数。
-            node scripts/orchestration/cli.mjs worklog verify --strict --state-free
-          else
-            node scripts/orchestration/cli.mjs worklog verify --strict
-          fi
+          # 状态面与业务分支解耦：PR 分支和 integrate push 都可能出现记录包领先索引，
+          # 孤儿记录包由收尾状态同步任务判定；这里统一按 state-free 校验其余完整性。
+          node scripts/orchestration/cli.mjs worklog verify --strict --state-free
 
   # 所有 job 之间没有产物依赖：契约 / lint / 单测 / E2E / 覆盖率 / Docker build / 安全审计
   # 均从同一 checkout 独立执行。并行跑可将墙钟从「lint→test→build」三段串行压到单段最长作业。
