@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T20:08:09.738Z",
+  "generatedAt": "2026-11-23T20:23:03.281Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1786,6 +1786,100 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-259",
+      "recordedAt": "2026-11-23T20:19:59.616Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-417",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-417-atomic-write-hardening"
+      ]
+    },
+    {
+      "auditId": "AUD-258",
+      "recordedAt": "2026-11-23T20:19:54.772Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-417",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-417",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-417.json"
+      ]
+    },
+    {
+      "auditId": "AUD-257",
+      "recordedAt": "2026-11-23T20:19:37.273Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-416",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-256",
+      "recordedAt": "2026-11-23T20:19:33.212Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-416",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-255",
+      "recordedAt": "2026-11-23T20:14:42.062Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-416",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-416-atomic-write-hardening"
+      ]
+    },
+    {
+      "auditId": "AUD-254",
+      "recordedAt": "2026-11-23T20:14:30.096Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-416",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-416",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-416.json"
+      ]
+    },
+    {
       "auditId": "AUD-253",
       "recordedAt": "2026-11-23T20:04:41.062Z",
       "actorRef": "orchestrator",
@@ -1923,114 +2017,20 @@
       "resources": [
         "task/AF-409-presence-narrowing"
       ]
-    },
-    {
-      "auditId": "AUD-244",
-      "recordedAt": "2026-11-23T19:28:39.907Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-409",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-409",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-409.json"
-      ]
-    },
-    {
-      "auditId": "AUD-243",
-      "recordedAt": "2026-11-23T19:28:31.580Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-409",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-242",
-      "recordedAt": "2026-11-23T19:17:08.765Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-408",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-408-bdi-presence-calibration"
-      ]
-    },
-    {
-      "auditId": "AUD-241",
-      "recordedAt": "2026-11-23T19:17:04.350Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-408",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-408",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-408.json"
-      ]
-    },
-    {
-      "auditId": "AUD-240",
-      "recordedAt": "2026-11-23T19:16:56.669Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-408",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-239",
-      "recordedAt": "2026-11-23T18:54:07.410Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-407",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-407-zero-motion-carryover"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 253,
+    "total": 259,
     "byResult": {
-      "allowed": 253,
+      "allowed": 259,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 252,
+      "TOOL-QUEUE-SCHEDULER": 258,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 253
+      "orchestrator": 259
     }
   },
   "protocolView": {
@@ -8868,6 +8868,42 @@
             "ref": "docs/worklog/completed/phase2.5/af415-presence-precision-eval-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-416",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-416/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af416-atomic-write-hardening-2026-11-24.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-417",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-417/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af417-atomic-write-hardening-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8892,5 +8928,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 388
+  "archivedCount": 390
 }
