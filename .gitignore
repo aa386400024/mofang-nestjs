@@ -134,6 +134,15 @@ data/quality/*.txt
 data/quality/*.csv
 !data/quality/anchor-sample-30.csv
 
+# V2026-11-23 — 工作区临时产物与实验证据
+#   .tmp/：审计脚本、任务单备份、状态快照等一次性操作产物，保留本地但不进版本库.
+#   data/handoff/：会话交接快照，随轮次过期，不进版本库.
+#   data/phase25-exit/：Phase2.5 真人度实验的 report / summary / repetitions（约 3.2 MB），
+#     属于本机实验证据而非源码；交付记录引用路径，副本保留本地，不随主分支提交.
+.tmp/
+data/handoff/
+data/phase25-exit/
+
 # V2026-11-15 — L2 编排运行态（租约 / 领单 / 临时态 / 工具调用审计），随轮次变化不进版本库；
 #   task-state-index.json（索引）与 orchestration-snapshot.json（网页数据源）保留入库。
 docs/team/agent-orchestration/orchestration-state.json

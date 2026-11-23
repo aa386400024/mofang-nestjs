@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-386",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T22:06:42+08:00",
+  "updatedAt": "2026-11-23T14:07:11.080Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/task-sheet.md",
+    "sha256": "f81f215537f242d7518076e2ca9d569a466db9e1d1015139ce95682509472998",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af386-workspace-artifact-cleanup-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af386-workspace-artifact-cleanup-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
