@@ -41,6 +41,7 @@ import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js'
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
+import { RuleBasedClassifier } from '../../engine-core/index.js';
 import type {
   AllianceConfig,
   BdiStateRepository,
@@ -239,13 +240,18 @@ export interface EngineSessionTuningDeps {
   /**
    * 事件分类器 (D-1 第二段 · 模型轨; 缺省 = 内核用**默认规则轨**).
    *
-   * 缺省语义: **逐字零回归** —— 不注入 = 内核走 `new RuleBasedClassifier()`,
-   *   落库的 delta 与改造前**逐字相同** (不是「结果一样」, 是「根本没走那条路」).
+   * 缺省语义: 不注入 = `createEngineSessionPort` 使用**规则轨 v2**
+   *   (`RuleBasedClassifier({ semantics: 'v2' })`, AF-349); 直接 `new InMemoryEngineSession`
+   *   的测试仍走 legacy, 旧快照可复现.
    *
    * ⚠️ 注入模型轨 = 内核每轮关键路径多一次 LLM 往返 —— 所以**只在灰度打开时装配**
    *   (见 engine.module.ts), 且模型轨实现内部失败即回落规则轨.
    */
   readonly classifier?: EventClassifier;
+  /** 愿望演化配置 (AF-349; 缺省 = 关闭, 不改变既有轨迹). */
+  readonly desireEvolutionConfig?: EngineSessionOptions['desireEvolutionConfig'];
+  /** 意图锁配置 (AF-349; 缺省 = 关闭, 不写锁). */
+  readonly intentionLockConfig?: EngineSessionOptions['intentionLockConfig'];
 }
 
 /**
@@ -280,6 +286,9 @@ function resolveEngineSessionTuningOptions(tuning: EngineSessionTuningDeps | und
     ...(tuning.deliberationHook ? { deliberationHook: tuning.deliberationHook } : {}),
     // D-1 第二段: 事件分类器 (模型轨) —— 不传 = 内核用默认规则轨 (逐字零回归).
     ...(tuning.classifier ? { classifier: tuning.classifier } : {}),
+    // AF-349: 愿望演化 / 意图锁 —— 不传 = 关闭, 与改造前逐字一致.
+    ...(tuning.desireEvolutionConfig ? { desireEvolutionConfig: tuning.desireEvolutionConfig } : {}),
+    ...(tuning.intentionLockConfig ? { intentionLockConfig: tuning.intentionLockConfig } : {}),
   };
 }
 /**
@@ -309,6 +318,9 @@ export function createEngineSessionPort(
     memories,
     ...(riskProbe ? { riskProbe } : {}),
     ...resolveEngineSessionTuningOptions(tuning),
+    // AF-349: 生产装配缺省使用规则轨 v2 (否定 / 长词遮盖 / 强度折算).
+    // 模型轨传入时优先用模型轨; 直接 new 内核的测试仍走 legacy, 保持旧快照可复现.
+    classifier: tuning?.classifier ?? new RuleBasedClassifier({ semantics: 'v2' }),
   });
 }
 

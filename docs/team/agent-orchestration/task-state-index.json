@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1540,
+    "lastEventSeq": 1563,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -3006,6 +3006,51 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-346/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af343-realism-signature-judge-evidence-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-347",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-347/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af347-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-348",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-348/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af348-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-349",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-350",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-350/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af350-canceled-task-pointers-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-351",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
         "reply": null
       }
     }

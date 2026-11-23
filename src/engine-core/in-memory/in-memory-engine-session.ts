@@ -42,7 +42,7 @@ import { randomInt } from 'node:crypto';
 
 import { resolveSessionAllianceConfig, type AllianceConfig } from '../cognition/alliance-config.js';
 import type { DeltaTableConfig } from '../cognition/delta-table-config.js';
-import { planIntention } from '../cognition/intention-planner.js';
+import { planIntention, nextIntentionLock, type IntentionLockConfig } from '../cognition/intention-planner.js';
 import {
   modulateDeltaByPersonality,
   type PersonalityModulationInput,
@@ -58,6 +58,8 @@ import {
   buildDeltaCapReport,
   capTurnDelta,
   notifyDeltaCap,
+  resolveTimingWeight,
+  scaleDeltaVector,
   transitionState,
   applyBeliefEvolution,
   type DeltaCapConfig,
@@ -71,6 +73,7 @@ import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trig
 import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot.js';
 import { buildInitialSnapshot } from '../domain/bootstrap.js';
 import type { CharacterProfile } from '../domain/character-profile.js';
+import { evolveDesires, type DesireEvolutionConfig } from '../domain/desires.js';
 import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
 import type {
   EngineSessionHandle,
@@ -261,10 +264,23 @@ export interface InMemoryEngineSessionOptions {
    * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 权重形态是**部署形态**
    * 的决定 (灰度到哪批会话), 不是会话参数; 放构造上 = 一场会话内口径恒定.
    *
-   * ⚠️ 本单只落地 `none` 形态的**端口骨架** —— `linear_decay / recency / window`
-   *   的曲线实现与 `slope` / `windowTurns` 标定值留标定批次单.
+   * ⚠️ AF-349 已落 `linear_decay / recency / window` 三条工程曲线; `slope` /
+   *   `windowTurns` 的临床标定值仍留标定批次单.
    */
   readonly timingWeightConfig?: TransitionStateOptions['timingWeight'];
+  /**
+   * 愿望演化配置 (AF-349).
+   *
+   * 缺省 = 关闭 (返回入参引用, 既有轨迹不变). 开启后按事件 / 阻抗 / 安全感 / 纽带
+   * 缓慢更新底层愿望并生成本轮情境愿望. 数值是工程种子, 不是临床标定.
+   */
+  readonly desireEvolutionConfig?: DesireEvolutionConfig;
+  /**
+   * 意图锁配置 (AF-349).
+   *
+   * 缺省 = 关闭 (不写锁, 决策链逐字不变). 开启后非保护性策略跨轮保持, 到期自动清除.
+   */
+  readonly intentionLockConfig?: IntentionLockConfig;
   /**
    * 工作窗口溢出回调 (WP37 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
    *
@@ -326,6 +342,10 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly sessionDecayConfig: SessionDecayConfig | undefined;
   /** 时序权重配置 (D-3 · 缺省 = 不折损, delta 逐字不变). */
   private readonly timingWeightConfig: InMemoryEngineSessionOptions['timingWeightConfig'];
+  /** 愿望演化配置 (AF-349 · 缺省 = 关闭). */
+  private readonly desireEvolutionConfig: DesireEvolutionConfig | undefined;
+  /** 意图锁配置 (AF-349 · 缺省 = 关闭). */
+  private readonly intentionLockConfig: IntentionLockConfig | undefined;
   /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
   private readonly onWorkingWindowOverflow: ((event: WorkingWindowOverflowEvent) => void) | undefined;
   /** 审议钩子 (R9; 缺省 = 不注入 = 零回归). */
@@ -345,6 +365,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.deltaTableConfig = options.deltaTableConfig;
     this.sessionDecayConfig = options.sessionDecayConfig;
     this.timingWeightConfig = options.timingWeightConfig;
+    this.desireEvolutionConfig = options.desireEvolutionConfig;
+    this.intentionLockConfig = options.intentionLockConfig;
     this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
     this.deliberationHook = options.deliberationHook;
   }
@@ -449,14 +471,16 @@ export class InMemoryEngineSession implements EngineSessionPort {
       counselorText: userText,
       // D-3: 时序权重端口 —— 轮次号 **1 起** (同 `MatchContext` 口径: runtime.turnIndex + 1),
       //   权重配置走构造注入 (缺省 = 不折损, delta 逐字不变).
-      //   ⚠️ 落库路径 (事件 delta + 剧本 delta 合并后统一过一次 cap) 本单**不接入**折损分支 ——
-      //   `none` 恒等下两路径逐字一致; 接入点与口径 (cap 后、turnIndex + 1) 见交付记录 §6 R2.
+      //   AF-349: 临时快照与落库路径**同一口径** —— 落库在 cap 后按同一权重折损.
       turnIndex: runtime.turnIndex + 1,
       timingWeight: this.timingWeightConfig,
     });
-    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, runtime.allianceConfig, {
+    const provisionalWithDesires = this.evolveSnapshotDesires(provisional, events, runtime.turnIndex + 1);
+    const intention = planIntention(provisionalWithDesires, runtime.characterProfile ?? undefined, runtime.allianceConfig, {
       // AF-315: 探索时机按 1 起轮次判定；首轮最多建立接触，不进入深度探索。
       turnNumber: runtime.turnIndex + 1,
+      // AF-349: 跨轮锁缺省关闭；开启后只覆盖非保护性策略.
+      intentionLockConfig: this.intentionLockConfig,
     });
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
@@ -482,7 +506,11 @@ export class InMemoryEngineSession implements EngineSessionPort {
     //    注入时: 钩子给建议就用建议, 给 null / 抛错就回退规则 delta —— 主流程永远不炸.
     //    ⚠️ 建议**再过一次 cap**: 审议结果不得绕过 delta cap (与规则侧同一把尺子).
     const finalDelta = this.applyDeliberationHook(runtime, base.snapshot, base.revision, cappedTotal, userText);
-    const nextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, finalDelta), userText);
+    // D-3 / AF-349: 落库路径也在 cap 之后折损 —— 与 `transitionState` 同一把尺子.
+    //   缺省权重 1 → `scaleDeltaVector` 原样返回, 旧口径逐字不变.
+    const weightedFinalDelta = scaleDeltaVector(finalDelta, resolveTimingWeight(this.timingWeightConfig, runtime.turnIndex + 1));
+    const baseNextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, weightedFinalDelta), userText);
+    const nextSnapshot = this.finalizeSnapshotForTurn(baseNextSnapshot, events, intention.strategy, runtime.turnIndex + 1);
     //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".
     notifyDeltaCap(
       this.capObserver,
@@ -855,6 +883,51 @@ export class InMemoryEngineSession implements EngineSessionPort {
         ...(outcome ? { outcome } : {}),
       },
     };
+  }
+
+  /**
+   * AF-349: 按本轮事件演化愿望层 (纯函数, 配置关闭时原样返回).
+   *
+   * 为什么两处调用 (临时快照 / 落库快照): 与信念演化同款纪律 ——
+   *   临时快照供意图规划, 落库快照是最终值; 两处都从同一份 base 出发, 各演一次, 结果一致.
+   */
+  private evolveSnapshotDesires(snapshot: BdiSnapshot, events: readonly SessionEvent[], turnNumber: number): BdiSnapshot {
+    if (!this.desireEvolutionConfig?.enabled) return snapshot;
+    const result = evolveDesires(
+      {
+        underlyingDesires: snapshot.underlyingDesires,
+        situationalDesires: snapshot.situationalDesires,
+        eventKinds: events.map((event) => event.kind),
+        resistance: snapshot.resistance,
+        safety: snapshot.safety,
+        bond: snapshot.bond,
+        turnNumber,
+      },
+      this.desireEvolutionConfig,
+    );
+    if (!result.changed) return snapshot;
+    return {
+      ...snapshot,
+      underlyingDesires: result.underlyingDesires,
+      situationalDesires: result.situationalDesires,
+    };
+  }
+
+  /**
+   * AF-349: 本轮落库前的最后一步 —— 愿望演化 + 意图锁写入.
+   *
+   * 锁关闭时**原样返回**, 不新增 `intentionLock: null` 字段 (避免旧快照 deep-equal 漂移).
+   */
+  private finalizeSnapshotForTurn(
+    snapshot: BdiSnapshot,
+    events: readonly SessionEvent[],
+    strategy: Intention['strategy'],
+    turnNumber: number,
+  ): BdiSnapshot {
+    const evolved = this.evolveSnapshotDesires(snapshot, events, turnNumber);
+    if (!this.intentionLockConfig?.enabled) return evolved;
+    const lock = nextIntentionLock(evolved.intentionLock, strategy, turnNumber, this.intentionLockConfig);
+    return { ...evolved, intentionLock: lock };
   }
 
   /**

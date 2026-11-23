@@ -126,7 +126,7 @@ export interface ModelClassifierContextPort {
  * ⚠️ RuleBasedClassifier 是**无状态纯函数** —— 共享实例与各建实例的输出逐字相同,
  *   共享只是为了让「同一份」这件事在代码上看得见 (而不是靠口头约定).
  */
-export const SHARED_RULE_TRACK = new RuleBasedClassifier();
+export const SHARED_RULE_TRACK = new RuleBasedClassifier({ semantics: 'v2' });
 
 /** prompt 版本 (写进观测, 供口径核对 —— 风险 J). */
 export const MODEL_CLASSIFIER_PROMPT_VERSION = 'model-event-classifier-v2';

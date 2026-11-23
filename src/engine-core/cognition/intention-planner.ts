@@ -49,7 +49,86 @@
 import { resolveAllianceThresholds, type AllianceConfig } from './alliance-config.js';
 import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
 import type { CharacterProfile } from '../domain/character-profile.js';
-import type { BehaviorStrategy, Intention } from '../domain/intention.js';
+import type { BehaviorStrategy, Intention, IntentionLock } from '../domain/intention.js';
+
+/**
+ * 意图锁配置 (AF-349).
+ *
+ * ⚠️ 缺省 **关闭** —— 不开启时 `planIntention` 与改造前逐字一致.
+ *   是否开启属于批次决策, 本单只落机制.
+ */
+export interface IntentionLockConfig {
+  readonly enabled: boolean;
+  /** 锁存活轮数 (从锁定的那一轮起算). */
+  readonly ttlTurns: number;
+}
+
+/** 缺省: 关闭 + 3 轮. */
+export const DEFAULT_INTENTION_LOCK_CONFIG: IntentionLockConfig = {
+  enabled: false,
+  ttlTurns: 3,
+};
+
+/** 保护性策略: 当轮风险 / 情境决定, 永远可以覆盖上一轮的锁. */
+const PROTECTIVE_STRATEGIES: ReadonlySet<BehaviorStrategy> = new Set(['resistance', 'simple_response', 'request']);
+
+/** 可被锁定的连续性策略: 探索 / 叙述 / 领悟 / 计划. */
+const LOCKABLE_STRATEGIES: ReadonlySet<BehaviorStrategy> = new Set([
+  'recounting',
+  'cognitive_exploration',
+  'affective_exploration',
+  'insight',
+  'discussing_plans',
+]);
+
+/** 策略是否保护性 (不能被锁覆盖). */
+export function isProtectiveStrategy(strategy: BehaviorStrategy): boolean {
+  return PROTECTIVE_STRATEGIES.has(strategy);
+}
+
+/**
+ * 计算本轮生效的意图锁 (纯函数).
+ *
+ * 返回 undefined 表示: 没开 / 没锁 / 已到期 / 锁的是保护性策略 (不合法).
+ */
+export function resolveActiveIntentionLock(
+  lock: IntentionLock | null | undefined,
+  turnNumber: number,
+  config: IntentionLockConfig = DEFAULT_INTENTION_LOCK_CONFIG,
+): IntentionLock | undefined {
+  if (!config.enabled || !lock) return undefined;
+  if (!LOCKABLE_STRATEGIES.has(lock.strategy)) return undefined;
+  if (lock.expiresAtTurn !== undefined && turnNumber > lock.expiresAtTurn) return undefined;
+  return lock;
+}
+
+/**
+ * 计算本轮结束后的意图锁 (纯函数).
+ *
+ * 规则:
+ *   · 保护性策略 / 到期 → 清锁 (null);
+ *   · 本轮策略可锁且当前无锁 → 新建锁 (lockedAtTurn = 本轮, expiresAtTurn = 本轮 + ttl);
+ *   · 本轮策略可锁且当前锁仍有效 → 保持原锁 (不刷新到期, 防止无限续锁);
+ *   · 本轮策略不可锁 (如 simple_response 以外未知) → 清锁.
+ */
+export function nextIntentionLock(
+  current: IntentionLock | null | undefined,
+  strategy: BehaviorStrategy,
+  turnNumber: number,
+  config: IntentionLockConfig = DEFAULT_INTENTION_LOCK_CONFIG,
+): IntentionLock | null {
+  if (!config.enabled) return current ?? null;
+  const active = resolveActiveIntentionLock(current, turnNumber, config);
+  if (isProtectiveStrategy(strategy)) return null;
+  if (!LOCKABLE_STRATEGIES.has(strategy)) return null;
+  if (active) return active;
+  return {
+    strategy,
+    lockedAtTurn: turnNumber,
+    expiresAtTurn: turnNumber + Math.max(1, config.ttlTurns),
+    reason: 'continuity',
+  };
+}
 
 /** 阻抗聚合阈值: 三维平均达到即视为整体防御. */
 const HIGH_RESISTANCE_AGG = 0.6;
@@ -312,7 +391,7 @@ export function planIntention(
   snapshot: BdiSnapshot,
   profile?: CharacterProfile,
   alliance?: AllianceConfig,
-  context?: { readonly turnNumber?: number },
+  context?: { readonly turnNumber?: number; readonly intentionLockConfig?: IntentionLockConfig },
 ): Intention {
   const thresholds = resolveAllianceThresholds(alliance);
   // AF-315: 轮次门槛. 缺省用 +∞ = 不做首轮抑制，保持既有直接调用方的行为；
@@ -320,13 +399,28 @@ export function planIntention(
   const turnNumber = context?.turnNumber ?? Number.POSITIVE_INFINITY;
   const signals = deriveDecisionSignals(snapshot, thresholds, turnNumber);
   const selected = selectStrategy(snapshot, signals, thresholds);
+  const activeLock = resolveActiveIntentionLock(
+    snapshot.intentionLock,
+    turnNumber,
+    context?.intentionLockConfig ?? DEFAULT_INTENTION_LOCK_CONFIG,
+  );
+  // AF-349: 锁只能覆盖**非保护性**当轮策略. 一旦本轮判出抗拒 / 简短回应 / 请求,
+  //   保护性优先 —— 否则"上一轮锁 exploration"会把危机反应顶掉.
+  const locked =
+    activeLock && !isProtectiveStrategy(selected.strategy) && activeLock.strategy !== selected.strategy ? activeLock : undefined;
+  const finalSelected = locked
+    ? {
+        strategy: locked.strategy,
+        rationale: `跨轮意图锁有效(自第 ${locked.lockedAtTurn} 轮, 至第 ${locked.expiresAtTurn ?? '∞'} 轮), 保持 ${locked.strategy}; 当轮规则原判 ${selected.strategy} 被锁覆盖`,
+      }
+    : selected;
 
   return {
-    strategy: selected.strategy,
+    strategy: finalSelected.strategy,
     emotion: snapshot.emotion,
     resistance: snapshot.resistance,
     transference: snapshot.transference,
     forbiddenBehaviors: profile?.forbiddenBehaviors ?? [],
-    rationale: selected.rationale,
+    rationale: finalSelected.rationale,
   };
 }

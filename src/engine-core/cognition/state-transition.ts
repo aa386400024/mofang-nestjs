@@ -708,27 +708,52 @@ function modulateByPersonality(
 const TIMING_WEIGHT_EQUAL = 1;
 
 /**
- * 解析本轮的时序权重 (D-3 · 端口骨架 · **模块私有** · 纯函数).
+ * 解析本轮的时序权重 (D-3 · 端口 + AF-349 曲线实现 · 纯函数).
  *
  * 缺省 / `kind: 'none'` / 轮次号缺省 → 等权 (不折损).
- * 非 `none` 形态 (`linear_decay` / `recency` / `window`) **本单回退等权** ——
- * 形态曲线与临床斜率留标定批次单; 骨架阶段"未实现形态不得改变行为".
  *
- * 为什么是纯函数: 权重是纯计算 (不读 env / 不摸全局对象 / 无时钟 / 无随机数),
+ * AF-349 落三条**工程曲线** (数值是种子, 不是临床斜率):
+ *   · `linear_decay`: `max(0, 1 - slope * (turnIndex - 1))`, 缺省 slope 0.1 ——
+ *     第 1 轮 1.0, 第 6 轮 0.5, 第 11 轮 0;
+ *   · `recency`: `1 / (1 + slope * (turnIndex - 1))`, 缺省 slope 0.25 —— 不归零,
+ *     但越早的轮次权重越低;
+ *   · `window`: 最近 `windowTurns` 轮内 1, 窗外 0, 缺省 6.
+ *
  * 同样的输入必得同样的输出 —— 状态可复现性契约 (R1) 的前提.
  *
  * @param config 权重配置 (缺省 = 不折损)
  * @param turnIndex 本轮轮次号 (1 起; 缺省 = 算子取不到位置)
- * @returns 权重系数 (本单恒为等权)
+ * @returns 权重系数 [0,1]
  */
-function resolveTimingWeight(config: TransitionStateOptions['timingWeight'], turnIndex: number | undefined): number {
+export function resolveTimingWeight(config: TransitionStateOptions['timingWeight'], turnIndex: number | undefined): number {
   // 缺省 = 内核决策链里没有折损这一步 (逐字零回归的根).
   if (!config) return TIMING_WEIGHT_EQUAL;
   if (config.kind === 'none') return TIMING_WEIGHT_EQUAL;
-  // 非 `none` 形态: 本单只留**联合位**, 曲线实现留标定批次单 —— 此刻**刻意**回退等权.
-  //   轮次号缺省 → 算子取不到位置 → 等权; 形态未实现 → 同样等权.
-  if (turnIndex === undefined) return TIMING_WEIGHT_EQUAL;
-  return TIMING_WEIGHT_EQUAL;
+  // 轮次号缺省 → 算子取不到位置 → 等权.
+  if (turnIndex === undefined || !Number.isFinite(turnIndex) || turnIndex < 1) return TIMING_WEIGHT_EQUAL;
+
+  const age = turnIndex - 1;
+  if (config.kind === 'linear_decay') {
+    const slope = positiveOr(config.slope, 0.1);
+    return clampUnit(1 - slope * age);
+  }
+  if (config.kind === 'recency') {
+    const slope = positiveOr(config.slope, 0.25);
+    return clampUnit(1 / (1 + slope * age));
+  }
+  const windowTurns = Math.max(1, Math.floor(positiveOr(config.windowTurns, 6)));
+  return turnIndex <= windowTurns ? 1 : 0;
+}
+
+/** 正数或回落缺省 (0 / 负数 / NaN 一律视为配置非法). */
+function positiveOr(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/** 夹到 [0,1]. */
+function clampUnit(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
 }
 
 /**
@@ -742,7 +767,7 @@ function resolveTimingWeight(config: TransitionStateOptions['timingWeight'], tur
  * @param weight 权重系数
  * @returns 折损后的 delta 向量
  */
-function scaleDeltaVector(delta: DeltaVector, weight: number): DeltaVector {
+export function scaleDeltaVector(delta: DeltaVector, weight: number): DeltaVector {
   if (weight === 1) return delta;
   return {
     trust: delta.trust * weight,
@@ -842,6 +867,8 @@ export function applyDeltaVector(snapshot: BdiSnapshot, delta: DeltaVector): Bdi
     // WP42: 同盟三维各自 clamp —— 安全感与纽带感同样是 [0,1] 的关系量.
     safety: clamp01(snapshot.safety + delta.safety),
     bond: clamp01(snapshot.bond + delta.bond),
+    // AF-349: 意图锁原样带过 —— 它不是 delta 维度, 但漏掉 = 每轮落库把锁清零.
+    ...(snapshot.intentionLock === undefined ? {} : { intentionLock: snapshot.intentionLock }),
   };
 }
 

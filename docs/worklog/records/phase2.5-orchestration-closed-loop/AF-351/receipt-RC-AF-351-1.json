@@ -1,0 +1,142 @@
+{
+  "deliveredAt": "2026-11-23T09:28:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-351-1",
+    "taskId": "AF-351",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "5620a89159e7bd4c59b350d89f6bac9e264443d3",
+    "dependsOn": [],
+    "priorTasks": ["AF-347", "AF-348", "AF-349", "AF-350"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af347-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af348-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af350-canceled-task-pointers-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "448bd65f80fbc077ad1c667f0e3bb877126ebb4e",
+        "5f6aa17e3198e7fb118c0ef482cdc3ddd53a6a87"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af347-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af348-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af350-canceled-task-pointers-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-350/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-350/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-350/receipt-RC-AF-350-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/manifest.json"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base origin/integrate --head HEAD --require-accepted --task-id task/AF-349-bdi-semantic",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "4 提交全 pass；ACCEPTANCE AF-349 pass=true receipts=1"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-351 status=submitted files=12"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS"
+      }
+    ],
+    "reproNotes": "git log: 3e3b98c7 / 9282f477 / 5620a891 / 448bd65f / 5f6aa17e；每个提交标题只含一个任务编号。AF-350 原两次提交已通过 soft reset 合回索引后重提，证据文件内容未改。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-351 经 CLI register / promote / run-once"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-351 登记由 CLI 完成"
+      },
+      {
+        "item": "no-evidence-change",
+        "result": "pass",
+        "note": "AF-347/348/349/350 证据文件内容未改，只合并提交边界"
+      },
+      {
+        "item": "no-code-change",
+        "result": "pass",
+        "note": "纯文档与历史消息修正"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 5620a891；任务单 fix；提交 448bd65f/5f6aa17e 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF351-B1",
+        "impact": "ci-task-gate 的多任务编号判定应在登记/预检阶段暴露，而不是等 CI；建议在 task-entry-gate 增加同款正则预检。",
+        "owner": "orchestration",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只重写提交消息",
+        "reality": "原提交已推送远端",
+        "action": "force-with-lease 重写任务分支",
+        "why": "保持证据文件不变，只改历史消息"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "本地逐提交门 4/4 pass、worklog strict pass、证据内容零改动；剩余动作仅是 force-with-lease 推送让远端重算 Gate。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "零模型调用。"
+  }
+}
