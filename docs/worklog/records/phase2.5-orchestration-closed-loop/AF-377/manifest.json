@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-377",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T19:00:00+08:00",
+  "updatedAt": "2026-11-23T10:02:41.393Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-377/task-sheet.md",
+    "sha256": "b6790c64845f69cf333a6f28c613ddcd761a8026db137c9eb9b15bfdd9a90eaa",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-377/receipt-RC-AF-377-1.json",
+      "sha256": "5d4e61191bb54325aec599f6b3fe4f3e5839ca90b26f5561d0753fcc07647b0a",
+      "receiptId": "RC-AF-377-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af377-squash-scope-union-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-377-squash-scope-union-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

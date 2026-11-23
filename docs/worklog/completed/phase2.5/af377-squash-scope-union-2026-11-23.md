@@ -56,5 +56,5 @@ PR #183 把 AF-375 与 AF-376 堆叠合并后，squash 提交只携带 `Task: AF
 
 - 回执：`docs/worklog/records/phase2.5-orchestration-closed-loop/AF-377/receipt-RC-AF-377-1.json`
 - receiptId：`RC-AF-377-1`
-- 内容哈希：`21f832c10686c6e7e6de8fcf6b44100b7e37fd32f0d4d498e8be1c42c38cc66b`
+- 内容哈希：`5d4e61191bb54325aec599f6b3fe4f3e5839ca90b26f5561d0753fcc07647b0a`
 - 冻结前已通过 `receipt lint` 七组字段、scope、工件与换行检查。
