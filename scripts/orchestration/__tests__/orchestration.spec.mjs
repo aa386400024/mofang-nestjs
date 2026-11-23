@@ -3,6 +3,7 @@
  * 覆盖：配置校验、状态迁移合法性、自治守门、快照计数与人工复核回填、验收 rejected 结论。
  */
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -23,7 +24,7 @@ import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
 import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
-import { verifyWorklog } from '../worklog.mjs';
+import { copyReceiptToBundle, findBundledReceipt, isTaskSheetBundled, verifyWorklog } from '../worklog.mjs';
 import { PROTOCOL_CONTRACT_REF, buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
 import {
@@ -100,8 +101,17 @@ import {
 import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
-import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
-import { evaluateAcceptanceSnapshot, evaluateCommitSnapshot, extractCommitTaskId, unionSquashScopeFiles } from '../ci-task-gate.mjs';
+import { evaluateTaskEntry, findImmutableReceiptViolations, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
+import {
+  evaluateAcceptanceSnapshot,
+  evaluateCommitSnapshot,
+  extractCommitTaskId,
+  extractTaskTrailer,
+  resolveCommitTaskId,
+  unionSquashScopeFiles,
+} from '../ci-task-gate.mjs';
+import { deriveCommitTrailer, withTaskTrailer } from '../commit-trailer.mjs';
+import { classifySealStatus } from '../state-seal.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
 import { evaluateRequiredChecks, findForeignCommitTaskIds, hasPassedDurableReceipt } from '../pr-release.mjs';
 import {
@@ -3590,6 +3600,123 @@ describe('IM-012 squash 合并收口', () => {
     expect(message.startsWith('fix(orchestration): AF-123 单任务整合发布')).toBe(true);
   });
 
+  it('AF-373 Task trailer 优先于 subject，且拒绝冲突', () => {
+    expect(extractTaskTrailer('feat: x\n\nTask: AF-373\n')).toEqual({ present: true, taskId: 'AF-373' });
+    expect(extractTaskTrailer('chore: state\n\nTask: none\n')).toEqual({ present: true, taskId: null });
+    expect(extractTaskTrailer('feat: x\n')).toEqual({ present: false, taskId: null });
+    expect(() => extractTaskTrailer('feat: x\n\nTask: AF-373\nTask: AF-374\n')).toThrow(/多个不同 Task/);
+    expect(resolveCommitTaskId({ subject: 'feat: unrelated 2026-11-17', message: 'feat: x\n\nTask: AF-373' }).taskId).toBe('AF-373');
+    expect(() => resolveCommitTaskId({ subject: 'feat: AF-372', message: 'feat: x\n\nTask: AF-373' })).toThrow(/不一致/);
+    expect(() => resolveCommitTaskId({ subject: 'feat: AF-372', message: 'feat: x\n\nTask: none' })).toThrow(/冲突/);
+  });
+
+  it('AF-373 commit-msg 只补缺失 trailer，并区分纯状态面', () => {
+    expect(withTaskTrailer('feat: x\n', 'AF-373')).toBe('feat: x\n\nTask: AF-373\n');
+    const existing = 'feat: x\n\nTask: AF-372\n';
+    expect(withTaskTrailer(existing, 'AF-373')).toBe(existing);
+    expect(
+      deriveCommitTrailer({
+        changedFiles: ['web/orchestration/data.js'],
+        index: { tasks: [], archivedTasks: [] },
+      }),
+    ).toEqual({ taskId: null, none: true });
+    expect(() =>
+      deriveCommitTrailer({
+        changedFiles: ['src/user/user.service.ts'],
+        index: { tasks: [], archivedTasks: [] },
+      }),
+    ).toThrow(/无法唯一归属/);
+  });
+
+  it('AF-373 新提交缺 trailer 硬失败，Task none 不得携带实现文件', () => {
+    const currentIndex = { tasks: [], archivedTasks: [] };
+    const missing = evaluateCommitSnapshot({
+      subject: 'docs: 无 trailer',
+      changedFiles: ['docs/worklog/records/phase2.5-orchestration-closed-loop/AF-373/task-sheet.md'],
+      currentIndex,
+      parentIndex: currentIndex,
+      commitDate: '2026-11-23T10:00:00Z',
+    });
+    expect(missing.reason).toBe('missing-task-trailer');
+    expect(missing.pass).toBe(false);
+
+    const noneWithImpl = evaluateCommitSnapshot({
+      subject: 'chore: state',
+      message: 'chore: state\n\nTask: none',
+      changedFiles: ['src/user/user.service.ts'],
+      currentIndex,
+      parentIndex: currentIndex,
+      commitDate: '2026-11-23T10:00:00Z',
+    });
+    expect(noneWithImpl.reason).toBe('state-none-with-impl');
+    expect(noneWithImpl.pass).toBe(false);
+  });
+
+  it('AF-373 回执冻结幂等且同 receiptId 修订走新的内容寻址副本', () => {
+    const root = mkdtempSync(join(tmpdir(), 'af373-freeze-'));
+    try {
+      const bundle = join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-009');
+      mkdirSync(bundle, { recursive: true });
+      const sheet = join(bundle, 'task-sheet.md');
+      writeFileSync(sheet, '# AF-009\n', 'utf8');
+      const task = {
+        taskId: 'AF-009',
+        contextId: 'ctx',
+        status: 'submitted',
+        artifacts: { taskSheet: 'docs/worklog/records/ctx/AF-009/task-sheet.md' },
+      };
+      expect(isTaskSheetBundled(task, { rootDir: root })).toBe(true);
+
+      const firstFile = join(root, 'first.json');
+      const receipt = { receiptId: 'RC-AF-009-1', finalStatus: 'completed' };
+      writeFileSync(firstFile, JSON.stringify(receipt), 'utf8');
+      const first = copyReceiptToBundle(task, firstFile, receipt, { rootDir: root });
+      expect(first.ref).toMatch(/receipt-RC-AF-009-1\.json$/);
+      expect(findBundledReceipt(task, firstFile, receipt, { rootDir: root })?.path).toBe(first.ref);
+
+      const secondFile = join(root, 'second.json');
+      writeFileSync(secondFile, JSON.stringify({ ...receipt, reviewVerdict: 'passed' }), 'utf8');
+      const second = copyReceiptToBundle(task, secondFile, { ...receipt, reviewVerdict: 'passed' }, { rootDir: root });
+      expect(second.ref).toMatch(/receipt-RC-AF-009-1-[0-9a-f]{8}\.json$/);
+      expect(readFileSync(join(root, first.ref), 'utf8')).toBe(JSON.stringify(receipt));
+      expect(findBundledReceipt(task, secondFile, { ...receipt, reviewVerdict: 'passed' }, { rootDir: root })?.path).toBe(second.ref);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('AF-373 已提交回执被修改时 preflight 可判定为不可变违规', () => {
+    const root = mkdtempSync(join(tmpdir(), 'af373-immutable-'));
+    try {
+      const git = (...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: 'pipe' });
+      git('init');
+      git('config', 'user.email', 'af373@example.com');
+      git('config', 'user.name', 'AF-373');
+      const rel = 'docs/worklog/records/ctx/AF-009/receipt-RC-AF-009-1.json';
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      writeFileSync(join(root, rel), '{"receiptId":"RC-AF-009-1"}', 'utf8');
+      git('add', rel);
+      git('commit', '-m', 'feat: baseline');
+      writeFileSync(join(root, rel), '{"receiptId":"RC-AF-009-1","tampered":true}', 'utf8');
+      git('add', rel);
+      expect(findImmutableReceiptViolations(root, [rel])).toEqual([rel]);
+      expect(findImmutableReceiptViolations(root, ['docs/worklog/records/ctx/AF-009/receipt-RC-AF-009-1-abcdef12.json'])).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('AF-373 state seal 只允许丢弃生成态，业务脏文件一律阻断', () => {
+    const result = classifySealStatus([
+      { code: ' M', path: 'docs/team/agent-orchestration/task-state-index.json' },
+      { code: ' M', path: 'web/orchestration/data.js' },
+      { code: ' M', path: 'src/user/user.service.ts' },
+    ]);
+    expect(result.stateFiles).toEqual(['docs/team/agent-orchestration/task-state-index.json', 'web/orchestration/data.js']);
+    expect(result.blockers).toEqual([' M src/user/user.service.ts']);
+    expect(classifySealStatus([{ code: ' M', path: 'docs/worklog/records/ctx/AF-009/manifest.json' }]).blockers).toHaveLength(1);
+  });
+
   it('提交阶段失败即停：不删分支、错误如实返回', () => {
     const { port, calls } = fakeGit({
       commitSquash: () => {
@@ -4273,9 +4400,9 @@ describe('AF-059 零依赖任务单 scope 解析', () => {
   it('AF-173 次要任务历史任务单容错：缺 frontmatter 返回 null，合法任务单正常解析', () => {
     expect(tryParseTaskSheetScopeForGate('# 历史任务单\n无 frontmatter\n', 'TD-5')).toBeNull();
     expect(tryParseTaskSheetScopeForGate(`---\ntaskId: AF-058\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')).toBeNull();
-    expect(
-      tryParseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')?.scope.files,
-    ).toEqual(['scripts/a.mjs']);
+    expect(tryParseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')?.scope.files).toEqual([
+      'scripts/a.mjs',
+    ]);
   });
 });
 
