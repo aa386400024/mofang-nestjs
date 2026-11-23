@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T21:34:49.067Z",
+  "generatedAt": "2026-11-23T21:47:25.211Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1787,6 +1787,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-290",
+      "recordedAt": "2026-11-23T21:41:06.401Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-427",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-427-operator-delta-ledger"
+      ]
+    },
+    {
+      "auditId": "AUD-289",
+      "recordedAt": "2026-11-23T21:41:05.804Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-427",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-427",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-427.json"
+      ]
+    },
+    {
+      "auditId": "AUD-288",
+      "recordedAt": "2026-11-23T21:40:57.444Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-427",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-287",
       "recordedAt": "2026-11-23T21:33:32.664Z",
       "actorRef": "orchestrator",
@@ -1975,67 +2022,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-423.json"
       ]
-    },
-    {
-      "auditId": "AUD-275",
-      "recordedAt": "2026-11-23T21:15:25.053Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-423",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-274",
-      "recordedAt": "2026-11-23T21:03:47.081Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-422",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-422-presence-cap-aware-replay"
-      ]
-    },
-    {
-      "auditId": "AUD-273",
-      "recordedAt": "2026-11-23T21:03:46.482Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-422",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-422",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-422.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 287,
+    "total": 290,
     "byResult": {
-      "allowed": 287,
+      "allowed": 290,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 286,
+      "TOOL-QUEUE-SCHEDULER": 289,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 287
+      "orchestrator": 290
     }
   },
   "protocolView": {
@@ -9071,6 +9071,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af426-presence-calibration-ledger-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-427",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-427/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af427-operator-delta-ledger-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -9095,5 +9113,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 399
+  "archivedCount": 400
 };
