@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T14:07:46.584Z",
+  "generatedAt": "2026-11-23T14:10:43.957Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-386",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "工作区未跟踪产物分类收口",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af386-workspace-artifact-cleanup-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-386",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-23T14:07:46.501Z",
-        "leaseDeadline": "2026-11-23T14:37:46.499Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-386.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1818,6 +1787,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-184",
+      "recordedAt": "2026-11-23T14:07:55.977Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-386",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-386-workspace-artifact-cleanup"
+      ]
+    },
+    {
+      "auditId": "AUD-183",
+      "recordedAt": "2026-11-23T14:07:46.730Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-386",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-386",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-386.json"
+      ]
+    },
+    {
       "auditId": "AUD-182",
       "recordedAt": "2026-11-23T14:07:15.288Z",
       "actorRef": "orchestrator",
@@ -2019,82 +2018,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-382.json"
       ]
-    },
-    {
-      "auditId": "AUD-169",
-      "recordedAt": "2026-11-23T12:16:31.722Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-380",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-168",
-      "recordedAt": "2026-11-23T12:11:58.745Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-380",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-380-4c8g-self-hosted-runner"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 182,
+    "total": 184,
     "byResult": {
-      "allowed": 182,
+      "allowed": 184,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 181,
+      "TOOL-QUEUE-SCHEDULER": 183,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 182
+      "orchestrator": 184
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-386",
-        "title": "工作区未跟踪产物分类收口",
-        "type": "documentation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af386-workspace-artifact-cleanup-2026-11-23.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8429,6 +8371,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/team/agent-orchestration/transport/receipts/AF-385.json"
           }
         ]
+      },
+      {
+        "taskId": "AF-386",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af386-workspace-artifact-cleanup-2026-11-23.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/team/agent-orchestration/transport/receipts/AF-386.json"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8443,22 +8407,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-386",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/task-sheet.md"
-      },
-      {
-        "taskId": "AF-386",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af386-workspace-artifact-cleanup-2026-11-23.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -8466,5 +8417,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 361
+  "archivedCount": 362
 };
