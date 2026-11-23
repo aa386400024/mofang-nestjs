@@ -1,0 +1,112 @@
+{
+  "deliveredAt": "2026-11-23T09:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-350-1",
+    "taskId": "AF-350",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "5620a89159e7bd4c59b350d89f6bac9e264443d3",
+    "dependsOn": [],
+    "priorTasks": ["AF-347", "AF-348", "AF-349"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-350/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af350-canceled-task-pointers-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af347-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af348-bdi-decision-chain-semantic-hardening-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["6d512cfc1c4c1f76f4fe0ba1b32e59d5d3eeff8b"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af347-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af348-bdi-decision-chain-semantic-hardening-2026-11-23.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "PASS（活跃=0 归档=339 记录包=340 inbox=0）"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-350 status=submitted files=8"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base origin/integrate --head HEAD --require-accepted --task-id task/AF-349-bdi-semantic",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "三个提交全 pass；ACCEPTANCE AF-349 pass=true receipts=1"
+      }
+    ],
+    "reproNotes": "AF-349 归档后 worklog strict 报两个取消任务指针缺失；本单补两份取消记录。指针路径与任务单 artifacts 完全一致。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-350 经 CLI register / promote / run-once；提交 6d512cfc"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-350 登记由 CLI 完成"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "无隐私数据"
+      },
+      {
+        "item": "no-code-change",
+        "result": "pass",
+        "note": "纯文档指针补齐，未改代码"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 5620a891；任务单 fix；回执 finalStatus completed；提交 6d512cfc 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "worklog strict 从 FAIL 转 PASS；两个取消任务的 artifact 指针可解析；未触碰代码与既有证据。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "零模型调用。"
+  }
+}
