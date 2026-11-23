@@ -4356,6 +4356,22 @@ describe('AF-084 回执预检', () => {
     }
   });
 
+  it('无尾斜杠目录 scope 按真实目录覆盖，records 不误判为生成态', () => {
+    const { root, task, payload } = buildFixture();
+    try {
+      mkdirSync(join(root, 'scripts', 'orchestration'), { recursive: true });
+      writeFileSync(join(root, 'scripts', 'orchestration', 'cli.mjs'), '', 'utf8');
+      mkdirSync(join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-084'), { recursive: true });
+      writeFileSync(join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-084', 'task-sheet.md'), '# sheet\n', 'utf8');
+      const dirScope = { ...task, scope: { ...task.scope, files: ['scripts/orchestration', 'docs/worklog'] } };
+      const withRecords = structuredClone(payload);
+      withRecords.changedFiles.modified.push('docs/worklog/records/ctx/AF-084/task-sheet.md');
+      expect(lintReceiptPayload(withRecords, dirScope, { repoRoot: root })).toMatchObject({ ok: true, errors: [] });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('状态面生成物、scope 外声明、CR 换行、工件缺失均拦截', () => {
     const { root, task, payload } = buildFixture();
     try {

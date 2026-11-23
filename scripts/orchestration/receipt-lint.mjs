@@ -16,7 +16,7 @@ import { relative, resolve } from 'node:path';
 import { REPO_ROOT } from './state-store.mjs';
 import { REVIEW_VERDICTS, validateReceiptHandover } from './handover-contract.mjs';
 import { detectResidualFiles } from './scope-mutex.mjs';
-import { isStatePlanePath } from './task-entry-gate.mjs';
+import { isGeneratedStatePath } from './task-entry-gate.mjs';
 import { inspectTextFile } from './text-normalize.mjs';
 
 function isWithinRepo(absPath, repoRoot) {
@@ -50,14 +50,14 @@ export function lintReceiptPayload(payload, task, opts = {}) {
 
   const changed = collectChangedFiles(payload?.changedFiles);
   for (const file of changed) {
-    if (isStatePlanePath(file)) {
+    if (isGeneratedStatePath(file)) {
       errors.push(`changedFiles：不得声明编排状态面生成物 ${file}（由 CLI / run-once 自动产出）`);
     }
   }
   if (task) {
-    const { residual } = detectResidualFiles(changed, task);
+    const { residual } = detectResidualFiles(changed, task, { rootDir: repoRoot });
     for (const file of residual) {
-      if (isStatePlanePath(file)) continue;
+      if (isGeneratedStatePath(file)) continue;
       errors.push(`changedFiles：超出任务 scope ${file}`);
     }
   }

@@ -31,6 +31,8 @@
 4. **回执脚手架与 strict 债务**
    - `receipt-scaffold.mjs`：从任务单 frontmatter 生成六组骨架，`gateResults=[]`、`scopeCheck=null`、`reviewVerdict=null`，不伪造 passed；`cli receipt scaffold` 默认 dry-run，`--apply` 落 `transport/receipts/`，已有回执拒绝覆盖。
    - `config.worklogStrictBaseline = { legacyPointers: 133, missingTaskSheets: 14 }`；`worklog verify --strict` 超基线即 FAIL，并输出 `legacy=133/133 无任务单=14/14`。
+   - `receipt-lint.mjs` 与 `acceptance-runner.mjs` 的 V7 scope 比对统一传 `rootDir`：无尾斜杠但真实存在的目录按目录覆盖；`records/` 任务单与回执属交付证据，不按生成态拦截；归档投影缺 `scope` 时从任务单回填再预检。
+   - 本轮首次 `run-once` 因上述 scope 目录语义缺陷被 rejected；修复后从任务单恢复登记并重跑验收，状态面为本地运行态回放，不进入任务分支提交。
 
 5. **执行器心跳与超时回收**
    - `executor-session.mjs`：`start/ack/progress/heartbeat/cancel/terminal/status/list/reap`；`ack` 确认接手，`progress` 上报 0–100 整数并续租且禁止回退，`cancel` 只写 `cancelRequestedAt` 由执行器下一心跳确认终态；终态不得再心跳，`terminalAt` 必填且不早于 `heartbeatAt`。
@@ -55,8 +57,8 @@
 | --- | ---: | --- |
 | `pnpm lint` | 0 | 0 error / 0 warning |
 | `pnpm typecheck` | 0 | 0 error |
-| `pnpm test` | 0 | 311 passed / 1 skipped（files）；4740 passed / 4 skipped（tests）；27.57s |
-| `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 0 | 261 / 261 passed |
+| `pnpm test` | 0 | 311 passed / 1 skipped（files）；4741 passed / 4 skipped（tests）；28.07s |
+| `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 0 | 262 / 262 passed |
 | `pnpm exec vitest run scripts/orchestration/__tests__/v21-adapters.spec.mjs` | 0 | 13 / 13 passed |
 | `node scripts/orchestration/verify-framework-bundle.mjs` | 0 | `[PASS]` 2.1.0，15 个文件哈希与版本一致 |
 | `node scripts/orchestration/cli.mjs validate` | 0 | 全部 PASS，含索引投影一致 |
@@ -107,6 +109,7 @@
 | 执行器会话 ack/progress/cancel | 已补齐 `ack/progress/cancel`，并有 4 例单测 | 与任务单验收口径一致 |
 | 远程保护 14 项 / Contracts 2.1.0 | 本地常量与 dry-run 已更新；远程保护已于 PR #178 新 head 产生 `Risk Gate` 与 `Contracts (framework 2.1.0)` 后 apply，GET 复核为 14 项 | 新 context 已实际出现，apply 不会造成旧 context 缺失阻塞合并 |
 | 框架 v2.1 提交未推送、未打 tag、未开 PR | 按计划待双仓验证后处理 | 本记录只声明候选 commit，不声明发行 |
+| 验收一次通过 | 首次 `run-once` 因 scope 目录语义缺陷 rejected；修复后恢复登记并重跑验收 | 记录真实失败与修复，不把 rejected 现场抹成 passed |
 
 ## 6. 未完成项 / 风险
 

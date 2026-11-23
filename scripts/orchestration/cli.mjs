@@ -101,6 +101,7 @@ import { collectOccupiedTaskIds, nextTaskId } from './task-id-occupancy.mjs';
 import { createGitTaskIdReservation, pickReservedTaskId, reservationRef } from './task-id-reservation.mjs';
 import { planReissue } from './reissue.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
+import { parseTaskSheetFrontmatter } from './task-intake.mjs';
 import { buildReceiptScaffoldFromFile } from './receipt-scaffold.mjs';
 import {
   ackSession,
@@ -1854,8 +1855,16 @@ function cmdReceipt(args) {
     process.exit(2);
   }
   const index = loadIndex();
-  const task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
+  let task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
   if (!task) throw new Error(`任务不存在：${taskId}`);
+  if (!task.scope) {
+    // 归档投影只保留工件指针；回执 scope 预检需从任务单回填契约字段。
+    const sheet = resolveTaskSheet(task);
+    if (sheet) {
+      const { meta } = parseTaskSheetFrontmatter(readFileSync(sheet.path, 'utf8'));
+      task = { ...meta, ...task, scope: task.scope ?? meta.scope };
+    }
+  }
   const pathArg = argValue(args, '--path');
   const receiptFile = pathArg ? resolve(REPO_ROOT, pathArg) : join(PATHS.transportDir, 'receipts', `${taskId}.json`);
   if (!existsSync(receiptFile)) throw new Error(`回执文件不存在：${relativePath(receiptFile)}`);
