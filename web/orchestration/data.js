@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T18:56:53.433Z",
+  "generatedAt": "2026-11-23T19:22:54.624Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1787,6 +1787,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-242",
+      "recordedAt": "2026-11-23T19:17:08.765Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-408",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-408-bdi-presence-calibration"
+      ]
+    },
+    {
+      "auditId": "AUD-241",
+      "recordedAt": "2026-11-23T19:17:04.350Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-408",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-408",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-408.json"
+      ]
+    },
+    {
+      "auditId": "AUD-240",
+      "recordedAt": "2026-11-23T19:16:56.669Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-408",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-239",
       "recordedAt": "2026-11-23T18:54:07.410Z",
       "actorRef": "orchestrator",
@@ -1973,67 +2020,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-227",
-      "recordedAt": "2026-11-23T18:07:10.745Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-402",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-402-debug-tts-route-prefix"
-      ]
-    },
-    {
-      "auditId": "AUD-226",
-      "recordedAt": "2026-11-23T18:07:02.307Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-402",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-402",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-402.json"
-      ]
-    },
-    {
-      "auditId": "AUD-225",
-      "recordedAt": "2026-11-23T18:06:42.461Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-402",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 239,
+    "total": 242,
     "byResult": {
-      "allowed": 239,
+      "allowed": 242,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 238,
+      "TOOL-QUEUE-SCHEDULER": 241,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 239
+      "orchestrator": 242
     }
   },
   "protocolView": {
@@ -8763,6 +8763,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af407-zero-motion-attribution-carryover-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-408",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-408/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af408-bdi-presence-calibration-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8787,5 +8805,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 382
+  "archivedCount": 383
 };
