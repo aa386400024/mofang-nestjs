@@ -76,21 +76,36 @@ export function addClamped(state, delta) {
 }
 
 /**
+ * 把 11 维 presence delta 映射到八维并按倍数缩放（不夹取，交给 addClamped）。
+ *
+ * AF-421: 幅度扫描要把同一份种子幅度按倍数放大/缩小，映射与缩放只在这里做一次，
+ * 避免脚本侧再抄第三份 delta 表。
+ *
+ * @param {'holding_present'|'cold_absent'} label 在场标签
+ * @param {number} multiplier 倍数（1 = 内核种子幅度）
+ * @returns {Record<string, number>} 八维增量
+ */
+export function scaledPresenceDelta(label, multiplier = 1) {
+  const delta = PRESENCE_DELTAS[label];
+  const mapped = {};
+  for (const key of TRACKED_KEYS) mapped[key] = 0;
+  if (!delta) return mapped;
+  for (const [deltaKey, snapshotKey] of Object.entries(DELTA_TO_SNAPSHOT)) {
+    mapped[snapshotKey] = Number(delta[deltaKey] ?? 0) * Number(multiplier);
+  }
+  return mapped;
+}
+
+/**
  * 把 11 维 presence delta 映射到八维并逐维夹取。
  *
  * @param {Record<string, number>} state 当前八维状态
  * @param {'holding_present'|'cold_absent'} label 在场标签
+ * @param {number} [multiplier] 幅度倍数（缺省 1 = 内核种子幅度）
  * @returns {Record<string, number>} 新状态
  */
-export function applyPresenceDelta(state, label) {
-  const delta = PRESENCE_DELTAS[label];
-  if (!delta) return { ...state };
-  const mapped = {};
-  for (const key of TRACKED_KEYS) mapped[key] = 0;
-  for (const [deltaKey, snapshotKey] of Object.entries(DELTA_TO_SNAPSHOT)) {
-    mapped[snapshotKey] = Number(delta[deltaKey] ?? 0);
-  }
-  return addClamped(state, mapped);
+export function applyPresenceDelta(state, label, multiplier = 1) {
+  return addClamped(state, scaledPresenceDelta(label, multiplier));
 }
 
 /**

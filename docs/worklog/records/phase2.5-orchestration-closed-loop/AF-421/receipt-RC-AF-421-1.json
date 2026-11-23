@@ -1,0 +1,149 @@
+{
+  "deliveredAt": "2026-11-24T05:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-421-1",
+    "taskId": "AF-421",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "investigation",
+    "agentRole": "orchestrator",
+    "baselineRef": "7275462bb9cc677fe5f1e96747a906a6894d401e",
+    "dependsOn": [],
+    "priorTasks": ["AF-418", "AF-420"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-421/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af421-presence-amplitude-sweep-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "scripts/ops/quality/af421-presence-amplitude-sweep.mjs",
+        "scripts/orchestration/__tests__/af421-presence-amplitude-sweep.spec.mjs"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "scripts/ops/quality/af421-presence-amplitude-sweep.mjs",
+        "scripts/orchestration/__tests__/af421-presence-amplitude-sweep.spec.mjs",
+        "docs/worklog/completed/phase2.5/af421-presence-amplitude-sweep-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-421/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-421/manifest.json"
+      ],
+      "modified": ["scripts/ops/quality/af418-presence-replay-calibration.mjs"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/af421-presence-amplitude-sweep.spec.mjs scripts/orchestration/__tests__/af418-presence-replay-calibration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "354ms",
+        "note": "15 用例全绿：缩放同源、0× 基线不漂、单调性、触顶方向感知、cap 触发判据、目标倍数解析"
+      },
+      {
+        "command": "node scripts/ops/quality/af421-presence-amplitude-sweep.mjs --dir data/debug-sessions",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "13 场；1× 平均 safety +0.0358 / bond +0.0178；8× 仍 0 触顶、0 cap 触发；+0.05 需 2×、+0.10 需 4×"
+      },
+      {
+        "command": "node scripts/ops/quality/af418-presence-replay-calibration.mjs --dir data/debug-sessions",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "回归：13 场 / +0.4660 / +0.2320，与 AF-418 交付数字一致"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 319,
+        "machine": "同上",
+        "wallClock": "25.65s",
+        "note": "319 passed / 1 skipped（文件），4824 passed / 4 skipped（用例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff"
+      }
+    ],
+    "reproNotes": "定向单测 → 幅度扫描脚本 → AF-418 回归脚本 → pnpm lint → pnpm typecheck → pnpm test → engine-core diff。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-421 贯穿任务单、回执、交付记录" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 派发 / 分支 / 归档均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全，scope 覆盖全部改动文件" },
+      { "item": "event-chain", "result": "pass", "note": "事件链由 CLI 写入，归档后 events verify 复核" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff；只读脚本不导入内核运行时" },
+      { "item": "privacy", "result": "pass", "note": "只输出数值与 sessionId，不打印任何对话原文" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单要求的 7 档扫描、1× 与 AF-418 逐字一致、0× 零漂移、目标倍数解析、cap 触发轮次全部落地"
+    },
+    "backlogItems": [
+      {
+        "id": "AF421-B1",
+        "impact": "cap 触发用 trace 记录的 delta 近似，未含 timing 折损与人格调节；精确口径需接 transitionStateDetailed 全输入。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF421-B2",
+        "impact": "8× 以内无饱和只说明账面线性；真实对练里幅度过大是否引起来访「被过度安抚」体感，需 R4/R6 真人度评分验证。",
+        "layer": "domain",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "把「幅度该调多大」从拍脑袋变成可复算曲线：1× 与既有结论逐字对齐、8× 仍线性无饱和、给出 +0.05/+0.10 所需倍数；同时把 delta 映射抽成单点，避免第四份拷贝。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地只读脚本，无上游模型计费。"
+  }
+}
