@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1694,
+    "lastEventSeq": 1718,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -3305,6 +3305,51 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af393-crisis-risk-closing-2026-11-23.md",
         "reply": "docs/team/agent-orchestration/transport/receipts/AF-393.json"
       }
+    },
+    {
+      "taskId": "AF-394",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-394/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af394-debug-tts-and-zero-cost-governance-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-395",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-395/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af394-debug-tts-and-zero-cost-governance-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-396",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-396/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af396-debug-tts-and-zero-cost-governance-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-397",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-397/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af397-debug-tts-history-repair-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-398",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-398/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af398-debug-tts-history-repair-2026-11-24.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -3358,6 +3403,7 @@
     "AF-356": "scope 重签发 → AF-357",
     "AF-381": "前置未合并且已重签 AF-384",
     "AF-391": "角色域错误，取消并重登 AF-392",
-    "AF-392": "scope 不足，重登 AF-393"
+    "AF-392": "scope 不足，重登 AF-393",
+    "AF-394": "scope 重签发 → AF-395"
   }
 }
