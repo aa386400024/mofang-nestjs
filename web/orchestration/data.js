@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T04:23:28.249Z",
+  "generatedAt": "2026-11-23T04:47:52.296Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-122",
+      "recordedAt": "2026-11-23T04:28:21.807Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-358",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-358",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-358.json"
+      ]
+    },
+    {
+      "auditId": "AUD-121",
+      "recordedAt": "2026-11-23T04:27:47.300Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-358",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-120",
       "recordedAt": "2026-11-23T03:40:54.616Z",
       "actorRef": "orchestrator",
@@ -1994,52 +2026,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-351.json"
       ]
-    },
-    {
-      "auditId": "AUD-107",
-      "recordedAt": "2026-11-23T01:20:44.049Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-351",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-106",
-      "recordedAt": "2026-11-23T01:17:04.258Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-350",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-350",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-350.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 120,
+    "total": 122,
     "byResult": {
-      "allowed": 120,
+      "allowed": 122,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 119,
+      "TOOL-QUEUE-SCHEDULER": 121,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 120
+      "orchestrator": 122
     }
   },
   "protocolView": {
@@ -8091,6 +8091,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-358",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-358/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af358-bdi-review-remediation-2026-11-23.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF357-review-20261123-1200.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8115,5 +8137,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 347
+  "archivedCount": 348
 };
