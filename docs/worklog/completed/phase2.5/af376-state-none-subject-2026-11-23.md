@@ -23,7 +23,8 @@ AF-375 的状态快照提交使用 `Task: none`，subject 自然写 `AF-375`，C
 ## 3. 验证
 
 - `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs`：268 passed。
-- 本地用新代码复核 AF-375 的 4 个提交：4 passed / 0 failed，两个状态快照提交判定为 `state-plane-only`。
+- `pnpm test`：311 files passed / 1 skipped；4747 tests passed / 4 skipped；exit 0。
+- 本地用新代码复核 AF-375 的 4 个提交：4 passed / 0 failed，两个状态快照提交判定为 `state-plane-only`；AF-375 + AF-376 共 5 个提交全部 PASS。
 
 ## 4. 与任务单的偏差
 

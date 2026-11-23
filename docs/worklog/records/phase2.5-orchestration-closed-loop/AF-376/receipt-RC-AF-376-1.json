@@ -1,0 +1,128 @@
+{
+  "deliveredAt": "2026-11-23T09:42:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-376-1",
+    "taskId": "AF-376",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "d333af504d989463fca242423e434a8b677d8e4f",
+    "dependsOn": [],
+    "priorTasks": ["AF-375", "AF-374"],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af376-state-none-subject-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-376.json",
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["c00452094a9eeb78bca53cbb2a73ae953cd97c7e"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af376-state-none-subject-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/task-sheet.md"
+      ],
+      "modified": [
+        "scripts/orchestration/ci-task-gate.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "local",
+        "wallClock": "2.13s",
+        "note": "268 passed / 268"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "28.66s",
+        "note": "311 passed / 1 skipped；4747 passed / 4 skipped"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base 8c314c6ea1a9c5ac46636450516ed477bdc9f80d --head c00452094a9eeb78bca53cbb2a73ae953cd97c7e",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "AF-375 四个提交 + AF-376 一个提交共 5 passed，两个状态面提交判为 state-plane-only"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "eslint 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "tsc 0 error"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "1620 条事件哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "活跃 1 / 归档 352 / 记录包 364"
+      }
+    ],
+    "reproNotes": "用当前分支代码对 AF-375 提交区间复跑 ci-task-gate 即可复现修复：此前 60e31e34/d333af50 为 ambiguous-task-id，修复后为 state-plane-only。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId 贯穿任务单 / 提交 / 回执 / 索引", "result": "pass", "note": "AF-376" },
+      { "item": "Task: none 仅允许纯状态面", "result": "pass", "note": "state-none-with-impl 单测保持失败断言" },
+      { "item": "trailer 与 subject 任务号不一致仍硬失败", "result": "pass", "note": "原用例保留" },
+      { "item": "状态快照提交可被逐提交门接受", "result": "pass", "note": "AF-375 区间 4/4 PASS" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "修复点单一且由真实历史提交区间复验；纯状态面与实现混提的红线未被放宽；全量测试与状态链均通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
