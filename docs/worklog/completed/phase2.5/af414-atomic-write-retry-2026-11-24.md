@@ -38,12 +38,13 @@ waitFor 超时: 条件在 10000ms 内没成立
 
 ## 四、闸门与实测数字
 
-| 闸门     | 命令                                                                                                                        | 结果                                            |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| 定向单测 | `pnpm exec vitest run test/admin-debug/af414-atomic-write-retry.spec.ts test/admin-debug/debug-session-persistence.spec.ts` | 2 文件 / 33 用例全绿（新增 5 + 既有 28），3.58s |
-| Lint     | `pnpm lint`                                                                                                                 | 0 error；仅 pnpm `node>=26` engine warning      |
-| 类型     | `pnpm typecheck`                                                                                                            | 0 error                                         |
-| 内核边界 | `git diff --stat HEAD -- src/engine-core`                                                                                   | 空                                              |
+| 闸门     | 命令                                                                                                                        | 结果                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 定向单测 | `pnpm exec vitest run test/admin-debug/af414-atomic-write-retry.spec.ts test/admin-debug/debug-session-persistence.spec.ts` | 2 文件 / 33 用例全绿（新增 5 + 既有 28），3.58s         |
+| Lint     | `pnpm lint`                                                                                                                 | 0 error；仅 pnpm `node>=26` engine warning              |
+| 类型     | `pnpm typecheck`                                                                                                            | 0 error                                                 |
+| 内核边界 | `git diff --stat HEAD -- src/engine-core`                                                                                   | 空                                                      |
+| 全量测试 | `pnpm test`                                                                                                                 | 316 passed / 1 skipped，4790 passed / 4 skipped，25.51s |
 
 全量测试在交付前跑一次，数字以当次输出为准（见回执 `gateResults`）。
 

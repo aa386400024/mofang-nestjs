@@ -1,0 +1,139 @@
+{
+  "deliveredAt": "2026-11-24T04:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-414-1",
+    "taskId": "AF-414",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "6a3cdec63d19965023a3e67e45e3c4b8d456e1a2",
+    "dependsOn": [],
+    "priorTasks": ["AF-413"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-414/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af414-atomic-write-retry-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "src/admin-debug/debug-session-store.ts",
+        "test/admin-debug/af414-atomic-write-retry.spec.ts",
+        "docs/worklog/completed/phase2.5/af413-atomic-write-retry-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-413/manifest.json"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["343745f3"],
+      "added": [
+        "test/admin-debug/af414-atomic-write-retry.spec.ts",
+        "docs/worklog/completed/phase2.5/af414-atomic-write-retry-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-414/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-414/manifest.json",
+        "docs/worklog/completed/phase2.5/af413-atomic-write-retry-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-413/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-413/manifest.json"
+      ],
+      "modified": ["src/admin-debug/debug-session-store.ts"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/admin-debug/af414-atomic-write-retry.spec.ts test/admin-debug/debug-session-persistence.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "3.58s",
+        "note": "33 用例全绿（新增 5 + 既有 28）"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 316,
+        "machine": "同上",
+        "wallClock": "25.51s",
+        "note": "316 passed / 1 skipped，4790 passed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff"
+      }
+    ],
+    "reproNotes": "定向单测 → pnpm lint → pnpm typecheck → pnpm test → engine-core diff。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-414 贯穿任务单、回执、提交标题" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 派发 / 分支 / 回执摄入均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "任务单 scope / gates / artifacts 齐全；回执六组标记齐全" },
+      { "item": "event-chain", "result": "pass", "note": "事件链由 CLI 写入，归档后 events verify 复核" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "privacy", "result": "pass", "note": "只输出错误码与路径，不打印会话正文" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "taskId / baselineRef / scope / gates 与任务单一致；changedFiles 与提交 343745f3 对齐"
+    },
+    "backlogItems": [      {
+        "id": "AF414-B1",
+        "impact": "closeSession 仍为 fire-and-forget：重试耗尽后调用方拿不到失败信号，状态可能停在 active。彻底闭环需服务层等待写完成或暴露关闭结果。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF414-B2",
+        "impact": "70ms 退避窗口对极端杀毒锁可能不足；线上若出现应结合 debug_store 告警计数评估扩大窗口或异步补偿。",
+        "layer": "adapter",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务编号 AF-414",
+        "reality": "同内容的 AF-413 因 agentRole orchestrator 资源域不含 src/ test/ 被调度器判 scope-domain-conflict",
+        "action": "取消 AF-413 并重登 AF-414（executor），AF-413 记录包补 tombstone 与取消说明，避免 strict verify 缺件",
+        "why": "角色域校验是框架硬门；取消重登是既有处置路径，不夹带实现"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "修复 Windows 瞬时占用导致的原子写丢失，重试策略可单测、边界清晰；全套闸门通过，未改 API 语义与内核。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地实现与测试，无上游模型计费。"
+  }
+}
