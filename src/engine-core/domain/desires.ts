@@ -26,7 +26,9 @@ export interface UnderlyingDesire {
   readonly baselineWeight: number;
   /** 当前权重 [0,1], 初始 = baselineWeight. */
   readonly currentWeight: number;
-  /** 映射前的角色级愿望键 (AF-358 · P1-2; 缺省 = 无来源可追溯). */
+  /** 映射前的角色级愿望键 (AF-358 · P1-2; 缺省 = 无来源可追溯).
+   *  AF-360: 来源按 (key,label) 对去重, 同一 key 可因 label 不同而重复出现;
+   *  消费方请按对索引, 不要只按 key 建唯一索引. UnderlyingDesireSeed 同此约定. */
   readonly sourceKeys?: readonly string[];
   /** 映射前的角色级愿望标签 (与 sourceKeys 一一对应). */
   readonly sourceLabels?: readonly string[];

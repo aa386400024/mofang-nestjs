@@ -207,7 +207,9 @@ function dedupePairs(pairs: readonly ProvenancePair[]): ProvenancePair[] {
   return result;
 }
 
-/** 赢家标签置首, 其余顺序不变; 消费方可以安全地假设 sourceLabels[0] === label. */
+/** 赢家标签置首, 其余顺序不变; 输入自洽或经过合并时 sourceLabels[0] === label.
+ *  AF-360: 若种子自带来源且首个标签与种子 label 不一致, 首次映射保持来源原序,
+ *  此时 sourceLabels[0] 可能不等于 label —— 消费方应优先读 label, 来源数组只作追溯. */
 function orderWinnerFirst(pairs: readonly ProvenancePair[], winnerLabel: string): ProvenancePair[] {
   const winnerIndex = pairs.findIndex(([, label]) => label === winnerLabel);
   if (winnerIndex <= 0) return [...pairs];

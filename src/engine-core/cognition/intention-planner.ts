@@ -188,6 +188,8 @@ function deriveDecisionSignals(
   // AF-315: 愿望层。`avoid_pain` 明显压过“被理解”时，先保护自己，不往深处走。
   //   AF-359: 比较加浮点容差 —— 0.68 - 0.58 在 IEEE-754 下是 0.10000000000000009,
   //   曾把念安这种“差值恰好等于 margin”的角色误判为 avoidanceDominant.
+  //   AF-360: 审计 bin/bdi-readiness-audit.ts 使用同一差值定义与同一 1e-9 容差;
+  //   两处改动必须同步, 否则审计与运行时会漂移.
   const AVOIDANCE_COMPARE_EPSILON = 1e-9;
   const understoodWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'understood')?.currentWeight ?? 0;
   const acceptedWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'accepted')?.currentWeight ?? 0;

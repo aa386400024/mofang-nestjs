@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-23T05:08:43.905Z",
+  "generatedAt": "2026-11-23T05:18:42.411Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-360",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "documentation",
+      "title": "BDI 复审 hygiene：审计披露、注释漂移与来源契约措辞",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-360",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-23T05:18:42.319Z",
+        "leaseDeadline": "2026-11-23T05:48:42.315Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-360.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-23T05:18:42.319Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-360.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,6 +1825,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-125",
+      "recordedAt": "2026-11-23T05:18:34.930Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-360",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-124",
       "recordedAt": "2026-11-23T04:59:48.158Z",
       "actorRef": "orchestrator",
@@ -2008,42 +2066,52 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-110",
-      "recordedAt": "2026-11-23T02:28:38.752Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-352",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 124,
+    "total": 125,
     "byResult": {
-      "allowed": 124,
+      "allowed": 125,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 123,
+      "TOOL-QUEUE-SCHEDULER": 124,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 124
+      "orchestrator": 125
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-360",
+        "title": "BDI 复审 hygiene：审计披露、注释漂移与来源契约措辞",
+        "type": "documentation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-359"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8148,9 +8216,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-360",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md"
+      },
+      {
+        "taskId": "AF-360",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
