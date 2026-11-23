@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-23T22:19:00.747Z",
+  "generatedAt": "2026-11-23T22:20:12.117Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-435",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "行为算子 delta 台账补「语料跨版本」版本口径附注（重签发）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-435",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-23T22:19:00.660Z",
-        "leaseDeadline": "2026-11-23T22:49:00.658Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-435.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1817,6 +1786,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-306",
+      "recordedAt": "2026-11-23T22:19:00.884Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-435",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-435",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-435.json"
+      ]
+    },
+    {
       "auditId": "AUD-305",
       "recordedAt": "2026-11-23T22:18:52.550Z",
       "actorRef": "orchestrator",
@@ -2039,67 +2023,25 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-428.json"
       ]
-    },
-    {
-      "auditId": "AUD-291",
-      "recordedAt": "2026-11-23T21:52:44.065Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-428",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 305,
+    "total": 306,
     "byResult": {
-      "allowed": 305,
+      "allowed": 306,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 304,
+      "TOOL-QUEUE-SCHEDULER": 305,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 305
+      "orchestrator": 306
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-435",
-        "title": "行为算子 delta 台账补「语料跨版本」版本口径附注（重签发）",
-        "type": "documentation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -9256,6 +9198,24 @@
             "ref": "docs/worklog/completed/phase2.5/af434-ledger-version-caveat-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-435",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -9270,22 +9230,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-435",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md"
-      },
-      {
-        "taskId": "AF-435",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -9293,5 +9240,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 406
+  "archivedCount": 407
 }
