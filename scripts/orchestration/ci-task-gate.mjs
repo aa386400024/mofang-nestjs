@@ -14,7 +14,10 @@
  */
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { evaluateTaskEntry } from './task-entry-gate.mjs';
+import { evaluateTaskEntry, isStatePlanePath } from './task-entry-gate.mjs';
+
+/** AF-373 · trailer 强制生效时间：此后新建提交必须带 Task trailer，历史提交不受影响。 */
+export const TASK_TRAILER_ENFORCED_SINCE = '2026-11-23T09:00:00Z';
 
 export const TASK_STATE_INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 /** 提交标题里的任务编号 token：字母前缀（≥2）可选连字符 + 数字，全文扫描但排除技术串。 */
@@ -48,6 +51,43 @@ export function extractCommitTaskId(subject) {
 }
 
 /**
+ * AF-373 · 解析 Git trailer：`Task: AF-123` 或 `Task: none`。
+ * 一个提交只允许一个不同任务号；同一编号重复声明视为同一任务。
+ * 返回 `{present, taskId}`，`none` 时 taskId=null。
+ */
+export function extractTaskTrailer(message) {
+  const lines = String(message ?? '')
+    .split(/\r?\n/)
+    .map((line) => /^Task:\s*(.*)$/.exec(line.trim()))
+    .filter(Boolean)
+    .map((match) => match[1].trim());
+  if (lines.length === 0) return { present: false, taskId: null };
+  const raw = [...new Set(lines)];
+  if (raw.length > 1) throw new Error(`提交包含多个不同 Task trailer：${raw.join('、')}`);
+  if (raw[0].toLowerCase() === 'none') return { present: true, taskId: null };
+  const taskId = canonicalTaskId(raw[0]);
+  if (!taskId) throw new Error(`Task trailer 非法：${raw[0]}`);
+  return { present: true, taskId };
+}
+
+/**
+ * 提交任务号唯一真相：有 trailer 用 trailer，并校验与 subject 不冲突；
+ * 没有 trailer 时回退 subject（仅用于 trailer 强制生效前的历史提交）。
+ */
+export function resolveCommitTaskId({ message, subject }) {
+  const trailer = extractTaskTrailer(message);
+  const subjectId = extractCommitTaskId(subject);
+  if (!trailer.present) return { taskId: subjectId, source: 'subject' };
+  if (trailer.taskId === null && subjectId) {
+    throw new Error(`Task: none 与 subject 中的任务号冲突：${subjectId}`);
+  }
+  if (trailer.taskId !== null && subjectId !== null && trailer.taskId !== subjectId) {
+    throw new Error(`Task trailer ${trailer.taskId} 与 subject 任务号 ${subjectId} 不一致`);
+  }
+  return { taskId: trailer.taskId, source: 'trailer', none: trailer.taskId === null };
+}
+
+/**
  * 单提交快照纯判定。taskSheetExists 仅在解析到 taskId 且判定需要任务时强制 true。
  * @returns {{pass:boolean,reason:string,taskId:string|null,commitTaskId:string|null,errors:string[],files:string[],covered:string[]}}
  */
@@ -61,10 +101,15 @@ export function evaluateCommitSnapshot({
   taskSheetSnapshot = null,
   receipts = [],
   rootDir = null,
+  message = null,
+  commitDate = null,
 }) {
   let commitTaskId = null;
+  let trailer = { present: false, taskId: null };
   try {
-    commitTaskId = extractCommitTaskId(subject);
+    const resolved = resolveCommitTaskId({ message, subject });
+    commitTaskId = resolved.taskId;
+    trailer = { present: resolved.source === 'trailer', taskId: resolved.taskId };
   } catch (error) {
     return {
       pass: false,
@@ -72,6 +117,32 @@ export function evaluateCommitSnapshot({
       taskId: null,
       commitTaskId: null,
       errors: [error.message],
+      files: changedFiles ?? [],
+      covered: [],
+    };
+  }
+  if (trailer.present && trailer.taskId === null) {
+    const impl = (changedFiles ?? []).filter((file) => !isStatePlanePath(file));
+    if (impl.length > 0) {
+      return {
+        pass: false,
+        reason: 'state-none-with-impl',
+        taskId: null,
+        commitTaskId: null,
+        errors: [`Task: none 只允许纯状态面提交，实际含实现文件：${impl.slice(0, 10).join(',')}`],
+        files: changedFiles ?? [],
+        covered: [],
+      };
+    }
+  }
+  const requiresTrailer = commitDate !== null && String(commitDate) >= TASK_TRAILER_ENFORCED_SINCE;
+  if (requiresTrailer && !trailer.present) {
+    return {
+      pass: false,
+      reason: 'missing-task-trailer',
+      taskId: null,
+      commitTaskId,
+      errors: [`提交缺少 Task trailer（强制生效时间 ${TASK_TRAILER_ENFORCED_SINCE}）：请写 Task: ${commitTaskId ?? 'none'}`],
       files: changedFiles ?? [],
       covered: [],
     };
@@ -93,7 +164,9 @@ export function evaluateCommitSnapshot({
       : null;
   const currentTasks = [...(currentIndex?.tasks ?? [])];
   if (taskSheetTask && !currentTasks.some((task) => task?.taskId === commitTaskId)) currentTasks.push(taskSheetTask);
-  const recordedArchived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === commitTaskId && task?.status === 'completed');
+  const recordedArchived = (currentIndex?.archivedTasks ?? []).find(
+    (task) => task?.taskId === commitTaskId && task?.status === 'completed',
+  );
   // 状态面解耦：任务分支不提交 index，最终 HEAD 以「任务单 + 可合并 durable 回执」合成 archived。
   const currentArchived =
     recordedArchived ??
@@ -499,6 +572,8 @@ export function unionSquashScopeFiles(tasks = [], fallbackFiles = []) {
 /** 读取一个真实 git 提交并执行快照判定（只读）。 */
 export function evaluateCommitAt(sha) {
   const subject = git(['show', '-s', '--format=%s', sha]);
+  const message = git(['show', '-s', '--format=%B', sha]);
+  const commitDate = git(['show', '-s', '--format=%cI', sha]).trim();
   const parents = git(['show', '-s', '--format=%P', sha]).split(/\s+/).filter(Boolean);
   if (parents.length > 1) {
     return {
@@ -522,9 +597,9 @@ export function evaluateCommitAt(sha) {
   const parentIndex = readIndexAt(parent);
   let commitTaskId = null;
   try {
-    commitTaskId = extractCommitTaskId(subject);
+    commitTaskId = resolveCommitTaskId({ message, subject }).taskId;
   } catch {
-    // 多任务编号的权威错误由纯判定器返回。
+    // 多任务编号 / trailer 冲突的权威错误由纯判定器返回。
   }
   let evaluatedCurrentIndex = currentIndex;
   const parentHasTask = [...parentIndex.tasks, ...parentIndex.archivedTasks].some((task) => task?.taskId === commitTaskId);
@@ -611,6 +686,8 @@ export function evaluateCommitAt(sha) {
     taskSheetSnapshot,
     receipts,
     rootDir: process.cwd(),
+    message,
+    commitDate,
   });
   return { sha, subject, parent, ...result, implEntrySource };
 }

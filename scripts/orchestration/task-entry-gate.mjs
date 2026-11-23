@@ -405,6 +405,31 @@ function printFailure(result) {
   console.error('[ORCH-GATE] 只读问答 / 搜索 / 纯分析不需要建任务；任何写入都必须有在办任务。');
 }
 
+/**
+ * AF-373 · 已提交回执不可原地改写。
+ *
+ * 回执是审计原件：一旦随实现进入 HEAD，任何修订都只能新增内容寻址副本
+ * （`receipt-<id>-<sha8>.json`），不能修改已跟踪的同名文件。否则 manifest 里的
+ * 内容哈希与提交历史会持续漂移，只能靠事后 migrate 掩盖。
+ */
+export function findImmutableReceiptViolations(rootDir, changedFiles) {
+  const violations = [];
+  for (const file of changedFiles) {
+    if (!/^docs\/worklog\/records\/[^/]+\/[^/]+\/receipt-.+\.json$/.test(file)) continue;
+    try {
+      execFileSync('git', ['-C', rootDir, 'cat-file', '-e', `HEAD:${file}`], { stdio: 'ignore' });
+    } catch {
+      continue; // 首次入库允许新增。
+    }
+    try {
+      execFileSync('git', ['-C', rootDir, 'diff', '--cached', '--quiet', 'HEAD', '--', file], { stdio: 'ignore' });
+    } catch (error) {
+      if (error?.status === 1) violations.push(file);
+    }
+  }
+  return violations;
+}
+
 function main() {
   const args = process.argv.slice(2);
   const rootDir = resolve(argValue(args, '--root') ?? REPO_ROOT);
@@ -431,6 +456,15 @@ function main() {
     console.error('[ORCH-GATE] FAIL reason=state-plane-on-task-branch');
     console.error(`[ORCH-GATE] task 分支 ${branch} 拒绝提交状态面：${stateStaged.join(',')}`);
     console.error('[ORCH-GATE] 状态面请走 state/* 分支或 integrate 上的独立状态提交；确需例外设 ORCH_ALLOW_STATE_COMMIT=1 并记录原因。');
+    process.exitCode = 1;
+    return;
+  }
+
+  const immutableReceiptViolations = findImmutableReceiptViolations(rootDir, changedFiles);
+  if (immutableReceiptViolations.length > 0) {
+    console.error('[ORCH-GATE] FAIL reason=immutable-receipt-modified');
+    console.error(`[ORCH-GATE] 已提交回执不可原地改写：${immutableReceiptViolations.join(',')}`);
+    console.error('[ORCH-GATE] 修订请用 receipt freeze 生成带内容哈希的新副本，并保留原回执。');
     process.exitCode = 1;
     return;
   }

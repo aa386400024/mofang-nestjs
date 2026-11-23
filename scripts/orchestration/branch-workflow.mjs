@@ -42,7 +42,9 @@ export function deriveSlug(title, taskId = '') {
   const stripped = String(title ?? '')
     .replace(new RegExp(String(taskId ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ')
     .replace(/(?:AF|WP)-\d+/gi, ' ');
-  const slug = normalizeSlug(stripped).replace(TASK_NUMBER_IN_SLUG, '').replace(/^-+|-+$/g, '');
+  const slug = normalizeSlug(stripped)
+    .replace(TASK_NUMBER_IN_SLUG, '')
+    .replace(/^-+|-+$/g, '');
   return slug.slice(0, 48).replace(/-+$/g, '') || 'task-work';
 }
 
@@ -317,7 +319,8 @@ function stripTaskIdsFromSubject(title) {
 export function buildSquashCommitMessage(opts = {}) {
   const type = SQUASH_TYPE_BY_TASK_TYPE[opts.taskType] ?? 'chore';
   const subject = `${opts.taskId ?? ''} ${stripTaskIdsFromSubject(opts.title)}`.trim();
-  return `${type}(orchestration): ${subject}`.trim();
+  const header = `${type}(orchestration): ${subject}`.trim();
+  return opts.taskId ? `${header}\n\nTask: ${opts.taskId}` : header;
 }
 
 /**

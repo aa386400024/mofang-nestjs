@@ -15,7 +15,7 @@ import { createHash } from 'node:crypto';
 import { join, relative, resolve } from 'node:path';
 import { PATHS, REPO_ROOT, nowIso } from './state-store.mjs';
 import { validateReceiptHandover } from './handover-contract.mjs';
-import { copyReceiptToBundle, ensureTaskRecordBundle } from './worklog.mjs';
+import { findBundledReceipt, copyReceiptToBundle, ensureTaskRecordBundle } from './worklog.mjs';
 
 /**
  * 回执指纹：整份回执文件的 sha256（含包装层），用于「内容有没有被改」的审计。
@@ -90,14 +90,8 @@ export function archiveTaskSheetFile(task) {
   if (typeof ref !== 'string' || ref.length === 0) return ref ?? null;
   const abs = resolve(REPO_ROOT, ref);
   if (ref.startsWith('docs/worklog/records/')) {
-    if (existsSync(abs)) {
-      try {
-        ensureTaskRecordBundle(task, { status: task.status });
-      } catch {
-        // 指针可能来自错误回执（指向别的任务单）；归档不被记录包同步阻断。
-      }
-    }
-    return ref;
+    // 已入包即不可变：归档阶段只允许确认存在，绝不再写 manifest / 任务单。
+    if (existsSync(abs)) return ref;
   }
   if (!existsSync(abs)) return ref;
   const lifecycle =
@@ -178,11 +172,21 @@ export function ingestReceipts(index, runtimeState, opts = {}) {
 
     // 机读回执与交付记录成对：索引只存指针，正文留在 worklog。
     const artifacts = receiptArtifacts(receipt);
+    // AF-373：回执必须先随实现提交进记录包；摄入阶段不再补写，避免提交后产生脏文件。
+    const bundled = opts.requireBundled ? findBundledReceipt(task, file, receipt) : null;
+    if (opts.requireBundled && !bundled) {
+      invalid += 1;
+      entry.receiptErrors = [
+        `回执未冻结：${task.taskId} → transport 回执未以同一内容哈希进入 docs/worklog/records；先运行 receipt freeze --taskId ${task.taskId} --apply 并提交`,
+      ];
+      actions.push({ type: 'receipt-not-frozen', taskId: task.taskId, file });
+      continue;
+    }
     task.artifacts = { ...(task.artifacts ?? {}), ...artifacts };
-    // 长期审计：回执副本进任务记录包；显式传 archiveDir 的测试/兼容路径仍走旧 archive。
+    // 长期审计：兼容显式 archiveDir 的旧路径；正常路径只认已冻结副本。
     const archiveRef = opts.archiveDir
       ? archiveReceiptFile(file, receipt, task.taskId, opts.archiveDir)
-      : copyReceiptToBundle(task, file, receipt).ref;
+      : (bundled?.path ?? copyReceiptToBundle(task, file, receipt).ref);
     task.receipt = {
       receiptId: receipt.receiptId ?? null,
       finalStatus: receipt.finalStatus,

@@ -44,7 +44,7 @@ import { CIRCUIT_BREAKER_DEFAULTS, evaluateCircuitBreaker, resolveDispatchDecisi
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
 import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
-import { ensureTaskRecordBundle, resolveTaskSheet, resolveWorklogArtifact } from './worklog.mjs';
+import { ensureTaskRecordBundle, isTaskSheetBundled, resolveTaskSheet, resolveWorklogArtifact } from './worklog.mjs';
 import { relative } from 'node:path';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
@@ -647,7 +647,8 @@ function archiveTask(index, task, status) {
     pushHistory(task, step, BY_ORCHESTRATOR, '回执验收后闭合终态');
   }
   archiveTaskEntry(index, task.taskId, { status });
-  if (resolveTaskSheet(task)) {
+  // AF-373：记录包在登记/冻结时已提交，归档只迁移状态面；已入包任务不得再回写 manifest。
+  if (resolveTaskSheet(task) && !isTaskSheetBundled(task)) {
     try {
       ensureTaskRecordBundle(task, { status });
     } catch {
@@ -699,7 +700,12 @@ function hydrateTaskReceipt(task, entry) {
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
 export function processReceipts(index, runtimeState, config, actions, opts = {}) {
   // 先把 transport/receipts 的机读回执投影进任务与运行态，再进入验收。
-  ingestReceipts(index, runtimeState, { actions, dir: opts.receiptsDir, archiveDir: opts.receiptArchiveDir });
+  ingestReceipts(index, runtimeState, {
+    actions,
+    dir: opts.receiptsDir,
+    archiveDir: opts.receiptArchiveDir,
+    requireBundled: opts.requireBundled === true,
+  });
 
   const remaining = [];
   for (const task of index.tasks) {
@@ -917,6 +923,8 @@ export function advanceOnce(opts = {}) {
       resolveCommitFiles: opts.resolveCommitFiles,
       // AF-217：注入「scope 内未提交改动」探测，未注入时行为与既有单测一致。
       checkUncommitted: opts.checkUncommitted,
+      // AF-373：真实 CLI 运行显式开启；测试/历史回放默认关闭以保持既有夹具语义。
+      requireBundled: opts.requireBundledReceipt === true,
     });
     // 取消 / 失败任务没有回执可等，靠扫档收尾；否则会永久占「活跃计数」并让队列概览虚高。
     sweepTerminalTasks(index, actions);
