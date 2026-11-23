@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T14:16:04.422Z",
+  "generatedAt": "2026-11-23T14:20:13.602Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1787,6 +1787,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-188",
+      "recordedAt": "2026-11-23T14:18:44.184Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-388",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-388",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-388.json"
+      ]
+    },
+    {
+      "auditId": "AUD-187",
+      "recordedAt": "2026-11-23T14:18:28.295Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-388",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-186",
       "recordedAt": "2026-11-23T14:14:25.583Z",
       "actorRef": "orchestrator",
@@ -1988,52 +2020,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-173",
-      "recordedAt": "2026-11-23T12:26:59.821Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-381",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-172",
-      "recordedAt": "2026-11-23T12:24:07.859Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-381",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-381",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-381.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 186,
+    "total": 188,
     "byResult": {
-      "allowed": 186,
+      "allowed": 188,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 185,
+      "TOOL-QUEUE-SCHEDULER": 187,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 186
+      "orchestrator": 188
     }
   },
   "protocolView": {
@@ -8417,6 +8417,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/team/agent-orchestration/transport/receipts/AF-387.json"
           }
         ]
+      },
+      {
+        "taskId": "AF-388",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af388-workspace-artifact-cleanup-landing-2026-11-23.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/team/agent-orchestration/transport/receipts/AF-388.json"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8441,5 +8463,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 363
+  "archivedCount": 364
 };
