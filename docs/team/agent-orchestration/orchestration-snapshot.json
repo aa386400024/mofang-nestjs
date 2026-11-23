@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T10:03:12.262Z",
+  "generatedAt": "2026-11-23T11:15:06.349Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1785,6 +1785,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-165",
+      "recordedAt": "2026-11-23T10:59:02.846Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-378",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-378-ci-zero-cost"
+      ]
+    },
+    {
+      "auditId": "AUD-164",
+      "recordedAt": "2026-11-23T10:58:53.968Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-378",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-378",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-378.json"
+      ]
+    },
+    {
+      "auditId": "AUD-163",
+      "recordedAt": "2026-11-23T10:58:37.588Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-378",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-162",
       "recordedAt": "2026-11-23T09:48:44.137Z",
       "actorRef": "orchestrator",
@@ -1973,69 +2020,20 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-372.json"
       ]
-    },
-    {
-      "auditId": "AUD-150",
-      "recordedAt": "2026-11-23T08:28:53.861Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-371",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-149",
-      "recordedAt": "2026-11-23T08:28:53.546Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-371",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-148",
-      "recordedAt": "2026-11-23T08:27:24.291Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-371",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-371",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-371.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 162,
+    "total": 165,
     "byResult": {
-      "allowed": 162,
+      "allowed": 165,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 161,
+      "TOOL-QUEUE-SCHEDULER": 164,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 162
+      "orchestrator": 165
     }
   },
   "protocolView": {
@@ -8215,6 +8213,28 @@
             "ref": "docs/worklog/completed/phase2.5/af377-squash-scope-union-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-378",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af378-ci-zero-cost-2026-11-23.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/team/agent-orchestration/transport/receipts/AF-378.json"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8239,5 +8259,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 353
+  "archivedCount": 354
 }

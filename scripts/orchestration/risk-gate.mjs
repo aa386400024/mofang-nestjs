@@ -93,7 +93,7 @@ export function resolveRiskClass({ changedFiles = [], explicitRiskClass = null }
 }
 
 /**
- * 门禁执行计划。13 项 required checks 全部保留；跳过项必须由调用方打印原因。
+ * 门禁执行计划。required checks 全部保留；跳过项必须由调用方打印原因。
  * @param {'R0'|'R1'|'R2'} riskClass
  */
 export function gatePlan(riskClass) {
@@ -101,7 +101,7 @@ export function gatePlan(riskClass) {
   const plan = {
     riskClass: risk,
     orchestration: true,
-    lint: true,
+    lint: risk !== 'R0',
     contracts: risk !== 'R0',
     security: risk !== 'R0',
     unit: risk !== 'R0',
@@ -110,10 +110,11 @@ export function gatePlan(riskClass) {
     build: risk === 'R2',
     skipped: [],
   };
+  if (!plan.lint) plan.skipped.push('Lint + Typecheck');
   if (!plan.contracts) plan.skipped.push('Contracts');
   if (!plan.security) plan.skipped.push('Security Audit');
   if (!plan.unit) plan.skipped.push('Unit 1/3', 'Unit 2/3', 'Unit 3/3');
-  if (!plan.coverage) plan.skipped.push('Coverage 1/3', 'Coverage 2/3', 'Coverage 3/3', 'Coverage Gate');
+  if (!plan.coverage) plan.skipped.push('Coverage Gate');
   if (!plan.e2e) plan.skipped.push('E2E');
   if (!plan.build) plan.skipped.push('Build (Docker)');
   return plan;
@@ -152,7 +153,12 @@ function main(argv) {
   if (base) {
     const range = `${base}..${head}`;
     const raw = execFileSync('git', ['diff', '--name-only', range], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }).trim();
-    changedFiles = raw ? raw.split('\n').map((line) => line.trim()).filter(Boolean) : [];
+    changedFiles = raw
+      ? raw
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [];
   }
   const task = readTaskRisk(taskId);
   const resolved = resolveRiskClass({ changedFiles, explicitRiskClass: task.riskClass });
@@ -167,6 +173,7 @@ function main(argv) {
   if (githubOutput) {
     const lines = [
       `risk_class=${plan.riskClass}`,
+      `run_lint=${plan.lint}`,
       `run_contracts=${plan.contracts}`,
       `run_security=${plan.security}`,
       `run_unit=${plan.unit}`,
