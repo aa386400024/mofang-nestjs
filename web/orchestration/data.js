@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T19:57:51.806Z",
+  "generatedAt": "2026-11-23T20:08:09.738Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1787,6 +1787,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-253",
+      "recordedAt": "2026-11-23T20:04:41.062Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-415",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-415-presence-precision-eval"
+      ]
+    },
+    {
+      "auditId": "AUD-252",
+      "recordedAt": "2026-11-23T20:04:30.353Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-415",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-415",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-415.json"
+      ]
+    },
+    {
       "auditId": "AUD-251",
       "recordedAt": "2026-11-23T19:52:48.484Z",
       "actorRef": "orchestrator",
@@ -1988,52 +2018,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-407-zero-motion-carryover"
       ]
-    },
-    {
-      "auditId": "AUD-238",
-      "recordedAt": "2026-11-23T18:54:02.849Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-407",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-407",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-407.json"
-      ]
-    },
-    {
-      "auditId": "AUD-237",
-      "recordedAt": "2026-11-23T18:53:54.181Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-407",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 251,
+    "total": 253,
     "byResult": {
-      "allowed": 251,
+      "allowed": 253,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 250,
+      "TOOL-QUEUE-SCHEDULER": 252,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 251
+      "orchestrator": 253
     }
   },
   "protocolView": {
@@ -8853,6 +8851,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af414-atomic-write-retry-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-415",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-415/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af415-presence-precision-eval-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8877,5 +8893,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 387
+  "archivedCount": 388
 };
