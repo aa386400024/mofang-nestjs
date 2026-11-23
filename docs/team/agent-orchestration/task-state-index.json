@@ -4,86 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1561,
+    "lastEventSeq": 1563,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-351",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-23T01:20:43.873Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始历史修正"
-        },
-        {
-          "at": "2026-11-23T01:20:51.586Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "修正取消任务指针提交的多任务编号并重写任务分支历史",
-      "type": "fix",
-      "baselineRef": "5620a89159e7bd4c59b350d89f6bac9e264443d3",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-347",
-        "AF-348",
-        "AF-349",
-        "AF-350"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-23T01:20:43.567Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "node scripts/orchestration/ci-task-gate.mjs --base origin/integrate --head HEAD --require-accepted --task-id task/AF-349-bdi-semantic",
-          "check": "逐提交任务门通过",
-          "threshold": "exit=0"
-        }
-      ],
-      "successCriteria": [
-        "任务分支历史中不再存在“提交标题含多个任务编号”的提交。",
-        "逐提交任务门与 PR 的 Orchestration Gate 转 success。",
-        "不改 AF-347 / AF-348 / AF-349 / AF-350 的既有证据内容。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-23T01:20:43.872Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -3118,6 +3042,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-350/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af350-canceled-task-pointers-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-351",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
         "reply": null
       }
     }

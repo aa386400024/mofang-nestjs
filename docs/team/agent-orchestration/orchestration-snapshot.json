@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-23T01:20:51.664Z",
+  "generatedAt": "2026-11-23T01:22:16.576Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-351",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "修正取消任务指针提交的多任务编号并重写任务分支历史",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-351",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-23T01:20:51.588Z",
-        "leaseDeadline": "2026-11-23T01:50:51.585Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-351.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-23T01:20:51.588Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-351.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1825,6 +1784,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-108",
+      "recordedAt": "2026-11-23T01:20:51.749Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-351",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-351",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-351.json"
+      ]
+    },
+    {
       "auditId": "AUD-107",
       "recordedAt": "2026-11-23T01:20:44.049Z",
       "actorRef": "orchestrator",
@@ -2051,67 +2025,25 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-093",
-      "recordedAt": "2026-11-22T23:15:20.609Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-344",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 107,
+    "total": 108,
     "byResult": {
-      "allowed": 107,
+      "allowed": 108,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 106,
+      "TOOL-QUEUE-SCHEDULER": 107,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 107
+      "orchestrator": 108
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-351",
-        "title": "修正取消任务指针提交的多任务编号并重写任务分支历史",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8032,6 +7964,24 @@
             "ref": "docs/worklog/completed/phase2.5/af350-canceled-task-pointers-2026-11-23.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-351",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8046,22 +7996,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-351",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-351/task-sheet.md"
-      },
-      {
-        "taskId": "AF-351",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af351-history-rewrite-2026-11-23.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -8069,5 +8006,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 340
+  "archivedCount": 341
 }
