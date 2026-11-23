@@ -6,7 +6,7 @@ import { DebugTtsRenderDto } from './debug-tts.dto.js';
 import { DebugTtsService, type DebugTtsRenderResult } from './debug-tts.service.js';
 import { AdminRoleGuard } from '../guards/admin-role.guard.js';
 
-@Controller('debug/tts')
+@Controller('admin/api/debug/tts')
 @UseGuards(AdminRoleGuard)
 export class DebugTtsController {
   constructor(private readonly tts: DebugTtsService) {}

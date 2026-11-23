@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { DebugSessionService } from '../../src/admin-debug/debug-session.service.js';
 import { AdminDebugTtsRenderEntity } from '../../src/admin-debug/tts/admin-debug-tts-render.entity.js';
+import { DebugTtsController } from '../../src/admin-debug/tts/debug-tts.controller.js';
 import { synthesizeDoubao, synthesizeMiniMax } from '../../src/admin-debug/tts/debug-tts.providers.js';
 import { DebugTtsService } from '../../src/admin-debug/tts/debug-tts.service.js';
 import { PracticeSession } from '../../src/auto-practice/entities/practice-session.entity.js';
@@ -38,6 +39,15 @@ function baseInput(text: string) {
     baseUrl: 'https://api.minimax.cn',
   };
 }
+
+describe('AF-402 调试 TTS 路由前缀', () => {
+  it('控制器前缀与前端 client BASE 对齐到 admin/api', () => {
+    const prefix = Reflect.getMetadata('path', DebugTtsController);
+    const renderPath = Reflect.getMetadata('path', DebugTtsController.prototype.render);
+    expect(prefix).toBe('admin/api/debug/tts');
+    expect(renderPath).toBe('render');
+  });
+});
 
 describe('AF-395 调试 TTS provider 协议', () => {
   it('MiniMax 请求体带模型/音色/情绪，hex 音频被解码', async () => {
