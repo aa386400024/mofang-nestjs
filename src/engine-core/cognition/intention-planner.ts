@@ -130,13 +130,12 @@ export function nextIntentionLock(
   };
 }
 
-/** 阻抗聚合阈值: 三维平均达到即视为整体防御. */
-const HIGH_RESISTANCE_AGG = 0.6;
-/** 话量阻抗阈值: 达到即倾向简短回应. */
-const HIGH_VERBAL = 0.55;
-// 探索的深度阻抗上限 (原局部常量 LOW_DEPTH = 0.35) 已并入同盟门槛端口
-// `AllianceConfig.thresholds.openDepth` —— 见 cognition/alliance-config.ts.
-// 种子值逐字不变 (0.35), 缺省零行为变化.
+// AF-354 (2026-11-23 · 决策阈值端口化):
+//   本文件原先残留 12 个局部常量（阻抗聚合 / 话量 / 负移情 / 依赖 / 回避边际 /
+//   探索下调双门槛与幅度 / 情境请求 / 掌控计划 / 自发信念置信度）。它们都是
+//   "部署形态"的调参决定，与 open / openDepth 同构，统一并入
+//   `AllianceConfig.thresholds`。缺省值逐字等于原常量 —— 零行为变化。
+//   ⚠️ 数值仍是工程种子，不是临床标定；本单只打通配置通道，不做标定.
 
 /**
  * 决策信号快照 (AF-315).
@@ -182,23 +181,28 @@ function deriveDecisionSignals(
   const activationPeak = Object.values(snapshot.coreBeliefActivation).reduce((max, value) => Math.max(max, value), 0);
   const activationBlocksExploration = activationPeak >= thresholds.coreActivationGate && allianceGate < thresholds.coreActivationSafetyGate;
   // AF-315: 移情进入决策。负移情主导 = 对咨询师的不满 / 敌意投射已经压过好感。
-  const negativeDominant = snapshot.transference.negative >= 0.3 && snapshot.transference.negative >= snapshot.transference.positive + 0.1;
-  const dependencyHigh = snapshot.transference.dependency >= 0.4;
+  const negativeDominant =
+    snapshot.transference.negative >= thresholds.negativeDominantFloor &&
+    snapshot.transference.negative >= snapshot.transference.positive + thresholds.negativeDominantMargin;
+  const dependencyHigh = snapshot.transference.dependency >= thresholds.dependencyHigh;
   // AF-315: 愿望层。`avoid_pain` 明显压过“被理解”时，先保护自己，不往深处走。
   const understoodWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'understood')?.currentWeight ?? 0;
   const acceptedWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'accepted')?.currentWeight ?? 0;
   const avoidPainWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'avoid_pain')?.currentWeight ?? 0;
-  const avoidanceDominant = avoidPainWeight - Math.max(understoodWeight, acceptedWeight) > 0.1;
+  const avoidanceDominant = avoidPainWeight - Math.max(understoodWeight, acceptedWeight) > thresholds.avoidanceMargin;
   // AF-322: 被理解与被接纳是两个独立信号，二者都高才下调探索门槛；
   //   用平均值近似会把“只被理解、尚未被接纳”误判成可以更深探索。
-  const explorationGate = understoodWeight >= 0.65 && acceptedWeight >= 0.55 ? Math.max(0, thresholds.open - 0.03) : thresholds.open;
+  const explorationGate =
+    understoodWeight >= thresholds.explorationUnderstoodGate && acceptedWeight >= thresholds.explorationAcceptedGate
+      ? Math.max(0, thresholds.open - thresholds.explorationGateRelief)
+      : thresholds.open;
   // AF-315: 情境愿望有明确高优先级诉求时，先回应具体请求 (规则轨不解析文本)。
   const situationalPriority = snapshot.situationalDesires
     .filter((desire) => desire.active)
     .reduce((max, desire) => Math.max(max, desire.priority), 0);
   // AF-322: 整合领悟的前提是来访已经自发形成一条较高置信度的短期信念。
   const reflectiveBeliefCount = snapshot.temporaryBeliefs.filter(
-    (belief) => belief.source === 'observed' && belief.confidence >= 0.6,
+    (belief) => belief.source === 'observed' && belief.confidence >= thresholds.reflectiveBeliefGate,
   ).length;
   const controlWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'control')?.currentWeight ?? 0;
   // 直接调用方不传轮次时保持 AF-315 之前的策略边界；后段策略只在引擎显式给轮次时启用。
@@ -247,7 +251,7 @@ function pickProtectiveStrategy(
   const { verbal } = snapshot.resistance;
   const { aggregate, allianceLow, negativeDominant, dependencyHigh, turnNumber, situationalPriority } = signals;
 
-  if (aggregate >= HIGH_RESISTANCE_AGG && allianceLow) {
+  if (aggregate >= thresholds.highResistanceAgg && allianceLow) {
     return {
       strategy: 'resistance',
       rationale: `整体防御强(agg=${aggregate.toFixed(2)})且信任/安全感偏低(trust=${snapshot.trust.toFixed(2)}, safety=${snapshot.safety.toFixed(2)}), 倾向抗拒`,
@@ -259,7 +263,7 @@ function pickProtectiveStrategy(
       rationale: `负移情主导(negative=${snapshot.transference.negative.toFixed(2)}, positive=${snapshot.transference.positive.toFixed(2)}), 对咨询师的不满先以抗拒表达`,
     };
   }
-  if (verbal >= HIGH_VERBAL) {
+  if (verbal >= thresholds.highVerbal) {
     return { strategy: 'simple_response', rationale: `话量阻抗高(${verbal.toFixed(2)}), 倾向简短回应` };
   }
   if (dependencyHigh && turnNumber >= thresholds.explorationMinTurn) {
@@ -268,7 +272,7 @@ function pickProtectiveStrategy(
       rationale: `依赖移情高(dependency=${snapshot.transference.dependency.toFixed(2)}), 先回应具体请求而不是继续探索`,
     };
   }
-  if (situationalPriority >= 0.7) {
+  if (situationalPriority >= thresholds.situationalRequestPriority) {
     return { strategy: 'request', rationale: `情境愿望优先级高(${situationalPriority.toFixed(2)}), 先回应来访本轮具体诉求` };
   }
   return undefined;
@@ -311,7 +315,7 @@ function pickLateStageStrategy(
   ) {
     return undefined;
   }
-  if (turnNumber >= thresholds.planMinTurn && controlWeight >= 0.55) {
+  if (turnNumber >= thresholds.planMinTurn && controlWeight >= thresholds.controlPlanGate) {
     return {
       strategy: 'discussing_plans',
       rationale: `第 ${turnNumber} 轮且掌控愿望权重达 ${controlWeight.toFixed(2)}，同盟稳定(min=${allianceGate.toFixed(2)}, gate=${explorationGate.toFixed(2)})，进入计划讨论`,

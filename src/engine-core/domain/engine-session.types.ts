@@ -103,6 +103,31 @@ export interface OpenEngineSessionInput {
     readonly insightMinTurn?: number;
     /** AF-322: 允许进入「讨论计划」的最早轮次 (缺省 12). */
     readonly planMinTurn?: number;
+    // AF-354: 意图规划器 12 个决策阈值（缺省逐字等于改造前局部常量）.
+    /** 阻抗聚合阈值（缺省 0.60）. */
+    readonly highResistanceAgg?: number;
+    /** 话量阻抗阈值（缺省 0.55）. */
+    readonly highVerbal?: number;
+    /** 负移情主导下限（缺省 0.30）. */
+    readonly negativeDominantFloor?: number;
+    /** 负移情主导边际（缺省 0.10）. */
+    readonly negativeDominantMargin?: number;
+    /** 依赖移情高位阈值（缺省 0.40）. */
+    readonly dependencyHigh?: number;
+    /** 回避痛苦压过被理解/被接纳的边际（缺省 0.10）. */
+    readonly avoidanceMargin?: number;
+    /** 探索门槛下调所需的被理解权重（缺省 0.65）. */
+    readonly explorationUnderstoodGate?: number;
+    /** 探索门槛下调所需的被接纳权重（缺省 0.55）. */
+    readonly explorationAcceptedGate?: number;
+    /** 双愿望达标时的探索门槛下调幅度（缺省 0.03）. */
+    readonly explorationGateRelief?: number;
+    /** 情境愿望触发 request 的优先级门槛（缺省 0.70）. */
+    readonly situationalRequestPriority?: number;
+    /** 进入 discussing_plans 的掌控愿望门槛（缺省 0.55）. */
+    readonly controlPlanGate?: number;
+    /** 可计入自发信念的最低置信度（缺省 0.60）. */
+    readonly reflectiveBeliefGate?: number;
   };
 }
 

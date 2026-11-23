@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-354",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T10:45:00+08:00",
+  "updatedAt": "2026-11-23T02:56:32.376Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-354/task-sheet.md",
+    "sha256": "41dd9c8166590ab91f14a6262b27414a07e3f1e055614a7c8fa993ad9bd19bb5",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-354/receipt-RC-AF-354-1.json",
+      "sha256": "7cf4e9c183658eba1af44cb443b8a68c5569dad7010e2379c9cc5cf3b081528f",
+      "receiptId": "RC-AF-354-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af354-bdi-engineering-closure-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-354-bdi-engineering-closure-2026-11-23.md"
+  ],
+  "tombstone": null
+}

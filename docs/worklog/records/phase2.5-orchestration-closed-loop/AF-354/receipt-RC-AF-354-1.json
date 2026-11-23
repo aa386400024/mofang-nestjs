@@ -1,0 +1,257 @@
+{
+  "deliveredAt": "2026-11-23T10:54:36+08:00",
+  "payload": {
+    "receiptId": "RC-AF-354-1",
+    "taskId": "AF-354",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "ed4bbd2d83a5a2c33c0f0a5877fbbee09cbe0e72",
+    "dependsOn": [],
+    "priorTasks": ["AF-349", "AF-315", "AF-322", "AF-351"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "conventions.md#2.5"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-354/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af354-bdi-engineering-closure-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "src/engine-adapters/wiring/bdi-runtime.config.ts",
+        "src/engine-adapters/wiring/alliance-config.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "src/engine-adapters/deliberation/llm-deliberation.service.ts",
+        "src/engine-core/cognition/alliance-config.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "bin/bdi-readiness-audit.ts",
+        ".env.example",
+        "test/engine-core/af354-bdi-engineering-closure.spec.ts",
+        "test/engine-adapters/af354-bdi-runtime-config.spec.ts",
+        "test/engine-adapters/wp42-alliance-config.spec.ts",
+        "test/engine-core/s1-open-depth-threshold.spec.ts",
+        "test/config/wp25-env-example-coverage.spec.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["644e1be45da5b3ede51ef171f80f59965ce1aec8"],
+      "added": [
+        "src/engine-adapters/wiring/bdi-runtime.config.ts",
+        "bin/bdi-readiness-audit.ts",
+        "test/engine-core/af354-bdi-engineering-closure.spec.ts",
+        "test/engine-adapters/af354-bdi-runtime-config.spec.ts",
+        "docs/worklog/completed/phase2.5/af354-bdi-engineering-closure-2026-11-23.md"
+      ],
+      "modified": [
+        ".env.example",
+        "src/engine-adapters/wiring/alliance-config.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "src/engine-adapters/deliberation/llm-deliberation.service.ts",
+        "src/engine-core/cognition/alliance-config.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "test/engine-adapters/wp42-alliance-config.spec.ts",
+        "test/engine-core/s1-open-depth-threshold.spec.ts",
+        "test/config/wp25-env-example-coverage.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 15s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "全量 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/af354-bdi-engineering-closure.spec.ts test/engine-adapters/af354-bdi-runtime-config.spec.ts test/engine-core/boundary.spec.ts test/config/wp25-env-example-coverage.spec.ts test/engine-adapters/wp42-alliance-config.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 5,
+        "tests": 53,
+        "machine": "同上",
+        "wallClock": "约 1.5s",
+        "note": "5 文件 / 53 例通过；boundary 12、env 12、wp42 7"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 303,
+        "tests": 4605,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "302 文件通过 / 1 跳过（303）；4601 例通过 / 4 跳过（4605）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "5 文件 +235/-30，均在本单 scope 的 cognition / domain / in-memory；boundary.spec.ts 未改"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-354 status=submitted files=27 covered=11"
+      }
+    ],
+    "reproNotes": "BDI 就绪度审计：pnpm exec tsx bin/bdi-readiness-audit.ts --out <tmp>，exit 0；输出 8 角色 × 内核四键覆盖矩阵、策略可达性、机制开关与阻断项，JSON + Markdown 双产物，不连模型 / DB / Redis，不读心理原文。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-354 经 CLI register / promote / run-once；单提交 644e1be4"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，未手改索引或事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-352 / AF-353 因角色或 scope 越域经 CLI cancel 留档；AF-354 登记与提级由 CLI 完成"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "任务单 scope 明列 cognition / domain / in-memory；boundary 12 例通过"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "审计只输出键名 / 权重 / 布尔 / 计数，无对话原文、无 5Ps 原文"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "所有阈值与机制参数标注工程种子；未宣称临床有效性，未新造临床数值"
+      },
+      {
+        "item": "zero-regression",
+        "result": "pass",
+        "note": "三机制整族未配置时不注入；阈值缺省逐字等于原常量；存储缺省仍 memory"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef ed4bbd2d；type implementation；最终状态 completed；提交 644e1be4 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF354-B1",
+        "impact": "8 个角色种子使用 acceptance / stability / recognition / self_reliability / competence / autonomy / belonging / rest / being_understood / safety / control，内核只读 understood / accepted / avoid_pain / control；7/8 角色零交集。需大炮拍板临床映射，含是否改角色档、是否改内核键。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF354-B2",
+        "impact": "temporaryBeliefs 在内核只有衰减读取、无写入点，insight 结构性不可达；需设计来访自发信念的生成与来源标注。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF354-B3",
+        "impact": "来访自身反应不回灌 BDI：事件分类只消费咨询师本轮文本，审议结果下一轮只改 delta 不改意图；需设计回灌链与隐私边界。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF354-B4",
+        "impact": "12 个决策阈值、愿望演化 5 参数、意图锁 TTL、时序斜率均为工程种子，未做临床标定。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF354-B5",
+        "impact": "愿望演化 / 意图锁 / 时序权重是否在生产默认开启仍待批次决策；当前全部关闭或 none。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF354-B6",
+        "impact": "模型轨缺省 ENGINE_MODEL_CLASSIFIER_ENABLED=false + rule_only，holding_present / cold_absent 规则轨结构性判不出；需模型轨灰度与成本预算。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF354-B7",
+        "impact": "MindGuard 仍 connected:false，临床安全层未接入。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "8 角色愿望键到内核四键的临床映射由谁定稿、是否改角色种子",
+      "三项机制何时从缺省关闭切到生产开启，是否需要分批灰度",
+      "来访反应回灌 BDI 的隐私边界与实现形态",
+      "clinical 阈值标定需要多少真实咨询师逐轮标注"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "回写 phase2.5 WP 清单与阶段入口",
+        "reality": "两个文件都在 docs/worklog/pending/，任务单 scope 未包含该目录",
+        "action": "未写；backlog 登记在交付记录 §8 与回执 backlogItems",
+        "why": "守住 scope 越域红线，不为补文档扩大写入面"
+      },
+      {
+        "taskSays": "任务单 artifact 名 af353-...（草稿阶段）",
+        "reality": "最终任务 ID 为 AF-354（AF-352 / AF-353 因角色或 scope 越域 cancel）",
+        "action": "交付记录按 AF-354 命名",
+        "why": "记录真实任务 ID，不篡改历史"
+      },
+      {
+        "taskSays": "11 个硬编码决策阈值",
+        "reality": "实数为 12 个，额外包含 reflectiveBeliefGate",
+        "action": "12 个全部端口化并逐项列出",
+        "why": "reflectiveBeliefGate 同样是 hardcode 且控制 insight 分支，少一个就不是完整闭环"
+      },
+      {
+        "taskSays": "内核改动仅限三个既有文件",
+        "reality": "实际改 5 个：cognition 2 + domain 2 + in-memory 1",
+        "action": "保留 5 文件改动，boundary.spec.ts 零改动",
+        "why": "engine-session.types.ts 是 S-1 1:1 类型镜像的必要同步；desires.ts 是 successCriteria 明列的 changed 修复；均在 scope 目录内且未新增内核公开导出"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三机制启用通道、12 阈值端口化、跨会话清理、双锁互斥、生产存储告警、changed 语义、只读审计均有实现与单测；typecheck 0、lint 0/0、定向 53 例、全量 4601 例通过；临床语义缺口以审计证据暴露并登记 backlog，未包装成已修复。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本单零新增模型调用；审计只读本地种子与 env。"
+  }
+}

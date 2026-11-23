@@ -160,6 +160,19 @@ describe('S-1 · ⑤ 镜像类型 1:1', () => {
       coreActivationSafetyGate: 0.75,
       insightMinTurn: 8,
       planMinTurn: 12,
+      // AF-354: 决策阈值 12 字段（镜像必须与 AllianceThresholds 同步）.
+      highResistanceAgg: 0.6,
+      highVerbal: 0.55,
+      negativeDominantFloor: 0.3,
+      negativeDominantMargin: 0.1,
+      dependencyHigh: 0.4,
+      avoidanceMargin: 0.1,
+      explorationUnderstoodGate: 0.65,
+      explorationAcceptedGate: 0.55,
+      explorationGateRelief: 0.03,
+      situationalRequestPriority: 0.7,
+      controlPlanGate: 0.55,
+      reflectiveBeliefGate: 0.6,
     };
     expect(Object.keys(mirror).sort()).toEqual(Object.keys(resolveAllianceThresholds(BASE_CONFIG)).sort());
     // 类型层: MIRROR_KEYS_MATCH 的类型是 true —— 键集合不一致时**编译不过** (不是运行时断言).

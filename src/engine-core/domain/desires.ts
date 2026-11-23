@@ -138,7 +138,47 @@ export function evolveDesires(
   });
 
   const situational = nextSituationalDesires(input, signals, config);
+  // AF-354: `changed` 必须反映**真实差异** —— 旧实现恒 true，让调用方无法据此
+  //   跳过无变化的写回/落库，也使"机制是否真的动了状态"不可观测。
+  //   enabled=true 但本轮无信号、无 TTL 到期、无基线漂移时，返回入参引用并标 false.
+  const underlyingChanged = !listsEqual(underlying, input.underlyingDesires, desireEqual);
+  const situationalChanged = !listsEqual(situational, input.situationalDesires, situationalEqual);
+  if (!underlyingChanged && !situationalChanged) {
+    return {
+      underlyingDesires: input.underlyingDesires,
+      situationalDesires: input.situationalDesires,
+      changed: false,
+    };
+  }
   return { underlyingDesires: underlying, situationalDesires: situational, changed: true };
+}
+
+/** 同索引逐项比较两个只读列表. */
+function listsEqual<T>(left: readonly T[], right: readonly T[], equal: (a: T, b: T) => boolean): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((item, index) => equal(item, right[index]));
+}
+
+/** 底层愿望比较: 键 / 标签 / 基线 / 当前权重任一变化即视为变化. */
+function desireEqual(left: UnderlyingDesire, right: UnderlyingDesire): boolean {
+  return (
+    left.key === right.key &&
+    left.label === right.label &&
+    left.baselineWeight === right.baselineWeight &&
+    left.currentWeight === right.currentWeight
+  );
+}
+
+/** 情境愿望比较: 全部业务字段. */
+function situationalEqual(left: SituationalDesire, right: SituationalDesire): boolean {
+  return (
+    left.id === right.id &&
+    left.text === right.text &&
+    left.priority === right.priority &&
+    left.active === right.active &&
+    left.createdAtTurn === right.createdAtTurn &&
+    left.expiresAtTurn === right.expiresAtTurn
+  );
 }
 
 /** 汇总信号: 事件权重 + 阻抗 / 安全感 / 纽带修正. */

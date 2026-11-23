@@ -46,6 +46,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { resolveAllianceConfig } from './alliance-config.js';
 import { NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE } from './alliance-threshold-resolver.js';
+import { resolveBdiRuntimeConfig } from './bdi-runtime.config.js';
 import { resolveBdiStateStoreConfig } from './bdi-state-store.config.js';
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
@@ -79,6 +80,7 @@ import {
 } from './engine.tokens.js';
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
+import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { resolveSessionSummaryConfig } from './session-summary.config.js';
 import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
 import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
@@ -91,7 +93,6 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { resolveSessionCostPricingTable } from '../observability/session-cost.js';
-import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
 import { PsyGuardHealthModule } from './risk/psyguard-health.module.js';
 import { RISK_PROBE } from './risk/risk-probe.token.js';
@@ -335,6 +336,12 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
           store: config.get<string>('ENGINE_BDI_STATE_STORE'),
           ttlSeconds: config.get<string>('ENGINE_BDI_STATE_REDIS_TTL_SECONDS'),
         });
+        // AF-354: 生产环境用 memory 形态 = 进程重启 / 换实例即丢 BDI 快照.
+        //   不改变缺省（memory），只把误配喊出来 —— 运维至少能在启动日志里看到.
+        //   只出存储形态，不含任何会话 / 心理内容（隐私红线 AGENTS.md §5.4）.
+        if (bdiStore.store === 'memory' && (config.get<string>('NODE_ENV') ?? '').trim().toLowerCase() === 'production') {
+          wiringLogger.warn('[af354] 生产环境 BDI 状态存储形态=memory —— 进程重启/多实例会丢会话快照，建议 ENGINE_BDI_STATE_STORE=redis');
+        }
         return createBdiStateRepository({
           store: bdiStore.store,
           ttlSeconds: bdiStore.ttlSeconds,
@@ -430,6 +437,14 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
         deliberationHook: LlmDeliberationHook,
         modelClassifier: ModelEventClassifier,
       ): EngineSessionPort => {
+        // AF-354: 愿望演化 / 意图锁 / 时序权重 —— env 读在适配层，内核只认端口.
+        //   未配置任何键 → 三项都不出现 → 内核不走那一步（逐字零回归）.
+        const bdiRuntime = resolveBdiRuntimeConfig(config, (message) => wiringLogger.warn(message));
+        if (bdiRuntime.intentionLockConfig?.enabled) {
+          // 两套锁不同时生效：内核跨轮锁接管后，审议侧 Redis 锁强制 0（见 LlmDeliberationService）.
+          //   只出机制名，不含任何会话 / 心理内容.
+          wiringLogger.warn('[af354] 内核跨轮意图锁已开启 —— 审议侧 Redis 意图锁强制为 0，避免双重锁语义');
+        }
         return createEngineSessionPort(
           memories,
           probe,
@@ -464,6 +479,8 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
             //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做
             //     (model-classifier-mode.config.ts) —— 装配期只管「全局形态要不要挂」.
             ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { classifier: modelClassifier } : {}),
+            // AF-354: 三项未标定机制的部署通道（缺省全部不注入）.
+            ...bdiRuntime,
           },
           // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
           bdiStates,
