@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-384",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-23T20:35:00+08:00",
+  "updatedAt": "2026-11-23T12:38:45.010Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-384/task-sheet.md",
+    "sha256": "98584040ceda9ad632b2336a1f4edc3b70ec4e8eec78d29139caf28f2139a7a3",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af384-public-hardening-and-selfhosted-prep-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af384-public-hardening-and-selfhosted-prep.md"
+  ],
+  "tombstone": null
+}
