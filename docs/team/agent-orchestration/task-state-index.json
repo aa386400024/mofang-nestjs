@@ -4,164 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1590,
+    "lastEventSeq": 1592,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-357",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-23T03:40:06.228Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "scope 重签发自 AF-356"
-        },
-        {
-          "at": "2026-11-23T03:40:19.477Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "BDI 临床语义补齐：角色愿望映射与短期信念生成",
-      "type": "implementation",
-      "baselineRef": "cb3cb868d5b27c134862a333a32f9bd76d6bd9af",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-356",
-        "AF-349",
-        "AF-354",
-        "AF-355"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3",
-        "conventions.md#2.5"
-      ],
-      "createdAt": "2026-11-23T03:40:06.112Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/engine-core/cognition/",
-          "src/engine-core/domain/",
-          "src/engine-core/in-memory/",
-          "src/engine-adapters/wiring/character/",
-          "src/engine-adapters/wiring/bdi-runtime.config.ts",
-          "src/engine-adapters/wiring/engine.module.ts",
-          "src/engine-adapters/rendering/turn-render-orchestrator.ts",
-          "bin/bdi-readiness-audit.ts",
-          "test/engine-core/",
-          "test/engine-adapters/",
-          "test/config/",
-          ".env.example",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [
-          "engine-core",
-          "engine-adapters"
-        ],
-        "interfaces": [
-          "UnderlyingDesireSeed",
-          "TemporaryBelief",
-          "EngineTurnInput",
-          "BeliefOperatorConfig",
-          "TransitionStateOptions",
-          "InMemoryEngineSessionOptions"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec vitest run test/engine-core/af356-bdi-belief-formation.spec.ts test/engine-adapters/af356-character-desire-mapping.spec.ts test/engine-adapters/af356-bdi-runtime-config.spec.ts test/engine-core/boundary.spec.ts test/config/wp25-env-example-coverage.spec.ts",
-          "check": "定向测试全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量测试全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "git diff --stat HEAD -- src/engine-core",
-          "check": "内核改动仅限任务单授权文件",
-          "threshold": "仅本单授权文件"
-        }
-      ],
-      "successCriteria": [
-        "新增适配层纯函数映射表，把 8 个角色及 2 个内置种子的角色级愿望键显式映射到内核四键 understood / accepted / avoid_pain / control；映射表是唯一真相源，幂等、可审计、未知键保留不猜测。",
-        "角色解析与 DB 种子装配都经过同一映射函数；Admin 后台保存后再次解析仍得到同一组内核键，不出现双份语义。",
-        "映射后至少一个角色的 control 基线 >= controlPlanGate 0.55，discussing_plans 在低阻抗、同盟达标的轮次可实际触发；不再依赖运行时时序演化才可能触发。",
-        "新增短期信念生成算子：只从来访上一轮原话提取第一人称自我觉察陈述，source=observed；禁止把咨询师解释、问句、否定式、第三人称转述、危机/自伤内容写成来访信念。",
-        "信念生成是确定性纯函数，重复陈述按规范化文本去重并递增 evidenceCount 与置信度；单轮最多生成 formationMaxPerTurn 条；新生成条目不在同一轮立即衰减。",
-        "temporaryBeliefs 在机制开启且来访出现自我觉察陈述时不再恒为空；连续同一条自我觉察达到置信度门槛后，insight 分支在 turnNumber >= insightMinTurn 且同盟/阻抗条件满足时可实际触发。",
-        "来访上一轮原话通过 EngineTurnInput 的可选 priorVisitorText 进入内核；缺省不传时既有行为逐字不变；渲染门面从 history 取最近一条真实来访发言，降级兜底句不进入。",
-        "信念生成机制由 ENGINE_BELIEF_FORMATION_ENABLED 控制，缺省 false；未开启时 temporaryBeliefs 与改造前逐字一致。角色愿望映射是缺陷修复，不设开关。",
-        ".env.example 显式声明新键；非法数值逐项回退内核种子，不产生 NaN / 反向衰减 / 无限生成。",
-        "审计 CLI 输出映射前原始键、映射后内核键、覆盖矩阵、discussing_plans 与 insight 的静态可达性，以及机制开关状态；不连库、不调模型、不读对话原文。",
-        "交付记录含 gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组机读标记。",
-        "不宣称临床有效性；映射语义与置信度参数标注为工程种子，真实咨询师逐轮标注后校准；未覆盖的角色愿望与模型轨事项进 backlog。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "角色愿望到内核四键的显式映射",
-          "path": "src/engine-adapters/wiring/character/character-desire-mapping.ts",
-          "kind": "code"
-        },
-        {
-          "name": "短期信念生成算子",
-          "path": "src/engine-core/cognition/state-transition.ts",
-          "kind": "code"
-        },
-        {
-          "name": "来访上一轮文本回灌入口",
-          "path": "src/engine-core/domain/engine-session.types.ts",
-          "kind": "code"
-        },
-        {
-          "name": "信念生成运行时配置与装配",
-          "path": "src/engine-adapters/wiring/bdi-runtime.config.ts",
-          "kind": "code"
-        },
-        {
-          "name": "审计 CLI 映射覆盖更新",
-          "path": "bin/bdi-readiness-audit.ts",
-          "kind": "code"
-        },
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-23T03:40:06.228Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -3250,6 +3096,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-356/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af356-bdi-desire-belief-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-357",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
         "reply": null
       }
     }
