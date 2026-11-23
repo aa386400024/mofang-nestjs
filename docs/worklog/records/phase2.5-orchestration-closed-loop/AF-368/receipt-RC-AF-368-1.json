@@ -1,0 +1,117 @@
+{
+  "deliveredAt": "2026-11-23T16:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-368-1",
+    "taskId": "AF-368",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "06955ce535be1b2df9bc1571738934ef3960f340",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-367"
+    ],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af368-framework-v210-anchor-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "https://github.com/aa386400024/agent-collaboration-framework/pull/1"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "fa2b0e2e"
+      ],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/task-sheet.md"
+      ],
+      "modified": [
+        "contracts/agent-collaboration-framework/2.1.0/PROVENANCE.json",
+        "contracts/agent-collaboration-framework/2.1.0/README.md",
+        "docs/team/agent-orchestration/README.md",
+        "docs/team/agent-orchestration/framework-version-anchor.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:contracts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "[PASS] 框架契约包 2.1.0（main / e6dd22d）：15 个文件哈希与版本一致"
+      },
+      {
+        "command": "git ls-remote --tags origin v2.1.0",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "06045fb92ffb0ec71e6cc6fa4b7632ca55be5d3e refs/tags/v2.1.0"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出"
+      }
+    ],
+    "reproNotes": "GitHub rebase 合并生成 main commit e6dd22d，tree 与 e412403 相同，因此 15 个 schema 哈希不变；PROVENANCE 改指 main/tag，历史候选 commit 保留在锚点文档。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "framework-tag",
+        "result": "pass",
+        "note": "annotated tag v2.1.0 object 06045fb → e6dd22d，已推送"
+      },
+      {
+        "item": "bundle-hash",
+        "result": "pass",
+        "note": "15 文件 SHA-256 与版本校验 PASS"
+      },
+      {
+        "item": "anchor-single-source",
+        "result": "pass",
+        "note": "README/契约包只引用锚点，不复制新版本号"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "type documentation；finalStatus completed；提交 fa2b0e2e 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "tag 指向候选 commit e412403",
+        "reality": "GitHub rebase 合并生成 e6dd22d",
+        "action": "PROVENANCE 与锚点改指 main/e6dd22d，保留 e412403 为合并前提交",
+        "why": "tag 必须指向 main 实际 commit；tree 相同，哈希不受影响"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "框架 tag 与契约哈希事实一致，文档不再声明候选未打 tag。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
