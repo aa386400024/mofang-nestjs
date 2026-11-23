@@ -47,6 +47,8 @@
 - **draft 不跑全量，ready 再跑**：draft 阶段只保留人工本地闸门；转为 ready-for-review 时由 `ready_for_review` 事件触发全量，避免 WIP push 消耗额度。
 - **R0 跳过 lint 但不跳过 required check**：`lint-and-typecheck` job 仍存在并输出 skipped step，GitHub 记为 success，分支保护不会因 check 缺失而卡住。
 - **本地 pre-push 不跑 coverage**：coverage 只在 R2/ready PR 的 CI 上执行；本地全量单测覆盖行为正确性，避免本地每 push 多花约 18 秒插桩时间。
+- **pre-push 对编排锁让路**：跨机单写者锁通过 `git push refs/heads/orchestration-lock` 抢锁，这条引用不是代码；钩子只对非锁引用跑闸门，否则 run-once 永远抢不到远端锁。
+- **pre-push 清理 Git 钩子局部变量**：跑测试前 unset `GIT_DIR`、`GIT_INDEX_FILE` 等变量，避免测试里的临时仓库用例把提交写回当前仓库。
 - 未改 engine-core、业务代码、数据库迁移与生产配置；未关闭分支保护，未减少 required check 覆盖。
 
 ## 验证
@@ -89,4 +91,4 @@
 
 - 回执：`docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/receipt-RC-AF-378-1.json`
 - receiptId：`RC-AF-378-1`
-- 内容哈希：待 `receipt freeze` 后回填。
+- 内容哈希：`416ffbb59ad0b4fdae02a99f14e55b5fb6a756f1bda931e9a9441094e1e9ebf8`

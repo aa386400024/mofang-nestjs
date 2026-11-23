@@ -1,0 +1,157 @@
+{
+  "deliveredAt": "2026-11-23T11:05:59.063Z",
+  "payload": {
+    "receiptId": "RC-AF-378-1",
+    "taskId": "AF-378",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "e4b535c15836e60938b3b599135cb950b592a8aa",
+    "dependsOn": [],
+    "priorTasks": ["AF-377", "AF-372"],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af378-ci-zero-cost-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-378.json",
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["3acb82198ddae12ee73fd8d2b233c048d2af0f8b"],
+      "added": [
+        ".husky/pre-push",
+        "docs/worklog/completed/phase2.5/af378-ci-zero-cost-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/task-sheet.md"
+      ],
+      "modified": [
+        ".github/workflows/ci.yml",
+        "package.json",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "scripts/orchestration/__tests__/v21-adapters.spec.mjs",
+        "scripts/orchestration/branch-protection.mjs",
+        "scripts/orchestration/risk-gate.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs scripts/orchestration/__tests__/v21-adapters.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "local",
+        "wallClock": "2.07s",
+        "note": "283 passed / 283"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "eslint 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "tsc 0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "26.82s",
+        "note": "311 passed / 1 skipped 文件；4749 passed / 4 skipped 用例"
+      },
+      {
+        "command": "pnpm test:coverage",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "43.85s",
+        "note": "311 passed / 1 skipped 文件；4749 passed / 4 skipped 用例；覆盖率阈值通过"
+      },
+      {
+        "command": "node -e \"YAML.parse('.github/workflows/ci.yml')\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "9 个 job 可解析；pull_request.types 含 ready_for_review；coverage-gate.needs=[risk-gate,unit]"
+      },
+      {
+        "command": "node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestjs --branch integrate --apply",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "remote",
+        "wallClock": null,
+        "note": "verification.pass=true，11 项 contexts 读回一致，无 Coverage shard"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "提交前事件链与索引投影一致"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "本地 pre-push 口径按 lint → typecheck → 全量单测执行；CI YAML 用仓库已有 yaml 依赖解析；branch protection 读回在 --apply 内完成。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "任务单 scope 覆盖全部变更", "result": "pass", "note": "10 个提交文件均在 .github/workflows / .husky / scripts/orchestration / package.json / docs/worklog 范围内" },
+      { "item": "required contexts 与 CI job 对齐", "result": "pass", "note": "远端读回 11 项，删除 Coverage shard，保留 Coverage Gate 与 Unit shard" },
+      { "item": "R0 lint 跳过但 required check 保持 success", "result": "pass", "note": "plan.lint=false；lint job 仍存在并输出 skipped step" },
+      { "item": "覆盖率不重复采集", "result": "pass", "note": "coverage-shards 已删除，Coverage Gate 依赖 unit 分片产物" },
+      { "item": "pre-push 不破坏跨机锁", "result": "pass", "note": "仅推 refs/heads/orchestration-lock 时跳过 verify；实测 exit 0" },
+      { "item": "pre-push 清理 Git 钩子环境", "result": "pass", "note": "跑测试前 unset GIT_DIR/GIT_INDEX_FILE 等局部变量，避免临时仓库用例写回本仓" },
+      { "item": "engine-core 零改动", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "CI 触发、风险门禁、分片合并、本地 pre-push 与远端分支保护五处已闭环；lint/typecheck/全量测试/覆盖率与 YAML 解析全部通过；未改 engine-core，未缩减 required check 覆盖。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
