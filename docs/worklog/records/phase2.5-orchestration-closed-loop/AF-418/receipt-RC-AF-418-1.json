@@ -1,0 +1,152 @@
+{
+  "deliveredAt": "2026-11-24T04:40:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-418-1",
+    "taskId": "AF-418",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "34220dcca35d03897750a82abb22a326cf4e490c",
+    "dependsOn": [],
+    "priorTasks": ["AF-408", "AF-409", "AF-412"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-418/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af418-presence-replay-calibration-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "scripts/ops/quality/af418-presence-replay-calibration.mjs",
+        "scripts/orchestration/__tests__/af418-presence-replay-calibration.spec.mjs"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["7fa33cbd"],
+      "added": [
+        "scripts/ops/quality/af418-presence-replay-calibration.mjs",
+        "scripts/orchestration/__tests__/af418-presence-replay-calibration.spec.mjs",
+        "docs/worklog/completed/phase2.5/af418-presence-replay-calibration-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-418/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-418/manifest.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/af418-presence-replay-calibration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "370ms",
+        "note": "7 用例全绿：delta 表一致性、八维映射、基线还原、饱和检测、汇总、夹取、无饱和等价"
+      },
+      {
+        "command": "node scripts/ops/quality/af418-presence-replay-calibration.mjs --dir data/debug-sessions",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "13 场 / 157 neutral / holding 117 / cold 1；基线漂移 0；总增量 safety +0.4660 vs +0.4660，bond +0.2320 vs +0.2320；最大单场差 0"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 318,
+        "machine": "同上",
+        "wallClock": "26.15s",
+        "note": "318 passed / 1 skipped（文件），4813 passed / 4 skipped（用例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff"
+      }
+    ],
+    "reproNotes": "定向单测 → 只读脚本 → pnpm lint → pnpm typecheck → pnpm test → engine-core diff。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-418 贯穿任务单、回执、提交标题" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 派发 / 分支 / 回执摄入均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全；任务单 scope / gates / artifacts 完整" },
+      { "item": "event-chain", "result": "pass", "note": "事件链由 CLI 写入，归档后 events verify 复核" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff；只通过公开 barrel 导入 aggregateTurnDelta" },
+      { "item": "privacy", "result": "pass", "note": "只输出数值与 sessionId，不打印对话原文" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单口径（末轮加法 vs 逐轮重放）与实现一致；changedFiles 与提交 7fa33cbd 对齐"
+    },
+    "backlogItems": [
+      {
+        "id": "AF418-B1",
+        "impact": "重放是静态反事实：只把 presence delta 叠在真实轨迹上，不重算来访后续回应，不能当在线临床效果。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF418-B2",
+        "impact": "只覆盖 clamp 级同源，未接 cap 与人格调节；presence delta 幅度小，本批无影响，但口径未完全闭合。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF418-B3",
+        "impact": "0.4660 / 0.2320 是当前 13 场数据时点结论；换批次需重跑，不能复用。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "逐轮重放按内核 transitionState 口径",
+        "reality": "实现按真实 trace 相邻快照差 + presence delta 逐轮夹取，属 clamp 级同源；未复刻 cap / 人格调节",
+        "why": "trace 未持久化人格与同盟配置；强行补全会引入猜测参数，反而制造第四份口径",
+        "action": "在交付记录与输出里明确边界，不宣称完全同源"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "把「第三份手抄 delta 表」变成自动断言镜像，并用逐轮重放证明 AF-412 在当前数据上数值成立、同时暴露饱和场景下的口径差；只读、无原文、内核零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地脚本与测试，无上游模型计费。"
+  }
+}
