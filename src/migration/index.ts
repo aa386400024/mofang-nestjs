@@ -241,4 +241,7 @@ export { CreateAdminDebugSessions1714900000049 } from './1714900000049-CreateAdm
 //   历史行保持 NULL；前端回退既有 model_version，不伪造历史模型.
 export { AddPracticeSessionModelColumns1714900000050 } from './1714900000050-AddPracticeSessionModelColumns.js';
 
+// AF-395 (2026-11-24 · 调试页三模型 TTS 历史缓存):
+export { CreateAdminDebugTtsRenders1714900000051 } from './1714900000051-CreateAdminDebugTtsRenders.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

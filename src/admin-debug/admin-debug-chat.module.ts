@@ -55,6 +55,9 @@ import { DebugSessionController } from './debug-session.controller.js';
 import { DebugSessionService } from './debug-session.service.js';
 import { AdminDebugSessionEntity } from './entities/admin-debug-session.entity.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
+import { AdminDebugTtsRenderEntity } from './tts/admin-debug-tts-render.entity.js';
+import { DebugTtsController } from './tts/debug-tts.controller.js';
+import { DebugTtsService } from './tts/debug-tts.service.js';
 import { CharacterPoolModule } from '../engine-adapters/wiring/character/character-pool.module.js';
 import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
 import { TurnDeltaAuditModule } from '../engine-adapters/wiring/turn-delta-audit/turn-delta-audit.module.js';
@@ -68,7 +71,7 @@ import { UserModule } from '../user/index.js';
     // User 实体注册 (autoLoadEntities 已开) —— 供 AdminRoleGuard 注入 Repository<User>.
     // AdminDebugSessionEntity: 远端调试会话表 (AF-313) —— DebugSessionStore 通过
     // DataSource 直接取 repository, 这里注册让 autoLoadEntities 把它收进 DataSource.
-    TypeOrmModule.forFeature([User, AdminDebugSessionEntity]),
+    TypeOrmModule.forFeature([User, AdminDebugSessionEntity, AdminDebugTtsRenderEntity]),
     // 学员身份解析依赖 (JwtAuthGuard → JwtService / JwtBlacklistService) —— 中间件要用.
     UserModule,
     // 引擎装配层 (EngineTurnService: 调试会话要真跑引擎, 不是 mock).
@@ -82,10 +85,12 @@ import { UserModule } from '../user/index.js';
     // LLM 路由层 (会话标题自动生成要走 `router.chat`; 不新造 LLM 客户端).
     LlmModule,
   ],
-  controllers: [DebugSessionController],
+  controllers: [DebugSessionController, DebugTtsController],
   providers: [
     // 调试会话逻辑 (内存会话表 + 角色解析 + delta + 审议 trace 读取).
     DebugSessionService,
+    // AF-395: 调试页三模型 TTS（只读会话/落盘记录，按 provider 查缓存后生成）.
+    DebugTtsService,
     // 调试会话的**文件持久化** (V2026-11-05): 建档 / 每轮追加 / 改标题 / 删档.
     DebugSessionStore,
     // 内核状态回灌器 (V2026-11-06 · WP38 补做 · 调试会话恢复):
@@ -121,6 +126,6 @@ export class AdminDebugChatModule implements NestModule {
    * @param consumer 中间件消费者
    */
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AdminBasicAuthMiddleware).forRoutes(DebugSessionController);
+    consumer.apply(AdminBasicAuthMiddleware).forRoutes(DebugSessionController, DebugTtsController);
   }
 }

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-397",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T01:34:00+08:00",
+  "updatedAt": "2026-11-23T17:33:05.504Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-397/task-sheet.md",
+    "sha256": "c619ee92f19ab9bf9c97ecb7b845565e03abfb7de6a565fe38e60a2f596a8920",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-397/receipt-RC-AF-397-1.json",
+      "sha256": "544222bbf16698112af2144d29b62138d234f33c6b0fc6654598e4b83d167820",
+      "receiptId": "RC-AF-397-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af397-debug-tts-history-repair-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af397-ci-history-repair-2026-11-24.md"
+  ],
+  "tombstone": null
+}
