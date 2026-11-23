@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-445",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T08:55:00+08:00",
+  "updatedAt": "2026-11-23T23:53:10.677Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-445/task-sheet.md",
+    "sha256": "4562a4735879cfbe5afe86d23bb46b0e4fbaddb5cf53e1bbad18ee3d6ef4b1be",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-445/receipt-RC-AF-445-1.json",
+      "sha256": "e45c01ebffaac44b601e5ae181b382e6c903f357c36c2fec5df2b946ef59d4b2",
+      "receiptId": "RC-AF-445-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af445-relay-psmodulepath-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-445-relay-psmodulepath.md"
+  ],
+  "tombstone": null
+}

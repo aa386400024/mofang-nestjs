@@ -31,6 +31,32 @@ import {
   writeJsonAtomic,
 } from './state-store.mjs';
 import { advanceOnce, buildSnapshot, cancelTask, promoteTask, shouldAdvance } from './scheduler.mjs';
+
+/**
+ * AF-445：GUI relay 子进程环境修正。
+ *
+ * 从 PowerShell 7 里启动 node 时，`PSModulePath` 会被改写成只含 pwsh 7 的模块目录；
+ * Windows PowerShell 5.1 子进程因此解析不到 `Microsoft.PowerShell.Utility`
+ * （`Get-FileHash` 不可用），relay 以退出码 9 失败（AF-437/442/444 三次复现）。
+ *
+ * 修法：把 `WindowsPowerShell\v1.0\Modules` 显式插到 `PSModulePath` 首位，
+ * 去重去空，其余环境变量原样保留，不修改入参。
+ *
+ * @param {Record<string, string | undefined>} baseEnv
+ * @returns {Record<string, string | undefined>}
+ */
+function buildRelayChildEnv(baseEnv) {
+  const env = { ...baseEnv };
+  if (process.platform !== 'win32') return env;
+  const systemModules = join(baseEnv.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'Modules');
+  const current = (baseEnv.PSModulePath ?? '')
+    .split(';')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .filter((entry) => entry.toLowerCase() !== systemModules.toLowerCase());
+  env.PSModulePath = [systemModules, ...current].join(';');
+  return env;
+}
 import {
   frameworkDir,
   requireFramework,
@@ -1212,7 +1238,13 @@ function cmdChannel(args) {
     ];
     if (dryRun) psArgs.push('-DryRun');
     if (args.includes('--no-click-input')) psArgs.push('-NoClickInput');
-    const result = spawnSync(powershell, psArgs, { encoding: 'utf8', timeout: 60_000, maxBuffer: 8 * 1024 * 1024 });
+    const relayEnv = buildRelayChildEnv(process.env);
+    const result = spawnSync(powershell, psArgs, {
+      encoding: 'utf8',
+      timeout: 60_000,
+      maxBuffer: 8 * 1024 * 1024,
+      env: relayEnv,
+    });
     if (result.stdout) process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
     if (result.error) throw new Error(`发送失败：${result.error.message}`);
