@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-349",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T07:30:00+08:00",
+  "updatedAt": "2026-11-23T00:50:01.425Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-349/task-sheet.md",
+    "sha256": "d2198b475b664671ecf8f4088418642b35fd7d2d8438d9c49ddf978614163457",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af349-bdi-decision-chain-semantic-hardening-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af349-bdi-decision-chain-semantic-hardening-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
