@@ -699,7 +699,8 @@ function cmdWorklog(args = []) {
   const index = loadIndex();
   if (action === 'verify') {
     const strict = args.includes('--strict');
-    const result = verifyWorklog(index);
+    const stateFree = args.includes('--state-free') || process.env.ORCH_STATE_FREE === '1';
+    const result = verifyWorklog(index, { stateFree });
     const baseline = loadConfig().worklogStrictBaseline ?? { legacyPointers: 0, missingTaskSheets: 0 };
     const debt = [];
     if (strict) {
@@ -718,6 +719,9 @@ function cmdWorklog(args = []) {
         `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers}/${baseline.legacyPointers} 无任务单=${result.stats.missingTaskSheets}/${baseline.missingTaskSheets}`,
       );
       for (const warning of result.warnings) console.warn(`  ! ${warning}`);
+      if (stateFree && result.skippedOrphans.length > 0) {
+        console.log(`  - 状态面解耦：跳过孤儿记录包检查 ${result.skippedOrphans.length} 个（${result.skippedOrphans.join('、')}）；索引同步后再判`);
+      }
       for (const item of debt) console.error(`  - ${item}`);
       for (const error of result.errors) console.error(`  - ${error}`);
     }

@@ -16,6 +16,7 @@
    - `task-entry-gate.mjs` 定义状态面路径与守卫：`task/*` 分支拒绝提交状态面，状态面不得与实现混提；例外需 `ORCH_ALLOW_STATE_COMMIT=1` 且写原因。
    - `cli.mjs state sync [--apply]`：dry-run 只报告脏文件；`--apply` 重建索引与快照投影（`events rebuild` + `refreshSnapshotArtifacts`），不重写 `state/journal.jsonl` 事件源。
    - `ci-task-gate.mjs` 增加 `taskSheetSnapshot` 与 `accepted-state-free`：任务分支不提交索引时，任务单 + 可合并 durable 回执即可验收；最终 HEAD 有回执时合成 `completed`，支持 squash 生命周期。
+   - `worklog verify --strict --state-free`：PR 任务分支不提交索引时，孤儿记录包不具判定条件，显式跳过并计数；`integrate` 上的常规 strict 仍完整判孤儿。
    - `state/executor-sessions.json` 与 `transport/executor-sessions.json` 均属单机运行态；会话状态落 `transport/`（仓库既有 ignore），不随任务分支入库。
 
 2. **风险分级门禁**

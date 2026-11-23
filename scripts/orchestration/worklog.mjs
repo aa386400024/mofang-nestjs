@@ -366,8 +366,14 @@ export function verifyWorklog(index, opts = {}) {
     }
   }
 
+  const skippedOrphans = [];
   for (const bundle of bundles) {
-    if (!indexIds.has(bundle.taskId)) errors.push(`孤儿记录包：${bundle.taskId}`);
+    if (!indexIds.has(bundle.taskId)) {
+      // 状态面解耦：任务分支不提交索引，记录包必然暂时不在索引里；
+      // 只有状态面同步后的 integrate 才具备判孤儿条件。显式记录跳过，不静默。
+      if (opts.stateFree) skippedOrphans.push(bundle.taskId);
+      else errors.push(`孤儿记录包：${bundle.taskId}`);
+    }
     if (!bundle.manifest) errors.push(`记录包 manifest 非法 JSON：${bundle.taskId}`);
   }
 
@@ -402,7 +408,7 @@ export function verifyWorklog(index, opts = {}) {
     missingDeliveryRecords: missingDeliveries.length,
     missingDeliveryRecordIds: missingDeliveries,
   };
-  return { ok: errors.length === 0, errors, warnings, stats };
+  return { ok: errors.length === 0, errors, warnings, stats, skippedOrphans };
 }
 
 function looksLikeTaskSheet(file, taskId) {
