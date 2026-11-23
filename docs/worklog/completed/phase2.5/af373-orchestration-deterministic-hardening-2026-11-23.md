@@ -59,16 +59,22 @@ AF-365 → AF-372 收口中反复出现四类确定性缝隙：回执在提交�
 
 无。任务单 scope 覆盖全部改动；未升级框架 schema 版本，符合任务单 outOfScope。
 
-## 4. 闸门结果（实现阶段）
+## 4. 闸门结果（实现提交 `481998a0`）
 
-| 闸门 | 命令 | 结果 |
-| --- | --- | --- |
-| 编排单测 | `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 268 passed / 0 failed |
-| v2.1 适配层 | `pnpm exec vitest run scripts/orchestration/__tests__/v21-adapters.spec.mjs` | 13 passed / 0 failed |
-| 状态面/回执/CI 子套 | 5 个 spec 合并执行 | 316 passed / 0 failed |
-| 事件链 | `node scripts/orchestration/cli.mjs events verify` | 1648 条 PASS |
+| 闸门                | 命令                                                                          | 结果                                                                |
+| ------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 编排单测            | `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 268 passed / 0 failed                                               |
+| v2.1 适配层         | `pnpm exec vitest run scripts/orchestration/__tests__/v21-adapters.spec.mjs`  | 13 passed / 0 failed                                                |
+| 状态面/回执/CI 子套 | 5 个 spec 合并执行                                                            | 316 passed / 0 failed                                               |
+| Lint                | `pnpm lint`                                                                   | exit 0                                                              |
+| 类型检查            | `pnpm typecheck`                                                              | exit 0                                                              |
+| 全量测试            | `pnpm test`                                                                   | 311 files passed / 1 skipped；4747 tests passed / 4 skipped；exit 0 |
+| 契约包              | `pnpm orchestration:contracts`                                                | PASS：15 文件哈希与框架 2.1.0 一致                                  |
+| 契约/索引校验       | `node scripts/orchestration/cli.mjs validate`                                 | PASS（含 AF-373 运行态任务单）                                      |
+| 事件链              | `node scripts/orchestration/cli.mjs events verify`                            | 1648 条 PASS                                                        |
+| 记录包              | `node scripts/orchestration/cli.mjs worklog verify --strict --state-free`     | PASS（活跃 1 / 归档 360 / 记录包 362）                              |
 
-全量 `pnpm lint` / `pnpm typecheck` / `pnpm test` 在交付前统一执行并回填真实数字。
+`git diff --stat HEAD~1 -- src/engine-core` 为空。
 
 ## 5. 回执冻结流程（本任务实操）
 

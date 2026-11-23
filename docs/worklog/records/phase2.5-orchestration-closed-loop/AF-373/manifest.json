@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-373",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T16:57:00+08:00",
+  "updatedAt": "2026-11-23T09:09:53.651Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-373/task-sheet.md",
+    "sha256": "aef5723ed21ececf6a6b8bb44039d244ca0bcbaef08d2d46c4d3f35cf2144dad",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-373/receipt-RC-AF-373-1.json",
+      "sha256": "e863db328aa3e0777ce2ee492b265c01c925596086e434ae8c4411d9e43ded39",
+      "receiptId": "RC-AF-373-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af373-orchestration-deterministic-hardening-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-373-orchestration-deterministic-hardening-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
