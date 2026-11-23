@@ -30,6 +30,7 @@ import {
   REPO_ROOT,
   saveRuntimeState,
 } from './state-store.mjs';
+import { existsSync, readFileSync } from 'node:fs';
 import { commitIndex } from './event-store.mjs';
 import { TERMINAL_STATUSES } from './contract-enums.mjs';
 import { runAcceptance } from './acceptance-runner.mjs';
@@ -669,6 +670,32 @@ export function archiveUncommittedFiles(task, checkUncommitted) {
   return [...new Set(list.map((file) => String(file ?? '').trim()).filter(Boolean))];
 }
 
+/**
+ * 索引投影不携带回执正文（回执不是状态迁移事件），运行态已摄入的回执在下一轮
+ * 需要回填到任务条目，否则验收会误判「缺机读回执」。
+ */
+function hydrateTaskReceipt(task, entry) {
+  if (task?.receipt) return;
+  const ref = entry?.receiptRef;
+  if (typeof ref !== 'string' || !existsSync(ref)) return;
+  try {
+    const record = JSON.parse(readFileSync(ref, 'utf8'));
+    const payload = record?.payload ?? record;
+    task.receipt = {
+      receiptId: payload?.receiptId ?? null,
+      finalStatus: payload?.finalStatus ?? null,
+      reviewVerdict: payload?.reviewVerdict ?? null,
+      changedFiles: payload?.changedFiles ?? null,
+      parallelArtifactsExcluded: payload?.parallelArtifactsExcluded === true,
+      sourceRef: ref,
+      archiveRef: entry?.receiptArchiveRef ?? null,
+      ingestedAt: entry?.receiptIngestedAt ?? null,
+    };
+  } catch {
+    // 回执副本损坏由 receipt-lint / worklog verify 事后判，不阻断调度。
+  }
+}
+
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
 export function processReceipts(index, runtimeState, config, actions, opts = {}) {
   // 先把 transport/receipts 的机读回执投影进任务与运行态，再进入验收。
@@ -683,6 +710,7 @@ export function processReceipts(index, runtimeState, config, actions, opts = {})
       continue;
     }
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
+    hydrateTaskReceipt(task, entry);
     if (lateReceipt) {
       pushHistory(task, 'submitted', BY_ORCHESTRATOR, '租约超时后回执到达：恢复领取并验收，不重新派发');
       entry.heldForHuman = false;
@@ -722,7 +750,8 @@ export function processReceipts(index, runtimeState, config, actions, opts = {})
       continue;
     }
     const result = runAcceptance(task, index, { changedFiles: opts.changedFiles, resolveCommitFiles: opts.resolveCommitFiles });
-    markReceiptProcessed(entry, fingerprint);
+    // conditional-pass 需人工补齐复核项后重跑验收；提前标记会让回执永远停在旧结论。
+    if (result.verdict !== 'conditional-pass') markReceiptProcessed(entry, fingerprint);
     entry.autoVerdict = { verdict: result.verdict, rationale: result.rationale, at: nowIso() };
     entry.manualReview = result.manualReview;
 

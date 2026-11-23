@@ -99,6 +99,27 @@
 - `docs/team/agent-orchestration/orchestration-snapshot.json`
 - `web/orchestration/data.js`
 
+### contractChecks（契约核对）
+
+| 项 | 结果 | 证据 |
+| --- | --- | --- |
+| taskId / preflight | pass | `[ORCH-GATE] PASS task=AF-365 status=submitted files=… covered=…` |
+| 状态面写入 | pass | 索引/日志由 CLI 生成；任务分支只提交实现、任务文档与记录包 |
+| 索引 schema | pass | `task-state-index` 1.2.0，`cli validate` 投影一致 |
+| 框架契约包 | pass | 2.1.0 / `e412403`，15 文件 SHA-256 校验通过 |
+| 风险门 | pass | `risk-gate` 解析 R2；required contexts 14 项 |
+| engine-core | pass | `git diff --stat HEAD -- src/engine-core` 为空 |
+| 隐私 | pass | 无心理内容、无凭据、无用户标识 |
+
+### backlogItems（遗留登记）
+
+| ID | 遗留 | 状态 |
+| --- | --- | --- |
+| AF365-B1 | 远程保护 14 项已 apply 并复核，后续 CI context 改名须同步常量与远程 | closed |
+| AF365-B2 | 状态面四文件仍在工作区，需在状态分支或收尾快照单独提交 | open |
+| AF365-B3 | 框架 PR #1 未合并、未打 `v2.1.0` tag | open |
+| AF365-B4 | 旧 `task/AF-*` 远端分支待确认后清理 | open |
+
 ## 5. 偏差与未决
 
 | 任务单/预期 | 实际 | 处置与理由 |
