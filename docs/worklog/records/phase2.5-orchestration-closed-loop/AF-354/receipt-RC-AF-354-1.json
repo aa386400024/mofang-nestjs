@@ -125,7 +125,7 @@
       }
     ],
     "reproNotes": "BDI 就绪度审计：pnpm exec tsx bin/bdi-readiness-audit.ts --out <tmp>，exit 0；输出 8 角色 × 内核四键覆盖矩阵、策略可达性、机制开关与阻断项，JSON + Markdown 双产物，不连模型 / DB / Redis，不读心理原文。",
-    "scopeCheck": "deviated",
+    "scopeCheck": "in-scope",
     "parallelArtifactsExcluded": true,
     "noOutscopeRefactor": true,
     "contractChecks": [
