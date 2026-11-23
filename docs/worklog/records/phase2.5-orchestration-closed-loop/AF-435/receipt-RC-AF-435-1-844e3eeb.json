@@ -1,0 +1,98 @@
+{
+  "deliveredAt": "2026-11-24T06:27:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-435-1",
+    "taskId": "AF-435",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "4da75b978f2d1ffdd2b2155ddd55b5bca74fef7e",
+    "dependsOn": [],
+    "priorTasks": ["AF-434", "AF-427", "AF-428"],
+    "policyRefs": ["docs/team/conventions.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/architecture/behavior-operator-delta-ledger-v1.0.md"]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/completed/phase2.5/af434-ledger-version-caveat-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/receipt-RC-AF-435-1.json"
+      ],
+      "modified": ["docs/architecture/behavior-operator-delta-ledger-v1.0.md"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "即时",
+        "note": "PASS（strict），AF-434 取消后记录包计数一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs receipt lint --taskId AF-435",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "七组字段、scope、工件与换行检查通过"
+      }
+    ],
+    "reproNotes": "台账正文搜索「原因待核实」应为 0 命中；「版本口径附注」应为 1 命中。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-435 贯穿任务单、回执、交付记录、提交标题" },
+      { "item": "state-write", "result": "pass", "note": "AF-434 取消 + AF-435 登记 / 提级 / 领单 / 归档全部经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全，changedFiles 在 scope 内" },
+      { "item": "event-chain", "result": "pass", "note": "事件链只由 CLI 写入" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "privacy", "result": "pass", "note": "无任何对话数据" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "两条判据落地：悬案表述清除、附注给出可执行补救口径"
+    },
+    "backlogItems": [
+      {
+        "id": "AF435-B1",
+        "impact": "任务单 scope 必须显式包含记录包与交付记录目录，否则回执预检必然失败；已进入实现的任务不能 rescope，只能取消重登，成本高，应在落单模板里固化。",
+        "layer": "docs",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务编号",
+        "taskSays": "AF-435 承接",
+        "reality": "原 AF-434 scope 漏了记录包路径，回执预检拒绝冻结",
+        "action": "取消 AF-434（记录 cancelReason），重签发 AF-435 并把 records 与 completed 目录纳入 scope",
+        "why": "scope 不原地修改是硬规则；已 submitted 任务不允许 rescope"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "内容与 AF-434 计划一致，仅任务归属与 scope 修正；台账与取证文档口径已对齐。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯文档修改 + 一次任务重登。"
+  }
+}
