@@ -122,6 +122,27 @@ export const api = {
     resume: async (sessionId: string): Promise<{ sessionId: string; resumed: boolean; turnCount: number }> => {
       return post(`/debug/session/${sessionId}/resume`, {})
     },
+    /**
+     * AF-395: 调试页三模型 TTS。只传会话/轮次/模型，文本由服务端从真实记录解析。
+     */
+    tts: async (body: {
+      source: 'auto_practice' | 'debug_session'
+      sessionId: string
+      turnIndex: number
+      provider: 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
+    }): Promise<{
+      provider: 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
+      voiceId: string
+      format: 'mp3'
+      sampleRate: number
+      durationMs: number | null
+      audioBase64: string
+      cached: boolean
+      textChars: number
+      requestHash: string
+    }> => {
+      return post('/debug/tts/render', body)
+    },
     deltaAudit: async (sessionId: string): Promise<{ sessionId: string; turns: Array<{
       turnIndex: number
       events: string[]

@@ -46,6 +46,20 @@ const manualDebugSessionId = ref<string | null>(null)
 // V2026-11-06 WP69: 每行带 active = 本进程内存里还有运行时状态
 const debugSessions = ref<Array<{ id: string; title: string; characterSlug: string; updatedAt: string; turnCount: number; status: string; active: boolean }>>([])
 
+// AF-395: 调试页三模型 TTS 的前端内存缓存与播放状态.
+type DebugTtsProvider = 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
+interface TtsUiState {
+  status: 'loading' | 'ready' | 'error'
+  audioUrl?: string
+  cached?: boolean
+  error?: string
+  durationMs?: number | null
+}
+const ttsStates = ref<Record<string, TtsUiState>>({})
+const ttsPlayingKey = ref<string | null>(null)
+let ttsAudio: HTMLAudioElement | null = null
+let ttsCurrentKey: string | null = null
+
 // 恢复调试会话 loading
 const resumingSessionId = ref<string | null>(null)
 
@@ -438,6 +452,89 @@ function copyMessage(text: string) {
 
 function showTrace(trace: TurnTrace) {
   currentTrace.value = trace
+}
+
+// ─── AF-395: 来访者气泡三模型 TTS（点击才生成，二次点击只读缓存） ───
+const TTS_PROVIDERS: Array<{ id: DebugTtsProvider; label: string; title: string }> = [
+  { id: 'minimax-hd', label: 'HD', title: 'MiniMax speech-2.8-hd' },
+  { id: 'minimax-turbo', label: 'Turbo', title: 'MiniMax speech-2.8-turbo' },
+  { id: 'doubao-seed-tts-2.0', label: '豆包', title: '豆包 doubao-seed-tts-2.0（Agent Plan）' },
+]
+
+function ttsSessionContext(): { source: 'auto_practice' | 'debug_session'; sessionId: string } | null {
+  if (mode.value === 'auto') {
+    return runningSessionId.value ? { source: 'auto_practice', sessionId: runningSessionId.value } : null
+  }
+  return manualDebugSessionId.value ? { source: 'debug_session', sessionId: manualDebugSessionId.value } : null
+}
+
+function ttsKey(turnIndex: number | undefined, provider: DebugTtsProvider): string {
+  const ctx = ttsSessionContext()
+  return `${ctx?.source ?? 'none'}:${ctx?.sessionId ?? 'none'}:${turnIndex ?? 0}:${provider}`
+}
+
+function ttsTitle(turnIndex: number | undefined, provider: (typeof TTS_PROVIDERS)[number]): string {
+  const state = ttsStates.value[ttsKey(turnIndex, provider.id)]
+  if (state?.status === 'loading') return `${provider.title} · 正在生成`
+  if (state?.status === 'error') return `${provider.title} · ${state.error ?? '生成失败'}`
+  if (state?.status === 'ready') return `${provider.title} · ${state.cached ? '历史缓存' : '已生成'}`
+  return `${provider.title} · 点击生成并播放`
+}
+
+function ttsBadge(turnIndex: number | undefined, provider: DebugTtsProvider): string {
+  const state = ttsStates.value[ttsKey(turnIndex, provider)]
+  if (state?.status === 'loading') return '··'
+  if (state?.status === 'error') return '!'
+  if (ttsPlayingKey.value === ttsKey(turnIndex, provider)) return '■'
+  return TTS_PROVIDERS.find(p => p.id === provider)?.label ?? '播'
+}
+
+function stopTts(): void {
+  if (ttsAudio) ttsAudio.pause()
+  ttsAudio = null
+  ttsCurrentKey = null
+  ttsPlayingKey.value = null
+}
+
+async function playDebugTts(turnIndex: number | undefined, provider: DebugTtsProvider): Promise<void> {
+  const ctx = ttsSessionContext()
+  if (ctx === null || turnIndex === undefined) {
+    message.warning('当前没有可回放的会话轮次')
+    return
+  }
+  const key = ttsKey(turnIndex, provider)
+  const existing = ttsStates.value[key]
+  if (existing?.status === 'loading') return
+  if (existing?.status === 'ready' && existing.audioUrl) {
+    stopTts()
+    const audio = new Audio(existing.audioUrl)
+    ttsAudio = audio
+    ttsCurrentKey = key
+    ttsPlayingKey.value = key
+    audio.onended = () => { if (ttsCurrentKey === key) stopTts() }
+    void audio.play().catch(() => message.error('音频播放失败'))
+    return
+  }
+
+  ttsStates.value = { ...ttsStates.value, [key]: { status: 'loading' } }
+  try {
+    const res = await api.debugSession.tts({ ...ctx, turnIndex, provider })
+    const audioUrl = `data:audio/mp3;base64,${res.audioBase64}`
+    ttsStates.value = {
+      ...ttsStates.value,
+      [key]: { status: 'ready', audioUrl, cached: res.cached, durationMs: res.durationMs },
+    }
+    const audio = new Audio(audioUrl)
+    ttsAudio = audio
+    ttsCurrentKey = key
+    ttsPlayingKey.value = key
+    audio.onended = () => { if (ttsCurrentKey === key) stopTts() }
+    void audio.play().catch(() => message.error('音频播放失败'))
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : '生成失败'
+    ttsStates.value = { ...ttsStates.value, [key]: { status: 'error', error: reason } }
+    message.error(reason)
+  }
 }
 
 // ─── 手动调试模式：发送一轮 ───
@@ -952,12 +1049,15 @@ async function loadSession(s: PracticeSession) {
 }
 
 // ========== 生命周期 ==========
+watch([runningSessionId, manualDebugSessionId], () => stopTts())
+
 onMounted(() => {
   loadInitial()
   startPolling() // 元信息轮询常开（批量跑 / 后台跑的场次也能看到轮次与状态变化）
 })
 
 onUnmounted(() => {
+  stopTts()
   if (socket) socket.disconnect()
   if (batchPollTimer) clearInterval(batchPollTimer)
   stopPolling()
@@ -1363,6 +1463,21 @@ onUnmounted(() => {
                     <circle cx="11" cy="11" r="8"/>
                     <path d="m21 21-4.3-4.3"/>
                   </svg>
+                </button>
+                <!-- AF-395: 三模型语音对比，只在点击时调用；已生成过的二次点击只回放缓存 -->
+                <button
+                  v-for="p in (msg.role === 'visitor' ? TTS_PROVIDERS : [])"
+                  :key="p.id"
+                  class="h-6 min-w-6 px-1 flex items-center justify-center rounded-md text-[9px] font-semibold border transition-colors"
+                  :class="ttsStates[ttsKey(msg.turnIndex, p.id)]?.status === 'error'
+                    ? 'border-red-400/50 text-red-400 bg-red-400/10'
+                    : ttsPlayingKey === ttsKey(msg.turnIndex, p.id)
+                      ? 'border-accent text-accent bg-accent/20'
+                      : 'border-border/60 text-muted hover:text-accent hover:border-accent/50 hover:bg-accent/10'"
+                  :title="ttsTitle(msg.turnIndex, p)"
+                  @click.stop="playDebugTts(msg.turnIndex, p.id)"
+                >
+                  {{ ttsBadge(msg.turnIndex, p.id) }}
                 </button>
               </div>
             </div>

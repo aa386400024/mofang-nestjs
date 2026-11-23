@@ -286,6 +286,7 @@ import { AddEncounterAndCrisisOutcome1714900000048 } from '../src/migration/1714
 //   部署顺序: **必须先 migration:run 再起服务**, 否则 fail-closed 启动失败.
 import { CreateAdminDebugSessions1714900000049 } from '../src/migration/1714900000049-CreateAdminDebugSessions.js';
 import { AddPracticeSessionModelColumns1714900000050 } from '../src/migration/1714900000050-AddPracticeSessionModelColumns.js';
+import { CreateAdminDebugTtsRenders1714900000051 } from '../src/migration/1714900000051-CreateAdminDebugTtsRenders.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -484,6 +485,7 @@ const ormconfig = async (): Promise<DataSource> => {
       CreateAdminDebugSessions1714900000049,
       // V2026-11-22 AF-314 (自动对练场次模型可观测) — 三列, 历史行保持 NULL.
       AddPracticeSessionModelColumns1714900000050,
+      CreateAdminDebugTtsRenders1714900000051,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

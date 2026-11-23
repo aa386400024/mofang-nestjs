@@ -128,6 +128,8 @@ export class LlmService {
   private readonly doubaoModel: string;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
+  /** AF-395: MiniMax 成本取证开关；默认 false，避免改变既有生产请求体. */
+  private readonly minimaxIncludeUsage: boolean;
 
   constructor(config: ConfigService) {
     this.baseUrl = this.configMust(config, 'MINIMAX_BASE_URL');
@@ -145,6 +147,7 @@ export class LlmService {
     //   与 tts-bidi-client 等同款读法 —— 数值只在一处归一, 别处只消费.
     this.timeoutMs = config.get<number>('minimax.llmTimeoutMs') ?? 30_000;
     this.maxRetries = config.get<number>('minimax.llmMaxRetries') ?? 2;
+    this.minimaxIncludeUsage = config.get<boolean>('minimax.llmIncludeUsage') ?? false;
   }
 
   /**
@@ -285,8 +288,9 @@ export class LlmService {
         ? { max_tokens: opts.maxTokens ?? 2048 }
         : { max_completion_tokens: opts.maxCompletionTokens }),
       ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
-      // AF-250: 豆包流式默认不计量；显式要求末尾 usage chunk，MiniMax 不受影响.
-      ...(provider === 'doubao' ? { stream_options: { include_usage: true } } : {}),
+      // AF-250: 豆包流式默认不计量；显式要求末尾 usage chunk.
+      // AF-395: MiniMax 仅在显式开启成本取证时下发，默认不改变生产请求体.
+      ...(provider === 'doubao' || (provider === 'minimax' && this.minimaxIncludeUsage) ? { stream_options: { include_usage: true } } : {}),
     };
 
     const baseUrl = provider === 'doubao' ? this.doubaoBaseUrl : this.baseUrl;
