@@ -13,6 +13,8 @@ import {
   canonicalTaskSheetPath,
   copyReceiptToBundle,
   ensureTaskRecordBundle,
+  LEGACY_RECORD_PACKAGES_VERSION,
+  loadLegacyRecordPackages,
   migrateWorklog,
   readRecordManifest,
   resolveTaskSheet,
@@ -49,6 +51,13 @@ function writeSheet(root, rel = 'docs/worklog/inbox/af900-test-task.md') {
   mkdirSync(resolve(abs, '..'), { recursive: true });
   writeFileSync(abs, '---\ntaskId: AF-900\ncontextId: ctx-test\nstatus: ready\n---\n\n# AF-900 测试\n', 'utf8');
   return abs;
+}
+
+function writeLegacyPackages(root, packages) {
+  const file = join(root, 'docs', 'team', 'agent-orchestration', 'legacy-record-packages.json');
+  mkdirSync(resolve(file, '..'), { recursive: true });
+  writeFileSync(file, JSON.stringify({ version: LEGACY_RECORD_PACKAGES_VERSION, packages }, null, 2), 'utf8');
+  return file;
 }
 
 afterEach(() => {
@@ -311,6 +320,104 @@ describe('verify', () => {
     const result = verifyWorklog({ tasks: [t, { ...t }], archivedTasks: [] }, { rootDir: root });
     expect(result.errors.join('\n')).toContain('重复 taskId');
     expect(result.errors.join('\n')).toContain('孤儿记录包');
+  });
+
+  it('继承清单内的历史孤儿判 legacy 且不再报错', () => {
+    const root = makeRoot();
+    const t = task();
+    const source = writeSheet(root);
+    ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source });
+    const orphanManifest = join(root, 'docs', 'worklog', 'records', 'ctx-test', 'AF-990', 'manifest.json');
+    mkdirSync(resolve(orphanManifest, '..'), { recursive: true });
+    writeFileSync(orphanManifest, '{"taskId":"AF-990"}', 'utf8');
+    writeLegacyPackages(root, [
+      {
+        taskId: 'AF-990',
+        reason: '迁移期产物，无 journal 事件',
+        evidence: ['docs/worklog/records/ctx-test/AF-990/manifest.json'],
+      },
+    ]);
+    const result = verifyWorklog({ tasks: [t], archivedTasks: [] }, { rootDir: root });
+    expect(result.ok).toBe(true);
+    expect(result.stats.legacyRecordPackages).toBe(1);
+    expect(result.stats.legacyOrphans).toBe(1);
+    expect(result.legacyOrphans).toEqual(['AF-990']);
+    expect(result.errors.join('\n')).not.toContain('孤儿记录包');
+  });
+
+  it('继承清单外的孤儿仍报错，stateFree 只是临时调试开关', () => {
+    const root = makeRoot();
+    const orphanManifest = join(root, 'docs', 'worklog', 'records', 'ctx-test', 'AF-990', 'manifest.json');
+    mkdirSync(resolve(orphanManifest, '..'), { recursive: true });
+    writeFileSync(orphanManifest, '{"taskId":"AF-990"}', 'utf8');
+    const strict = verifyWorklog({ tasks: [], archivedTasks: [] }, { rootDir: root });
+    expect(strict.ok).toBe(false);
+    expect(strict.errors.join('\n')).toContain('孤儿记录包：AF-990');
+    const debug = verifyWorklog({ tasks: [], archivedTasks: [] }, { rootDir: root, stateFree: true });
+    expect(debug.ok).toBe(true);
+    expect(debug.skippedOrphans).toEqual(['AF-990']);
+  });
+
+  it('继承清单条目已进入索引或记录包缺失判过期', () => {
+    const root = makeRoot();
+    const t = task();
+    const source = writeSheet(root);
+    ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source });
+    writeLegacyPackages(root, [
+      {
+        taskId: 'AF-900',
+        reason: '误把在册任务写进清单',
+        evidence: ['docs/worklog/inbox/af900-test-task.md'],
+      },
+      {
+        taskId: 'AF-991',
+        reason: '清单指向不存在的记录包',
+        evidence: ['docs/worklog/inbox/af900-test-task.md'],
+      },
+    ]);
+    const result = verifyWorklog({ tasks: [t], archivedTasks: [] }, { rootDir: root });
+    expect(result.ok).toBe(false);
+    expect(result.staleLegacy).toEqual(['AF-900', 'AF-991']);
+    expect(result.errors.join('\n')).toContain('继承清单已过期：AF-900');
+    expect(result.errors.join('\n')).toContain('继承清单已过期：AF-991');
+  });
+
+  it('继承清单自身非法时逐条报错', () => {
+    const root = makeRoot();
+    writeLegacyPackages(root, [
+      { taskId: 'AF-992', reason: '', evidence: [] },
+      { taskId: 'AF-992', reason: '重复登记', evidence: ['docs/worklog/inbox/af900-test-task.md'] },
+      { taskId: 'WP-1', reason: '编号非法', evidence: ['docs/worklog/inbox/af900-test-task.md'] },
+      { taskId: 'AF-993', reason: '证据文件缺失', evidence: ['docs/worklog/inbox/af993-missing.md'] },
+    ]);
+    const result = verifyWorklog({ tasks: [], archivedTasks: [] }, { rootDir: root });
+    expect(result.ok).toBe(false);
+    expect(result.errors.join('\n')).toContain('继承清单缺 reason：AF-992');
+    expect(result.errors.join('\n')).toContain('继承清单重复 taskId：AF-992');
+    expect(result.errors.join('\n')).toContain('继承清单 taskId 非法：WP-1');
+    expect(result.errors.join('\n')).toContain('继承清单证据文件不存在：AF-993');
+  });
+
+  it('继承清单不存在时静默为空，存在时按条目解析', () => {
+    const root = makeRoot();
+    expect(loadLegacyRecordPackages({ rootDir: root })).toEqual({ ok: true, entries: [], errors: [] });
+    writeSheet(root);
+    writeLegacyPackages(root, [{ taskId: 'AF-990', reason: '迁移期遗留', evidence: ['docs/worklog/inbox/af900-test-task.md'] }]);
+    const loaded = loadLegacyRecordPackages({ rootDir: root });
+    expect(loaded.ok).toBe(true);
+    expect(loaded.entries).toHaveLength(1);
+    expect(loaded.entries[0].taskId).toBe('AF-990');
+    expect(loaded.entries[0].evidence).toEqual(['docs/worklog/inbox/af900-test-task.md']);
+  });
+
+  it('继承清单版本不符判失败', () => {
+    const root = makeRoot();
+    const file = join(root, 'docs', 'team', 'agent-orchestration', 'legacy-record-packages.json');
+    mkdirSync(resolve(file, '..'), { recursive: true });
+    writeFileSync(file, JSON.stringify({ version: 'legacy-record-packages:0.9.0', packages: [] }), 'utf8');
+    const result = verifyWorklog({ tasks: [], archivedTasks: [] }, { rootDir: root });
+    expect(result.ok).toBe(false);
+    expect(result.errors.join('\n')).toContain('继承清单版本不符');
   });
 
   it('终态任务单留在 inbox 判失败', () => {

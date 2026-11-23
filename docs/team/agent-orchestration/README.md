@@ -460,6 +460,20 @@ node scripts/orchestration/cli.mjs docs normalize --path docs/worklog/completed/
 - 完整性闸门：`node scripts/orchestration/cli.mjs worklog verify`（CI Orchestration Gate 与 Husky pre-commit 都跑）；迁移幂等：`worklog migrate --apply`；
 - 迁移报告：`docs/worklog/records/migration-report-2026-11-20.json`；终态任务单确实在历史中缺失时写 `taskSheet: null` 墓碑，不伪造内容，`verify` 以 `无任务单` 计数透明呈现。
 
+### 5.7.1 历史孤儿记录包：继承清单（AF-423）
+
+2026-11-23 框架 v2.1 迁移留下的 10 个记录包（AF-363/364/365/366/367/368/369/370/372/376）有 manifest、任务单与交付记录，但缺 journal 事件，因此不在索引投影内。此前只能靠 `ORCH_STATE_FREE=1` 全局跳过孤儿检查——那个开关会连新出现的孤儿一起放过。
+
+现在改为**显式继承账**：
+
+- 单一真相源：`docs/team/agent-orchestration/legacy-record-packages.json`（`version: legacy-record-packages:1.0.0`），每条含 `taskId` / `reason` / `evidence[]`；
+- `worklog verify` 对清单内的孤儿判 legacy，计入 `继承孤儿=n/清单条目总数` 并打印；**清单外的孤儿照旧报错**；
+- 条目一旦进入索引（或对应记录包被删）即报 `继承清单已过期`，强制从清单移除——清单不是永久豁免；
+- 清单条目缺 reason、缺证据、证据文件不存在、taskId 非法或重复、版本不符，均按普通错误报出；
+- `ORCH_STATE_FREE` / `--state-free` 降级为临时调试开关（仍需连带跳过索引投影校验），常规路径不再使用；CI Orchestration Gate 的 strict verify 不再依赖该 env。
+
+维护纪律：新增孤儿先查清「补登事件链」还是「确属迁移遗留」，只有后者才写清单；两者都不做、直接放宽开关属于旁路。
+
 ## 6. 策略锚点（policyAnchors）
 
 任务单 `policyRefs` 只引用锚点，不复制规则正文；规则唯一真相源是 `docs/team/conventions.md`。
