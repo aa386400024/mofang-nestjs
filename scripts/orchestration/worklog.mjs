@@ -123,6 +123,34 @@ function writeManifest(task, manifest, { rootDir }) {
   writeJsonAtomic(recordManifestPath(task, { rootDir }), manifest);
 }
 
+function comparableManifest(manifest) {
+  const copy = { ...(manifest ?? {}) };
+  delete copy.updatedAt;
+  return JSON.stringify(copy);
+}
+
+/** 记录包写入幂等：内容（除 updatedAt）没有变化时不再落盘，避免归档后产生脏文件与哈希噪声。 */
+function writeManifestIfChanged(task, manifest, { rootDir }) {
+  const file = recordManifestPath(task, { rootDir });
+  if (existsSync(file)) {
+    try {
+      const current = JSON.parse(readFileSync(file, 'utf8'));
+      if (comparableManifest(current) === comparableManifest(manifest)) return false;
+    } catch {
+      // 旧 manifest 非法时必须重写，让 verify 看到可诊断的新内容。
+    }
+  }
+  writeManifest(task, manifest, { rootDir });
+  return true;
+}
+
+/** 任务记录包是否已经落在 records（登记/冻结后不再允许归档阶段回写）。 */
+export function isTaskSheetBundled(task, { rootDir = REPO_ROOT } = {}) {
+  const pointer = typeof task?.artifacts?.taskSheet === 'string' ? task.artifacts.taskSheet : null;
+  if (!pointer || !pointer.startsWith('docs/worklog/records/')) return false;
+  return existsSync(resolve(rootDir, pointer));
+}
+
 export function normalizeTaskSheetLineEndings(path) {
   const text = readFileSync(path, 'utf8');
   if (!text.includes('\r')) return false;
@@ -207,7 +235,7 @@ export function ensureTaskRecordBundle(task, opts = {}) {
   if (legacy && !manifest.legacyPaths.includes(legacy)) manifest.legacyPaths.push(legacy);
   if (opts.recoveredFrom) manifest.recoveredFrom = opts.recoveredFrom;
   if (manifest.receipts.length === 0) manifest.receipts = [];
-  writeManifest(task, manifest, { rootDir });
+  writeManifestIfChanged(task, manifest, { rootDir });
   return { bundleDir: taskBundleDir(task, { rootDir }), taskSheetPath: repoRelative(rootDir, target), manifest };
 }
 
@@ -215,25 +243,43 @@ function samePath(a, b) {
   return resolve(a).toLowerCase() === resolve(b).toLowerCase();
 }
 
-/** 回执入包：同一 receiptId 内容相同幂等复用；内容不同则加摘要后缀留痕。 */
+/** 回执入包：同一 receiptId 内容相同幂等复用；内容不同则加摘要后缀留痕，绝不原地覆盖已入库副本。 */
 export function copyReceiptToBundle(task, receiptFile, receipt, opts = {}) {
   const rootDir = opts.rootDir ?? REPO_ROOT;
   const bundleDir = taskBundleDir(task, { rootDir });
   mkdirSync(bundleDir, { recursive: true });
   const receiptId = safeSegment(receipt?.receiptId ?? `${task.taskId}-${Date.now()}`);
+  const sourceHash = sha256File(receiptFile);
   let target = join(bundleDir, `receipt-${receiptId}.json`);
-  if (existsSync(target) && sha256File(target) !== sha256File(receiptFile)) {
-    target = join(bundleDir, `receipt-${receiptId}-${sha256File(receiptFile).slice(0, 8)}.json`);
+  if (existsSync(target) && sha256File(target) !== sourceHash) {
+    target = join(bundleDir, `receipt-${receiptId}-${sourceHash.slice(0, 8)}.json`);
   }
   if (!existsSync(target)) copyFileSync(receiptFile, target);
   const manifest = readRecordManifest(task, { rootDir }) ?? emptyManifest(task);
   const ref = repoRelative(rootDir, target);
   const entry = { path: ref, sha256: sha256File(target), receiptId: receipt?.receiptId ?? null };
-  manifest.receipts = [...manifest.receipts.filter((item) => item.path !== ref), entry];
+  const existingIndex = manifest.receipts.findIndex((item) => item.path === ref);
+  if (existingIndex >= 0) manifest.receipts[existingIndex] = entry;
+  else manifest.receipts.push(entry);
   manifest.status = task.status ?? manifest.status ?? null;
   manifest.contextId = task.contextId ?? manifest.contextId ?? null;
-  writeManifest(task, manifest, { rootDir });
+  writeManifestIfChanged(task, manifest, { rootDir });
   return { ref, manifest };
+}
+
+/**
+ * 回执冻结校验：记录包必须已有同一 receiptId、同一内容哈希的副本。
+ * run-once 摄入只认已随实现一起提交的副本，不再在提交后补写记录包。
+ */
+export function findBundledReceipt(task, receiptFile, receipt, { rootDir = REPO_ROOT } = {}) {
+  const manifest = readRecordManifest(task, { rootDir }) ?? emptyManifest(task);
+  const receiptId = receipt?.receiptId ?? null;
+  if (!receiptId || !existsSync(receiptFile)) return null;
+  const hash = sha256File(receiptFile);
+  const entry = manifest.receipts.find((item) => item.receiptId === receiptId && item.sha256 === hash);
+  if (!entry) return null;
+  if (!existsSync(resolve(rootDir, entry.path))) return null;
+  return { ...entry, manifest };
 }
 
 /** 记录包内任务单解析：canonical → manifest → 旧 pending 指针。 */
@@ -663,9 +709,7 @@ export function worklogStats(index, opts = {}) {
       ? readdirSync(inboxDir).filter((name) => name.endsWith('.md') && name.toLowerCase() !== 'readme.md').length
       : 0,
     tombstones: bundles.filter(
-      (bundle) =>
-        !bundle.manifest?.taskSheet?.path &&
-        ['completed', 'failed', 'canceled', 'rejected'].includes(bundle.manifest?.status),
+      (bundle) => !bundle.manifest?.taskSheet?.path && ['completed', 'failed', 'canceled', 'rejected'].includes(bundle.manifest?.status),
     ).length,
     recordBytes: bundles.reduce((sum, bundle) => sum + directorySize(bundle.dir), 0),
   };

@@ -114,7 +114,15 @@ import {
 } from './executor-session.mjs';
 import { excludeStatePlane, GENERATED_STATE_PATHS, isGeneratedStatePath } from './task-entry-gate.mjs';
 import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
-import { ensureTaskRecordBundle, migrateWorklog, resolveTaskSheet, statsWorklog, verifyWorklog } from './worklog.mjs';
+import {
+  copyReceiptToBundle,
+  ensureTaskRecordBundle,
+  migrateWorklog,
+  resolveTaskSheet,
+  sha256File,
+  statsWorklog,
+  verifyWorklog,
+} from './worklog.mjs';
 
 /**
  * AF-217 归档前置：scope 内是否还有「实现」未进版本库。
@@ -359,6 +367,8 @@ function cmdRunOnce() {
       resolveCommitFiles,
       // AF-217：归档前置——scope 内实现还在工作区就不许归档。
       checkUncommitted: (task) => uncommittedImplementation(gitPort, task),
+      // AF-373：真实编排要求回执先冻结进记录包，归档不回写记录包。
+      requireBundledReceipt: true,
     });
     auditDispatchActions(actions);
     writeSnapshotArtifacts(snapshot);
@@ -546,7 +556,9 @@ function cmdState(args = []) {
       process.exitCode = 1;
       return { ok: false, errors };
     }
-    console.log(`[PASS] state guard branch=${branch || '(detached)'} stateStaged=${stateStaged.length} implStaged=${implementationStaged.length}`);
+    console.log(
+      `[PASS] state guard branch=${branch || '(detached)'} stateStaged=${stateStaged.length} implStaged=${implementationStaged.length}`,
+    );
     return { ok: true, errors: [] };
   }
 
@@ -618,7 +630,13 @@ function cmdSession(args = []) {
       now,
       progressPercent: rawPercent === undefined ? undefined : Number(rawPercent),
       progressNote: argValue(args, '--note') ?? null,
-      artifactRefs: artifacts === undefined ? undefined : artifacts.split(',').map((item) => item.trim()).filter(Boolean),
+      artifactRefs:
+        artifacts === undefined
+          ? undefined
+          : artifacts
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean),
       evidenceRef: argValue(args, '--evidence') ?? undefined,
       leaseMinutes: argValue(args, '--lease-minutes') ? Number(argValue(args, '--lease-minutes')) : undefined,
     });
@@ -650,7 +668,11 @@ function cmdSession(args = []) {
   }
 
   if (action === 'terminal') {
-    const next = terminalSession(target, { now, status: argValue(args, '--status') ?? 'completed', note: argValue(args, '--note') ?? null });
+    const next = terminalSession(target, {
+      now,
+      status: argValue(args, '--status') ?? 'completed',
+      note: argValue(args, '--note') ?? null,
+    });
     Object.assign(target, next);
     save(state);
     console.log(JSON.stringify(target, null, 2));
@@ -721,7 +743,9 @@ function cmdWorklog(args = []) {
       );
       for (const warning of result.warnings) console.warn(`  ! ${warning}`);
       if (stateFree && result.skippedOrphans.length > 0) {
-        console.log(`  - 状态面解耦：跳过孤儿记录包检查 ${result.skippedOrphans.length} 个（${result.skippedOrphans.join('、')}）；索引同步后再判`);
+        console.log(
+          `  - 状态面解耦：跳过孤儿记录包检查 ${result.skippedOrphans.length} 个（${result.skippedOrphans.join('、')}）；索引同步后再判`,
+        );
       }
       for (const item of debt) console.error(`  - ${item}`);
       for (const error of result.errors) console.error(`  - ${error}`);
@@ -1850,8 +1874,39 @@ function cmdReceipt(args) {
     console.log(`已生成回执骨架：${target}`);
     return scaffold;
   }
+  if (sub === 'freeze') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) throw new Error('用法：receipt freeze --taskId AF-0xx [--path <receipt.json>] [--apply]');
+    const index = loadIndex();
+    let task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`任务不在索引中：${taskId}`);
+    if (!task.scope) {
+      const sheet = resolveTaskSheet(task);
+      if (sheet) {
+        const { meta } = parseTaskSheetFrontmatter(readFileSync(sheet.path, 'utf8'));
+        task = { ...meta, ...task, scope: task.scope ?? meta.scope };
+      }
+    }
+    const pathArg = argValue(args, '--path');
+    const receiptFile = pathArg ? resolve(REPO_ROOT, pathArg) : join(PATHS.transportDir, 'receipts', `${taskId}.json`);
+    if (!existsSync(receiptFile)) throw new Error(`回执文件不存在：${relativePath(receiptFile)}`);
+    const lint = lintReceiptFile(receiptFile, task, { repoRoot: REPO_ROOT });
+    if (!lint.ok) {
+      for (const error of lint.errors) console.error(`[FAIL] ${error}`);
+      throw new Error(`回执未通过预检，拒绝冻结：${lint.errors.length} 项错误`);
+    }
+    const parsed = JSON.parse(readFileSync(receiptFile, 'utf8'));
+    const receipt = parsed.payload ?? parsed;
+    const result = copyReceiptToBundle(task, receiptFile, receipt);
+    console.log(`回执冻结 ${taskId} → ${result.ref}`);
+    console.log(`内容哈希 ${sha256File(receiptFile)}`);
+    console.log('下一步：提交回执副本与 manifest，再运行 pnpm orchestration:run。');
+    return result;
+  }
   if (sub !== 'lint') {
-    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>] 或 receipt scaffold --taskId <id> [--apply]');
+    console.error(
+      '用法：receipt lint --taskId <id> [--path <receipt.json>] 或 receipt scaffold --taskId <id> [--apply] 或 receipt freeze --taskId <id> [--path <receipt.json>]',
+    );
     process.exit(2);
   }
   const taskId = argValue(args, '--taskId');

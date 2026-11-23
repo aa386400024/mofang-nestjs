@@ -25,6 +25,8 @@ case "$FIRST_LINE" in
 esac
 
 if printf '%s\n' "$FIRST_LINE" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?: .+'; then
+  # AF-373: 自动补 Task trailer；无法唯一归属到在办任务时阻断提交。
+  node ./scripts/orchestration/commit-trailer.mjs "$MSG_FILE" || exit 1
   exit 0
 fi
 

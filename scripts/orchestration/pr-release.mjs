@@ -224,9 +224,14 @@ async function triagePullRequests({ repo, base, json }) {
   if (json) console.log(JSON.stringify({ base, count: rows.length, pulls: rows }, null, 2));
   else {
     console.log(`[ORCH-PR] triage open=${rows.length} base=${base}`);
-    for (const row of rows) console.log(`  #${row.number} ${row.state} task=${row.taskId ?? '-'} status=${row.taskStatus ?? '-'} age=${row.ageDays}d`);
+    for (const row of rows)
+      console.log(`  #${row.number} ${row.state} task=${row.taskId ?? '-'} status=${row.taskStatus ?? '-'} age=${row.ageDays}d`);
     const counts = rows.reduce((acc, row) => ({ ...acc, [row.state]: (acc[row.state] ?? 0) + 1 }), {});
-    console.log(`  汇总：${Object.entries(counts).map(([key, value]) => `${key}=${value}`).join(' ')}`);
+    console.log(
+      `  汇总：${Object.entries(counts)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(' ')}`,
+    );
   }
   return { base, count: rows.length, pulls: rows };
 }
@@ -246,7 +251,14 @@ async function resolvePull({ repo, base, taskId, prNumber }) {
 
 async function closePullRequest({ repo, base, taskId, prNumber, apply, reason, deleteBranch, comment }) {
   const pr = await resolvePull({ repo, base, taskId, prNumber });
-  const plan = { mode: apply ? 'apply' : 'dry-run', action: 'close', pr: pr.number, branch: pr.head?.ref, taskId: taskId ?? taskIdFromBranch(pr.head?.ref), reason };
+  const plan = {
+    mode: apply ? 'apply' : 'dry-run',
+    action: 'close',
+    pr: pr.number,
+    branch: pr.head?.ref,
+    taskId: taskId ?? taskIdFromBranch(pr.head?.ref),
+    reason,
+  };
   if (!apply) {
     console.log(JSON.stringify(plan, null, 2));
     return plan;
@@ -312,7 +324,8 @@ function assertSingleTaskBranch({ branch, base, taskId, allowedTaskIds = [] }) {
 }
 
 function pullRequestTitle(task) {
-  return buildSquashCommitMessage({ taskId: task.taskId, taskType: task.type, title: task.title });
+  // PR 标题只取 conventional 首行；Task trailer 放合并提交正文，GitHub 不允许标题带换行。
+  return buildSquashCommitMessage({ taskId: task.taskId, taskType: task.type, title: task.title }).split('\n')[0];
 }
 
 async function createOrUpdatePullRequest({ repo, base, taskId, apply }) {
@@ -419,7 +432,7 @@ async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, int
       body: {
         merge_method: 'squash',
         commit_title: pullRequestTitle(task),
-        commit_message: `任务 ${taskId} 已完成机读验收与远端必需检查；由受保护 PR 流程 squash 合并。`,
+        commit_message: `任务 ${taskId} 已完成机读验收与远端必需检查；由受保护 PR 流程 squash 合并。\n\nTask: ${taskId}`,
       },
     }),
   );
@@ -470,7 +483,9 @@ function parseArgs(argv) {
 async function main(argv) {
   const args = parseArgs(argv);
   if (!['create', 'status', 'merge', 'list', 'triage', 'close', 'supersede'].includes(args.command)) {
-    throw new Error('用法：create|status|merge|list|triage|close|supersede [--taskId AF-0xx] [--pr N] [--apply] [--repo owner/repo] [--base integrate]');
+    throw new Error(
+      '用法：create|status|merge|list|triage|close|supersede [--taskId AF-0xx] [--pr N] [--apply] [--repo owner/repo] [--base integrate]',
+    );
   }
   if (args.command === 'list') return listPullRequests(args);
   if (args.command === 'triage') return triagePullRequests(args);
