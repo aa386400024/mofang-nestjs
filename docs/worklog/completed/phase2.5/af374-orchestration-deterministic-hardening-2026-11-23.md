@@ -78,10 +78,10 @@ AF-365 → AF-373 收口中反复出现四类确定性缝隙：回执在提交�
 
 ## 5. 提交序列
 
-1. 首个提交同时包含 `docs/worklog/records/.../AF-374/task-sheet.md` 与实现，确保 PR 逐提交门能解析任务归属。
-2. 第二个提交只包含交付记录、冻结回执与 manifest，随后更新 PR。
+1. 首个提交 `f1d8de0ce24edf17cebad08905f1f9eccd9c9724` 同时包含 `docs/worklog/records/.../AF-374/task-sheet.md`、交付记录与实现，确保 PR 逐提交门能解析任务归属。
+2. 第二个提交只包含冻结回执副本与 manifest 更新，随后更新 PR。
 
-（首个提交哈希在回执中以 `changedFiles.commits` 记录。）
+首个提交已写入回执 `changedFiles.commits`。
 
 ## 6. 回执冻结流程（本任务实操）
 
