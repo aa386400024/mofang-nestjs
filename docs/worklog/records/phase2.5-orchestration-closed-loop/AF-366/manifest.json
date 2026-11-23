@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-366",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-23T15:42:00+08:00",
+  "updatedAt": "2026-11-23T07:44:35.671Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-366/task-sheet.md",
+    "sha256": "9bf22fddacca40f89101edbcfe56f9e1e70c94f056eadffd97ea97bb26af2bee",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-366-ci-orchestration-gate-fix.md"
+  ],
+  "tombstone": null
+}

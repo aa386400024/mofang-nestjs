@@ -95,6 +95,15 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Resolve commit range
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -205,7 +214,12 @@ jobs:
           test "$code" -ne 0
 
       - name: Validate schemas + event journal + projection
+        if: github.event_name != 'pull_request'
         run: pnpm orchestration:validate
+
+      - name: Validate schemas（PR 状态面解耦：跳过索引投影）
+        if: github.event_name == 'pull_request'
+        run: pnpm orchestration:validate --state-free
 
   # ============================================================
   # 1. Lint + Typecheck (最快, 先跑)

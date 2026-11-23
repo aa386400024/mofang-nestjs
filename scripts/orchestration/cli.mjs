@@ -1584,6 +1584,7 @@ async function cmdValidate(args) {
     console.error(`[FAIL] 框架契约不可达：${join(frameworkDir(), 'schemas', 'versions.json')}（ORCH_REQUIRE_FRAMEWORK=1）`);
     process.exit(1);
   }
+  const stateFree = args.includes('--state-free') || process.env.ORCH_STATE_FREE === '1';
   const sections = [];
 
   if (existsSync(PATHS.index)) {
@@ -1681,7 +1682,11 @@ async function cmdValidate(args) {
         errors: [...journalSchema.errors, ...integrity.errors],
       },
     ]);
-    sections.push(['索引投影一致', verifyProjection()]);
+    if (!stateFree) sections.push(['索引投影一致', verifyProjection()]);
+  }
+
+  if (stateFree) {
+    console.log('[SKIP] 索引投影一致：状态面解耦（--state-free），索引由收尾状态快照单独同步');
   }
 
   let failed = false;
