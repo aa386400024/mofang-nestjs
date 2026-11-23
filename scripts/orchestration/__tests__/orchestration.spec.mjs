@@ -3607,7 +3607,10 @@ describe('IM-012 squash 合并收口', () => {
     expect(() => extractTaskTrailer('feat: x\n\nTask: AF-373\nTask: AF-374\n')).toThrow(/多个不同 Task/);
     expect(resolveCommitTaskId({ subject: 'feat: unrelated 2026-11-17', message: 'feat: x\n\nTask: AF-373' }).taskId).toBe('AF-373');
     expect(() => resolveCommitTaskId({ subject: 'feat: AF-372', message: 'feat: x\n\nTask: AF-373' })).toThrow(/不一致/);
-    expect(() => resolveCommitTaskId({ subject: 'feat: AF-372', message: 'feat: x\n\nTask: none' })).toThrow(/冲突/);
+    expect(resolveCommitTaskId({ subject: 'chore: AF-372 状态快照', message: 'chore: x\n\nTask: none' })).toMatchObject({
+      taskId: null,
+      none: true,
+    });
   });
 
   it('AF-373 commit-msg 只补缺失 trailer，并区分纯状态面', () => {
@@ -3641,7 +3644,7 @@ describe('IM-012 squash 合并收口', () => {
     expect(missing.pass).toBe(false);
 
     const noneWithImpl = evaluateCommitSnapshot({
-      subject: 'chore: state',
+      subject: 'chore: AF-372 状态快照',
       message: 'chore: state\n\nTask: none',
       changedFiles: ['src/user/user.service.ts'],
       currentIndex,
