@@ -40,7 +40,7 @@ import { DEFAULT_UNDERLYING_DESIRES } from '../src/engine-core/domain/desires.js
 const KERNEL_DESIRE_KEYS = ['understood', 'accepted', 'avoid_pain', 'control'] as const;
 
 /** 审计版本（产物可追溯）. */
-const AUDIT_VERSION = 'af358-bdi-readiness-1.2.0';
+const AUDIT_VERSION = 'af359-bdi-readiness-1.3.0';
 
 /** 免责声明：工程审计，不是临床结论. */
 const DISCLAIMER = '本审计只回答"真实种子能否触发决策分支"，不代表临床有效性，也不含任何对话原文.';
@@ -65,8 +65,10 @@ interface RoleCoverage {
   readonly coveredKeys: readonly string[];
   readonly missingKeys: readonly string[];
   readonly weights: Record<string, number | undefined>;
-  /** avoid_pain 是否主导 (差值 > avoidanceMargin; 只在映射让该键首次可计算时才有意义). */
+  /** avoid_pain 是否主导 (差值 > avoidanceMargin + 1e-9; 只在映射让该键首次可计算时才有意义). */
   readonly avoidanceDominant: boolean;
+  /** avoid_pain - max(understood, accepted); 审计按四位小数输出, 让“发丝判定”可见 (AF-359). */
+  readonly avoidanceDelta: number;
   readonly mapping: { originalKey: string; coreKey: string | null; effectiveWeight: number }[];
 }
 
@@ -119,6 +121,7 @@ function buildCoverage(roles: readonly RoleSeed[], avoidanceMargin: number): Rol
     const missingKeys = KERNEL_DESIRE_KEYS.filter((key) => weights[key] === undefined);
     const avoidPain = weights['avoid_pain'] ?? 0;
     const maxPositive = Math.max(weights['understood'] ?? 0, weights['accepted'] ?? 0);
+    const avoidanceDelta = avoidPain - maxPositive;
     return {
       templateId: role.templateId,
       displayName: role.displayName,
@@ -128,7 +131,9 @@ function buildCoverage(roles: readonly RoleSeed[], avoidanceMargin: number): Rol
       coveredKeys,
       missingKeys,
       weights,
-      avoidanceDominant: avoidPain - maxPositive > avoidanceMargin,
+      // AF-359: 与内核同一容差口径; 0.68 - 0.58 的 IEEE-754 发丝差值不再判 dominant.
+      avoidanceDominant: avoidanceDelta > avoidanceMargin + 1e-9,
+      avoidanceDelta,
       mapping: mapped.entries.map((entry) => ({
         originalKey: entry.originalKey,
         coreKey: entry.coreKey,
@@ -246,17 +251,17 @@ function renderMarkdown(report: {
     '',
     '## 角色 × 内核四键覆盖（AF-357 显式映射后）',
     '',
-    '| 角色 | 原始键 → 内核键 | understood | accepted | avoid_pain | control | avoidanceDominant | 未映射键 | 缺失键 |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| 角色 | 原始键 → 内核键 | understood | accepted | avoid_pain | control | avoidanceDelta | avoidanceDominant | 未映射键 | 缺失键 |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
   );
   for (const role of report.coverage) {
     const cell = (key: string): number | string => {
       const value = role.weights[key];
-      return value === undefined ? '—' : value.toFixed(2);
+      return value === undefined ? '—' : value.toFixed(4);
     };
     const mapping = role.mapping.map((entry) => `${entry.originalKey}→${entry.coreKey ?? '保留'}`).join(' / ');
     lines.push(
-      `| ${role.displayName} (${role.templateId}) | ${mapping === '' ? '—' : mapping} | ${cell('understood')} | ${cell('accepted')} | ${cell('avoid_pain')} | ${cell('control')} | ${
+      `| ${role.displayName} (${role.templateId}) | ${mapping === '' ? '—' : mapping} | ${cell('understood')} | ${cell('accepted')} | ${cell('avoid_pain')} | ${cell('control')} | ${role.avoidanceDelta.toFixed(4)} | ${
         role.avoidanceDominant ? '是' : '否'
       } | ${role.unmappedKeys.length === 0 ? '无' : role.unmappedKeys.join(' / ')} | ${role.missingKeys.length === 0 ? '无' : role.missingKeys.join(' / ')} |`,
     );

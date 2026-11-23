@@ -31,8 +31,9 @@ export interface TemporaryBelief {
   /** observed=来访自发形成, introduced=咨询师引入. */
   readonly source: 'observed' | 'introduced';
   /**
-   * 同一规范化陈述被观察到的次数 (AF-357).
+   * 同一规范化陈述被**展开**的次数 (AF-357; AF-359 修正语义).
    *
+   * 逐字复读只刷新观察轮次/序号, 不增加该计数 (AF-358 起).
    * 缺省 = 1 (旧快照没有该字段时, 按"至少出现过一次"处理).
    * 只用于证据强度与审计, 不参与意图规划器的门槛判定 —— 门槛只看 confidence.
    */
@@ -44,8 +45,8 @@ export interface TemporaryBelief {
   /**
    * 最近一次被观察到的**来访发言序号** (1 起; 旧快照缺省, AF-358).
    *
-   * 为什么需要: 渲染降级轮不追加来访腿, 同一句原话会被连续多轮读到.
-   * 只有序号严格变大才算一次新的观察 —— 同一条被重复读到不重复计分.
+   * 只用于审计与观察痕迹, **不作为置信度门槛** (AF-359 起).
+   * 膨胀防线在语义层: 逐字复读不提升置信度, 只有展开才强化.
    */
   readonly lastObservedAtVisitorSeq?: number;
 }

@@ -186,10 +186,14 @@ function deriveDecisionSignals(
     snapshot.transference.negative >= snapshot.transference.positive + thresholds.negativeDominantMargin;
   const dependencyHigh = snapshot.transference.dependency >= thresholds.dependencyHigh;
   // AF-315: 愿望层。`avoid_pain` 明显压过“被理解”时，先保护自己，不往深处走。
+  //   AF-359: 比较加浮点容差 —— 0.68 - 0.58 在 IEEE-754 下是 0.10000000000000009,
+  //   曾把念安这种“差值恰好等于 margin”的角色误判为 avoidanceDominant.
+  const AVOIDANCE_COMPARE_EPSILON = 1e-9;
   const understoodWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'understood')?.currentWeight ?? 0;
   const acceptedWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'accepted')?.currentWeight ?? 0;
   const avoidPainWeight = snapshot.underlyingDesires.find((desire) => desire.key === 'avoid_pain')?.currentWeight ?? 0;
-  const avoidanceDominant = avoidPainWeight - Math.max(understoodWeight, acceptedWeight) > thresholds.avoidanceMargin;
+  const avoidanceDelta = avoidPainWeight - Math.max(understoodWeight, acceptedWeight);
+  const avoidanceDominant = avoidanceDelta > thresholds.avoidanceMargin + AVOIDANCE_COMPARE_EPSILON;
   // AF-322: 被理解与被接纳是两个独立信号，二者都高才下调探索门槛；
   //   用平均值近似会把“只被理解、尚未被接纳”误判成可以更深探索。
   const explorationGate =

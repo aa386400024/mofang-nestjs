@@ -131,11 +131,16 @@ export function mapRoleDesiresToCoreDetailed(desires: readonly UnderlyingDesireS
     if (current) {
       // 同一内核键出现多次: 权重取最大 (不求和), 但来源键与标签全部保留 ——
       //   合并是投影, 不是删除; 督导视图要能看到被合并掉的次级诉求.
+      // AF-359 · P2-6/P2-7: 按 (key,label) 对去重, 保 1:1; 赢家标签置首.
+      const nextLabel = desire.baselineWeight > current.baselineWeight ? desire.label : current.label;
+      const nextWeight = Math.max(current.baselineWeight, desire.baselineWeight);
+      const pairs = orderWinnerFirst(dedupePairs([...provenancePairs(current), ...provenancePairs(desire)]), nextLabel);
       merged.set(coreKey, {
         ...current,
-        ...(desire.baselineWeight > current.baselineWeight ? { label: desire.label, baselineWeight: desire.baselineWeight } : {}),
-        sourceKeys: [...new Set([...(current.sourceKeys ?? [coreKey]), desire.key])],
-        sourceLabels: [...new Set([...(current.sourceLabels ?? [current.label]), desire.label])],
+        label: nextLabel,
+        baselineWeight: nextWeight,
+        sourceKeys: pairs.map(([key]) => key),
+        sourceLabels: pairs.map(([, label]) => label),
       });
     } else {
       // AF-358 · P1-2: 只有"角色键 ≠ 内核键"时才需要来源字段 —— 直接命中的内核键
@@ -170,8 +175,43 @@ export function mapRoleDesiresToCoreDetailed(desires: readonly UnderlyingDesireS
 /** 首次映射时的来源字段: 已带来源 → 原样继承 (幂等); 直接命中内核键 → 不造冗余字段. */
 function provenanceFor(desire: UnderlyingDesireSeed, coreKey: CoreDesireKey): Pick<UnderlyingDesireSeed, 'sourceKeys' | 'sourceLabels'> {
   if (desire.sourceKeys) {
-    return { sourceKeys: [...desire.sourceKeys], sourceLabels: [...(desire.sourceLabels ?? [desire.label])] };
+    const pairs = dedupePairs(provenancePairs(desire));
+    return { sourceKeys: pairs.map(([key]) => key), sourceLabels: pairs.map(([, label]) => label) };
   }
   if (desire.key === coreKey) return {};
   return { sourceKeys: [desire.key], sourceLabels: [desire.label] };
+}
+
+type ProvenancePair = readonly [key: string, label: string];
+
+/** 取种子的来源对; 已带来源的映射结果按 1:1 读取, 缺标签回落到当前标签. */
+function provenancePairs(seed: UnderlyingDesireSeed): ProvenancePair[] {
+  if (seed.sourceKeys && seed.sourceKeys.length > 0) {
+    const labels = seed.sourceLabels ?? [];
+    return seed.sourceKeys.map((key, index) => [key, labels[index] ?? seed.label] as const);
+  }
+  // 未带来源时, 原始 key 就是来源; 对已映射结果 (key 已是内核键) 也保持可追溯.
+  return [[seed.key, seed.label]];
+}
+
+/** 按 (key,label) 对去重: 不再分别 Set, 避免 keys 与 labels 长度不等. */
+function dedupePairs(pairs: readonly ProvenancePair[]): ProvenancePair[] {
+  const seen = new Set<string>();
+  const result: ProvenancePair[] = [];
+  for (const pair of pairs) {
+    const signature = `${pair[0]}\u0000${pair[1]}`;
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    result.push(pair);
+  }
+  return result;
+}
+
+/** 赢家标签置首, 其余顺序不变; 消费方可以安全地假设 sourceLabels[0] === label. */
+function orderWinnerFirst(pairs: readonly ProvenancePair[], winnerLabel: string): ProvenancePair[] {
+  const winnerIndex = pairs.findIndex(([, label]) => label === winnerLabel);
+  if (winnerIndex <= 0) return [...pairs];
+  const winner = pairs[winnerIndex];
+  if (!winner) return [...pairs];
+  return [winner, ...pairs.filter((_, index) => index !== winnerIndex)];
 }

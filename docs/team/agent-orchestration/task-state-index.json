@@ -4,10 +4,139 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1597,
+    "lastEventSeq": 1600,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-359",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-23T04:59:22.366Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-23T04:59:47.942Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "BDI 复审 follow-up：浮点主导判定、否定辖域与跨重启展开",
+      "type": "fix",
+      "baselineRef": "b867102dd7cf10f0d30c6b96b21f684a24478d4f",
+      "dependsOn": [
+        "AF-358"
+      ],
+      "priorTasks": [
+        "AF-358",
+        "AF-357",
+        "AF-354",
+        "AF-349"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3",
+        "conventions.md#2.5"
+      ],
+      "createdAt": "2026-11-23T04:59:21.904Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/engine-core/cognition/state-transition.ts",
+          "src/engine-core/cognition/intention-planner.ts",
+          "src/engine-core/domain/beliefs.ts",
+          "src/engine-adapters/wiring/character/character-desire-mapping.ts",
+          "bin/bdi-readiness-audit.ts",
+          "test/engine-core/",
+          "test/engine-adapters/",
+          "test/config/",
+          "docs/worklog/completed/",
+          "docs/worklog/records/"
+        ],
+        "modules": [
+          "engine-core",
+          "engine-adapters"
+        ],
+        "interfaces": [
+          "TemporaryBelief",
+          "BdiSnapshot"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-359/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm typecheck",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec vitest run test/engine-core/af357-bdi-belief-formation.spec.ts test/engine-core/af358-belief-extraction-matrix.spec.ts test/engine-core/af358-belief-degraded-regression.spec.ts test/engine-core/af359-bdi-review-followup.spec.ts test/engine-adapters/af357-character-desire-mapping.spec.ts test/engine-adapters/af358-character-desire-provenance.spec.ts test/engine-adapters/af359-character-desire-pairing.spec.ts test/engine-adapters/af357-bdi-runtime-config.spec.ts test/engine-core/boundary.spec.ts test/config/wp25-env-example-coverage.spec.ts",
+          "check": "定向测试全绿，过滤器全部命中",
+          "threshold": "exit=0 且测试文件数 >= 10"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsx bin/bdi-readiness-audit.ts --out .tmp/af359-audit --strict",
+          "check": "阻断项 0，念安不再因浮点误差被判 dominant",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+          "check": "记录包完整",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "念安 `0.68 - 0.58` 的 IEEE-754 发丝差值不再被判 `avoidanceDominant`；惊尘与内置回避型不受影响。",
+        "审计与内核使用同一容差口径与同一差值定义，输出 `avoidanceDelta` 四位小数并点名三个 dominant 角色。",
+        "否定后缀只排除“否定词紧邻觉察动词”（如 `我似乎没有意识到`）；`我意识到没有人真正关心我`、`我意识到并不需要别人认可` 保留。",
+        "跨重启/接续后，持久化旧序号大于本地新序号时，合法展开仍能强化；同一句复读仍不提升置信度。",
+        "40 条上限同分时优先保留较新条目；同一 id 不产生重复条目。",
+        "映射来源键与标签按 `(key,label)` 对去重，长度保持 1:1，赢家标签排在首位。",
+        "不改 12 个阈值数值、愿望演化 5 参数、锁 TTL、时序斜率；不宣称临床有效性。",
+        "交付记录含六组机读标记，偏差逐条记录。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "复审 follow-up 修复",
+          "path": "src/engine-core/cognition/state-transition.ts",
+          "kind": "code"
+        },
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-23T04:59:22.365Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

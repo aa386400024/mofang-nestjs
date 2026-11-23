@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T04:47:52.296Z",
+  "generatedAt": "2026-11-23T04:59:48.027Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,48 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-359",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "BDI 复审 follow-up：浮点主导判定、否定辖域与跨重启展开",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-359/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-359",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-23T04:59:47.944Z",
+        "leaseDeadline": "2026-11-23T05:29:47.941Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-359.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-23T04:59:47.944Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-359.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1785,6 +1826,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-123",
+      "recordedAt": "2026-11-23T04:59:22.622Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-359",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-122",
       "recordedAt": "2026-11-23T04:28:21.807Z",
       "actorRef": "orchestrator",
@@ -2011,40 +2069,52 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-108",
-      "recordedAt": "2026-11-23T01:20:51.749Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-351",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-351",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-351.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 122,
+    "total": 123,
     "byResult": {
-      "allowed": 122,
+      "allowed": 123,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 121,
+      "TOOL-QUEUE-SCHEDULER": 122,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 122
+      "orchestrator": 123
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-359",
+        "title": "BDI 复审 follow-up：浮点主导判定、否定辖域与跨重启展开",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-358"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-359/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8127,9 +8197,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-359",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-359/task-sheet.md"
+      },
+      {
+        "taskId": "AF-359",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },

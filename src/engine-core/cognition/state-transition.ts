@@ -1161,6 +1161,10 @@ const QUESTION_STRUCTURES = ['是不是', '有没有', '会不会', '能不能',
  */
 const BELIEF_NEGATION_PREFIX_TOKENS = ['没有', '从没', '从未', '没', '不', '未'] as const;
 const BELIEF_NEGATION_SUFFIX_TOKENS = ['从来没有', '从来没', '并没有', '并没', '没有', '从未', '从没', '并不', '没', '未'] as const;
+/** 否定词 + 觉察动词: 否定的是“觉察”本身 ("我似乎没有意识到…"), AF-359. */
+const NEGATED_REFLECTION_VERB = /^(?:(?:从来|并|从)?(?:没有|没|未|不))(?:再)?(?:意识到|发现|觉察到|注意到)/;
+/** 含觉察动词的标记: 标记本身已肯定, 后面的否定属于宾语, 不再被后缀规则整句否决. */
+const REFLECTION_MARKER_VERBS = ['意识到', '发现', '觉察到', '注意到'] as const;
 
 /** 生成开启时保留的短期信念条数上限 (AF-358 · P1-5 隐私 / 快照体积护栏). */
 const MAX_TEMPORARY_BELIEFS = 40;
@@ -1229,15 +1233,28 @@ function applyFormationCandidate(
 
   const expansion = findExpansion(beliefs, key);
   if (!expansion) {
-    beliefs.push(createFormedBelief(statement, key, cfg, turn, seq));
+    const formed = createFormedBelief(statement, key, cfg, turn, seq);
+    // AF-359 · P2-3: 展开后 statement 已被替换成更具体的句子; 来访再说回原句时
+    //   精确/展开匹配都会落空, 若直接 push 会产生同 id 的第二条信念. 同 id 只刷新观察痕迹.
+    const sameIdIndex = beliefs.findIndex((belief) => belief.id === formed.id);
+    if (sameIdIndex !== -1) {
+      const same = beliefs[sameIdIndex];
+      if (!same) return;
+      beliefs[sameIdIndex] = {
+        ...same,
+        evidenceCount: same.evidenceCount ?? 1,
+        lastObservedAtTurn: turn,
+        ...(seq === undefined ? {} : { lastObservedAtVisitorSeq: seq }),
+      };
+      return;
+    }
+    beliefs.push(formed);
     return;
   }
 
   const { index, existing } = expansion;
-  // AF-358 · P0-1: 同一句原话被**重复读到** (降级轮不追加来访腿) 不算新的观察.
-  const lastSeq = existing.lastObservedAtVisitorSeq;
-  if (seq !== undefined && lastSeq !== undefined && seq <= lastSeq) return;
-
+  // AF-359: 不再用序号守卫压制展开 —— 复读分支已不提升置信度, 膨胀不可能发生;
+  //   保留守卫只会在“持久化旧序号 > 本地新序号”的重启/接续路径上静默丢弃合法展开.
   // 递减增量: 第 n 次展开的增量按 1/n 衰减, 避免连续展开把置信度堆到 1.0.
   const reinforcement = (cfg.formationReinforcement ?? DEFAULT_BELIEF_FORMATION_REINFORCEMENT) / Math.max(1, existing.evidenceCount ?? 1);
   const base = cfg.formationBaseConfidence ?? DEFAULT_BELIEF_FORMATION_BASE_CONFIDENCE;
@@ -1293,10 +1310,12 @@ function createFormedBelief(
   };
 }
 
-/** 按置信度保留高价值条目, 其余丢弃 (只在上限溢出时换新数组). */
+/** 按置信度保留高价值条目, 其余丢弃; 同分时保留较新观察的条目 (AF-359 · P2-5). */
 function capTemporaryBeliefs(beliefs: readonly TemporaryBelief[]): TemporaryBelief[] {
   if (beliefs.length <= MAX_TEMPORARY_BELIEFS) return [...beliefs];
-  return beliefs.toSorted((a, b) => b.confidence - a.confidence).slice(0, MAX_TEMPORARY_BELIEFS);
+  return beliefs
+    .toSorted((a, b) => b.confidence - a.confidence || (b.lastObservedAtTurn ?? 0) - (a.lastObservedAtTurn ?? 0))
+    .slice(0, MAX_TEMPORARY_BELIEFS);
 }
 
 /**
@@ -1352,9 +1371,12 @@ function isReflectiveClause(clause: string, minChars: number, maxChars: number):
   const prefix = clause.slice(0, markerIndex);
   if (BELIEF_NEGATION_PREFIX_TOKENS.some((token) => prefix.endsWith(token))) return false;
   // 标记**紧邻**否定词 → 否定的是该标记本身 ("我似乎没有意识到…").
-  //   只查紧邻, 不查整句: "我发现我并不开心" 里否定的是"不开心", 不是"发现", 应保留.
+  //   AF-359: 只有 hedge 型标记 (我似乎/我好像/原来我) 才会被后缀否定整句否决;
+  //   "我意识到没有人…" / "我意识到并不需要…" 的否定属于宾语, 是真实觉察, 不能丢.
   const suffix = clause.slice(markerIndex + marker.length);
-  if (BELIEF_NEGATION_SUFFIX_TOKENS.some((token) => suffix.startsWith(token))) return false;
+  const markerHasVerb = REFLECTION_MARKER_VERBS.some((verb) => marker.includes(verb));
+  if (!markerHasVerb && BELIEF_NEGATION_SUFFIX_TOKENS.some((token) => suffix.startsWith(token))) return false;
+  if (NEGATED_REFLECTION_VERB.test(suffix)) return false;
 
   const normalizedLength = normalizeBeliefStatement(clause).length;
   return normalizedLength >= minChars && normalizedLength <= maxChars;
