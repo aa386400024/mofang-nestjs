@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-387",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T22:15:00+08:00",
+  "updatedAt": "2026-11-23T14:15:27.337Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/task-sheet.md",
+    "sha256": "4f94f12efda518e915cde319fb90438e14f8b45d87c6ec6d675e111960b26a3f",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/receipt-RC-AF-387-1.json",
+      "sha256": "dafedc0c5d4e2aea2495602d2c4fdda205ad91f7c37a497c6b6fba42c1e47618",
+      "receiptId": "RC-AF-387-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af387-workspace-artifact-cleanup-acceptance-fix-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af387-workspace-artifact-cleanup-acceptance-fix-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}
