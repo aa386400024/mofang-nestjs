@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1785,
+    "lastEventSeq": 1793,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -3476,6 +3476,24 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af415-presence-precision-eval-2026-11-24.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-416",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-416/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af416-atomic-write-hardening-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-417",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-417/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af417-atomic-write-hardening-2026-11-24.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -3530,6 +3548,7 @@
     "AF-381": "前置未合并且已重签 AF-384",
     "AF-391": "角色域错误，取消并重登 AF-392",
     "AF-392": "scope 不足，重登 AF-393",
-    "AF-394": "scope 重签发 → AF-395"
+    "AF-394": "scope 重签发 → AF-395",
+    "AF-416": "scope 缺 .env.example；改动由 AF-417 承接"
   }
 }

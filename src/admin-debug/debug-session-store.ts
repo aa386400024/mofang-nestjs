@@ -30,19 +30,20 @@
 //     - 不自己算轮次: 轮次由调用方 (服务层) 传进来, 存储层不猜;
 //     - 不写"半截文件": 临时文件 + rename.
 //
-//   验证: npx vitest run test/admin-debug/debug-session-persistence.spec.ts
+//   验证: pnpm exec vitest run test/admin-debug/debug-session-persistence.spec.ts
 //   时间戳: 2026-11-05 GMT+8
 
 import { Injectable, Logger, Optional, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm } from 'node:fs/promises';
 // node:fs / node:path 没 default export, unicorn/import-style 误报 — 忽略.
 // eslint-disable-next-line unicorn/import-style
 import { isAbsolute, join, resolve } from 'node:path';
 import type { DataSource } from 'typeorm';
 
+import { cleanupTempFile, renameWithRetry, uniqueTempPath, writeFileWithRetry, type FsRetryPolicy } from './atomic-write.js';
 import type { DebugKernelState } from './debug-kernel-state.js';
 import { DebugSessionMirror } from './debug-session-mirror.js';
 import { parseDebugSessionRecord } from './debug-session-record.js';
@@ -57,62 +58,16 @@ export type {
 } from './debug-session-record.js';
 
 /**
- * Windows 上可安全重试的 rename 失败码.
+ * 原子写原语的历史导出位 (AF-414 的导入路径保持不变).
  *
- * EPERM / EACCES: 目标文件句柄被短暂占用 (杀毒扫描 / 另一个读句柄尚未释放);
- * EBUSY: 目录或文件被占用; ENOTEMPTY: 目标目录在替换瞬间非空.
- * 这些错误过几毫秒通常就消失, 直接抛会让 fire-and-forget 的 markCompleted 永久丢状态.
+ * 实现与常量已搬到 `atomic-write.ts`; 这里只做兼容 re-export, 新代码直接导入原语文件.
  */
-export const RENAME_RETRY_CODES = ['EPERM', 'EACCES', 'EBUSY', 'ENOTEMPTY'] as const;
-
-/**
- * renameWithRetry 的可注入依赖 (单测用桩替换, 不碰真实文件系统).
- */
-export interface RenameWithRetryOptions {
-  attempts?: number;
-  baseDelayMs?: number;
-  renameFn?: (from: string, to: string) => Promise<void>;
-  sleepFn?: (ms: number) => Promise<void>;
-}
-
-/**
- * 判断 rename 错误是否为 Windows 瞬时占用 (值得重试).
- *
- * @param error 捕获到的错误
- * @returns 命中可重试错误码 → true
- */
-export function isRetryableRenameError(error: unknown): boolean {
-  const code = (error as NodeJS.ErrnoException | null)?.code;
-  return typeof code === 'string' && (RENAME_RETRY_CODES as readonly string[]).includes(code);
-}
-
-/**
- * 原子 rename, 遇 Windows 瞬时占用时有限指数退避重试.
- *
- * 非瞬时错误 (ENOENT / EXDEV 等) 立即抛出, 不做无意义重试;
- * 重试耗尽后抛最后一次错误, 由调用方决定降级.
- *
- * @param temp 临时文件路径
- * @param target 目标文件路径
- * @param options 重试次数 / 基础退避 / 注入依赖
- * @returns rename 成功 → void
- */
-export async function renameWithRetry(temp: string, target: string, options: RenameWithRetryOptions = {}): Promise<void> {
-  const attempts = Math.max(1, Math.trunc(options.attempts ?? 3));
-  const baseDelayMs = Math.max(0, options.baseDelayMs ?? 10);
-  const renameFn = options.renameFn ?? rename;
-  const sleepFn = options.sleepFn ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      await renameFn(temp, target);
-      return;
-    } catch (error) {
-      const isLast = attempt === attempts - 1;
-      if (isLast || !isRetryableRenameError(error)) throw error;
-      await sleepFn(baseDelayMs * 2 ** attempt);
-    }
-  }
-}
+export {
+  RETRYABLE_FS_CODES as RENAME_RETRY_CODES,
+  renameWithRetry,
+  isRetryableFsError as isRetryableRenameError,
+  type RenameRetryOptions as RenameWithRetryOptions,
+} from './atomic-write.js';
 
 /**
  * 保留的会话上限.
@@ -161,6 +116,18 @@ export const DEBUG_SESSION_MAX_ENV = 'ADMIN_DEBUG_SESSION_MAX';
 /** 缺省保留上限 (与历史 MAX_DEBUG_SESSIONS 一致). */
 export const DEFAULT_DEBUG_SESSION_MAX = MAX_DEBUG_SESSIONS;
 
+/** 原子写重试次数 env 键 (含首次尝试, 缺省 3). */
+export const DEBUG_SESSION_WRITE_ATTEMPTS_ENV = 'ADMIN_DEBUG_RENAME_RETRY_ATTEMPTS';
+
+/** 原子写退避基数 env 键 (毫秒, 缺省 10). */
+export const DEBUG_SESSION_WRITE_BASE_DELAY_ENV = 'ADMIN_DEBUG_RENAME_RETRY_BASE_DELAY_MS';
+
+/** 缺省重试次数 (与 AF-414 行为一致). */
+export const DEFAULT_WRITE_RETRY_ATTEMPTS = 3;
+
+/** 缺省退避基数 (与 AF-414 行为一致). */
+export const DEFAULT_WRITE_RETRY_BASE_DELAY_MS = 10;
+
 /**
  * 会话 id 的合法形状.
  *
@@ -180,6 +147,8 @@ export class DebugSessionStore implements OnModuleInit, OnModuleDestroy {
   private readonly dir: string;
   /** 保留上限 (文件与远端共用一个口径). */
   private readonly maxSessions: number;
+  /** 原子写重试策略 (env 可调, 装配期解析一次). */
+  private readonly writeRetryPolicy: FsRetryPolicy;
   /** 远端系统记录层; null = 纯文件模式. */
   private readonly mirror: DebugSessionMirror | null;
   /** 远端已知 id (让标注台同步 exists 判定不必读大 JSON). */
@@ -198,6 +167,7 @@ export class DebugSessionStore implements OnModuleInit, OnModuleDestroy {
   constructor(config: ConfigService, @Optional() @InjectDataSource() dataSource?: DataSource) {
     this.dir = resolveStoreDir(config);
     this.maxSessions = resolveMaxSessions(config);
+    this.writeRetryPolicy = resolveWriteRetryPolicy(config);
     const remoteEnabled = resolveRemoteEnabled(config);
     this.mirror = remoteEnabled && dataSource !== undefined ? new DebugSessionMirror(dataSource) : null;
   }
@@ -395,7 +365,11 @@ export class DebugSessionStore implements OnModuleInit, OnModuleDestroy {
       const remote = await this.mirror.get(id);
       if (remote !== null) {
         this.knownRemoteIds.add(id);
-        await this.writeRecord(remote);
+        // 回填走 per-session 队列: 否则这条全量写会和 append/mark 的排队写并发.
+        await this.enqueue(id, async () => {
+          const local = await this.readRecord(id);
+          if (shouldBackfillLocal(local, remote)) await this.writeRecord(remote);
+        });
         return remote;
       }
     }
@@ -538,14 +512,19 @@ export class DebugSessionStore implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 写一个会话文件 (临时文件 + rename, 原子).
+   * 写一个会话文件 (唯一临时文件 + write/rename 双重重试, 原子).
    */
   private async writeRecord(record: DebugSessionRecord): Promise<void> {
     await mkdir(this.dir, { recursive: true });
     const target = this.filePath(record.id);
-    const temp = `${target}.tmp`;
-    await writeFile(temp, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
-    await renameWithRetry(temp, target);
+    const temp = uniqueTempPath(target);
+    try {
+      await writeFileWithRetry(temp, `${JSON.stringify(record, null, 2)}\n`, this.writeRetryPolicy);
+      await renameWithRetry(temp, target, this.writeRetryPolicy);
+    } finally {
+      // rename 成功后临时名已不存在, rm force 是无害的兜底; 失败路径必须清掉自己的临时文件.
+      await cleanupTempFile(temp);
+    }
   }
 
   /**
@@ -635,6 +614,43 @@ export function resolveMaxSessions(config: ConfigService): number {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return DEFAULT_DEBUG_SESSION_MAX;
   return Math.min(Math.max(parsed, 1), 10_000);
+}
+
+/**
+ * 解析原子写重试策略 (env 覆盖; 非法值回落默认).
+ *
+ * 次数夹在 1..10, 退避基数夹在 0..1000ms —— 防止配置写错把调试写路径拖成秒级.
+ *
+ * @param config 配置服务
+ * @returns 重试策略
+ */
+export function resolveWriteRetryPolicy(config: ConfigService): FsRetryPolicy {
+  const attemptsRaw = (config.get<string>(DEBUG_SESSION_WRITE_ATTEMPTS_ENV) ?? '').trim();
+  const delayRaw = (config.get<string>(DEBUG_SESSION_WRITE_BASE_DELAY_ENV) ?? '').trim();
+  const attempts = Number.parseInt(attemptsRaw, 10);
+  const baseDelayMs = Number.parseInt(delayRaw, 10);
+  return {
+    attempts: Number.isFinite(attempts) ? Math.min(Math.max(attempts, 1), 10) : DEFAULT_WRITE_RETRY_ATTEMPTS,
+    baseDelayMs: Number.isFinite(baseDelayMs) ? Math.min(Math.max(baseDelayMs, 0), 1000) : DEFAULT_WRITE_RETRY_BASE_DELAY_MS,
+  };
+}
+
+/**
+ * 判断是否需要把远端记录回填到本地缓存.
+ *
+ * 只有「本地缺失」或「远端更新」才写: 每次读都全量写回是 O(n²) 放大,
+ * 且会把本地更新的内容覆盖回旧远端快照.
+ *
+ * @param local 本地记录 (可空)
+ * @param remote 远端记录
+ * @returns 需要回填 → true
+ */
+export function shouldBackfillLocal(local: DebugSessionRecord | null, remote: DebugSessionRecord): boolean {
+  if (local === null) return true;
+  const localTime = Date.parse(local.updatedAt);
+  const remoteTime = Date.parse(remote.updatedAt);
+  if (Number.isFinite(localTime) && Number.isFinite(remoteTime)) return remoteTime > localTime;
+  return remote.updatedAt > local.updatedAt;
 }
 
 /**
