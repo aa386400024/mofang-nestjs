@@ -1,0 +1,139 @@
+{
+  "deliveredAt": "2026-11-24T05:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-422-1",
+    "taskId": "AF-422",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "investigation",
+    "agentRole": "orchestrator",
+    "baselineRef": "52b17bb5d2d8f4daa9c63a184358a52977ddeb54",
+    "dependsOn": [],
+    "priorTasks": ["AF-418", "AF-421"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-422/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af422-presence-cap-aware-replay-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "scripts/ops/quality/af422-presence-cap-aware-replay.mjs",
+        "scripts/orchestration/__tests__/af422-presence-cap-aware-replay.spec.mjs"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "scripts/ops/quality/af422-presence-cap-aware-replay.mjs",
+        "scripts/orchestration/__tests__/af422-presence-cap-aware-replay.spec.mjs",
+        "docs/worklog/completed/phase2.5/af422-presence-cap-aware-replay-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-422/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-422/manifest.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/af422-presence-cap-aware-replay.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "432ms",
+        "note": "8 用例全绿：cap 边界与内核常量逐维一致、三条差值性质、1× 与 AF-421 一致、8× 损失记录、0× 零增益与单调性"
+      },
+      {
+        "command": "node scripts/ops/quality/af422-presence-cap-aware-replay.mjs --dir data/debug-sessions",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "13 场；0×–8× 五档 cap 损失轮次均为 0、损失增量 0.000000；8× 平均 safety +0.2868 / bond +0.1428"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 320,
+        "machine": "同上",
+        "wallClock": "29.68s",
+        "note": "320 passed / 1 skipped（文件），4832 passed / 4 skipped（用例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff"
+      }
+    ],
+    "reproNotes": "定向单测 → cap 感知重放脚本 → pnpm lint → pnpm typecheck → pnpm test → engine-core diff。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-422 贯穿任务单、回执、交付记录" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 派发 / 分支 / 归档均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全，scope 覆盖全部改动文件" },
+      { "item": "event-chain", "result": "pass", "note": "事件链由 CLI 写入，归档后 events verify 复核" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff；cap 边界是镜像常量，靠单测对内核常量断言" },
+      { "item": "privacy", "result": "pass", "note": "只输出数值与 sessionId，不打印任何对话原文" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单要求的差值定义、五档扫描、1× 可对比、cap 边界一致性断言全部落地"
+    },
+    "backlogItems": [
+      {
+        "id": "AF422-B1",
+        "impact": "cap 不是瓶颈的结论只在当前 13 场成立；真实 delta 更大的批次需重跑。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF422-B2",
+        "impact": "幅度调大后的临床风险（过度安抚 / 机械正向）无法用 cap 指标把关，需 R4/R6 真人度评分。",
+        "layer": "domain",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "把 cap 对在场增益的影响从近似统计升级为精确差值，且与 AF-421 结论互相印证；同时给出「cap 不是瓶颈、瓶颈在幅度与体感」的可执行判断，并用单测兜住第三份 cap 常量拷贝。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地只读脚本，无上游模型计费。"
+  }
+}
