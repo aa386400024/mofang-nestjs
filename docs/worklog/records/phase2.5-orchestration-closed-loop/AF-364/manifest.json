@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-364",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T14:40:00+08:00",
+  "updatedAt": "2026-11-23T06:38:14.961Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-364/task-sheet.md",
+    "sha256": "9ec946931e5647721f153d0e935a3c8438d9c002c367e65d1236219c4d5a2168",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af364-orchestrator-card-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-364-orchestrator-card-contracts.md"
+  ],
+  "tombstone": null
+}

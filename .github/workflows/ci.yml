@@ -16,6 +16,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # AF-365 · 风险分级（框架 v2.1）：先算 riskClass 与执行面，再决定哪些重检查跑。
+  # 13 项 required checks 名称不变；跳过 job 由 GitHub 记为 success，仍满足保护要求。
+  risk-gate:
+    name: Risk Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      risk_class: ${{ steps.risk.outputs.risk_class }}
+      run_contracts: ${{ steps.risk.outputs.run_contracts }}
+      run_security: ${{ steps.risk.outputs.run_security }}
+      run_unit: ${{ steps.risk.outputs.run_unit }}
+      run_coverage: ${{ steps.risk.outputs.run_coverage }}
+      run_e2e: ${{ steps.risk.outputs.run_e2e }}
+      run_build: ${{ steps.risk.outputs.run_build }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Resolve risk class and gate plan
+        id: risk
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git fetch origin integrate --no-tags
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$PR_BASE"; HEAD="$PR_HEAD"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            BASE="$EVENT_BEFORE"; HEAD="$EVENT_AFTER"
+          else
+            BASE="origin/integrate"; HEAD="$EVENT_AFTER"
+          fi
+          if printf '%s' "$BASE" | grep -qE '^0+$'; then BASE="origin/integrate"; fi
+          TASK_ID=$(printf '%s' "$HEAD_REF" | sed -nE 's#^task/(AF-[0-9]+).*#\1#p')
+          if [ -n "$TASK_ID" ]; then
+            node scripts/orchestration/risk-gate.mjs --base "$BASE" --head "$HEAD" --task-id "$TASK_ID" --github-output "$GITHUB_OUTPUT"
+          else
+            node scripts/orchestration/risk-gate.mjs --base "$BASE" --head "$HEAD" --github-output "$GITHUB_OUTPUT"
+          fi
+
   # AF-056：服务端逐提交编排门。只保护 integrate 与任务 PR；
   # master/release 的 L4 由 release.yml 独立授权，不在这里隐式扩权。
   orchestration-gate:
@@ -97,11 +148,13 @@ jobs:
   #    ORCH_REQUIRE_FRAMEWORK=1 表示框架不可达时禁止 skipped 软通过，必须 fail-fast。
   # ============================================================
   contracts:
-    name: Contracts (framework 2.0.0)
+    name: Contracts (framework 2.1.0)
+    needs: risk-gate
+    if: needs.risk-gate.outputs.run_contracts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      ORCH_FRAMEWORK_DIR: ${{ github.workspace }}/contracts/agent-collaboration-framework/2.0.0
+      ORCH_FRAMEWORK_DIR: ${{ github.workspace }}/contracts/agent-collaboration-framework/2.1.0
       ORCH_REQUIRE_FRAMEWORK: '1'
     steps:
       - uses: actions/checkout@v5
@@ -216,6 +269,8 @@ jobs:
   # ============================================================
   unit:
     name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
+    needs: risk-gate
+    if: needs.risk-gate.outputs.run_unit == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数.
@@ -319,6 +374,8 @@ jobs:
   # ============================================================
   e2e:
     name: E2E
+    needs: risk-gate
+    if: needs.risk-gate.outputs.run_e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -414,6 +471,8 @@ jobs:
   # ============================================================
   coverage-shards:
     name: Coverage (shard ${{ matrix.shard }}/${{ matrix.count }})
+    needs: risk-gate
+    if: needs.risk-gate.outputs.run_coverage == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -534,7 +593,8 @@ jobs:
     name: Coverage Gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: coverage-shards
+    needs: [risk-gate, coverage-shards]
+    if: needs.risk-gate.outputs.run_coverage == 'true'
     steps:
       - uses: actions/checkout@v5
 
@@ -587,6 +647,8 @@ jobs:
   # ============================================================
   build:
     name: Build (Docker)
+    needs: risk-gate
+    if: needs.risk-gate.outputs.run_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -615,6 +677,8 @@ jobs:
   # ============================================================
   security-audit:
     name: Security Audit
+    needs: risk-gate
+    if: needs.risk-gate.outputs.run_security == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

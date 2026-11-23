@@ -58,6 +58,7 @@ export function evaluateCommitSnapshot({
   parentIndex,
   taskSheetExists,
   taskSheetPath = null,
+  taskSheetSnapshot = null,
   receipts = [],
 }) {
   let commitTaskId = null;
@@ -76,7 +77,26 @@ export function evaluateCommitSnapshot({
   }
   const parentTasks = parentIndex?.tasks ?? [];
   const parentArchivedTasks = parentIndex?.archivedTasks ?? [];
-  const currentArchived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === commitTaskId && task?.status === 'completed');
+  const taskSheetTask =
+    taskSheetSnapshot && commitTaskId && taskSheetSnapshot.taskId === commitTaskId
+      ? {
+          taskId: commitTaskId,
+          status: 'submitted',
+          agentRole: taskSheetSnapshot.agentRole,
+          scope: { files: taskSheetSnapshot.scopeFiles ?? [], modules: [], interfaces: [] },
+          artifacts: {
+            taskSheet: taskSheetPath ?? undefined,
+            deliveryRecord: taskSheetSnapshot.artifactPaths?.[0] ?? undefined,
+          },
+        }
+      : null;
+  const currentTasks = [...(currentIndex?.tasks ?? [])];
+  if (taskSheetTask && !currentTasks.some((task) => task?.taskId === commitTaskId)) currentTasks.push(taskSheetTask);
+  const recordedArchived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === commitTaskId && task?.status === 'completed');
+  // 状态面解耦：任务分支不提交 index，最终 HEAD 以「任务单 + 可合并 durable 回执」合成 archived。
+  const currentArchived =
+    recordedArchived ??
+    (taskSheetTask && mergeableDurableReceipts(receipts).length > 0 ? { ...taskSheetTask, status: 'completed' } : undefined);
   const parentHasTask = [...parentTasks, ...parentArchivedTasks].some((task) => task?.taskId === commitTaskId);
   // squash 会把 register → implement → receipt → archive 压成一个提交，parent 根本没有任务。
   // 仅在可合并 durable 回执证明已验收时，合成“父在办”快照复用 archived-transition；否则仍拒绝。
@@ -84,7 +104,7 @@ export function evaluateCommitSnapshot({
   const effectiveParentTasks = squashLifecycle ? [...parentTasks, { ...currentArchived, status: 'submitted' }] : parentTasks;
   const result = evaluateTaskEntry({
     changedFiles,
-    tasks: currentIndex?.tasks ?? [],
+    tasks: currentTasks,
     archivedTasks: currentIndex?.archivedTasks ?? [],
     headTasks: effectiveParentTasks,
     explicitTaskId: commitTaskId,
@@ -127,9 +147,45 @@ export function mergeableDurableReceipts(receipts = []) {
 }
 
 /**
- * 轻量解析任务单 frontmatter 的 artifacts 路径。入场任务必须带上自己声明的工件
- * （尤其交付记录），否则 scope 判定会把交付记录当成越界文件。
+ * AF-365 · 状态面解耦后的任务快照：从任务单 frontmatter 读取 taskId / scope.files / artifacts。
+ * 任务分支不再提交状态索引时，逐提交门禁以任务单为在办事实来源；durable 回执仍只在
+ * 最终 HEAD 用于验收判定，不允许用任务单自行宣告 completed。
  */
+export function parseTaskSheetSnapshotForGate(text, taskSheetPath = null) {
+  const source = String(text ?? '');
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source);
+  if (!match) return null;
+  const front = match[1];
+  const taskId = /^taskId:\s*(?:["']?)([A-Z]+-\d+)(?:["']?)\s*$/m.exec(front)?.[1] ?? null;
+  const agentRole = /^agentRole:\s*(?:["']?)([a-z-]+)(?:["']?)\s*$/m.exec(front)?.[1] ?? null;
+  const lines = front.split(/\r?\n/);
+  const scopeStart = lines.findIndex((line) => line === 'scope:' || line.startsWith('scope:'));
+  const files = [];
+  if (scopeStart >= 0) {
+    let inFiles = false;
+    for (let index = scopeStart + 1; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (!line.trim()) continue;
+      if (/^\S/.test(line)) break;
+      if (/^\s+files:/i.test(line)) {
+        inFiles = true;
+        continue;
+      }
+      if (inFiles) {
+        const item = /^\s*-\s*(.+)$/.exec(line);
+        if (item) files.push(item[1].trim().replace(/^"|"$/g, ''));
+        else if (/^\s+\w+:/.test(line)) inFiles = false;
+      }
+    }
+  }
+  return {
+    taskId,
+    agentRole,
+    scopeFiles: files,
+    artifactPaths: parseTaskSheetArtifactPathsForGate(source),
+    taskSheetPath,
+  };
+}
 export function parseTaskSheetArtifactPathsForGate(text) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(String(text ?? ''));
   if (!match) return [];
@@ -286,11 +342,16 @@ function readAcceptanceReceiptsAt(sha, taskId) {
 export function evaluateAcceptanceAt(sha, taskIdOrBranch) {
   const taskId = extractCommitTaskId(taskIdOrBranch);
   if (!taskId) throw new Error(`无法从 ${taskIdOrBranch || '(空)'} 解析 PR 任务编号`);
-  return evaluateAcceptanceSnapshot({
-    taskId,
-    currentIndex: readIndexAt(sha),
-    receipts: readAcceptanceReceiptsAt(sha, taskId),
-  });
+  const currentIndex = readIndexAt(sha);
+  const receipts = readAcceptanceReceiptsAt(sha, taskId);
+  const strict = evaluateAcceptanceSnapshot({ taskId, currentIndex, receipts });
+  if (strict.pass) return strict;
+  // AF-365 · 状态面解耦：任务分支不再提交 index 时，用任务单存在 + 可合并 durable 回执判定验收。
+  const sheetPath = findTaskSheetAt(sha, taskId);
+  if (strict.reason === 'task-not-archived-completed' && sheetPath && mergeableDurableReceipts(receipts).length > 0) {
+    return { pass: true, reason: 'accepted-state-free', taskId, receipts, taskSheetPath: sheetPath, errors: [] };
+  }
+  return sheetPath ? { ...strict, taskSheetPath: sheetPath } : strict;
 }
 
 function taskRecordAt(taskId, currentIndex, parentIndex) {
@@ -314,6 +375,14 @@ function readRecordManifestAt(sha, taskId) {
   }
 }
 
+/** 不依赖索引，按记录包目录直接找任务单（AF-365 状态面解耦路径）。 */
+function findTaskSheetAt(sha, taskId) {
+  const files = git(['ls-tree', '-r', '--name-only', sha, '--', 'docs/worklog/records'])
+    .split(/\r?\n/)
+    .filter((path) => path.endsWith(`/${taskId}/task-sheet.md`));
+  return files.find((path) => git(['cat-file', '-e', `${sha}:${path}`], { allowFailure: true }) !== null) ?? null;
+}
+
 function sheetPathAt(sha, task) {
   const pointer = task?.artifacts?.taskSheet ?? null;
   if (pointer && git(['cat-file', '-e', `${sha}:${pointer}`], { allowFailure: true }) !== null) return pointer;
@@ -327,7 +396,10 @@ function taskSheetPresence(sha, taskId, currentIndex, parentIndex) {
   const task = taskRecordAt(taskId, currentIndex, parentIndex);
   const pointer = task?.artifacts?.taskSheet ?? null;
   const resolved = task ? sheetPathAt(sha, task) : pointer;
-  if (!resolved) return { exists: false, path: null };
+  if (!resolved) {
+    const fallback = findTaskSheetAt(sha, taskId);
+    return fallback ? { exists: true, path: fallback } : { exists: false, path: null };
+  }
   const exists = git(['cat-file', '-e', `${sha}:${resolved}`], { allowFailure: true }) !== null;
   return { exists, path: resolved };
 }
@@ -519,10 +591,14 @@ export function evaluateCommitAt(sha) {
     }
   }
   const sheet = taskSheetPresence(sha, commitTaskId, evaluatedCurrentIndex, parentIndex);
-  const receipts =
-    commitTaskId && evaluatedCurrentIndex.archivedTasks.some((task) => task?.taskId === commitTaskId)
-      ? readAcceptanceReceiptsAt(sha, commitTaskId)
-      : [];
+  const receipts = commitTaskId ? readAcceptanceReceiptsAt(sha, commitTaskId) : [];
+  let taskSheetSnapshot = null;
+  if (sheet.path) {
+    const sheetText = git(['show', `${sha}:${sheet.path}`], { allowFailure: true });
+    if (typeof sheetText === 'string' && sheetText.trim() !== '') {
+      taskSheetSnapshot = parseTaskSheetSnapshotForGate(sheetText, sheet.path);
+    }
+  }
   const result = evaluateCommitSnapshot({
     subject,
     changedFiles,
@@ -530,6 +606,7 @@ export function evaluateCommitAt(sha) {
     parentIndex,
     taskSheetExists: sheet.exists,
     taskSheetPath: sheet.path,
+    taskSheetSnapshot,
     receipts,
   });
   return { sha, subject, parent, ...result, implEntrySource };

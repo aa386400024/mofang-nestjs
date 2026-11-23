@@ -2507,7 +2507,7 @@ describe('适配层实例 2.0.0 合规（仓内真实工件，只读）', () => 
     const index = readJsonFile(PATHS.index);
     const res = await validateTaskIndex(index);
     assertNotFailed(res);
-    expect(index.version).toBe('1.1.0');
+    expect(index.version).toBe('1.2.0');
     for (const entry of index.archivedTasks) expect(entry.note).toBeUndefined();
     expect(Object.keys(index.archivedNotes ?? {}).length).toBeGreaterThan(0);
   });
@@ -4112,10 +4112,11 @@ describe('AF-058 squash 全生命周期归档门', () => {
 describe('AF-056 integrate 保护与 PR 合并门', () => {
   const successfulChecks = () => INTEGRATE_REQUIRED_CONTEXTS.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
 
-  it('保护声明保留 12 项检查并新增 Orchestration Gate，管理员同样受限', () => {
+  it('保护声明保留 13 项既有检查并新增 Risk Gate / Orchestration Gate，管理员同样受限', () => {
     const payload = buildIntegrateProtection();
-    expect(payload.required_status_checks.contexts).toHaveLength(13);
-    expect(payload.required_status_checks.contexts[0]).toBe('Orchestration Gate');
+    expect(payload.required_status_checks.contexts).toHaveLength(14);
+    expect(payload.required_status_checks.contexts[0]).toBe('Risk Gate');
+    expect(payload.required_status_checks.contexts[1]).toBe('Orchestration Gate');
     expect(payload.required_status_checks.strict).toBe(true);
     expect(payload.enforce_admins).toBe(true);
     expect(payload.required_linear_history).toBe(true);
@@ -4139,22 +4140,22 @@ describe('AF-056 integrate 保护与 PR 合并门', () => {
     expect(verifyIntegrateProtection(actual).pass).toBe(false);
     actual.enforce_admins.enabled = true;
     actual.required_status_checks.contexts = actual.required_status_checks.contexts.slice(1);
-    expect(verifyIntegrateProtection(actual)).toMatchObject({ pass: false, missing: ['Orchestration Gate'] });
+    expect(verifyIntegrateProtection(actual)).toMatchObject({ pass: false, missing: ['Risk Gate'] });
   });
 
   it('PR 必需检查全部存在且成功才 pass', () => {
-    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 13, missing: [], failing: [], pending: [] });
+    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 14, missing: [], failing: [], pending: [] });
   });
 
   it('缺检查、待完成与 unknown 不放行，失败优先返回 fail', () => {
     expect(evaluateRequiredChecks([]).verdict).toBe('unknown');
-    expect(evaluateRequiredChecks(successfulChecks().slice(1))).toMatchObject({ verdict: 'pending', missing: ['Orchestration Gate'] });
+    expect(evaluateRequiredChecks(successfulChecks().slice(1))).toMatchObject({ verdict: 'pending', missing: ['Risk Gate'] });
     const pending = successfulChecks();
     pending[0].status = 'in_progress';
     pending[0].conclusion = null;
-    expect(evaluateRequiredChecks(pending)).toMatchObject({ verdict: 'pending', pending: ['Orchestration Gate'] });
+    expect(evaluateRequiredChecks(pending)).toMatchObject({ verdict: 'pending', pending: ['Risk Gate'] });
     const failed = successfulChecks();
-    failed[2].conclusion = 'failure';
+    failed[3].conclusion = 'failure';
     expect(evaluateRequiredChecks(failed)).toMatchObject({ verdict: 'fail', failing: ['Lint + Typecheck（failure）'] });
   });
 });

@@ -1,0 +1,205 @@
+{
+  "fileKind": "contract-enums",
+  "schemaVersion": "2.1.0",
+  "description": "跨契约复用的枚举取值、标识模式与状态迁移表单一真相源。各 schema 内的 enum / pattern / transitions 为自包含镜像，取值必须与本文件一致；一致性由 conformance/run.py 的 C4 检查兜底。本文件本身不是 JSON Schema，不用于直接校验对象。",
+  "taskTypes": [
+    "implementation",
+    "review",
+    "investigation",
+    "documentation",
+    "fix",
+    "verification"
+  ],
+  "riskClasses": [
+    "R0",
+    "R1",
+    "R2"
+  ],
+  "riskClassNotes": {
+    "R0": "文档、注释、纯生成物或零运行时影响；最低门禁档，但仍须通过编码/链接/任务单契约。",
+    "R1": "普通实现、修复、测试；默认档，按改动路径跑相关单测 + lint + typecheck。",
+    "R2": "核心引擎、临床语义、安全、迁移、跨模块或不可回退变更；全量门禁 + 人工复核。"
+  },
+  "taskStatuses": [
+    "backlog",
+    "ready",
+    "submitted",
+    "working",
+    "input-required",
+    "completed",
+    "failed",
+    "canceled",
+    "rejected",
+    "auth-required"
+  ],
+  "frozenStatuses": [
+    "auth-required"
+  ],
+  "terminalStatuses": [
+    "completed",
+    "failed",
+    "canceled",
+    "rejected"
+  ],
+  "reviewVerdicts": [
+    "passed",
+    "conditional-pass",
+    "rejected"
+  ],
+  "roles": [
+    "orchestrator",
+    "executor",
+    "reviewer",
+    "researcher",
+    "critic"
+  ],
+  "nonRoutableRoles": [
+    "human"
+  ],
+  "sideEffects": [
+    "read-only",
+    "restricted-write",
+    "sensitive"
+  ],
+  "artifactKinds": [
+    "document",
+    "dataset",
+    "schema",
+    "code",
+    "report",
+    "spec",
+    "test",
+    "other"
+  ],
+  "availabilities": [
+    "available",
+    "busy",
+    "offline",
+    "unavailable"
+  ],
+  "executorSessionStatuses": [
+    "starting",
+    "active",
+    "blocked",
+    "completed",
+    "failed",
+    "lost",
+    "canceled"
+  ],
+  "toolCategories": [
+    "workspace-read",
+    "workspace-write",
+    "gate-execution",
+    "version-control",
+    "retrieval",
+    "state-store",
+    "artifact-archive",
+    "artifact-publish"
+  ],
+  "failureReasonCodes": [
+    "contract-invalid",
+    "input-invalid",
+    "permission-denied",
+    "deterministic-defect",
+    "flaky-observation",
+    "preexisting-debt",
+    "timeout",
+    "dependency-blocked",
+    "external-input-missing",
+    "cancelled-by-human",
+    "dead-lettered"
+  ],
+  "failureClasses": [
+    "deterministic-defect",
+    "flaky-observation",
+    "preexisting-debt"
+  ],
+  "approvalNodes": [
+    "policy-exception",
+    "sensitive-action",
+    "route-selection",
+    "cross-task-change",
+    "verdict-arbitration",
+    "external-release"
+  ],
+  "approvalDecisions": [
+    "approved",
+    "approved-with-conditions",
+    "rejected"
+  ],
+  "eventTypes": [
+    "created",
+    "promoted",
+    "claimed",
+    "released",
+    "started",
+    "interrupted",
+    "resumed",
+    "submitted",
+    "verified",
+    "rejected",
+    "failed",
+    "canceled",
+    "dead-lettered",
+    "archived"
+  ],
+  "transitions": {
+    "backlog": [
+      "ready",
+      "canceled"
+    ],
+    "ready": [
+      "submitted",
+      "backlog",
+      "canceled"
+    ],
+    "submitted": [
+      "working",
+      "ready",
+      "input-required",
+      "completed",
+      "rejected",
+      "failed",
+      "canceled"
+    ],
+    "working": [
+      "submitted",
+      "ready",
+      "input-required",
+      "failed",
+      "canceled"
+    ],
+    "input-required": [
+      "working",
+      "ready",
+      "failed",
+      "canceled"
+    ],
+    "completed": [],
+    "failed": [],
+    "canceled": [],
+    "rejected": [],
+    "auth-required": []
+  },
+  "transitionNotes": {
+    "submitted->completed": "仅由 reviewer 在五类核对与三级结论完成后触发；执行者不得自行把任务置为 completed。",
+    "submitted->rejected": "验收打回；必须带 verdict.failureReasonCode，并新建返修任务（priorTasks 指向被拒任务）。",
+    "working->ready": "仅限租约超时或执行方失联后的显式释放，必须写 releaseReason；禁止用于绕过验收。",
+    "auth-required": "v2 冻结：当前形态禁止进入；需要授权一律进入 input-required 并走升级消息。"
+  },
+  "statusMap": {
+    "backlog": null,
+    "ready": null,
+    "submitted": "SUBMITTED",
+    "working": "WORKING",
+    "input-required": "INPUT_REQUIRED",
+    "auth-required": "AUTH_REQUIRED",
+    "completed": "COMPLETED",
+    "failed": "FAILED",
+    "canceled": "CANCELED",
+    "rejected": "REJECTED"
+  },
+  "statusMapNote": "标准协议态映射的唯一真相源。backlog / ready 为编排前置态，无标准对应值，映射为 null；禁止为它们虚构 DRAFT / QUEUED 等协议值（v1.4.0 协议视图样例的缺陷即此）。",
+  "taskIdPattern": "^[A-Z0-9]+-[0-9]+$",
+  "contractRefPattern": "^urn:agent-collaboration-framework:schema:[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$"
+}

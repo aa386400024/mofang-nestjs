@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:escalation:1.0.0",
+  "title": "Agent Collaboration Framework - Escalation Message Contract",
+  "description": "升级消息契约。任务进入 input-required 时提交给人或上级编排者的机读消息；必须自带判断所需信息，使人无需翻会话即可决定。字段口径见 docs/human-in-the-loop.md §4。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "taskId",
+    "contextId",
+    "currentStatus",
+    "waitingOn",
+    "attemptedPaths",
+    "failureEvidence",
+    "options",
+    "recommendedDecision",
+    "raisedBy",
+    "raisedAt"
+  ],
+  "properties": {
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "任务标识；与任务单、索引一致。"
+    },
+    "contextId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "归组标识；同主题历史任务可追溯。"
+    },
+    "currentStatus": {
+      "type": "string",
+      "enum": [
+        "backlog",
+        "ready",
+        "submitted",
+        "working",
+        "input-required",
+        "completed",
+        "failed",
+        "canceled",
+        "rejected",
+        "auth-required"
+      ],
+      "description": "当前状态；取状态机枚举值（本消息通常对应 input-required）。"
+    },
+    "waitingOn": {
+      "type": "string",
+      "minLength": 1,
+      "description": "等待项：缺输入 / 缺授权 / 缺裁决，写明具体对象。"
+    },
+    "attemptedPaths": {
+      "type": "array",
+      "minItems": 1,
+      "description": "已尝试路径，按顺序列出；每条含做法与结论。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "path",
+          "conclusion"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "尝试的做法。"
+          },
+          "conclusion": {
+            "type": "string",
+            "minLength": 1,
+            "description": "该路径的结论。"
+          }
+        }
+      }
+    },
+    "failureEvidence": {
+      "type": "array",
+      "minItems": 1,
+      "description": "失败证据：必须含可复现的数字。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "command",
+          "exitCode",
+          "summary"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "description": "执行的命令。"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "退出码。"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "错误摘要。"
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "失败计数（错误数 / 用例数等）。"
+          }
+        }
+      }
+    },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "description": "可选方案；至少两条，否则不算可选。",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "approach",
+          "cost",
+          "risk",
+          "benefit"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "方案标识（A / B / C）。"
+          },
+          "approach": {
+            "type": "string",
+            "minLength": 1,
+            "description": "做法。"
+          },
+          "cost": {
+            "type": "string",
+            "minLength": 1,
+            "description": "代价。"
+          },
+          "risk": {
+            "type": "string",
+            "minLength": 1,
+            "description": "风险。"
+          },
+          "benefit": {
+            "type": "string",
+            "minLength": 1,
+            "description": "预期收益。"
+          }
+        }
+      }
+    },
+    "recommendedDecision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "建议决策点：只提一个需要人拍板的决定，不写「请指示」。"
+    },
+    "raisedBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "发起方标识（角色或执行方）。"
+    },
+    "raisedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "发起时间（ISO 8601 带时区）。"
+    }
+  }
+}

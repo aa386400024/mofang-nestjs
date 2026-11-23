@@ -12,7 +12,7 @@
  * 只读 / 调研类任务不占写域，与实现任务互斥豁免。
  */
 
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** 不占写域的任务类型（调研 / 评审 / 验证类）。 */
@@ -113,10 +113,13 @@ function escapeRegExp(text) {
 
 /**
  * 归一化任务文件域。
+ * 给出 rootDir 时，无尾斜杠但真实存在为目录的条目按目录覆盖；
+ * 未给 rootDir 保持旧口径（只能按尾斜杠 / 通配识别目录），纯函数行为不变。
  * @param {object} task 索引任务条目
+ * @param {{rootDir?:string}} [opts]
  * @returns {{readOnly: boolean, entries: Array<{path:string,isDir:boolean}>, errors: string[]}}
  */
-export function normalizeScope(task) {
+export function normalizeScope(task, opts = {}) {
   const files = task?.scope?.files ?? [];
   const readOnly = task?.scope?.readOnly === true || READONLY_TASK_TYPES.includes(task?.type);
   const entries = [];
@@ -128,14 +131,19 @@ export function normalizeScope(task) {
       errors.push(n.error);
       continue;
     }
-    entries.push({ path: n.path, isDir: n.isDir });
+    let isDir = n.isDir;
+    if (!isDir && typeof opts.rootDir === 'string' && opts.rootDir) {
+      const abs = join(opts.rootDir, n.path);
+      if (existsSync(abs) && statSync(abs).isDirectory()) isDir = true;
+    }
+    entries.push({ path: n.path, isDir });
   }
   return { readOnly, entries, errors };
 }
 
 /** 目标文件是否被任一 scope 条目覆盖。 */
-export function scopeCovers(task, file) {
-  const normalized = normalizeScope(task);
+export function scopeCovers(task, file, opts = {}) {
+  const normalized = normalizeScope(task, opts);
   return normalized.entries.some((entry) => entryCovers(entry, file));
 }
 
@@ -145,7 +153,7 @@ export function scopeCovers(task, file) {
  * 通配段展开为空（目录不存在 / 无匹配）时保留原前缀条目，避免「配了等于没配」。
  */
 export function scopeEntriesWithExpansion(task, opts = {}) {
-  const normalized = normalizeScope(task);
+  const normalized = normalizeScope(task, opts);
   if (!opts.rootDir) return normalized;
   const rawFiles = task?.scope?.files ?? [];
   const expanded = [];
@@ -201,10 +209,11 @@ export function findScopeConflicts(task, activeTasks, opts = {}) {
  * 清单内文件计入 covered；scope 未覆盖文件判 residual（只识别，不删除、不归集提交）。
  * @param {string[]} changedFiles 本次变更文件相对路径清单（由调用方采集 git diff 传入）
  * @param {object} task 索引任务条目（读 scope.files）
+ * @param {{rootDir?:string}} [opts] 给出 rootDir 时把真实目录的无尾斜杠条目按目录覆盖
  * @returns {{covered: string[], residual: string[]}}
  */
-export function detectResidualFiles(changedFiles, task) {
-  const normalized = normalizeScope(task);
+export function detectResidualFiles(changedFiles, task, opts = {}) {
+  const normalized = normalizeScope(task, opts);
   const covered = [];
   const residual = [];
   for (const raw of changedFiles ?? []) {

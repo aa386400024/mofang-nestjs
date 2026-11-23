@@ -6,6 +6,10 @@
   "reworkLimit": 2,
   "leaseDefaultMinutes": 30,
   "maxConcurrentTasks": 1,
+  "worklogStrictBaseline": {
+    "legacyPointers": 133,
+    "missingTaskSheets": 14
+  },
   "allowedTaskTypes": ["implementation", "fix", "documentation", "investigation", "review", "verification"],
   "store": {
     "backend": "json"
@@ -41,6 +45,7 @@
     "reworkLimit": "同一 contextId 下返修次数上限，超限进死信隔离。",
     "leaseDefaultMinutes": "任务未声明 deadline 时的默认租约时长（分钟）。",
     "maxConcurrentTasks": "同时在办任务上限；默认 1（单任务队列），与文件 / GUI 通道的“在办未回收不发下一个”规则对齐。",
+    "worklogStrictBaseline": "worklog verify --strict 的显式历史债基线：legacyPointers / missingTaskSheets 超过基线即失败；基线只能随治理下降，不得向上调。",
     "allowedTaskTypes": "允许自动执行的任务类型；六类全部纳入。只读类型（investigation / review / verification）仍按 scope-mutex 的 READONLY_TASK_TYPES 走只读互斥。",
     "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。",
     "store.backend": "状态持久化后端：json（默认，JSON 文件 + 原子写）或 sqlite（可选内置 node:sqlite）；SQLite 仅存指针 / 状态 / 历史，工件正文仍留文件，不进业务 MySQL。",

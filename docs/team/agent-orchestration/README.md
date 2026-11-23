@@ -3,7 +3,7 @@
 > 本目录是接入通用 **agent-collaboration-framework** 的项目适配层。
 > 通用规则（角色模型、任务契约、状态机、回执契约、验收口径、可靠性、上下文与记忆、安全策略、人在环、演进路线）的唯一真相源在框架仓，本文件**只声明本项目的特定取值**（目录映射、角色绑定、工具与闸门命令、策略锚点、框架版本依赖），不复制通用规则正文。
 >
-> - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓 + 版本 tag `v2.0.0`；tag 是 annotated object `c50718856aa752bac3d87e44b3f309b16fbcb051`，指向 commit `67d329054f12ead1a1072d4edbbbfbe924ed1c79`；当前 `main` HEAD `7395748` 尚未发版；无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用。权威锚点见 [framework-version-anchor.md](framework-version-anchor.md)）
+> - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓；2.1.0 候选提交 `e4124037b8e5da2ac92070bb13da75f921044f9d`，**尚未打 tag**；最近正式发行仍为 `v2.0.0` → `67d3290`。无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用。权威锚点见 [framework-version-anchor.md](framework-version-anchor.md)）
 > - 适配层声明规范：框架仓 `adapters/README.md`（八类映射项：`projectId / directories / tools-gates / policyAnchors / frameworkVersionRange / roleBindings / statePlane / conformance`）
 > - 代码红线、命令规范、分层归属：`docs/team/conventions.md`；任务单模板：`docs/team/wp-task-template.md`，不在此重复。
 
@@ -18,7 +18,7 @@
 3. **禁止替代**：会话内待办、口头清单、“先做后补”、手改状态索引均不构成任务登记；状态面只能经 CLI 写。
 4. **提交门禁**：`.husky/pre-commit` 先调用 `scripts/orchestration/task-entry-gate.mjs`（`pnpm orchestration:preflight`）。无在办任务、任务仍在 `ready`、暂存文件越出任务 `scope.files` 一律阻断；状态面生成物按 V7 口径豁免。验收归档后若暂存区**只有**状态面生成物，门禁以 `state-plane-only` 放行；只要混入一个非状态面文件，就恢复在办任务与 scope 硬校验。squash 合并若同次暂存携带 `task-state-index.json` 的 active→completed 归档迁移，门禁可用 HEAD 中同 taskId 的在办记录校验 scope（`archived-transition`）；canceled/rejected、未携带索引或越界文件仍阻断。
 5. **收尾**：交付记录 + 机读回执成对产出，`run-once` 摄入验收后按 CLI 归档；事件条数、归档数、台账数字以 CLI 输出为准。
-6. **服务端硬门（AF-056/057）**：CI `Orchestration Gate` 对 PR→integrate 与 integrate push 的每个新增提交重新执行同一状态机，校验提交标题 taskId、提交时刻任务状态、文件 scope、任务单存在性及归档迁移；PR 最终 HEAD 还必须是 completed/archived 并携带可合并 durable 回执（`passed`，或 `conditional-pass` 且无人工复核项、每条遗留有编号、scope=in-scope、finalStatus=completed），防止绕开本地工具直接页面合并。本地 `--no-verify` 不能替代远端判定。`integrate` 保护要求 13 项检查、PR（审批数 0）、strict 最新分支、线性历史并 `enforce_admins`，禁止 force push / 删除。
+6. **服务端硬门（AF-056/057）**：CI `Risk Gate` 先按 `riskClass` 决定重检查执行面，`Orchestration Gate` 对 PR→integrate 与 integrate push 的每个新增提交重新执行同一状态机，校验提交标题 taskId、提交时刻任务状态、文件 scope、任务单存在性及归档迁移；状态面解耦后，任务分支以任务单为在办事实来源，最终 HEAD 仍必须是 completed + 可合并 durable 回执（`passed`，或 `conditional-pass` 且无人工复核项、每条遗留有编号、scope=in-scope、finalStatus=completed），防止绕开本地工具直接页面合并。本地 `--no-verify` 不能替代远端判定。`integrate` 保护要求 14 项检查（含 Risk Gate）、PR（审批数 0）、strict 最新分支、线性历史并 `enforce_admins`，禁止 force push / 删除。
 
 门禁脚本只读暂存区与状态索引，不自动 stage、不修改状态；任务与回执语义不变。
 
@@ -28,12 +28,12 @@
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                                                                                      |
 | `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                                                                                    |
-| 框架版本                | `2.0.0`（本地 annotated tag `v2.0.0` object `c507188` → commit `67d3290`，releasedAt `2026-11-16`；tag 之后 `main` 另有 6 个未发版提交，HEAD `7395748`。版本轴见框架仓 `schemas/versions.json`，锚点见 [framework-version-anchor.md](framework-version-anchor.md)） |
-| 框架契约版本            | 任务单 `1.1.0` / 状态索引 `1.1.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                                                           |
+| 框架版本                | `2.1.0` 候选（分支 `feat/v2.1-operational-contracts` → commit `e412403`；未打 tag，最近正式发行仍为 `v2.0.0`；版本轴见框架仓 `schemas/versions.json`，锚点见 [framework-version-anchor.md](framework-version-anchor.md)） |
+| 框架契约版本            | 任务单 `1.2.0` / 状态索引 `1.2.0` / 执行器会话 `1.0.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                                        |
 | 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                                                                                   |
 | `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`）                                                                   |
-| 枚举投影                | `scripts/orchestration/contract-enums.json` 为框架仓 `schemas/contract-enums.json`（2.0.0）的 vendored 投影，随本仓评审；一致性由 `orchestration.spec.mjs` 跨仓对账                                                                                                 |
-| 契约供应链              | `contracts/agent-collaboration-framework/2.0.0/`（14 份框架 2.0.0 schema 的不可变副本 + `PROVENANCE.json` 逐文件 SHA-256）；CI `Contracts` job 以 `ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架直接 fail-fast，不允许 skipped 软通过                                    |
+| 枚举投影                | `scripts/orchestration/contract-enums.json` 为框架仓 `schemas/contract-enums.json`（2.1.0）的 vendored 投影，随本仓评审；一致性由 `orchestration.spec.mjs` 跨仓对账                                                                                                 |
+| 契约供应链              | `contracts/agent-collaboration-framework/2.1.0/`（15 份框架 2.1.0 schema 的不可变副本 + `PROVENANCE.json` 逐文件 SHA-256）；CI `Contracts (framework 2.1.0)` job 以 `ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架直接 fail-fast，不允许 skipped 软通过                    |
 
 > 2.0.0 与本适配层的历史差异已在本轮迁移中一次性收口：任务单 `status` 降级为立项快照、时间字段改带偏移 `date-time`、工具声明改**一工具一文件**、`human` 移出可派发角色、归档条目关闭附加字段（归档说明外移到 `archivedNotes`）、交付包改用 `delivery-package` 1.0.0 结构。破坏性变更（字段删除或语义改变）仍须先复核本表再升级；既有字段只增不删。
 >
@@ -55,9 +55,21 @@
 
 | 字段                            | 本项目取值                                                                                                                                                                                              |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conformance.command`           | `pnpm orchestration:validate && pnpm orchestration:contracts`（前者校验索引 / 任务单 / 回执 / Review / Agent Card / 交付包 / 协议视图与事件链，后者校验 14 份框架 2.0.0 schema 的不可变副本与来源哈希） |
-| `conformance.ciHook`            | `.github/workflows/ci.yml` 的 `Contracts` job：`push` / `pull_request` 目标 `integrate` 时触发，`ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架 fail-fast，不允许 skipped 软通过                              |
+| `conformance.command`           | `pnpm orchestration:validate && pnpm orchestration:contracts`（前者校验索引 / 任务单 / 回执 / Review / Agent Card / 交付包 / 协议视图与事件链，后者校验 15 份框架 2.1.0 schema 的不可变副本与来源哈希） |
+| `conformance.ciHook`            | `.github/workflows/ci.yml` 的 `Risk Gate` + `Contracts (framework 2.1.0)` job：`push` / `pull_request` 目标 `integrate` 时触发，按 riskClass 决定重检查是否执行，`Contracts` 仍硬校验 |
 | `conformance.unknownEnumPolicy` | `tolerant`（未知枚举按保留值透传并记人工复核，不猜测、不静默丢弃；状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`）                                                                               |
+
+### 1.3 v2.1 生命周期扩展（AF-365）
+
+| 能力 | 命令 / 落点 | 口径 |
+| --- | --- | --- |
+| 风险分级 | `pnpm orchestration:risk`；CI `Risk Gate` job | 显式 `riskClass` 优先；R0 只允许纯文档；显式 R0 遇运行时路径自动抬到 R1；`gateProfile=full` 强制 R2 |
+| 状态面守卫 | `pnpm orchestration:state guard`（preflight 内嵌） | `task/*` 分支拒绝提交状态面；状态面不得与实现混提；例外需 `ORCH_ALLOW_STATE_COMMIT=1` 并写原因 |
+| 状态面同步 | `pnpm orchestration:state sync [--apply]` | dry-run 只报告脏文件；`--apply` 重建索引与快照投影，不重写 `state/journal.jsonl` 事件源；结果仅在工作区，按状态分支单独提交 |
+| 执行器心跳 | `pnpm orchestration:session start/ack/progress/heartbeat/cancel/terminal/status/list/reap`（落 `transport/executor-sessions.json`） | `ack` 确认接手；`progress` 上报 0–100 整数并续租；`cancel` 只写 `cancelRequestedAt`，由执行器在下一心跳确认终态；心跳超 `leaseExpiresAt` 判 `lost` 并置人工持单；GUI 窗口存活不算执行存活 |
+| 回执脚手架 | `pnpm orchestration:receipt scaffold --taskId AF-0xx [--apply]` | 只生成六组骨架，不填伪造 passed；已存在回执拒绝覆盖 |
+| PR 生命周期 | `pnpm orchestration:pr list / triage / close / supersede` | `list/triage` 仓库级只读；`close/supersede` 默认 dry-run，`--apply` 才关闭 |
+| strict 历史债 | `config.worklogStrictBaseline` | `legacyPointers` / `missingTaskSheets` 超基线即 FAIL；基线只降不升 |
 
 ## 2. 角色绑定（roleBindings）
 
@@ -301,7 +313,7 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 2. `node scripts/orchestration/cli.mjs branch create --taskId AF-0xx --apply`，让未提交的任务单与 CLI 状态面随工作树切到任务分支；在任务分支提交登记，再实现并提交。
 3. `node scripts/orchestration/pr-release.mjs create --taskId AF-0xx --apply`：推送任务分支并创建/复用 PR。
 4. 完成交付记录、durable 回执、`run-once` 验收与 CLI 归档，提交纯状态面；再执行一次 `create` 推送最新 HEAD。
-5. `node scripts/orchestration/pr-release.mjs merge --taskId AF-0xx --apply`：要求 completed/archived、可合并 durable 回执、PR HEAD == 本地 HEAD、13 项检查全绿，随后 API squash 合并、fast-forward 本地 integrate，并在树一致后清理本地/远端任务分支。
+5. `node scripts/orchestration/pr-release.mjs merge --taskId AF-0xx --apply`：要求 completed、可合并 durable 回执、PR HEAD == 本地 HEAD、14 项检查全绿，随后 API squash 合并、fast-forward 本地 integrate，并在树一致后清理本地/远端任务分支。
 
 远端门：
 
@@ -319,7 +331,7 @@ node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestj
 | 状态快照          | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档提交与 squash 全生命周期用 `archived-transition`。父提交无任务时必须以零依赖解析从当前任务单重建 scope，并要求可合并 durable 回执；一条分支叠加多个已完成任务时，squash 提交按本次携带且各自已验收的任务单 scope 并集校验，不再只看标题主任务 |
 | PR 验收（AF-057） | PR 最终 HEAD 必须 completed/archived，且 git tree 内 durable 回执满足 reviewVerdict=passed 或已登记 backlog 且无人工复核项的 conditional-pass、scopeCheck=in-scope、finalStatus=completed；否则 Orchestration Gate failure，页面/API 也不能合并                                                              |
 | 文件与任务单      | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                                                                                                                                                                                           |
-| 检查放行          | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                                                                                                                                                                                                  |
+| 检查放行          | 14 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                                                                                                                                                                                                  |
 | 分支保护          | required PR（审批数 0）、strict、线性历史、enforce admins、禁止 force push/deletion；不设置人或团队 bypass                                                                                                                                                                                                   |
 | 凭据              | 复用 `GITHUB_TOKEN` / `GH_TOKEN` / `ORCH_GITHUB_TOKEN` / Git credential helper；不安装 gh、不打印或入库 token                                                                                                                                                                                                |
 

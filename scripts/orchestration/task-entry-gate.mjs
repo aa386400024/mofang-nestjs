@@ -38,6 +38,22 @@ export const STATE_PLANE_PATHS = [
   'web/orchestration/data.js',
 ];
 
+/**
+ * 提交守卫只看「生成态」：任务单、回执、归档记录是任务工件，必须随任务分支提交。
+ * 把 records/ 也当生成态会误伤任务单登记（AF-365 首次 preflight 即因此 state-plane-mixed）。
+ */
+export const GENERATED_STATE_PATHS = [
+  'docs/team/agent-orchestration/task-state-index.json',
+  'docs/team/agent-orchestration/orchestration-state.json',
+  'docs/team/agent-orchestration/orchestration-snapshot.json',
+  'docs/team/agent-orchestration/improvement-log.json',
+  'docs/team/agent-orchestration/tool-audit-log.json',
+  'docs/team/agent-orchestration/state/',
+  'docs/team/agent-orchestration/transport/',
+  'docs/team/agent-orchestration/delivery-packs/',
+  'web/orchestration/data.js',
+];
+
 const TASK_INDEX_PATH = STATE_PLANE_PATHS[0];
 
 /** 统一 git 路径分隔符，避免 Windows 反斜杠造成 scope 比对错位。 */
@@ -56,6 +72,12 @@ function normalizeFiles(files) {
 export function isStatePlanePath(file) {
   const target = normalizeFile(file);
   return STATE_PLANE_PATHS.some((entry) => (entry.endsWith('/') ? target.startsWith(entry) : target === entry));
+}
+
+/** 是否属于提交守卫覆盖的生成态文件（不含任务单 / 回执 / 归档记录）。 */
+export function isGeneratedStatePath(file) {
+  const target = normalizeFile(file);
+  return GENERATED_STATE_PATHS.some((entry) => (entry.endsWith('/') ? target.startsWith(entry) : target === entry));
 }
 
 /** 剔除编排状态面生成物：run-once 本轮自写的文件不算「实现未提交」。 */
@@ -121,7 +143,14 @@ function statusAllowsWrite(status) {
  *   candidates: string[]
  * }}
  */
-export function evaluateTaskEntry({ changedFiles = [], tasks = [], archivedTasks = [], headTasks = [], explicitTaskId = null } = {}) {
+export function evaluateTaskEntry({
+  changedFiles = [],
+  tasks = [],
+  archivedTasks = [],
+  headTasks = [],
+  explicitTaskId = null,
+  rootDir = null,
+} = {}) {
   const changed = normalizeFiles(changedFiles);
   if (changed.length === 0) {
     return {
@@ -230,7 +259,7 @@ export function evaluateTaskEntry({ changedFiles = [], tasks = [], archivedTasks
         ? [selected]
         : eligible.filter((task) => {
             const relevant = changed.filter((file) => !isExemptForTask(file, task));
-            return detectResidualFiles(relevant, task).residual.length === 0;
+            return detectResidualFiles(relevant, task, { rootDir }).residual.length === 0;
           });
       if (!selected && candidates.length === 1) {
         selected = candidates[0];
@@ -263,7 +292,7 @@ export function evaluateTaskEntry({ changedFiles = [], tasks = [], archivedTasks
   }
 
   const relevant = changed.filter((file) => !isExemptForTask(file, selected));
-  const { covered, residual } = detectResidualFiles(relevant, selected);
+  const { covered, residual } = detectResidualFiles(relevant, selected, { rootDir });
 
   if (residual.length > 0) {
     return {
@@ -388,6 +417,24 @@ function main() {
         .filter(Boolean)
     : collectStagedFiles(rootDir);
 
+  // AF-365 · 状态面守卫：task 分支默认拒绝提交生成态；状态面与实现不得混提。
+  const branch = execFileSync('git', ['-C', rootDir, 'branch', '--show-current'], { encoding: 'utf8' }).trim();
+  const stateStaged = changedFiles.filter(isGeneratedStatePath);
+  const implementationStaged = changedFiles.filter((file) => !isGeneratedStatePath(file));
+  if (stateStaged.length > 0 && implementationStaged.length > 0) {
+    console.error('[ORCH-GATE] FAIL reason=state-plane-mixed');
+    console.error(`[ORCH-GATE] 状态面不得与实现混提：state=${stateStaged.join(',')} impl=${implementationStaged.join(',')}`);
+    process.exitCode = 1;
+    return;
+  }
+  if (stateStaged.length > 0 && branch.startsWith('task/') && process.env.ORCH_ALLOW_STATE_COMMIT !== '1') {
+    console.error('[ORCH-GATE] FAIL reason=state-plane-on-task-branch');
+    console.error(`[ORCH-GATE] task 分支 ${branch} 拒绝提交状态面：${stateStaged.join(',')}`);
+    console.error('[ORCH-GATE] 状态面请走 state/* 分支或 integrate 上的独立状态提交；确需例外设 ORCH_ALLOW_STATE_COMMIT=1 并记录原因。');
+    process.exitCode = 1;
+    return;
+  }
+
   const index = readIndex(rootDir);
   const tasks = index.tasks ?? [];
   const headIndex = changedFiles.includes(TASK_INDEX_PATH) ? readHeadIndex(rootDir) : null;
@@ -397,6 +444,7 @@ function main() {
     archivedTasks: index.archivedTasks ?? [],
     headTasks: headIndex?.tasks ?? [],
     explicitTaskId,
+    rootDir,
   });
   if (result.taskId) {
     const snapshotTasks = result.reason === 'archived-transition' ? (headIndex?.tasks ?? []) : tasks;

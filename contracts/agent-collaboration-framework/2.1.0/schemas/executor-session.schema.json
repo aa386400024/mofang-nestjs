@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:executor-session:1.0.0",
+  "title": "Agent Collaboration Framework - Executor Session Contract",
+  "description": "执行器会话契约。用于把「派发后是否真的在干活」从窗口存活推断改为可观测的租约心跳：ack、heartbeat、progress、cancel、terminal 五类状态面事实。会话文件是运行态观测，不替代任务事件日志；任务状态仍以状态索引为唯一权威源。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "sessionId",
+    "taskId",
+    "executor",
+    "status",
+    "startedAt",
+    "heartbeatAt",
+    "leaseExpiresAt"
+  ],
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "pattern": "^ES-[A-Za-z0-9-]+$",
+      "description": "会话唯一标识，形如 ES-AF357-01。"
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "绑定的任务标识。"
+    },
+    "executor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "执行器标识（agent id / 会话 id / 通道名）；同一任务同一时刻只允许一个活跃会话。"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "starting",
+        "active",
+        "blocked",
+        "completed",
+        "failed",
+        "lost",
+        "canceled"
+      ],
+      "description": "会话状态；取值口径与 schemas/contract-enums.json 的 executorSessionStatuses 一致。"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "会话建立时间（ISO 8601 带时区）。"
+    },
+    "heartbeatAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "最近一次心跳时间；超过 leaseExpiresAt 未续租即判 lost。"
+    },
+    "leaseExpiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "当前租约到期时间；每次心跳必须显式续租。"
+    },
+    "progressPercent": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "粗粒度进度百分比；无可靠进度时写 null，不得编造。"
+    },
+    "progressNote": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "当前步骤的一句话说明；不得写「进行中」这类不可判定的空话。"
+    },
+    "cancelRequestedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "编排侧请求取消的时间；执行器必须在下一个心跳点确认或拒绝。"
+    },
+    "terminalAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "进入 completed / failed / lost / canceled 的时间；终态必填。"
+    },
+    "artifactRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "会话产出的工件指针；不复制正文。"
+    },
+    "evidenceRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "回执或证据文件指针。"
+    }
+  },
+  "$defs": {
+    "sessionStatus": {
+      "type": "string",
+      "enum": [
+        "starting",
+        "active",
+        "blocked",
+        "completed",
+        "failed",
+        "lost",
+        "canceled"
+      ],
+      "description": "会话状态；取值口径与 contract-enums.executorSessionStatuses 一致。"
+    }
+  }
+}

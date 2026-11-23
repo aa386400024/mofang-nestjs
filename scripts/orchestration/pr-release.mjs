@@ -152,6 +152,130 @@ async function findPullRequest(repo, branch, base = 'integrate') {
   return Array.isArray(body) ? (body[0] ?? null) : null;
 }
 
+/** 仓库级 PR 盘点：不要求在任务分支上执行。 */
+async function listOpenPulls(repo, base = 'integrate') {
+  const body = unwrapGithub(
+    await githubRequest({
+      path: `/repos/${repo}/pulls?state=open&base=${encodeURIComponent(base)}&per_page=100&sort=updated&direction=desc`,
+    }),
+  );
+  return Array.isArray(body) ? body : [];
+}
+
+function taskIdFromBranch(branch) {
+  const match = /^task\/(AF-\d+)/.exec(String(branch ?? ''));
+  return match?.[1] ?? null;
+}
+
+export function classifyPullRequests(pulls, tasksById = new Map(), now = Date.now()) {
+  const duplicates = new Map();
+  for (const pull of pulls) {
+    const taskId = taskIdFromBranch(pull.head?.ref);
+    if (taskId) duplicates.set(taskId, [...(duplicates.get(taskId) ?? []), pull.number]);
+  }
+  return pulls.map((pull) => {
+    const taskId = taskIdFromBranch(pull.head?.ref);
+    const task = tasksById.get(taskId) ?? null;
+    const ageDays = Math.floor((now - Date.parse(pull.updated_at ?? pull.created_at ?? '')) / 86_400_000);
+    let state = 'ready';
+    if (!taskId || !task) state = 'orphan';
+    else if ((duplicates.get(taskId) ?? []).length > 1) state = 'duplicate';
+    else if (!task.status || !['completed', 'archived'].includes(task.status)) state = 'blocked';
+    else if (ageDays >= 14) state = 'stale';
+    return {
+      number: pull.number,
+      title: pull.title,
+      branch: pull.head?.ref ?? null,
+      taskId,
+      taskStatus: task?.status ?? null,
+      draft: Boolean(pull.draft),
+      ageDays,
+      updatedAt: pull.updated_at ?? null,
+      state,
+      url: pull.html_url,
+      headSha: pull.head?.sha ?? null,
+    };
+  });
+}
+
+async function listPullRequests({ repo, base, json }) {
+  const pulls = await listOpenPulls(repo, base);
+  const rows = pulls.map((pull) => ({
+    number: pull.number,
+    branch: pull.head?.ref ?? null,
+    taskId: taskIdFromBranch(pull.head?.ref),
+    title: pull.title,
+    draft: Boolean(pull.draft),
+    url: pull.html_url,
+  }));
+  if (json) console.log(JSON.stringify({ base, count: rows.length, pulls: rows }, null, 2));
+  else {
+    console.log(`[ORCH-PR] open=${rows.length} base=${base}`);
+    for (const row of rows) console.log(`  #${row.number} ${row.taskId ?? '-'} ${row.branch ?? '-'} ${row.title}`);
+  }
+  return { base, count: rows.length, pulls: rows };
+}
+
+async function triagePullRequests({ repo, base, json }) {
+  const pulls = await listOpenPulls(repo, base);
+  const index = readJson(INDEX_PATH);
+  const tasksById = new Map([...(index.tasks ?? []), ...(index.archivedTasks ?? [])].map((task) => [task.taskId, task]));
+  const rows = classifyPullRequests(pulls, tasksById);
+  if (json) console.log(JSON.stringify({ base, count: rows.length, pulls: rows }, null, 2));
+  else {
+    console.log(`[ORCH-PR] triage open=${rows.length} base=${base}`);
+    for (const row of rows) console.log(`  #${row.number} ${row.state} task=${row.taskId ?? '-'} status=${row.taskStatus ?? '-'} age=${row.ageDays}d`);
+    const counts = rows.reduce((acc, row) => ({ ...acc, [row.state]: (acc[row.state] ?? 0) + 1 }), {});
+    console.log(`  汇总：${Object.entries(counts).map(([key, value]) => `${key}=${value}`).join(' ')}`);
+  }
+  return { base, count: rows.length, pulls: rows };
+}
+
+async function resolvePull({ repo, base, taskId, prNumber }) {
+  if (prNumber) {
+    const pr = unwrapGithub(await githubRequest({ path: `/repos/${repo}/pulls/${prNumber}` }));
+    if (!pr) throw new Error(`PR #${prNumber} 不存在`);
+    return pr;
+  }
+  if (!taskId) throw new Error('close / supersede 需要 --pr 或 --taskId');
+  const pulls = await listOpenPulls(repo, base);
+  const pr = pulls.find((item) => taskIdFromBranch(item.head?.ref) === taskId);
+  if (!pr) throw new Error(`未找到 ${taskId} 的开放 PR`);
+  return pr;
+}
+
+async function closePullRequest({ repo, base, taskId, prNumber, apply, reason, deleteBranch, comment }) {
+  const pr = await resolvePull({ repo, base, taskId, prNumber });
+  const plan = { mode: apply ? 'apply' : 'dry-run', action: 'close', pr: pr.number, branch: pr.head?.ref, taskId: taskId ?? taskIdFromBranch(pr.head?.ref), reason };
+  if (!apply) {
+    console.log(JSON.stringify(plan, null, 2));
+    return plan;
+  }
+  if (comment) {
+    await githubRequest({ method: 'POST', path: `/repos/${repo}/issues/${pr.number}/comments`, body: { body: comment } });
+  }
+  const closed = await githubRequest({ method: 'PATCH', path: `/repos/${repo}/pulls/${pr.number}`, body: { state: 'closed' } });
+  if (!closed.ok) throw new Error(closed.error);
+  if (deleteBranch && pr.head?.ref) {
+    const deleted = await githubRequest({ method: 'DELETE', path: `/repos/${repo}/git/refs/heads/${pr.head.ref}` });
+    if (!deleted.ok && deleted.status !== 404 && deleted.status !== 422) throw new Error(deleted.error);
+  }
+  console.log(`[ORCH-PR] 已关闭 PR #${pr.number}（merged=false，reason=${reason ?? 'manual'}）`);
+  return { ...plan, closed: true };
+}
+
+async function supersedePullRequest({ repo, base, taskId, prNumber, by, apply }) {
+  if (!by) throw new Error('supersede 需要 --by <后继任务号或 PR 号>');
+  const comment = [
+    `此 PR 已被 ${by} 取代，按 AF-365 的 PR 生命周期规则关闭，不再合并。`,
+    '',
+    '- 代码/功能由后继任务或已合并提交承接；',
+    '- 本 PR 的 checks 结果保留为历史证据；',
+    '- 任务级替代关系以任务单 supersedes / supersededBy 为准。',
+  ].join('\n');
+  return closePullRequest({ repo, base, taskId, prNumber, apply, reason: `superseded-by-${by}`, deleteBranch: false, comment });
+}
+
 /**
  * 一个 PR 只能承载一个主任务，但允许携带任务单 `priorTasks` 声明的返修链。
  * 逐提交门禁仍按各自任务判定；squash 后按任务链 scope 并集校验。create 阶段扫描
@@ -223,10 +347,19 @@ async function createOrUpdatePullRequest({ repo, base, taskId, apply }) {
   console.log(`[ORCH-PR] 已创建 PR #${pr.number} ${pr.html_url} head=${pr.head.sha}`);
 }
 
-async function statusPullRequest({ repo, base, taskId }) {
-  const branch = currentTaskBranch(taskId);
-  const pr = await findPullRequest(repo, branch, base);
-  if (!pr) throw new Error(`未找到 ${branch} → ${base} 的开放 PR`);
+/** 仓库级 status：不在任务分支时按 branch 前缀反查，避免只能在分支内用。 */
+async function statusAnyPullRequest({ repo, base, taskId, prNumber }) {
+  let pr;
+  if (prNumber) pr = unwrapGithub(await githubRequest({ path: `/repos/${repo}/pulls/${prNumber}` }));
+  else {
+    const branch = git(['branch', '--show-current']);
+    if (branch.startsWith('task/') && branch.includes(taskId)) pr = await findPullRequest(repo, branch, base);
+    else {
+      const pulls = await listOpenPulls(repo, base);
+      pr = pulls.find((item) => taskIdFromBranch(item.head?.ref) === taskId) ?? null;
+    }
+  }
+  if (!pr) throw new Error(`未找到 ${taskId ?? `#${prNumber}`} → ${base} 的开放 PR`);
   const checks = await fetchCheckRuns({ repo, sha: pr.head.sha });
   if (!checks.ok) throw new Error(checks.error);
   const verdict = evaluateRequiredChecks(checks.checkRuns);
@@ -322,6 +455,12 @@ function parseArgs(argv) {
     repo: valueAfter('--repo', 'aa386400024/mofang-nestjs'),
     base: valueAfter('--base', 'integrate'),
     taskId: valueAfter('--taskId', null),
+    prNumber: valueAfter('--pr', null),
+    by: valueAfter('--by', null),
+    reason: valueAfter('--reason', null),
+    comment: valueAfter('--comment', null),
+    deleteBranch: rest.includes('--delete-branch'),
+    json: rest.includes('--json'),
     apply: rest.includes('--apply'),
     timeoutMinutes: Number(valueAfter('--timeout-minutes', '45')),
     intervalSeconds: Number(valueAfter('--interval-seconds', '30')),
@@ -330,11 +469,16 @@ function parseArgs(argv) {
 
 async function main(argv) {
   const args = parseArgs(argv);
-  if (!['create', 'status', 'merge'].includes(args.command) || !args.taskId) {
-    throw new Error('用法：create|status|merge --taskId AF-0xx [--apply] [--repo owner/repo] [--base integrate]');
+  if (!['create', 'status', 'merge', 'list', 'triage', 'close', 'supersede'].includes(args.command)) {
+    throw new Error('用法：create|status|merge|list|triage|close|supersede [--taskId AF-0xx] [--pr N] [--apply] [--repo owner/repo] [--base integrate]');
   }
+  if (args.command === 'list') return listPullRequests(args);
+  if (args.command === 'triage') return triagePullRequests(args);
+  if (args.command === 'close') return closePullRequest(args);
+  if (args.command === 'supersede') return supersedePullRequest(args);
+  if (!args.taskId && !args.prNumber) throw new Error(`${args.command} 需要 --taskId 或 --pr`);
   if (args.command === 'create') return createOrUpdatePullRequest(args);
-  if (args.command === 'status') return statusPullRequest(args);
+  if (args.command === 'status') return statusAnyPullRequest(args);
   return mergePullRequest(args);
 }
 

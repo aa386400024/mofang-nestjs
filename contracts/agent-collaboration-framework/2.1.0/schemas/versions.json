@@ -1,0 +1,98 @@
+{
+  "fileKind": "contract-versions",
+  "framework": {
+    "version": "2.1.0",
+    "releasedAt": "2026-11-23",
+    "scope": "规范 + 机读契约 + 可执行校验（conformance）"
+  },
+  "enums": {
+    "path": "schemas/contract-enums.json",
+    "version": "2.1.0",
+    "role": "枚举与状态迁移表的唯一真相源；schema 中的枚举一律镜像本文件"
+  },
+  "description": "三轴版本表：framework（规范整体）/ enums（枚举与迁移表真相源）/ contracts（每份机读契约）。契约 $id 末尾版本必须与本表一致，由 conformance/run.py 的 V12 检查。",
+  "contracts": {
+    "task-sheet": {
+      "path": "schemas/task-sheet.schema.json",
+      "version": "1.2.0",
+      "breakingIn": [],
+      "notes": "v1.1.0 把 status 降级为立项快照，新增 contractRef / parentTaskId，时间字段改 date-time；v1.2.0 新增 riskClass / gateProfile / supersedes / supersededBy，baselineRef 明确分支切出点语义"
+    },
+    "task-state-index": {
+      "path": "schemas/task-state-index.schema.json",
+      "version": "1.2.0",
+      "breakingIn": [],
+      "notes": "v1.1.0 引入 projection 只读投影、waitingOn / deadLetter、归档严格收窄；v1.2.0 新增 riskClass / dependencyResolutions / timing"
+    },
+    "executor-session": {
+      "path": "schemas/executor-session.schema.json",
+      "version": "1.0.0",
+      "breakingIn": [],
+      "notes": "执行器会话心跳契约：ack / heartbeat / progress / cancel / terminal；运行态观测，不替代任务事件日志"
+    },
+    "state-event": {
+      "path": "schemas/state-event.schema.json",
+      "version": "1.0.0",
+      "notes": "状态索引的唯一写入面；append-only"
+    },
+    "receipt": {
+      "path": "schemas/receipt.schema.json",
+      "version": "1.0.0",
+      "notes": "机读回执；与交付记录（人读）成对"
+    },
+    "escalation": {
+      "path": "schemas/escalation.schema.json",
+      "version": "1.0.0",
+      "notes": "中断升级消息；至少两个可选方案"
+    },
+    "approval": {
+      "path": "schemas/approval.schema.json",
+      "version": "1.0.0",
+      "notes": "审批记录；无记录视为未批准"
+    },
+    "delivery-package": {
+      "path": "schemas/delivery-package.schema.json",
+      "version": "1.0.0",
+      "notes": "夜间交付包汇总"
+    },
+    "tool-contract": {
+      "path": "schemas/tool-contract.schema.json",
+      "version": "1.1.0",
+      "notes": "v1.1.0 类别收为 8 值枚举，与工具审计事件同源"
+    },
+    "tool-audit-event": {
+      "path": "schemas/tool-audit-event.schema.json",
+      "version": "1.0.0",
+      "notes": "工具调用审计链"
+    },
+    "agent-card": {
+      "path": "schemas/agent-card.schema.json",
+      "version": "1.1.0",
+      "notes": "v1.1.0 移除可派发角色中的 human，与任务单对齐"
+    },
+    "review-handover": {
+      "path": "schemas/review-handover.schema.json",
+      "version": "1.1.0",
+      "notes": "v1.1.0 时间字段改 date-time"
+    },
+    "protocol-view": {
+      "path": "schemas/protocol-view.schema.json",
+      "version": "1.0.0",
+      "notes": "只读投影；statusMap 键必须覆盖全部状态"
+    }
+  },
+  "compatibility": [
+    {
+      "range": ">=2.1.0 <3.0.0",
+      "meaning": "新增 riskClass / supersede / dependencyResolution / timing / executor-session 契约；旧任务缺省 riskClass 视为 R1，旧索引缺省新字段视为未启用对应观测"
+    },
+    {
+      "range": ">=2.0.0 <2.1.0",
+      "meaning": "规范 + 契约 + 校验仓形态；任务单 status 语义变更属准破坏性，适配层必须声明 unknownEnumPolicy（默认 tolerant）"
+    },
+    {
+      "range": ">=1.4.0 <2.0.0",
+      "meaning": "纯文本规范仓形态；无 conformance、无 state-event / receipt 契约"
+    }
+  ]
+}
