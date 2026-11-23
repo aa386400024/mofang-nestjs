@@ -7,16 +7,15 @@
 
 ## 一、改动文件
 
-| 文件                                                     | 动作 | 说明                                                                                                       |
-| -------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
-| `.env.bak.rsa-fix-2026-10-15`                            | 删除 | 从公开 HEAD 移除含真实密钥的备份；历史旧 blob 保留到私有化窗口清理                                         |
-| `.gitignore`                                             | 修改 | 增加 `.env.bak*`、`.env.backup*`、`.env.local`、`.env.*.local`                                             |
-| `docs/security/secret-rotation-2026-11-23.md`            | 新增 | P0 轮换清单、GitHub 设置、数据审计、历史清理步骤；不记录密钥值                                             |
-| `docs/security/self-hosted-runner.md`                    | 新增 | 4C8G 专用 CI/staging 运行手册：标签、资源上限、缓存、隔离、public 仓禁用                                   |
-| `.github/workflows/ci.yml`                               | 修改 | 9 个 job 的 `runs-on` 改为 `${{ vars.CI_RUNNER \|\| 'ubuntu-latest' }}`                                    |
-| `scripts/orchestration/github-api.mjs`                   | 修改 | 新增 `githubGraphQL`，用于 REST 不支持的 draft PR 转 ready                                                 |
-| `scripts/orchestration/pr-release.mjs`                   | 修改 | `create` 默认 `draft:true`；`merge` 对 draft PR 走 GraphQL `markPullRequestReadyForReview` 后再等待 checks |
-| `scripts/orchestration/__tests__/orchestration.spec.mjs` | 修改 | 新增 draft payload 断言与 ci.yml 无裸 `ubuntu-latest` 静态断言                                             |
+| 文件                                                     | 动作 | 说明                                                                                                             |
+| -------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------- |
+| `.env.bak.rsa-fix-2026-10-15`                            | 删除 | 从公开 HEAD 移除含真实密钥的备份；历史旧 blob 保留到私有化窗口清理                                               |
+| `.gitignore`                                             | 修改 | 增加 `.env.bak*`、`.env.backup*`、`.env.local`、`.env.*.local`                                                   |
+| `docs/security/secret-rotation-2026-11-23.md`            | 新增 | P0 轮换清单、GitHub 设置、数据审计、历史清理步骤；不记录密钥值                                                   |
+| `docs/security/self-hosted-runner.md`                    | 新增 | 4C8G 专用 CI/staging 运行手册：标签、资源上限、缓存、隔离、public 仓禁用                                         |
+| `.github/workflows/ci.yml`                               | 修改 | 9 个 job 的 `runs-on` 改为 `${{ vars.CI_RUNNER \|\| 'ubuntu-latest' }}`                                          |
+| `scripts/orchestration/pr-release.mjs`                   | 修改 | `create` 默认 `draft:true`；`merge` 对 draft PR 经 `/graphql` 调 `markPullRequestReadyForReview` 后再等待 checks |
+| `scripts/orchestration/__tests__/orchestration.spec.mjs` | 修改 | 新增 draft payload 断言与 ci.yml 无裸 `ubuntu-latest` 静态断言                                                   |
 
 ## 二、关键设计决策
 
@@ -39,7 +38,7 @@
 | `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | exit 0，272 passed / 272                                                  |
 | `pnpm lint`                                                                   | exit 0，0 error                                                           |
 | `pnpm typecheck`                                                              | exit 0，0 error                                                           |
-| `pnpm test`                                                                   | exit 0，311 passed / 1 skipped 文件；4751 passed / 4 skipped 用例；27.80s |
+| `pnpm test`                                                                   | exit 0，311 passed / 1 skipped 文件；4751 passed / 4 skipped 用例；27.11s |
 | CI YAML 解析                                                                  | 9 个 job 可解析；`pull_request.types` 含 `ready_for_review`               |
 | `git ls-files -- .env.bak*`                                                   | 空                                                                        |
 | `git diff --stat HEAD -- src/engine-core`                                     | 空                                                                        |
