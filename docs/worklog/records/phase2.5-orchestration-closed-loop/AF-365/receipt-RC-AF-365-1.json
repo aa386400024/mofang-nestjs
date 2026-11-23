@@ -22,7 +22,8 @@
     },
     "changedFiles": {
       "commits": [
-        "114b13cc97f5ff0a9059f4c005098352a3dd1551"
+        "114b13cc97f5ff0a9059f4c005098352a3dd1551",
+        "719131efeed9bae0d8986d9741f393b4da5183c4"
       ],
       "added": [
         "contracts/agent-collaboration-framework/2.1.0/PROVENANCE.json",
@@ -165,6 +166,16 @@
         "machine": "同上",
         "wallClock": "瞬时",
         "note": "空输出；未触 engine-core 纯层"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base 06955ce535be1b2df9bc1571738934ef3960f340 --head HEAD",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "total=3 passed=3；实现/回执/门修正三个提交均 pass"
       }
     ],
     "reproNotes": "风险门：risk-gate.mjs 以记录包任务单 riskClass=R2、gateProfile=full 解析为 R2 全量；状态面守卫 task-entry-gate 只拦生成态，任务单/回执/归档记录不误伤；scope-mutex 在给定 rootDir 时把真实目录的无尾斜杠 scope 条目按目录覆盖。",
