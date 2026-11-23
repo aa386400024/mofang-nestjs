@@ -1,0 +1,126 @@
+{
+  "deliveredAt": "2026-11-23T16:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-372-1",
+    "taskId": "AF-372",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "9babd9ed0918f652cb63b3e747b4455b96e145c6",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-371",
+      "AF-365"
+    ],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af372-ci-coverage-contexts-2026-11-23.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "32eac472"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af372-ci-coverage-contexts-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/task-sheet.md"
+      ],
+      "modified": [
+        ".github/workflows/ci.yml",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-370/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node -e \"const yaml=require('yaml');yaml.parse(...);console.log('yaml ok')\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "瞬时",
+        "note": "yaml ok jobs=10"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "lint=0"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "typecheck=0"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空"
+      }
+    ],
+    "reproNotes": "R1/R0 下 coverage job 仍创建 runner 但真实步骤按 risk 跳过，required 名称由矩阵展开并 success；R2 全量执行。远端 14 项 checks 为最终验证。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "required-contexts",
+        "result": "pass",
+        "note": "4 个 coverage context 不再因 job skip 缺失"
+      },
+      {
+        "item": "r2-full-gate",
+        "result": "pass",
+        "note": "步骤条件仅在 run_coverage=false 时跳过"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "changedFiles.commits 仅 32eac472"
+    },
+    "backlogItems": [
+      {
+        "id": "AF372-B1",
+        "impact": "R0/R1 仍会为 coverage 矩阵创建 3 个 runner（步骤跳过），带来少量排队成本",
+        "note": "换取 required context 稳定；后续可评估 lightweight job 替代"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "scope 仅 ci.yml",
+        "reality": "交付记录与任务单需要 docs/worklog，且 AF-370 manifest 终态需一并提交",
+        "action": "取消 AF-371，重签发 AF-372 扩大 scope",
+        "why": "scope 不原地修改，保持审计链"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "YAML 解析通过；条件步骤设计保证 R2 全量、R1/R0 名称稳定。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
