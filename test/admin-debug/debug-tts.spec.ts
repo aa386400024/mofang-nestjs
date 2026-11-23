@@ -2,12 +2,12 @@ import type { ConfigService } from '@nestjs/config';
 import type { Repository } from 'typeorm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { DebugSessionService } from '../../src/admin-debug/debug-session.service.js';
 import { AdminDebugTtsRenderEntity } from '../../src/admin-debug/tts/admin-debug-tts-render.entity.js';
-import { DebugTtsService } from '../../src/admin-debug/tts/debug-tts.service.js';
 import { synthesizeDoubao, synthesizeMiniMax } from '../../src/admin-debug/tts/debug-tts.providers.js';
+import { DebugTtsService } from '../../src/admin-debug/tts/debug-tts.service.js';
 import { PracticeSession } from '../../src/auto-practice/entities/practice-session.entity.js';
 import { PracticeTurn } from '../../src/auto-practice/entities/practice-turn.entity.js';
-import type { DebugSessionService } from '../../src/admin-debug/debug-session.service.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -46,12 +46,12 @@ describe('AF-395 调试 TTS provider 协议', () => {
       'fetch',
       vi.fn(async (_url: string, init: { body?: string }) => {
         captured = JSON.parse(init.body ?? '{}');
-        return new Response(
-          JSON.stringify({
+        return Response.json(
+          {
             data: { audio: 'ff00' },
             extra_info: { audio_length: 120 },
             base_resp: { status_code: 0 },
-          }),
+          },
           { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }),
@@ -63,7 +63,7 @@ describe('AF-395 调试 TTS provider 协议', () => {
       voice_setting: { voice_id: 'Chinese (Mandarin)_Warm_Girl', emotion: 'sad' },
       audio_setting: { format: 'mp3', sample_rate: 24_000 },
     });
-    expect(out.audio.equals(Buffer.from([0xff, 0x00]))).toBe(true);
+    expect(out.audio.equals(Buffer.from([255, 0]))).toBe(true);
     expect(out.durationMs).toBe(120);
   });
 
@@ -80,7 +80,7 @@ describe('AF-395 调试 TTS provider 协议', () => {
         return new Response(
           [
             JSON.stringify({ code: 0, data: Buffer.from([1, 2]).toString('base64') }),
-            JSON.stringify({ code: 20000000, data: Buffer.from([3]).toString('base64'), usage: { text_words: 2 } }),
+            JSON.stringify({ code: 20_000_000, data: Buffer.from([3]).toString('base64'), usage: { text_words: 2 } }),
             '',
           ].join('\n'),
           { status: 200, headers: { 'content-type': 'text/plain' } },
@@ -143,11 +143,11 @@ describe('AF-395 缓存闭环', () => {
       'fetch',
       vi.fn(async () => {
         calls += 1;
-        return new Response(
-          JSON.stringify({
+        return Response.json(
+          {
             data: { audio: 'ff' },
             base_resp: { status_code: 0 },
-          }),
+          },
           { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }),
@@ -166,15 +166,18 @@ describe('AF-395 缓存闭环', () => {
       'fetch',
       vi.fn(async (_url: string, init: { body?: string }) => {
         captured = JSON.parse(init.body ?? '{}');
-        return new Response(JSON.stringify({ data: { audio: 'ff' }, base_resp: { status_code: 0 } }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        });
+        return Response.json(
+          { data: { audio: 'ff' }, base_resp: { status_code: 0 } },
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        );
       }),
     );
     const renderRepo = {
       create: (x: AdminDebugTtsRenderEntity) => x,
-      insert: async () => undefined,
+      insert: async () => {},
       findOne: async () => null,
     } as unknown as Repository<AdminDebugTtsRenderEntity>;
     const turnRepo = {

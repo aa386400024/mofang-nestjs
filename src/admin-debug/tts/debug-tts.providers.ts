@@ -145,13 +145,13 @@ export async function synthesizeDoubao(input: TtsSynthesisInput, provider: Debug
   const audioParts: Buffer[] = [];
   let finalUsage: Record<string, unknown> | null = null;
   for (const chunk of chunks) {
-    if (typeof chunk.code === 'number' && chunk.code !== 0 && chunk.code !== 20000000) {
+    if (typeof chunk.code === 'number' && chunk.code !== 0 && chunk.code !== 20_000_000) {
       throw new DebugTtsProviderError(`豆包 TTS ${chunk.code}: ${chunk.message ?? 'unknown'}`, provider);
     }
     if (typeof chunk.data === 'string' && chunk.data.length > 0) {
       audioParts.push(Buffer.from(chunk.data, 'base64'));
     }
-    if (chunk.code === 20000000 && chunk.usage !== undefined) {
+    if (chunk.code === 20_000_000 && chunk.usage !== undefined) {
       finalUsage = chunk.usage as Record<string, unknown>;
     }
   }
@@ -167,9 +167,11 @@ export async function synthesizeDoubao(input: TtsSynthesisInput, provider: Debug
   };
 }
 
-/** 去掉 base URL 尾部斜杠. */
+/** 去掉 base URL 尾部斜杠（循环切片避免正则回溯）. */
 function trimBase(value: string): string {
-  return value.replace(/\/+$/, '');
+  let out = value;
+  while (out.endsWith('/')) out = out.slice(0, -1);
+  return out;
 }
 
 /** MiniMax `data.audio` 可能是 hex；兼容个别环境返回 base64. */
@@ -193,14 +195,21 @@ function doubaoHttpError(status: number, raw: string): string {
 }
 
 /** 逐行解析豆包 chunked JSON（允许空行与 `data:` 前缀）. */
-function parseDoubaoChunks(raw: string): Array<{ code?: number; message?: string; data?: string; usage?: unknown }> {
-  const out: Array<{ code?: number; message?: string; data?: string; usage?: unknown }> = [];
+interface DoubaoChunk {
+  code?: number;
+  message?: string;
+  data?: string;
+  usage?: unknown;
+}
+
+function parseDoubaoChunks(raw: string): DoubaoChunk[] {
+  const out: DoubaoChunk[] = [];
   for (const line of raw.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (trimmed.length === 0) continue;
     const json = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
     try {
-      const parsed = JSON.parse(json) as { code?: number; message?: string; data?: string; usage?: unknown };
+      const parsed = JSON.parse(json) as DoubaoChunk;
       out.push(parsed);
     } catch {
       // 非 JSON 行（例如日志/空包）不参与音频拼接，避免把错误文本当音频.

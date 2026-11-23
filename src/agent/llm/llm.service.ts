@@ -246,6 +246,31 @@ export class LlmService {
   }
 
   /**
+   * 组装流式请求体 — 把 per-call 覆盖与 usage 计量从 executeStream 拆出，控制主流程复杂度.
+   */
+  private buildStreamRequest(
+    messages: readonly LlmMessage[],
+    opts: LlmStreamOptions,
+    provider: 'minimax' | 'doubao',
+    fallbackModel: string,
+  ): MiniMaxChatRequest {
+    return {
+      model: opts.model ?? fallbackModel,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      stream: true,
+      temperature: opts.temperature ?? 0.7,
+      top_p: opts.topP ?? 1,
+      ...(opts.maxCompletionTokens === undefined
+        ? { max_tokens: opts.maxTokens ?? 2048 }
+        : { max_completion_tokens: opts.maxCompletionTokens }),
+      ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
+      // AF-250: 豆包流式默认不计量；显式要求末尾 usage chunk.
+      // AF-395: MiniMax 仅在显式开启成本取证时下发，默认不改变生产请求体.
+      ...(provider === 'doubao' || (provider === 'minimax' && this.minimaxIncludeUsage) ? { stream_options: { include_usage: true } } : {}),
+    };
+  }
+
+  /**
    * 单次流式请求 — 内部抛 LlmBusinessError (上游非 2xx) 或普通 Error (网络/超时).
    */
   private async executeStream(
@@ -278,20 +303,7 @@ export class LlmService {
       );
     }
     const fallbackModel = provider === 'doubao' && this.doubaoModel.trim().length > 0 ? this.doubaoModel : this.model;
-    const request: MiniMaxChatRequest = {
-      model: opts.model ?? fallbackModel,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      stream: true,
-      temperature: opts.temperature ?? 0.7,
-      top_p: opts.topP ?? 1,
-      ...(opts.maxCompletionTokens === undefined
-        ? { max_tokens: opts.maxTokens ?? 2048 }
-        : { max_completion_tokens: opts.maxCompletionTokens }),
-      ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
-      // AF-250: 豆包流式默认不计量；显式要求末尾 usage chunk.
-      // AF-395: MiniMax 仅在显式开启成本取证时下发，默认不改变生产请求体.
-      ...(provider === 'doubao' || (provider === 'minimax' && this.minimaxIncludeUsage) ? { stream_options: { include_usage: true } } : {}),
-    };
+    const request = this.buildStreamRequest(messages, opts, provider, fallbackModel);
 
     const baseUrl = provider === 'doubao' ? this.doubaoBaseUrl : this.baseUrl;
     const response = await fetch(buildChatEndpoint(provider, baseUrl), {

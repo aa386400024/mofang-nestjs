@@ -2,9 +2,9 @@
 // 只接受会话 id + 轮次 + provider，文本由服务端从真实记录解析，避免变成通用 TTS 代理。
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 
-import { AdminRoleGuard } from '../guards/admin-role.guard.js';
 import { DebugTtsRenderDto } from './debug-tts.dto.js';
 import { DebugTtsService, type DebugTtsRenderResult } from './debug-tts.service.js';
+import { AdminRoleGuard } from '../guards/admin-role.guard.js';
 
 @Controller('debug/tts')
 @UseGuards(AdminRoleGuard)

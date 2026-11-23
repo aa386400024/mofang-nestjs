@@ -170,41 +170,49 @@ export class DebugTtsService {
 
   /** provider 的模型 / 音色 / 参数 / 凭证. */
   private providerConfig(provider: DebugTtsProvider, resolved: ResolvedTurnText): { voiceId: string; input: TtsSynthesisInput } {
-    const spoken = provider === 'doubao-seed-tts-2.0' ? resolved.displayText : resolved.ttsText;
-    if (provider === 'doubao-seed-tts-2.0') {
-      const apiKey = this.config.get<string>('ARK_AGENT_PLAN_API_KEY')?.trim() ?? '';
-      if (apiKey.length === 0) throw new ServiceUnavailableException('豆包 Agent Plan API key 未配置');
-      const voiceId = this.config.get<string>('ARK_AGENT_PLAN_TTS_SPEAKER')?.trim() || 'zh_female_vv_uranus_bigtts';
-      return {
-        voiceId,
-        input: {
-          text: spoken,
-          voiceId,
-          emotion: resolved.emotion,
-          model: 'doubao-seed-tts-2.0',
-          speed: 1,
-          volume: 1,
-          pitch: 0,
-          sampleRate: 24_000,
-          apiKey,
-          baseUrl:
-            this.config.get<string>('ARK_AGENT_PLAN_TTS_BASE_URL')?.trim() ||
-            'https://openspeech.bytedance.com/api/v3/plan/tts/unidirectional',
-        },
-      };
-    }
+    return provider === 'doubao-seed-tts-2.0' ? this.doubaoProviderConfig(resolved) : this.minimaxProviderConfig(provider, resolved);
+  }
 
+  /** 豆包 Agent Plan 配置. */
+  private doubaoProviderConfig(resolved: ResolvedTurnText): { voiceId: string; input: TtsSynthesisInput } {
+    const apiKey = this.config.get<string>('ARK_AGENT_PLAN_API_KEY')?.trim() ?? '';
+    if (apiKey.length === 0) throw new ServiceUnavailableException('豆包 Agent Plan API key 未配置');
+    const voiceId = firstNonEmpty(this.config.get<string>('ARK_AGENT_PLAN_TTS_SPEAKER'), 'zh_female_vv_uranus_bigtts');
+    return {
+      voiceId,
+      input: {
+        text: resolved.displayText,
+        voiceId,
+        emotion: resolved.emotion,
+        model: 'doubao-seed-tts-2.0',
+        speed: 1,
+        volume: 1,
+        pitch: 0,
+        sampleRate: 24_000,
+        apiKey,
+        baseUrl: firstNonEmpty(
+          this.config.get<string>('ARK_AGENT_PLAN_TTS_BASE_URL'),
+          'https://openspeech.bytedance.com/api/v3/plan/tts/unidirectional',
+        ),
+      },
+    };
+  }
+
+  /** MiniMax 2.8 系列配置. */
+  private minimaxProviderConfig(provider: DebugTtsProvider, resolved: ResolvedTurnText): { voiceId: string; input: TtsSynthesisInput } {
     const apiKey = this.config.get<string>('MINIMAX_API_KEY')?.trim() ?? '';
     if (apiKey.length === 0) throw new ServiceUnavailableException('MiniMax API key 未配置');
     const voiceId = normalizeMiniMaxVoiceId(
-      this.config.get<string>('MINIMAX_TTS_VOICE_ID')?.trim() ||
-        this.config.get<string>('MINIMAX_TTS_DEFAULT_VOICE')?.trim() ||
+      firstNonEmpty(
+        this.config.get<string>('MINIMAX_TTS_VOICE_ID'),
+        this.config.get<string>('MINIMAX_TTS_DEFAULT_VOICE'),
         'Chinese (Mandarin)_Warm_Girl',
+      ),
     );
     return {
       voiceId,
       input: {
-        text: spoken,
+        text: resolved.ttsText,
         voiceId,
         emotion: mapMiniMaxEmotion(resolved.emotion),
         model: provider === 'minimax-hd' ? 'speech-2.8-hd' : 'speech-2.8-turbo',
@@ -213,7 +221,7 @@ export class DebugTtsService {
         pitch: this.config.get<number>('minimax.ttsPitch') ?? 0,
         sampleRate: 24_000,
         apiKey,
-        baseUrl: this.config.get<string>('minimax.baseUrl') ?? 'https://api.minimax.cn',
+        baseUrl: firstNonEmpty(this.config.get<string>('minimax.baseUrl'), 'https://api.minimax.cn'),
       },
     };
   }
@@ -266,6 +274,15 @@ function hashRequest(provider: DebugTtsProvider, voiceId: string, resolved: Reso
     .digest('hex');
 }
 
+/** 取第一个非空字符串；用于 env 的空串兜底，避免 `||` 触发宽松判断. */
+function firstNonEmpty(...values: (string | undefined)[]): string {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed !== undefined && trimmed.length > 0) return trimmed;
+  }
+  return '';
+}
+
 /** 旧版 MiniMax 音色 id -> 2.8 系列可用音色（debug 专用，避免历史环境变量直接 2054）. */
 function normalizeMiniMaxVoiceId(value: string): string {
   if (value.length === 0) return 'Chinese (Mandarin)_Warm_Girl';
@@ -287,9 +304,9 @@ function mapMiniMaxEmotion(emotion: string | null): string | null {
 /** 未落库文本做最小清洗：去 MiniMax 标记，保留自然语言. */
 function normalizeSpokenText(value: string): string {
   const cleaned = value
-    .replace(/<#\d+#>/g, '')
-    .replace(/\[(?:emotion|pause|pre_speech|control|breath|sigh|laugh|cry|whisper|shout)[^\]]*\]/gi, '')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/<#\d+#>/g, '')
+    .replaceAll(/\[(?:emotion|pause|pre_speech|control|breath|sigh|laugh|cry|whisper|shout)[^\]]*\]/gi, '')
+    .replaceAll(/\s+/g, ' ')
     .trim();
   return cleaned;
 }
