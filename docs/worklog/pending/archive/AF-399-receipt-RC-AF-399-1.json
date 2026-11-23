@@ -1,0 +1,100 @@
+{
+  "deliveredAt": "2026-11-24T01:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-399-1",
+    "taskId": "AF-399",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b58d64cf958ad83dcc775b9633d25382ba4e95ec",
+    "dependsOn": [],
+    "priorTasks": ["AF-398", "AF-397", "AF-396"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-399/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af399-receipt-hash-normalization-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/worklog/completed/phase2.5/af399-receipt-hash-normalization-2026-11-24.md"]
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af399-receipt-hash-normalization-2026-11-24.md"],
+      "modified": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-397/receipt-RC-AF-397-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-398/receipt-RC-AF-398-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-397/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-398/manifest.json",
+        "docs/worklog/pending/archive/AF-397-receipt-RC-AF-397-1.json",
+        "docs/worklog/pending/archive/AF-398-receipt-RC-AF-398-1.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "AF-397 / AF-398 回执 LF 哈希与 manifest 一致"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm migration:run → pnpm exec vitest run 三个定向 spec → pnpm lint → pnpm typecheck → cd admin-dashboard && pnpm type-check → pnpm test → git diff --stat HEAD -- src/engine-core。TTS 真实试打用后台管理鉴权调用 POST /admin/api/debug/tts/render，provider 分别取 minimax-hd / minimax-turbo / doubao-seed。豆包需先在火山方舟控制台开启 Agent Plan 抵扣。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-396 贯穿任务单、回执、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 1706 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；测试数字、迁移数字、试打响应均来自真实命令输出"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "回执换行",
+        "taskSays": "回执与 manifest 哈希一致",
+        "reality": "PowerShell 写 CRLF，Git 归一 LF 导致哈希漂移",
+        "action": "转 LF、重算 manifest、同步 durable 副本",
+        "why": "不放宽校验"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "仅修记录包换行与哈希，worklog strict state-free 全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "MiniMax 真实试打 2 次（HD/Turbo，各 16 字符）；豆包请求因 Agent Plan 未开启未产生合成计费；未使用普通方舟 API token。"
+  }
+}
