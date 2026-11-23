@@ -1437,6 +1437,8 @@ function applyDeterministicStructure(
   //   crisisClosing 轮结束; 旧条件要求 escalated 才补齐, 导致 risk-incomplete 漏项.
   // AF-187: 按**会话级覆盖账本**补齐 —— 历史轮次已落地的组不再重复追加,
   //   连续风险收束轮最多只补真正缺的那几组.
+  // AF-392: 所有档位都必须真正走到这一轮；legacy 档出口改为“多留 1 轮”，
+  //   由 decideCrisisWindowStop 保证 crisisClosing cue 发出后再结束。
   if (input.crisisWindow.active && input.cue.crisisClosing) {
     const coveredBefore = riskGroupsCoveredByHistory(input.history, input.crisisWindow.firstTurn);
     result = { ...result, text: completeRiskClosingText(result.text, coveredBefore) };
@@ -1856,9 +1858,10 @@ export function decideTurn(
  *      第 45 轮本该收尾, 被计数器抢走); 危机窗里同时**动态放开** minTurnsBeforeClose,
  *      因为危机窗本身是有界的短协议, 收束是安全动作, 不能被会话级门槛卡住.
  *   ② **危机窗用满时的出口**:
- *      · legacy 档 (crisisRiskClosingRound = false): 计数一到就硬切 (档案契约"危机窗 4");
- *      · standard / long 档: 计数到上限的那一轮**继续** (下一轮 = 风险收束轮),
+ *      · 所有档位: 计数到上限的那一轮**继续** (下一轮 = 风险收束轮),
  *        收束轮之后 (postTurns 超过上限) 才结束 —— 收束在结构上必须可达.
+ *      · AF-392: legacy 档原先在这里硬切, 导致风险收束轮永远发不出来;
+ *        现在与 standard / long 一样保留 1 轮, 避免 crisis_practice_max + incomplete.
  *
  * @param input 本轮事实
  * @param crisisWindow 危机窗状态 (已被就地更新)
@@ -1898,10 +1901,13 @@ function decideCrisisWindowStop(
   }
   if (!crisisWindow.active || crisisStartedThisTurn) return null;
   if (crisisWindow.postTurns < thresholds.crisisPracticeTurns) return null;
-  if (!thresholds.crisisRiskClosingRound) {
+  if (crisisWindow.postTurns > thresholds.crisisPracticeTurns) {
     return { kind: 'stop', reason: 'crisis_practice_max' };
   }
-  if (crisisWindow.postTurns > thresholds.crisisPracticeTurns) {
+  // AF-392: legacy 档到达上限时不再一律硬切。
+  //   若本轮已在强制收束窗 (forcedClose)，crisisClosing cue 已生效、五组已补齐，可正常结束；
+  //   否则先继续，下一轮用 crisisClosing 补齐五组后再结束，避免 crisis_practice_max + incomplete。
+  if (!thresholds.crisisRiskClosingRound && input.forcedClose) {
     return { kind: 'stop', reason: 'crisis_practice_max' };
   }
   return null;
