@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T20:36:20.285Z",
+  "generatedAt": "2026-11-23T20:48:41.100Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1786,6 +1786,117 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-268",
+      "recordedAt": "2026-11-23T20:43:17.871Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-420",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-420-presence-delta-env-override"
+      ]
+    },
+    {
+      "auditId": "AUD-267",
+      "recordedAt": "2026-11-23T20:43:13.499Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-420",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-420",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-420.json"
+      ]
+    },
+    {
+      "auditId": "AUD-266",
+      "recordedAt": "2026-11-23T20:43:05.632Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-420",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-265",
+      "recordedAt": "2026-11-23T20:42:41.997Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-419",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-264",
+      "recordedAt": "2026-11-23T20:41:25.139Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-419",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-419-presence-delta-env-override"
+      ]
+    },
+    {
+      "auditId": "AUD-263",
+      "recordedAt": "2026-11-23T20:41:20.702Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-419",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-419",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-419.json"
+      ]
+    },
+    {
+      "auditId": "AUD-262",
+      "recordedAt": "2026-11-23T20:41:10.817Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-419",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-261",
       "recordedAt": "2026-11-23T20:31:21.502Z",
       "actorRef": "orchestrator",
@@ -1908,127 +2019,20 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-416.json"
       ]
-    },
-    {
-      "auditId": "AUD-253",
-      "recordedAt": "2026-11-23T20:04:41.062Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-415",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-415-presence-precision-eval"
-      ]
-    },
-    {
-      "auditId": "AUD-252",
-      "recordedAt": "2026-11-23T20:04:30.353Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-415",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-415",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-415.json"
-      ]
-    },
-    {
-      "auditId": "AUD-251",
-      "recordedAt": "2026-11-23T19:52:48.484Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-414",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-414-atomic-write-retry"
-      ]
-    },
-    {
-      "auditId": "AUD-250",
-      "recordedAt": "2026-11-23T19:52:40.103Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-414",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-414",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-414.json"
-      ]
-    },
-    {
-      "auditId": "AUD-249",
-      "recordedAt": "2026-11-23T19:52:17.668Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-413",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-248",
-      "recordedAt": "2026-11-23T19:39:49.687Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-412",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-412-presence-false-positive-impact"
-      ]
-    },
-    {
-      "auditId": "AUD-247",
-      "recordedAt": "2026-11-23T19:39:45.238Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-412",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-412",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-412.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 261,
+    "total": 268,
     "byResult": {
-      "allowed": 261,
+      "allowed": 268,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 260,
+      "TOOL-QUEUE-SCHEDULER": 267,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 261
+      "orchestrator": 268
     }
   },
   "protocolView": {
@@ -8920,6 +8924,42 @@
             "ref": "docs/worklog/completed/phase2.5/af418-presence-replay-calibration-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-419",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-419/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af419-presence-delta-env-override-2026-11-24.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-420",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-420/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af420-presence-delta-env-override-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8944,5 +8984,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 391
+  "archivedCount": 393
 }
