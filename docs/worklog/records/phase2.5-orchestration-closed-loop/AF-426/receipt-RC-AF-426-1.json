@@ -1,0 +1,135 @@
+{
+  "deliveredAt": "2026-11-24T06:22:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-426-1",
+    "taskId": "AF-426",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "0441514b86326629a27457b26e4c466a9784cc8c",
+    "dependsOn": [],
+    "priorTasks": ["AF-425", "AF-418", "AF-420", "AF-421", "AF-422"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-426/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af426-presence-calibration-ledger-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "docs/architecture/presence-delta-calibration-ledger-v1.0.md",
+        "docs/worklog/completed/phase2.5/af425-presence-calibration-ledger-2026-11-24.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/architecture/presence-delta-calibration-ledger-v1.0.md",
+        "docs/worklog/completed/phase2.5/af425-presence-calibration-ledger-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af426-presence-calibration-ledger-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-425/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-425/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-426/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-426/manifest.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "即时",
+        "note": "交付记录落盘后 PASS；活跃=1 归档=398 记录包=410 继承孤儿=10/10，未设 ORCH_STATE_FREE"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff（本单纯文档，未改任何 src）"
+      }
+    ],
+    "reproNotes": "写台账与交付记录 → strict verify（落盘前单条报错、落盘后 PASS）→ lint → typecheck → engine-core diff。纯文档任务，不跑全量测试（任务单 gates 未列）。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-426 贯穿任务单、回执、交付记录、分支名" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 提级 / 领单 / 分支 / 取消 AF-425 / 归档均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全，changedFiles 全部落在 docs/ scope 内" },
+      { "item": "event-chain", "result": "pass", "note": "事件链只由 CLI 写入" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff；本单也未改 engine-adapters" },
+      { "item": "privacy", "result": "pass", "note": "只汇总数值与口径，无任何对话原文" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单五条成功判据全部落地：单页台账、结构事实、冷缺席缺口、后续三件事、闸门全绿"
+    },
+    "backlogItems": [
+      {
+        "id": "AF426-B1",
+        "impact": "deliberation-types.ts 第 101 行「两类 delta 种子是 ZERO」过期注释需 executor 修（orchestrator 资源域不含 src/）。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF426-B2",
+        "impact": "台账 v1.0 只覆盖在场类事件；11 个行为算子幅度标定尚未成台账。",
+        "layer": "docs",
+        "status": "candidate"
+      },
+      {
+        "id": "AF426-B3",
+        "impact": "cold_absent 语料仅 1 轮，负向幅度缺批次证据；需专门构造冷漠剧本 ≥20 场。",
+        "layer": "domain",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务编号 AF-425 → AF-426",
+        "taskSays": "在 AF-425 下一并完成台账与 deliberation-types.ts 过期注释修正",
+        "reality": "scope 含 src/engine-adapters，被 orchestrator Agent Card 资源域拦截（scope-domain-conflict），任务无法派发",
+        "action": "取消 AF-425，重登 AF-426 只做文档；注释修正转 backlog 交 executor",
+        "why": "资源域是硬边界，不能为省一次登记而放宽"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "四单结论合并成一页可复算台账，把「cap 不是瓶颈、瓶颈在幅度与体感」「规则轨产不出在场事件、只有模型轨能产出」两条最容易踩的判断写成结论，并明确标注 cold 样本仅 1 轮这一证据缺口，不给临床结论留假确定性。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地文档，无上游模型计费。"
+  }
+}
