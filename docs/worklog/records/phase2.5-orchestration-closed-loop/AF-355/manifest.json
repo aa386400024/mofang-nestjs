@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-355",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T11:09:20+08:00",
+  "updatedAt": "2026-11-23T03:09:35.538Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-355/task-sheet.md",
+    "sha256": "8a020adb34869e706faa608d2ee5f019a9ec21299b616b8b6be625f8f65e6f5a",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af355-canceled-task-pointers-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af355-canceled-task-pointers-2026-11-23.md"
+  ],
+  "tombstone": null
+}
