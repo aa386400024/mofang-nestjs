@@ -1,0 +1,134 @@
+{
+  "deliveredAt": "2026-11-24T04:50:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-420-1",
+    "taskId": "AF-420",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "c62c2059ffbb3ec0232140d5849898d0219c1cfe",
+    "dependsOn": [],
+    "priorTasks": ["AF-322", "AF-408", "AF-418"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-420/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af420-presence-delta-env-override-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "src/engine-adapters/wiring/delta-table.config.ts",
+        "test/engine-adapters/wp60-delta-table-config.spec.ts",
+        "test/config/wp25-env-example-coverage.spec.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/completed/phase2.5/af420-presence-delta-env-override-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af419-presence-delta-env-override-2026-11-24.md"
+      ],
+      "modified": [
+        "src/engine-adapters/wiring/delta-table.config.ts",
+        "src/engine-adapters/cognition/model-event-mapping.ts",
+        "src/engine-adapters/cognition/model-event-classifier.ts",
+        "test/engine-adapters/wp60-delta-table-config.spec.ts",
+        "test/config/wp25-env-example-coverage.spec.ts",
+        ".env.example"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/wp60-delta-table-config.spec.ts test/config/wp25-env-example-coverage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "4.80s",
+        "note": "27 用例全绿：13 键全生效、两键解析、非法值丢弃告警、空串不建条目、聚合层逐维度优先级"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 318,
+        "machine": "同上",
+        "wallClock": "26.04s",
+        "note": "318 passed / 1 skipped（文件），4816 passed / 4 skipped（用例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff"
+      }
+    ],
+    "reproNotes": "定向单测 → pnpm lint → pnpm typecheck → pnpm test → engine-core diff。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-420 贯穿任务单、回执、交付记录" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 派发 / 分支 / 归档均经 CLI；AF-419 取消经 task cancel" },
+      { "item": "index-schema", "result": "pass", "note": "任务单七组字段齐全，scope 覆盖全部改动文件" },
+      { "item": "event-chain", "result": "pass", "note": "事件链由 CLI 写入，归档后 events verify 复核" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff；只从公开 barrel 导入 aggregateTurnDelta 做断言" },
+      { "item": "privacy", "result": "pass", "note": "无任何会话原文与个人数据；仅 env 键名与系数" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单口径（13 键 + 注释修正 + 优先级断言）与实现一致；AF-419 取消说明与 AF-420 重登一一对应"
+    },
+    "backlogItems": [
+      {
+        "id": "AF420-B1",
+        "impact": "在场幅度仍是工程种子值，A′ 人工标注未完成前无法给出临床标定结论。",
+        "layer": "domain",
+        "status": "candidate"
+      },
+      {
+        "id": "AF420-B2",
+        "impact": "若标定把单轮在场幅度放大到 0.05 以上，需复跑 AF-418 逐轮重放检查是否出现中间触顶分叉。",
+        "layer": "adapter",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "把两个最需要按标定试参的在场事件接进既有 env 端口，规则不新增真相源；用聚合层用例证明覆写逐维度生效而非整行替换；顺带消掉会误导后来者的 ZERO 注释漂移。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地配置与测试，无上游模型计费。"
+  }
+}

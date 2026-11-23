@@ -78,8 +78,9 @@ export interface ModelClassification {
  * 一个标签的映射结果.
  *
  * V2026-11-12 (D-2): **每个标签都有 coreKind** —— 旁路标签层已取消.
- *   两类新 kind 的 DELTA_TABLE 种子是 ZERO (零回归), 映射到 core kind **不等于**
- *   给了它们临床幅度: 幅度由标定批次经 DeltaTableConfig 覆写落地.
+ *   两类新 kind 的幅度自 AF-322 起已有内核工程种子值 (holding_present: safety +0.004 / bond +0.002 …),
+ *   不是 ZERO; 需要按标定批次调整时走 `ENGINE_DELTA_HOLDING_PRESENT` / `ENGINE_DELTA_COLD_ABSENT`
+ *   覆写 (AF-419 补齐), 不必改内核表.
  */
 export interface ModelLabelMapping {
   /** 映射回 core 的事件种类. */

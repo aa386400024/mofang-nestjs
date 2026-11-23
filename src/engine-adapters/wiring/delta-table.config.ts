@@ -11,8 +11,8 @@
 //   键名口径: 每个事件一个 JSON 键 —— `ENGINE_DELTA_<事件大写>`
 //     例: `ENGINE_DELTA_EMPATHY={"trust":0.15,"safety":0.02}`
 //   为什么不是"每个维度一个键":
-//     11 事件 × 11 维度 = 121 个 env 键 —— 那是没法维护的清单.
-//     每事件一个 JSON 键: 11 个键, 且**只写要改的维度**, 其余回基础值.
+//     13 事件 × 11 维度 = 143 个 env 键 —— 那是没法维护的清单.
+//     每事件一个 JSON 键: 13 个键, 且**只写要改的维度**, 其余回基础值.
 //
 //   非法值一律**不覆写** (等价回退内核基础值, 不抛错):
 //     填错一个 env 不该让整场对练的 BDI 迁移失真 —— 不覆写就是照常走 DELTA_TABLE
@@ -136,6 +136,16 @@ export function resolveDeltaTableConfig(config: ConfigService, onWarn?: DeltaTab
 
   const neutral = parseEventOverride('ENGINE_DELTA_NEUTRAL', config.get<string>('ENGINE_DELTA_NEUTRAL'), onWarn);
   if (neutral) deltas.neutral = neutral;
+
+  // AF-419: 两类**在场状态**事件 (AF-322 起内核已有非零工程种子幅度).
+  //   之前刻意不开 env 通道, 结果是想按标定批次调「稳定陪伴 / 机械敷衍」的幅度只能改代码发版;
+  //   补上后与其余 11 键同一套解析口径 (非法即丢弃 + 告警).
+  const holdingPresentRaw = config.get<string>('ENGINE_DELTA_HOLDING_PRESENT');
+  const holdingPresent = parseEventOverride('ENGINE_DELTA_HOLDING_PRESENT', holdingPresentRaw, onWarn);
+  if (holdingPresent) deltas.holding_present = holdingPresent;
+
+  const coldAbsent = parseEventOverride('ENGINE_DELTA_COLD_ABSENT', config.get<string>('ENGINE_DELTA_COLD_ABSENT'), onWarn);
+  if (coldAbsent) deltas.cold_absent = coldAbsent;
 
   return { deltas };
 }

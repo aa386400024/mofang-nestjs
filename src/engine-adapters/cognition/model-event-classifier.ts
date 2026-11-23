@@ -438,8 +438,10 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
       //     (模型标签仍进观测, 但判定不可用) —— 它带着 labels 回来.
       //     只看 labels 的话, 低置信轮会把模型事件**漏进 core**, 违反
       //     「回落一律规则轨等价事件」红线 (D-7 接线时发现并补上).
-      //   ⚠️ 两类新 kind (holding_present / cold_absent) 在 DELTA_TABLE 里种子仍是 ZERO ——
-      //     本单接的是**通路**, 幅度改善待标定批次赋表行增量.
+      //   ✅ 两类新 kind (holding_present / cold_absent) 的幅度自 AF-322 起已有内核工程种子值
+      //     (safety +0.004 / bond +0.002 …), 不再是 ZERO; 标定批次要调幅度走
+      //     ENGINE_DELTA_HOLDING_PRESENT / ENGINE_DELTA_COLD_ABSENT 覆写 (AF-419 补齐通道),
+      //     本单只做通路映射, 不在分类器里硬编码幅度.
       return outcome.labels.coreKinds.map((kind) => ({ kind, matchedTerms: [], strength: 1 }));
     }
     // shadow: core events 与 BDI **逐字**保持规则轨 (首版是中间态: 只观测, 不改 delta).
