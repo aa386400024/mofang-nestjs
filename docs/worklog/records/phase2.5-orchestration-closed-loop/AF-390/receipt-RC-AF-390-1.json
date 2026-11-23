@@ -1,0 +1,108 @@
+{
+  "deliveredAt": "2026-11-23T15:05:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-390-1",
+    "taskId": "AF-390",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "e57eb33190d66b7026c2ff71bc7e12eb7c351e38",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af389-phase25-baseline-rebaseline-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-390.json",
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af389-phase25-baseline-rebaseline-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/manifest.json"
+      ],
+      "modified": [
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "PASS：事件日志 1678 条；schema state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "git diff --name-only HEAD",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "仅两份 Phase2.5 文档 + CLI 状态面；无 src/test/bin/admin-dashboard/.env"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "2026-11-23 23:00 CST 对 ap_practice_sessions / ap_practice_turns / ap_practice_batches 做只读查询；未重跑批次、未调用 LLM。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "出口⑤按 completed 口径重写", "result": "pass", "note": "632 场；估算 843 场新增并显式标注 75% 完成率" },
+      { "item": "历史 §3.2.1–§3.2.21 不改写", "result": "pass", "note": "仅在出口表 ④ 追加 AF-177 最新正式口径，新增 §3.2.22" },
+      { "item": "第二家 provider 旧口径作废", "result": "pass", "note": "改为 doubao + minimax 已接入，引用 AF-285/AF-288" },
+      { "item": "状态面只经 CLI 写入", "result": "pass", "note": "task register / promote / run-once 生成" },
+      { "item": "交付记录六组机读字段", "result": "pass", "note": "gateResults、scopeCheck、contractChecks、backlogItems、deviationTable、reviewVerdict 均出现" },
+      { "item": "engine-core 零改动", "result": "pass", "note": "git diff 为空" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [
+      { "id": "BL-AF389-01", "impact": "出口⑤按 completed 口径还差 632 场，需新增约 843 场 / 17 个 48 场批次", "summary": "出口⑤ completed 口径差 632 场，约需新增 843 场 / 17 个 48 场批次" },
+      { "id": "BL-AF389-02", "impact": "最新批次 zero_motion 8/48、neutral 84.64%、avoidant_l1 resistance 83.15% / exploration 0，放量前必须治理", "summary": "最新批次 zero_motion 8/48、neutral 84.64%、avoidant_l1 resistance 83.15% / exploration 0" },
+      { "id": "BL-AF389-03", "impact": "出口④仍为 AF-177 4/6，真实督导师双盲未发生，不能判临床达标", "summary": "出口④仍为 AF-177 4/6；真实督导师双盲未发生" },
+      { "id": "BL-AF389-04", "impact": "AF-382 回执未冻结历史残留仍在运行健康，需另行收口", "summary": "AF-382 回执未冻结历史残留仍在运行健康" },
+      { "id": "BL-AF389-05", "impact": "豆包生产链路只有 smoke/soak，24 场生产批次 + 1 场 50 分钟长会未跑", "summary": "豆包 24 场生产批次 + 1 场 50 分钟长会未跑" }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只改出口表 ⑤ 与 WP 清单顶部",
+        "reality": "顶部状态、④ 最新正式口径、第二家 provider 旧口径也属同一入口漂移",
+        "action": "同步修订顶部、④ 与 WP-H provider 状态，历史小节不动",
+        "why": "只改 ⑤ 会让读者继续按旧 ④ 和“待采购 key”判断"
+      },
+      {
+        "taskSays": "新增基线节放在 §3.2 末尾",
+        "reality": "§3.2.21 之后已有 2026-11-17 重定清单",
+        "action": "放在 §3.2.21 后、重定清单前，并保留原重定语",
+        "why": "保持 §3.2 时间顺序，不打断后续历史条目"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "文档口径已按 2026-11-23 只读实查重写；出口⑤分母明确为 completed；历史结论未改写；无源码、数据、运行态副作用；事件链与文件域通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
