@@ -1,0 +1,120 @@
+{
+  "deliveredAt": "2026-11-24T08:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-443-1",
+    "taskId": "AF-443",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "f89aa09165acda2d403ddad1e9f8c4474e3e1add",
+    "dependsOn": [],
+    "priorTasks": ["AF-436", "AF-437", "AF-438", "AF-442"],
+    "policyRefs": ["docs/team/conventions.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-443/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af443-record-package-backfill-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/worklog/records/phase2.5-orchestration-closed-loop/AF-436/task-sheet.md"]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-436/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-436/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-437/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-437/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-438/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-438/manifest.json",
+        "docs/worklog/completed/phase2.5/af436-kernel-ref-fingerprint-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af443-record-package-backfill-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-443/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-443/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-443/receipt-RC-AF-443-1.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "即时",
+        "note": "PASS 活跃=2 归档=411 记录包=424 legacy指针=133/133 继承孤儿=10/10"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "运行态任务单 / 状态事件哈希链 / 索引投影全 PASS"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "0 行：纯层零 diff"
+      }
+    ],
+    "reproNotes": "本单无代码改动，闸门只跑记录类命令；可复跑 verify --strict 与 validate。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-443 贯穿任务单 / 回执 / 交付记录" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff，未碰 src" },
+      { "item": "record-packages", "result": "pass", "note": "AF-436/437/438 声明路径全部落地" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全" },
+      { "item": "state-via-cli", "result": "pass", "note": "register/promote/run-once 均走 CLI" },
+      { "item": "deps", "result": "pass", "note": "未引入依赖，未改代码" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "三个占位包入库后 verify/validate 双 PASS，目标达成"
+    },
+    "backlogItems": [
+      {
+        "id": "AF443-B1",
+        "impact": "GUI relay 发送器子进程 PSModulePath 被污染，Get-FileHash 不可用，外部执行器派发链路实际不可用。",
+        "layer": "framework",
+        "status": "candidate"
+      },
+      {
+        "id": "AF443-B2",
+        "impact": "worklog verify 对 canceled/rejected 任务同样强制要求交付记录文件存在，取消任务会演变成全局提交阻断。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "闸门范围",
+        "taskSays": "verify --strict + validate",
+        "reality": "一致执行",
+        "action": "未额外跑 lint/typecheck/test（无代码改动）",
+        "why": "本单仅入库记录文件，跑代码闸门不产生信息"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "只补记录包与占位，未触碰实现代码；占位如实写明失败与去向；verify/validate 恢复 PASS，解除全局提交阻断。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地文件与 CLI 校验。"
+  }
+}
