@@ -128,6 +128,37 @@ function assertMetricsMap(value: Record<string, unknown>, label: string): void {
 }
 
 /**
+ * 校验八维首末差值投影 (可选; 在场则逐维验型).
+ *
+ * @param value 待校验值
+ * @param label 出错时的标识
+ */
+function assertZeroMotionDimensionFirstLast(value: unknown, label: string): void {
+  if (!isObject(value)) throw new Error(`[${label}] 零变化场次明细.dimensionFirstLast 非法`);
+  for (const [dim, delta] of Object.entries(value)) {
+    if (!isObject(delta)) throw new Error(`[${label}] 零变化场次明细.dimensionFirstLast.${dim} 非法`);
+    for (const field of ['first', 'last', 'delta'] as const) {
+      if (!isFiniteNumber(delta[field])) {
+        throw new Error(`[${label}] 零变化场次明细.dimensionFirstLast.${dim}.${field} 非法`);
+      }
+    }
+  }
+}
+
+/**
+ * 校验非 neutral 标签轮号 (可选; 在场则逐元素验型).
+ *
+ * @param value 待校验值
+ * @param label 出错时的标识
+ */
+function assertZeroMotionEventTagPositions(value: unknown, label: string): void {
+  if (!Array.isArray(value)) throw new Error(`[${label}] 零变化场次明细.eventTagPositions 非法`);
+  for (const position of value) {
+    if (!isFiniteNumber(position)) throw new Error(`[${label}] 零变化场次明细.eventTagPositions 元素非法`);
+  }
+}
+
+/**
  * 校验单场零变化明细 (可选; 在场则字段逐个验型).
  *
  * @param value 待校验值
@@ -143,6 +174,14 @@ function assertZeroMotionSessionDetail(value: unknown, label: string): void {
   for (const [tag, count] of Object.entries(value['eventTagCounts'])) {
     if (!isFiniteNumber(count)) throw new Error(`[${label}] 零变化场次明细.eventTagCounts.${tag} 非法`);
   }
+  if (value['isFlat'] !== undefined && typeof value['isFlat'] !== 'boolean') {
+    throw new Error(`[${label}] 零变化场次明细.isFlat 非法`);
+  }
+  if (value['maxExcursion'] !== undefined && !isFiniteNumber(value['maxExcursion'])) {
+    throw new Error(`[${label}] 零变化场次明细.maxExcursion 非法`);
+  }
+  if (value['dimensionFirstLast'] !== undefined) assertZeroMotionDimensionFirstLast(value['dimensionFirstLast'], label);
+  if (value['eventTagPositions'] !== undefined) assertZeroMotionEventTagPositions(value['eventTagPositions'], label);
 }
 
 /**
@@ -155,6 +194,11 @@ function assertZeroMotionBreakdown(value: unknown, label: string): void {
   if (!isObject(value)) throw new Error(`[${label}] zeroMotionBreakdown 非法`);
   for (const field of ['total', 'closure', 'idle'] as const) {
     if (!isFiniteNumber(value[field])) throw new Error(`[${label}] zeroMotionBreakdown.${field} 非法`);
+  }
+  for (const field of ['flat', 'netZero', 'untagged'] as const) {
+    if (value[field] !== undefined && !isFiniteNumber(value[field])) {
+      throw new Error(`[${label}] zeroMotionBreakdown.${field} 非法`);
+    }
   }
   for (const field of ['closureSessions', 'idleSessions'] as const) {
     const details = value[field];

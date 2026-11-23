@@ -110,17 +110,20 @@ describe('WP-K · 批次计算正确性', () => {
       traces: [trace(1), trace(2, { bdiSnapshot: snapshot({ trust: 0.6 }) })],
     });
     const result = computeBatchSnapshot([idleNeutral, idleUntagged, closure, moving], [], 1, context());
-    expect(result.zeroMotionBreakdown).toMatchObject({ total: 3, closure: 1, idle: 2 });
-    expect(result.zeroMotionBreakdown?.closureSessions).toEqual([
+    expect(result.zeroMotionBreakdown).toMatchObject({ total: 3, closure: 1, idle: 2, flat: 3, netZero: 0, untagged: 1 });
+    expect(result.zeroMotionBreakdown?.closureSessions).toMatchObject([
       {
         debugSessionId: 'debug-closure',
         characterSlug: 'vpt_test',
         counselorModeId: 'expert',
         turns: 2,
         eventTagCounts: { empathy: 1, neutral: 1 },
+        isFlat: true,
+        maxExcursion: 0,
+        eventTagPositions: [1],
       },
     ]);
-    expect(result.zeroMotionBreakdown?.idleSessions).toEqual([
+    expect(result.zeroMotionBreakdown?.idleSessions).toMatchObject([
       {
         debugSessionId: 'debug-idle-neutral',
         characterSlug: 'vpt_test',
@@ -136,6 +139,33 @@ describe('WP-K · 批次计算正确性', () => {
         eventTagCounts: {},
       },
     ]);
+    expect(() => assertBatchMetricsV1(result)).not.toThrow();
+  });
+
+  it('zero_motion 归因: 净零场次与真冻结分开计数', () => {
+    const netZero = session({
+      debugSessionId: 'debug-net-zero',
+      traces: [
+        trace(1, { eventTags: ['neutral'] }),
+        trace(2, { eventTags: ['neutral'], bdiSnapshot: snapshot({ trust: 0.7 }) }),
+        trace(3, { eventTags: ['neutral'], bdiSnapshot: snapshot({ trust: 0.5 }) }),
+      ],
+    });
+    const result = computeBatchSnapshot([netZero], [], 1, context());
+    expect(result.metrics['session.zero_motion']).toBe(1);
+    expect(result.zeroMotionBreakdown).toMatchObject({ total: 1, closure: 0, idle: 1, flat: 0, netZero: 1, untagged: 0 });
+    expect(result.zeroMotionBreakdown?.idleSessions?.[0]).toMatchObject({
+      debugSessionId: 'debug-net-zero',
+      turns: 3,
+      isFlat: false,
+      maxExcursion: 0.2,
+      eventTagPositions: [],
+    });
+    expect(result.zeroMotionBreakdown?.idleSessions?.[0]?.dimensionFirstLast?.['trust']).toEqual({
+      first: 0.5,
+      last: 0.5,
+      delta: 0,
+    });
     expect(() => assertBatchMetricsV1(result)).not.toThrow();
   });
 
