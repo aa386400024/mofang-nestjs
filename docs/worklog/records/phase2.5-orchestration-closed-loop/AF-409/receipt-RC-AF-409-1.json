@@ -1,0 +1,156 @@
+{
+  "deliveredAt": "2026-11-24T04:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-409-1",
+    "taskId": "AF-409",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "investigation",
+    "agentRole": "orchestrator",
+    "baselineRef": "c7673951c3d2e40a8f91d63f818df83bbfa2171d",
+    "dependsOn": [],
+    "priorTasks": ["AF-408"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-409/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af409-presence-narrowing-2026-11-24.md",
+      "reply": null,
+      "others": ["scripts/ops/quality/af409-presence-narrowing.mjs", "scripts/orchestration/__tests__/af409-presence-narrowing.spec.mjs"]
+    },
+    "changedFiles": {
+      "commits": ["c7c06b55"],
+      "added": [
+        "scripts/ops/quality/af409-presence-narrowing.mjs",
+        "scripts/orchestration/__tests__/af409-presence-narrowing.spec.mjs",
+        "docs/worklog/completed/phase2.5/af409-presence-narrowing-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-409/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/af409-presence-narrowing.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "9ms",
+        "note": "7 用例全绿"
+      },
+      {
+        "command": "node scripts/ops/quality/af409-presence-narrowing.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "157 轮 neutral；A′ 命中 117 holding / 1 cold；cold14 命中 11 holding"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 315,
+        "machine": "同上",
+        "wallClock": "25.28s",
+        "note": "314 passed / 1 skipped，4776 passed / 4 skipped"
+      }
+    ],
+    "reproNotes": "定向单测 → 校准脚本 → pnpm lint → pnpm typecheck → pnpm test。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-409 贯穿任务单、回执、交付记录与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "事件链由 CLI 写入，归档后以 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "脚本只输出计数与合成样例，不打印逐字稿原文"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "与 AF-408 的 157 轮 neutral 池、cold14 投影口径一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF409-B1",
+        "impact": "A′ 命中 117/157 neutral，覆盖率 74.5%，仍属整体改名；ST 仅 5/157，过窄。词法代理没有可用甜点，需要模型轨或监督分类器。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF409-B2",
+        "impact": "cold 场 A′ 命中 11/14，trust 0.2500 不变，但 11 轮统一 holding 不等于逐轮识别；需人工标注才能算 precision/recall。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "验证 A′/B′/C′ 是否达到 50% 降幅、是否仍过宽",
+        "reality": "A′ 达到 75.2% 降幅，但 117/157 仍属整体改名；结构-only 仅 5/157",
+        "action": "报告给出正反两组极端数字，结论为“不可直接上线”，并保留纯函数作为未来标注/训练特征",
+        "why": "只报降幅会误导成“修好了”；必须同时报覆盖率和结构-only 上界"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "收窄版完成离线量化，明确回答降幅与过宽问题；没有改生产行为、没有碰内核、没有启用开关。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地只读重放，无上游模型计费。"
+  }
+}
