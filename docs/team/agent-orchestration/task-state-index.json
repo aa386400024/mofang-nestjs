@@ -4,10 +4,90 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1841,
+    "lastEventSeq": 1864,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-433",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-23T22:11:47.128Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-23T22:11:55.137Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "PR",
+      "type": "fix",
+      "baselineRef": "67e54372e171920fad603e667b181cfce59cb9b7",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-427",
+        "AF-428",
+        "AF-429",
+        "AF-431",
+        "AF-432"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.2.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-23T22:11:46.681Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/__tests__/af427-operator-delta-ledger.spec.mjs",
+          "docs/architecture/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-433/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af433-pr212-closeout-2026-11-24.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+          "check": "记录包校验 PASS",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/af427-operator-delta-ledger.spec.mjs",
+          "check": "9 passed",
+          "threshold": "exit=0"
+        }
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af433-pr212-closeout-2026-11-24.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-23T22:11:47.127Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -3582,6 +3662,42 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-427/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af427-operator-delta-ledger-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-428",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-428/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af428-corpus-version-drift-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-429",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-429/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af429-af427-ci-corpus-guard-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-431",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-431/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af431-pr212-ambiguous-taskid-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-432",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-432/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af432-receipt-durable-commit-2026-11-24.md",
         "reply": null
       }
     }
