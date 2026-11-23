@@ -1,0 +1,125 @@
+{
+  "deliveredAt": "2026-11-23T14:18:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-387-1",
+    "taskId": "AF-387",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "57bcf1cc8012353cc5a362355ea134bcbba61451",
+    "dependsOn": [],
+    "priorTasks": ["AF-386"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af387-workspace-artifact-cleanup-acceptance-fix-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-387.json",
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["deb4fedf"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af387-workspace-artifact-cleanup-acceptance-fix-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "无空白错误或冲突标记"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "PASS；AF-387 实现提交 files=3 covered=0"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "eslint 0 error；pre-push verify:local 实跑"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "tsc 0 error；pre-push verify:local 实跑"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "28.40s",
+        "note": "312 文件：311 passed / 1 skipped；4755 例：4751 passed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "AF-386 的 .gitignore 与 relay 文档提交保留在 stacked 历史；AF-387 只新增交付记录、任务单与 manifest，scope 目录级覆盖 records/phase2.5-orchestration-closed-loop。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "任务单 scope 覆盖 AF-386/AF-387 记录包", "result": "pass", "note": "scope.files 含 docs/worklog/records/phase2.5-orchestration-closed-loop/" },
+      { "item": "状态面只经 CLI 写入", "result": "pass", "note": "task register / run-once 生成索引、journal、snapshot、web data" },
+      { "item": "状态面与实现分提交", "result": "pass", "note": "97a7bc29 只含状态面；deb4fedf 只含交付记录与记录包" },
+      { "item": "交付记录六组机读字段", "result": "pass", "note": "gateResults、scopeCheck、contractChecks、backlogItems、deviationTable、reviewVerdict 均已出现" },
+      { "item": "AF-386 历史不改写", "result": "pass", "note": "AF-386 rejected 保持原状；AF-387 从 57bcf1cc stacked，不 force push、不 cherry-pick" },
+      { "item": "engine-core 零改动", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-386 任务单应预先声明登记落点",
+        "reality": "task register 自动写 records/.../AF-386/manifest.json，AF-386 任务单 scope 未预列",
+        "action": "AF-387 用目录级 scope 覆盖 records/phase2.5-orchestration-closed-loop/，不改写 AF-386 任务单与提交",
+        "why": "已登记任务单不可变；重写历史或 force push 会破坏证据链"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-386 的实际文件收口已由既有提交完成；AF-387 只补 scope 覆盖与六组机读字段，声明提交 deb4fedf 的 3 个文件全部在 scope 内，lint/typecheck/test/preflight 均通过，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}

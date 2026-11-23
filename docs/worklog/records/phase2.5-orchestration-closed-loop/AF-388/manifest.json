@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-388",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T22:24:00+08:00",
+  "updatedAt": "2026-11-23T14:19:36.000Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/task-sheet.md",
+    "sha256": "a432923e9ab052b46e5d85274821cace745b6bbc4f0f48087cc11cd569038281",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/receipt-RC-AF-388-1.json",
+      "sha256": "96d88801ecd1bbdf92eaaf603acd7aa36a7c25a2aabcebaf63a098ae7c1ca5af",
+      "receiptId": "RC-AF-388-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af388-workspace-artifact-cleanup-landing-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af388-workspace-artifact-cleanup-landing-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

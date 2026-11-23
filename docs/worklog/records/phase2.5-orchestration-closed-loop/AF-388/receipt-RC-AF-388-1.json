@@ -1,0 +1,136 @@
+{
+  "deliveredAt": "2026-11-23T14:24:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-388-1",
+    "taskId": "AF-388",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "78f0501653ebbd62006c8bf9c3cc699c42938e71",
+    "dependsOn": [],
+    "priorTasks": ["AF-387", "AF-386"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af388-workspace-artifact-cleanup-landing-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-388.json",
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["ecca1fbd"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af386-workspace-artifact-cleanup-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af387-workspace-artifact-cleanup-acceptance-fix-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af388-workspace-artifact-cleanup-landing-2026-11-23.md",
+        "docs/worklog/pending/archive/relay-response-AF357-review-20261123-1200.md",
+        "docs/worklog/pending/archive/relay-response-AF358-review-20261123-1300.md",
+        "docs/worklog/pending/archive/relay-response-AF359-review-20261123-1315.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/receipt-RC-AF-386-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-386/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/receipt-RC-AF-387-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-387/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/task-sheet.md"
+      ],
+      "modified": [".gitignore"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "无空白错误或冲突标记"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "PASS；实现提交 files=15 covered=3"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "eslint 0 error；pre-push verify:local 实跑"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "tsc 0 error；pre-push verify:local 实跑"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "28.40s",
+        "note": "312 文件：311 passed / 1 skipped；4755 例：4751 passed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "AF-388 从 integrate 5ae1cfd4 起分支，在 78f05016 状态面上用 ecca1fbd 重放 AF-386/AF-387 的文件内容；AF-386 rejected 状态保留在索引，原分支与 PR 不重写。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "实现提交文件域全部落在 scope", "result": "pass", "note": "15 个文件均在 .gitignore、docs/worklog/pending/archive、docs/worklog/records/phase2.5-orchestration-closed-loop、docs/worklog/completed/phase2.5" },
+      { "item": "状态面只经 CLI 写入", "result": "pass", "note": "索引、journal、snapshot、web data 由 task register / run-once 生成" },
+      { "item": "状态面与实现分提交", "result": "pass", "note": "78f05016 只含状态面；ecca1fbd 只含 .gitignore、文档证据与记录包" },
+      { "item": "AF-386 历史不改写", "result": "pass", "note": "AF-386 归档状态仍为 rejected；AF-388 不 cherry-pick、不 force push 原分支" },
+      { "item": "交付记录六组机读字段", "result": "pass", "note": "gateResults、scopeCheck、contractChecks、backlogItems、deviationTable、reviewVerdict 均已出现" },
+      { "item": "engine-core 零改动", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "沿 AF-386/AF-387 分支继续收口",
+        "reality": "AF-386 机读 rejected，AF-387 stacked 分支的逐提交门会看到 AF-386 rejected 提交",
+        "action": "从 integrate 基线线性重放文件内容，以 AF-388 单个实现提交落地；保留 AF-386/387 记录包与交付记录",
+        "why": "逐提交编排门要求每个提交关联的任务在最终状态为 completed；不能靠 force push 或改写 rejected 提交绕过"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-388 实现提交 15 个文件全部在 scope 内，lint/typecheck/test/preflight 与 engine-core 空 diff 均通过；AF-386 的 rejected 历史保留，工作区文件收口结果不变。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
