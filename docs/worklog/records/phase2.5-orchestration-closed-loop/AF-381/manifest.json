@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-381",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-23T20:20:00+08:00",
+  "updatedAt": "2026-11-23T12:27:04.730Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-381/task-sheet.md",
+    "sha256": "3792495905f295ec617e8984e5443f5663e72924fa6db2e934a491a072a7af9c",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af381-public-hardening-and-selfhosted-prep-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af381-public-hardening-and-selfhosted-prep.md"
+  ],
+  "tombstone": null
+}

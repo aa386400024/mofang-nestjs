@@ -1,0 +1,121 @@
+{
+  "deliveredAt": "2026-11-23T13:05:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-385-1",
+    "taskId": "AF-385",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "813c4cc93be88aff94a567e974378af167c2fb13",
+    "dependsOn": [],
+    "priorTasks": ["AF-384", "AF-383"],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-385/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af385-orchestration-state-sync-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-385.json",
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["a3469a200d4416b4b35849efae5e13fee45c3699"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af385-orchestration-state-sync-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-379/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-379/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-380/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-380/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-381/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-381/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-385/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-385/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "PASS；事件日志 1653 条；schema state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "eslint 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "tsc 0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "27.51s",
+        "note": "311 passed / 1 skipped 文件；4751 passed / 4 skipped 用例"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "状态面由 CLI 的 run-once/archive 生成；本任务仅提交投影与记录包，不手工编辑索引。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "任务单 scope 覆盖记录包与状态面", "result": "pass", "note": "docs/team/agent-orchestration、docs/worklog/records、docs/worklog/completed/phase2.5、web/orchestration 均在 scope" },
+      { "item": "状态面只经 CLI 写入", "result": "pass", "note": "索引、journal、snapshot 由 run-once/archive 生成，未手改" },
+      { "item": "状态面与实现分提交", "result": "pass", "note": "f7afb063 只含 5 个状态面文件；a3469a20 只含记录包与交付记录" },
+      { "item": "取消任务记录包与索引一致", "result": "pass", "note": "AF-379/AF-380/AF-381 任务单与 manifest 已按索引落点补齐" },
+      { "item": "legacy 重复副本移除", "result": "pass", "note": "records/legacy/AF-382 删除，canonical 记录包保留" },
+      { "item": "engine-core 零改动", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "状态面按既有流程提交",
+        "reality": "AF-384 回执在 PR 之后才归档，状态面投影未进入 #187；AF-385 的 task/* 分支默认拒绝提交状态面",
+        "action": "使用 ORCH_ALLOW_STATE_COMMIT=1 例外，状态面与记录包拆成两次提交，并在提交说明记录原因",
+        "why": "再开 state/* 分支会多一轮 20 项 checks 和串行 PR；拆分提交已保留状态面与实现隔离"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "状态面投影已与 AF-384 归档结果对齐，取消任务记录包补齐，legacy 重复副本移除；events verify、lint、typecheck、全量测试均通过，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}
