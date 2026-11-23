@@ -33,21 +33,22 @@ AF-374 合并后，integrate 远端 CI 暴露两处口径缺口：
 
 ## 4. 闸门结果
 
-| 闸门        | 命令                                                                          | 结果                                   |
-| ----------- | ----------------------------------------------------------------------------- | -------------------------------------- |
-| 编排单测    | `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 268 passed / 0 failed                  |
-| 全量测试    | `pnpm test`                                                                   | 待收尾记录                             |
-| 事件链      | `node scripts/orchestration/cli.mjs events verify`                            | PASS（1612 条）                        |
-| 记录包      | `node scripts/orchestration/cli.mjs worklog verify --strict --state-free`     | PASS（活跃 1 / 归档 351 / 记录包 362） |
-| 契约包      | `pnpm orchestration:contracts`                                                | PASS：框架 2.1.0，15 文件哈希一致      |
-| 类型与 lint | `pnpm lint` / `pnpm typecheck`                                                | exit 0                                 |
+| 闸门        | 命令                                                                          | 结果                                            |
+| ----------- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| 编排单测    | `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs` | 268 passed / 0 failed                           |
+| 全量测试    | `pnpm test`                                                                   | 311 passed / 1 skipped；4747 passed / 4 skipped |
+| 事件链      | `node scripts/orchestration/cli.mjs events verify`                            | PASS（1615 条）                                 |
+| 记录包      | `node scripts/orchestration/cli.mjs worklog verify --strict --state-free`     | PASS（活跃 1 / 归档 351 / 记录包 363）          |
+| 契约包      | `pnpm orchestration:contracts`                                                | PASS：框架 2.1.0，15 文件哈希一致               |
+| 类型与 lint | `pnpm lint` / `pnpm typecheck`                                                | exit 0                                          |
 
 `git diff --stat HEAD~1 -- src/engine-core` 为空。
 
 ## 5. 提交序列
 
-1. 首个提交同时包含 `records/.../AF-375/task-sheet.md`、状态快照、CI 修复与交付记录。
-2. 第二个提交包含冻结回执与 manifest。
+1. `f6040ecf`：任务单、CI 修复与交付记录。
+2. `60e31e34`：状态快照单独提交（`Task: none`，状态面单提例外 `ORCH_ALLOW_STATE_COMMIT=1`）。
+3. 冻结回执与 manifest 更新随后提交。
 
 ## 6. 遗留
 
