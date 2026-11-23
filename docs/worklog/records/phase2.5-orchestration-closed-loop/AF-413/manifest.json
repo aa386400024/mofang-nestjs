@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-413",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-24T04:35:00+08:00",
+  "updatedAt": "2026-11-23T19:56:41.574Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-413/task-sheet.md",
+    "sha256": "b20bc47b861c152b1a207ad81fa04333b4cf9236cd9952d438a5089043ea4458",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af413-atomic-write-retry-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af413-atomic-write-retry-task-sheet.md"
+  ],
+  "tombstone": {
+    "reason": "agentRole orchestrator 资源域不含 src/ 与 test/，scope-domain-conflict 后重登 AF-414"
+  }
+}

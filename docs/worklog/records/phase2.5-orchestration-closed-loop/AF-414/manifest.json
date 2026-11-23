@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-414",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-24T04:40:00+08:00",
+  "updatedAt": "2026-11-23T19:52:32.094Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-414/task-sheet.md",
+    "sha256": "544e95e4461a6658fe99c5cc4a70b7a7dd797f56b35f8200556ec3628b215c62",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af414-atomic-write-retry-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af414-atomic-write-retry-task-sheet.md"
+  ],
+  "tombstone": null
+}

@@ -57,6 +57,64 @@ export type {
 } from './debug-session-record.js';
 
 /**
+ * Windows 上可安全重试的 rename 失败码.
+ *
+ * EPERM / EACCES: 目标文件句柄被短暂占用 (杀毒扫描 / 另一个读句柄尚未释放);
+ * EBUSY: 目录或文件被占用; ENOTEMPTY: 目标目录在替换瞬间非空.
+ * 这些错误过几毫秒通常就消失, 直接抛会让 fire-and-forget 的 markCompleted 永久丢状态.
+ */
+export const RENAME_RETRY_CODES = ['EPERM', 'EACCES', 'EBUSY', 'ENOTEMPTY'] as const;
+
+/**
+ * renameWithRetry 的可注入依赖 (单测用桩替换, 不碰真实文件系统).
+ */
+export interface RenameWithRetryOptions {
+  attempts?: number;
+  baseDelayMs?: number;
+  renameFn?: (from: string, to: string) => Promise<void>;
+  sleepFn?: (ms: number) => Promise<void>;
+}
+
+/**
+ * 判断 rename 错误是否为 Windows 瞬时占用 (值得重试).
+ *
+ * @param error 捕获到的错误
+ * @returns 命中可重试错误码 → true
+ */
+export function isRetryableRenameError(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  return typeof code === 'string' && (RENAME_RETRY_CODES as readonly string[]).includes(code);
+}
+
+/**
+ * 原子 rename, 遇 Windows 瞬时占用时有限指数退避重试.
+ *
+ * 非瞬时错误 (ENOENT / EXDEV 等) 立即抛出, 不做无意义重试;
+ * 重试耗尽后抛最后一次错误, 由调用方决定降级.
+ *
+ * @param temp 临时文件路径
+ * @param target 目标文件路径
+ * @param options 重试次数 / 基础退避 / 注入依赖
+ * @returns rename 成功 → void
+ */
+export async function renameWithRetry(temp: string, target: string, options: RenameWithRetryOptions = {}): Promise<void> {
+  const attempts = Math.max(1, Math.trunc(options.attempts ?? 3));
+  const baseDelayMs = Math.max(0, options.baseDelayMs ?? 10);
+  const renameFn = options.renameFn ?? rename;
+  const sleepFn = options.sleepFn ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await renameFn(temp, target);
+      return;
+    } catch (error) {
+      const isLast = attempt === attempts - 1;
+      if (isLast || !isRetryableRenameError(error)) throw error;
+      await sleepFn(baseDelayMs * 2 ** attempt);
+    }
+  }
+}
+
+/**
  * 保留的会话上限.
  *
  * 为什么是 500 (原 50, commit 1cd56ee 上调): 调试面板的会话列表是"最近跑过的那几场",
@@ -487,7 +545,7 @@ export class DebugSessionStore implements OnModuleInit, OnModuleDestroy {
     const target = this.filePath(record.id);
     const temp = `${target}.tmp`;
     await writeFile(temp, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
-    await rename(temp, target);
+    await renameWithRetry(temp, target);
   }
 
   /**
