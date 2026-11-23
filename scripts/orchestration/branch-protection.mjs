@@ -15,9 +15,6 @@ export const INTEGRATE_REQUIRED_CONTEXTS = [
   'Unit (shard 1/3)',
   'Unit (shard 2/3)',
   'Unit (shard 3/3)',
-  'Coverage (shard 1/3)',
-  'Coverage (shard 2/3)',
-  'Coverage (shard 3/3)',
 ];
 
 export function buildIntegrateProtection(contexts = INTEGRATE_REQUIRED_CONTEXTS) {

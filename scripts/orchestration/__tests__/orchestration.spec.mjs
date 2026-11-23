@@ -4296,9 +4296,9 @@ describe('AF-058 squash 全生命周期归档门', () => {
 describe('AF-056 integrate 保护与 PR 合并门', () => {
   const successfulChecks = () => INTEGRATE_REQUIRED_CONTEXTS.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
 
-  it('保护声明保留 13 项既有检查并新增 Risk Gate / Orchestration Gate，管理员同样受限', () => {
+  it('保护声明保留既有检查并新增 Risk Gate / Orchestration Gate，管理员同样受限', () => {
     const payload = buildIntegrateProtection();
-    expect(payload.required_status_checks.contexts).toHaveLength(14);
+    expect(payload.required_status_checks.contexts).toHaveLength(11);
     expect(payload.required_status_checks.contexts[0]).toBe('Risk Gate');
     expect(payload.required_status_checks.contexts[1]).toBe('Orchestration Gate');
     expect(payload.required_status_checks.strict).toBe(true);
@@ -4328,7 +4328,7 @@ describe('AF-056 integrate 保护与 PR 合并门', () => {
   });
 
   it('PR 必需检查全部存在且成功才 pass', () => {
-    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 14, missing: [], failing: [], pending: [] });
+    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 11, missing: [], failing: [], pending: [] });
   });
 
   it('缺检查、待完成与 unknown 不放行，失败优先返回 fail', () => {

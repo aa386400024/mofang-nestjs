@@ -8,6 +8,7 @@ on:
     # 对 release 分支显式 workflow_dispatch；避免 GITHUB_TOKEN 创建 PR 时
     # 自动 pull_request run 进入 action_required/failure 并阻塞合并。
     branches: [integrate]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 # 同一个 PR 取消之前的 run (节省 CI quota)
@@ -20,14 +21,16 @@ env:
   ORCH_STATE_FREE: ${{ github.event_name == 'pull_request' && '1' || '0' }}
 
 jobs:
-  # AF-365 · 风险分级（框架 v2.1）：先算 riskClass 与执行面，再决定哪些重检查跑。
-  # 13 项 required checks 名称不变；跳过 job 由 GitHub 记为 success，仍满足保护要求。
+  # 风险分级（框架 v2.1）：先算 riskClass 与执行面，再决定哪些重检查跑。
+  # required checks 由 branch protection 声明维护；未执行项通过同名 job 的 skipped step 保持 success。
   risk-gate:
     name: Risk Gate
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       risk_class: ${{ steps.risk.outputs.risk_class }}
+      run_lint: ${{ steps.risk.outputs.run_lint }}
       run_contracts: ${{ steps.risk.outputs.run_contracts }}
       run_security: ${{ steps.risk.outputs.run_security }}
       run_unit: ${{ steps.risk.outputs.run_unit }}
@@ -77,10 +80,13 @@ jobs:
     name: Orchestration Gate
     if: >-
       ${{
-        github.event_name == 'pull_request' ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/integrate') ||
-        (github.event_name == 'workflow_dispatch' &&
-          (github.ref == 'refs/heads/integrate' || startsWith(github.ref, 'refs/heads/task/')))
+        (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+        (
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/integrate') ||
+          (github.event_name == 'workflow_dispatch' &&
+            (github.ref == 'refs/heads/integrate' || startsWith(github.ref, 'refs/heads/task/')))
+        )
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -227,27 +233,37 @@ jobs:
   # ============================================================
   lint-and-typecheck:
     name: Lint + Typecheck
+    needs: risk-gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Lint skipped by risk gate
+        if: needs.risk-gate.outputs.run_lint != 'true'
+        run: echo "lint skipped for risk=${{ needs.risk-gate.outputs.risk_class }}"
+
       - uses: actions/checkout@v5
+        if: needs.risk-gate.outputs.run_lint == 'true'
 
       - name: Setup Node.js
+        if: needs.risk-gate.outputs.run_lint == 'true'
         uses: actions/setup-node@v5
         with:
           node-version: '26'
           package-manager-cache: false
 
       - name: Setup pnpm
+        if: needs.risk-gate.outputs.run_lint == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
           run_install: false
 
       - name: Configure pnpm store path
+        if: needs.risk-gate.outputs.run_lint == 'true'
         run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
+        if: needs.risk-gate.outputs.run_lint == 'true'
         uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
@@ -256,9 +272,11 @@ jobs:
             pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
+        if: needs.risk-gate.outputs.run_lint == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Cache ESLint results
+        if: needs.risk-gate.outputs.run_lint == 'true'
         uses: actions/cache@v5
         with:
           path: .eslintcache
@@ -270,6 +288,7 @@ jobs:
           key: eslint-content-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
 
       - name: Cache TypeScript build info
+        if: needs.risk-gate.outputs.run_lint == 'true'
         uses: actions/cache@v5
         with:
           path: node_modules/.tmp/tcheck-full.tsbuildinfo
@@ -278,22 +297,26 @@ jobs:
             tsc-full-${{ runner.os }}-
 
       - name: Lint
+        if: needs.risk-gate.outputs.run_lint == 'true'
         run: pnpm lint
 
       - name: Typecheck
+        if: needs.risk-gate.outputs.run_lint == 'true'
         run: |
           mkdir -p node_modules/.tmp
           pnpm typecheck
 
   # ============================================================
-  # 2. Unit tests (TD-11 · T-E: matrix 3 片, 仅 unit 进分片)
+  # 2. Unit + Coverage tests (TD-11 · T-E: matrix 3 片)
+  #    AF-378: Unit 分片同时采集覆盖率，Coverage Gate 复用这些 blob；
+  #    不再单独跑第二套 Coverage 分片，减少重复 job 与额度。
   # ============================================================
   unit:
     name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
     needs: risk-gate
     if: needs.risk-gate.outputs.run_unit == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数.
     #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
     strategy:
@@ -385,10 +408,38 @@ jobs:
         run: pnpm migration:run
 
       - name: Unit tests (shard ${{ matrix.shard }}/${{ matrix.count }})
+        if: needs.risk-gate.outputs.run_coverage != 'true'
         # ⚠️ 必须用 `pnpm run <script> -- <args>` 形态.
         #    pnpm 的 `pnpm <script> -- <args>` 简写会把 --shard 当成 pnpm 自己的未知选项直接报错
         #    (本机实测: ERROR Unknown option: 'shard'), 只有 `pnpm run test -- --shard=1/2` 才会透传.
         run: pnpm run test -- --shard=${{ matrix.shard }}/${{ matrix.count }}
+
+      - name: Unit tests with coverage (shard ${{ matrix.shard }}/${{ matrix.count }})
+        if: needs.risk-gate.outputs.run_coverage == 'true'
+        # 分片阶段只采集数据，不执行阈值；阈值在 coverage-gate 的合并结果上执行。
+        run: |
+          mkdir -p .vitest-reports
+          pnpm exec vitest run \
+            --coverage \
+            --coverage.reportsDirectory=coverage/shard-${{ matrix.shard }} \
+            --coverage.thresholds.statements=0 \
+            --coverage.thresholds.branches=0 \
+            --coverage.thresholds.functions=0 \
+            --coverage.thresholds.lines=0 \
+            --shard=${{ matrix.shard }}/${{ matrix.count }} \
+            --reporter=blob \
+            --outputFile=.vitest-reports/blob-${{ matrix.shard }}.json \
+            --exclude '**/e2e/**/*.ts'
+
+      - name: Upload coverage blob
+        if: needs.risk-gate.outputs.run_coverage == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-blob-${{ matrix.shard }}
+          path: .vitest-reports
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: true
 
   # ============================================================
   # 3. E2E tests (独立 config + 独立步骤, 不进分片矩阵)
@@ -486,148 +537,15 @@ jobs:
           # E2E 需真实 HTTP server
           PORT: 3000
   # ============================================================
-  # 4. Coverage (TD-11 · T-D: 3 片采集 + 合并后统一阈值门禁)
-  #    单进程全量跑覆盖率约 124s；改为 3 片各自采集，末尾 merge-reports 合并覆盖率并只在合并结果上执行阈值，
-  #    保证口径仍是全量。3 片可把测试步骤压到约 20-30s，避免 2 片时 shard 1 成为长尾。
+  # 4. Coverage Gate (TD-11 · T-D: 合并 Unit 分片采集的覆盖率并统一阈值)
+  #    AF-378: 覆盖率采集已并入 Unit 分片，不再重复执行第二套测试。
   # ============================================================
-  coverage-shards:
-    name: Coverage (shard ${{ matrix.shard }}/${{ matrix.count }})
-    needs: risk-gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3]
-        count: [3]
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: rootpass
-          MYSQL_DATABASE: mofang_test
-          MYSQL_USER: mofang
-          MYSQL_PASSWORD: mofangpass
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=3s
-          --health-retries=5
-    env:
-      NODE_ENV: test
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      DB_NAME: mofang_test
-      DB_USER: mofang
-      DB_PASSWORD: mofangpass
-      DB_TYPE: mysql
-      REDIS_HOST: 127.0.0.1
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ''
-      REDIS_KEY_PREFIX: mofang:test
-      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
-      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
-      JWT_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN: 7d
-      EMAIL_ENABLED: 'false'
-      SMS_ENABLED: 'false'
-      METRICS_ENABLED: 'false'
-    steps:
-      - name: Coverage skipped by risk gate
-        if: needs.risk-gate.outputs.run_coverage != 'true'
-        run: echo "coverage skipped for risk=${{ needs.risk-gate.outputs.risk_class }}"
-
-      - uses: actions/checkout@v5
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-
-      - name: Setup Node.js
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        uses: actions/setup-node@v5
-        with:
-          node-version: '26'
-          package-manager-cache: false
-
-      - name: Setup pnpm
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
-          run_install: false
-
-      - name: Configure pnpm store path
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        run: pnpm config set store-dir ~/.pnpm-store
-
-      - name: Cache pnpm store
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        uses: actions/cache@v5
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-${{ runner.os }}-
-
-      - name: Install dependencies
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache vitest transform cache
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        uses: actions/cache@v5
-        with:
-          path: node_modules/.vite/vitest
-          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            vitest-transform-${{ runner.os }}-
-
-      - name: Run migrations (建测试库 schema)
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        run: pnpm migration:run
-
-      - name: Unit tests with coverage (shard)
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        # 分片阶段只采集数据，不执行阈值；阈值在 coverage-gate 的合并结果上执行，
-        # 避免用局部覆盖率误判全局门禁。
-        run: |
-          mkdir -p .vitest-reports
-          pnpm exec vitest run \
-            --coverage \
-            --coverage.reportsDirectory=coverage/shard-${{ matrix.shard }} \
-            --coverage.thresholds.statements=0 \
-            --coverage.thresholds.branches=0 \
-            --coverage.thresholds.functions=0 \
-            --coverage.thresholds.lines=0 \
-            --shard=${{ matrix.shard }}/${{ matrix.count }} \
-            --reporter=blob \
-            --outputFile=.vitest-reports/blob-${{ matrix.shard }}.json \
-            --exclude '**/e2e/**/*.ts'
-
-      - name: Upload coverage blob
-        if: needs.risk-gate.outputs.run_coverage == 'true'
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-blob-${{ matrix.shard }}
-          path: .vitest-reports
-          retention-days: 7
-          if-no-files-found: error
-          include-hidden-files: true
-
   coverage-gate:
     name: Coverage Gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [risk-gate, coverage-shards]
+    needs: [risk-gate, unit]
+    if: ${{ always() && needs.risk-gate.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     steps:
       - name: Coverage gate skipped by risk gate
         if: needs.risk-gate.outputs.run_coverage != 'true'

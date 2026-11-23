@@ -3,12 +3,21 @@ import { deriveSlug } from '../branch-workflow.mjs';
 import { classifyPullRequests } from '../pr-release.mjs';
 import { buildReceiptScaffold } from '../receipt-scaffold.mjs';
 import { gatePlan, inferRiskFromPaths, resolveRiskClass } from '../risk-gate.mjs';
-import { ackSession, createSession, evaluateSession, heartbeatSession, progressSession, requestCancel, terminalSession } from '../executor-session.mjs';
+import {
+  ackSession,
+  createSession,
+  evaluateSession,
+  heartbeatSession,
+  progressSession,
+  requestCancel,
+  terminalSession,
+} from '../executor-session.mjs';
 
 describe('AF-365 risk gating', () => {
   it('docs-only changes are R0 and skip heavy checks', () => {
     expect(inferRiskFromPaths(['docs/team/conventions.md', 'README.md'])).toBe('R0');
     const plan = gatePlan('R0');
+    expect(plan.lint).toBe(false);
     expect(plan.unit).toBe(false);
     expect(plan.e2e).toBe(false);
     expect(plan.build).toBe(false);
@@ -59,7 +68,14 @@ describe('AF-365 receipt scaffold', () => {
     expect(scaffold.payload.scopeCheck).toBeNull();
     expect(scaffold.payload.reviewVerdict).toBeNull();
     expect(scaffold.payload.artifactRefs.deliveryRecord).toBe('docs/worklog/completed/demo.md');
-    expect(scaffold.scaffold.requiredGroups).toEqual(['gateResults', 'scopeCheck', 'contractChecks', 'backlogItems', 'deviationTable', 'reviewVerdict']);
+    expect(scaffold.scaffold.requiredGroups).toEqual([
+      'gateResults',
+      'scopeCheck',
+      'contractChecks',
+      'backlogItems',
+      'deviationTable',
+      'reviewVerdict',
+    ]);
   });
 
   it('rejects taskId mismatch', () => {

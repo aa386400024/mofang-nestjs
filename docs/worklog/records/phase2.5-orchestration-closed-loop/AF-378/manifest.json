@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-378",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T19:20:00+08:00",
+  "updatedAt": "2026-11-23T10:58:31.443Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-378/task-sheet.md",
+    "sha256": "640b485791b79e400532871372c902aeb7d50227e2043a816f96eea5f4c70223",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af378-ci-zero-cost-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-ci-zero-cost-2026-11-23.md"
+  ],
+  "tombstone": null
+}
