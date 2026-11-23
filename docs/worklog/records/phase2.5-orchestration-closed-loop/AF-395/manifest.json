@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-395",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-24T01:00:00+08:00",
+  "updatedAt": "2026-11-23T16:46:25.174Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-395/task-sheet.md",
+    "sha256": "721629b60bca9ac9699a1e808d035c1f2e2cd9663a2486f72ac54c024aa78552",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af394-debug-tts-and-zero-cost-governance-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af395-debug-tts-and-zero-cost-governance-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}

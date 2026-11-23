@@ -158,6 +158,8 @@ export const config = {
     llmModel: process.env.MINIMAX_LLM_MODEL ?? 'MiniMax-M3',
     llmTimeoutMs: Number(process.env.MINIMAX_LLM_TIMEOUT_MS ?? 30_000),
     llmMaxRetries: Number(process.env.MINIMAX_LLM_MAX_RETRIES ?? 2),
+    // AF-395: 成本取证开关；默认关，保持既有生产请求体逐字不变.
+    llmIncludeUsage: process.env['MINIMAX_LLM_INCLUDE_USAGE'] === 'true',
     // V2026-10-23 治本 (v2.0 语音对语音 — TTS bidi 按官方 T2A V2 协议重写, spec §3.1/§3.2/§3.3):
     //   模型: 官方枚举只有 turbo / hd 后缀, 旧的 `speech-2.8` **不存在** (必然 2013).
     //   音色: 旧的 `mandarin_female_001` 是未核实占位值, **不得当可用值上线** ——

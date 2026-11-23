@@ -1,0 +1,220 @@
+{
+  "deliveredAt": "2026-11-24T01:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-397-1",
+    "taskId": "AF-397",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b58d64cf958ad83dcc775b9633d25382ba4e95ec",
+    "dependsOn": [],
+    "priorTasks": ["AF-396", "AF-395", "AF-394"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-397/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af397-debug-tts-history-repair-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/worklog/completed/phase2.5/af397-debug-tts-history-repair-2026-11-24.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "src/admin-debug/tts/admin-debug-tts-render.entity.ts",
+        "src/admin-debug/tts/debug-tts.controller.ts",
+        "src/admin-debug/tts/debug-tts.dto.ts",
+        "src/admin-debug/tts/debug-tts.providers.ts",
+        "src/admin-debug/tts/debug-tts.service.ts",
+        "src/migration/1714900000051-CreateAdminDebugTtsRenders.ts",
+        "test/admin-debug/debug-tts.spec.ts"
+      ],
+      "modified": [
+        ".env.example",
+        "admin-dashboard/src/api/client.ts",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "bin/ormconfig.ts",
+        "src/admin-debug/admin-debug-chat.module.ts",
+        "src/agent/llm/llm.service.ts",
+        "src/config/envs/default.ts",
+        "src/migration/index.ts",
+        "test/agent/llm-doubao-usage.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/wp25-env-example-coverage.spec.ts test/admin-debug/debug-tts.spec.ts test/agent/llm-doubao-usage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "5.19s",
+        "note": "3 files / 20 tests passed；env 模板 12 例、TTS 4 例、MiniMax usage 4 例"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 313,
+        "machine": "同上",
+        "wallClock": "27.70s",
+        "note": "312 files passed + 1 skipped；4757 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；唯一 warning 是 pnpm 对 node>=26 的环境提示，非代码问题"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过"
+      },
+      {
+        "command": "cd admin-dashboard && pnpm type-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "vue-tsc --build 通过"
+      },
+      {
+        "command": "pnpm migration:run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "CreateAdminDebugTtsRenders1714900000051 执行成功，迁移数 89 → 90"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "1706 条事件；哈希链与索引投影一致"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm migration:run → pnpm exec vitest run 三个定向 spec → pnpm lint → pnpm typecheck → cd admin-dashboard && pnpm type-check → pnpm test → git diff --stat HEAD -- src/engine-core。TTS 真实试打用后台管理鉴权调用 POST /admin/api/debug/tts/render，provider 分别取 minimax-hd / minimax-turbo / doubao-seed。豆包需先在火山方舟控制台开启 Agent Plan 抵扣。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-396 贯穿任务单、回执、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 1706 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；测试数字、迁移数字、试打响应均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF396-01",
+        "impact": "编排健康区仍把已归档任务的陈旧回执告警计入 receiptErrors；AF-382 / AF-389 误报未消",
+        "severity": "medium",
+        "schedule": "AF-397（orchestrator 角色，scope 含 scripts/orchestration/），过滤 terminal 任务后再统计"
+      },
+      {
+        "id": "BL-AF396-02",
+        "impact": "豆包 doubao-seed-tts-2.0 真实合成被账户侧 AgentPlanDeductNotEnabled 403 阻塞，三模型真实对比尚未完整",
+        "severity": "high",
+        "schedule": "用户在火山方舟控制台开启 Agent Plan 抵扣后复跑豆包通道；不得降级普通 API token"
+      },
+      {
+        "id": "BL-AF396-03",
+        "impact": "zero_motion 批次 8 场 idle 中本地只有 1 场可复现，37/48 逐字稿缺失，无法逐场定位",
+        "severity": "medium",
+        "schedule": "补齐逐字稿归档，或把零变化 sessionId 写入批次 metrics_json"
+      },
+      {
+        "id": "BL-AF396-04",
+        "impact": "角色音色尚未映射到 MiniMax / 豆包；当前仅走 provider 默认或环境变量音色",
+        "severity": "low",
+        "schedule": "用户制作角色音色后，补角色 voiceId → provider voice/speaker 映射与回退"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务承接链",
+        "taskSays": "AF-396 为 AF-395 的 env 域返修任务",
+        "reality": "AF-395 因 scope 缺根目录 .env.example 被取消；实现提交 850e3a85 以 cherry-pick 带入 AF-396",
+        "action": "priorTasks 保留 AF-395 / AF-394，交付记录写明承接关系",
+        "why": "已 submitted 任务不能原地改 scope，取消后由新任务承接是唯一合规路径"
+      },
+      {
+        "item": "豆包通道",
+        "taskSays": "接入豆包 doubao-seed-tts-2.0 做三模型对比",
+        "reality": "接口路径 / 请求头 / body 已验证可用，真实合成返回 AgentPlanDeductNotEnabled 403",
+        "action": "如实登记阻塞，不降级普通 API token，不伪造对比结果",
+        "why": "用户明确要求只走 Agent Plan，不消耗普通方舟 API token"
+      },
+      {
+        "item": "zero_motion 根因",
+        "taskSays": "定位 zero_motion 根因",
+        "reality": "只读重算确认 idle 是事件层全程 neutral 导致认知增量恒为 0；37/48 逐字稿缺失，另外 7 场无法本地逐场定位",
+        "action": "输出根因与可观测性缺口，不改 prompt、不改 engine-core",
+        "why": "无真实付费批次复跑无法安全验证事件分类器为何全 neutral"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "落地：调试页三模型 TTS 接口、缓存表与前端 hover 按钮，MiniMax usage 开关与 env 模板补齐；证据：定向 20 例、全量 4757 例、lint/typecheck/前端 type-check 全 0、迁移执行成功、engine-core 零 diff 均有真实输出；范围：in-scope，AF-395 实现完整承接；未达项：豆包真实合成被账户侧 Agent Plan 抵扣阻塞，三模型真实对比未完整，故 conditional-pass。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "MiniMax 真实试打 2 次（HD/Turbo，各 16 字符）；豆包请求因 Agent Plan 未开启未产生合成计费；未使用普通方舟 API token。"
+  }
+}

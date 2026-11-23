@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LlmService } from '../../src/agent/llm/llm.service.js';
 import type { LlmStreamChunk } from '../../src/agent/llm/llm.types.js';
 
-function fakeConfig(overrides: Record<string, string> = {}): ConfigService {
-  const values: Record<string, string> = {
+function fakeConfig(overrides: Record<string, unknown> = {}): ConfigService {
+  const values: Record<string, unknown> = {
     MINIMAX_BASE_URL: 'https://api.minimax.cn',
     MINIMAX_API_KEY: 'minimax-key',
     MINIMAX_LLM_MODEL: 'MiniMax-M3.1-Flash',
@@ -71,5 +71,11 @@ describe('AF-250 豆包流式 usage', () => {
     const fetchStub = stubFetch();
     await collect(new LlmService(fakeConfig()), 'minimax');
     expect(fetchStub.body()).not.toHaveProperty('stream_options');
+  });
+
+  it('minimax 显式开启成本取证时带 stream_options.include_usage=true', async () => {
+    const fetchStub = stubFetch();
+    await collect(new LlmService(fakeConfig({ 'minimax.llmIncludeUsage': true })), 'minimax');
+    expect(fetchStub.body()).toMatchObject({ stream_options: { include_usage: true } });
   });
 });
