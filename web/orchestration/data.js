@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T09:31:03.354Z",
+  "generatedAt": "2026-11-23T09:34:24.666Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-375",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "integrate 状态快照同步与 post-merge 编排门解耦",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-375/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af375-integrate-state-snapshot-2026-11-23.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-375",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-23T09:31:03.274Z",
-        "leaseDeadline": "2026-11-23T10:01:03.271Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-375.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1817,6 +1786,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-158",
+      "recordedAt": "2026-11-23T09:31:03.488Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-375",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-375",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-375.json"
+      ]
+    },
+    {
       "auditId": "AUD-157",
       "recordedAt": "2026-11-23T09:30:55.667Z",
       "actorRef": "orchestrator",
@@ -2039,65 +2023,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-369.json"
       ]
-    },
-    {
-      "auditId": "AUD-143",
-      "recordedAt": "2026-11-23T08:01:49.260Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-368",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-368",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-368.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 157,
+    "total": 158,
     "byResult": {
-      "allowed": 157,
+      "allowed": 158,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 156,
+      "TOOL-QUEUE-SCHEDULER": 157,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 157
+      "orchestrator": 158
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-375",
-        "title": "integrate 状态快照同步与 post-merge 编排门解耦",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-375/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af375-integrate-state-snapshot-2026-11-23.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -8232,6 +8176,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/team/agent-orchestration/transport/receipts/AF-374.json"
           }
         ]
+      },
+      {
+        "taskId": "AF-375",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-375/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af375-integrate-state-snapshot-2026-11-23.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/team/agent-orchestration/transport/receipts/AF-375.json"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8246,22 +8212,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-375",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-375/task-sheet.md"
-      },
-      {
-        "taskId": "AF-375",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af375-integrate-state-snapshot-2026-11-23.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -8269,5 +8222,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 351
+  "archivedCount": 352
 };
