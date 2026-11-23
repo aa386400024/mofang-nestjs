@@ -1,0 +1,150 @@
+{
+  "deliveredAt": "2026-11-24T04:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-417-1",
+    "taskId": "AF-417",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "d259db7bc4e48b64ce478fe718098bb008157000",
+    "dependsOn": [],
+    "priorTasks": ["AF-414", "AF-416"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-417/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af417-atomic-write-hardening-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "src/admin-debug/atomic-write.ts",
+        "docs/worklog/completed/phase2.5/af416-atomic-write-hardening-2026-11-24.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["39f5be2d"],
+      "added": [
+        "src/admin-debug/atomic-write.ts",
+        "docs/worklog/completed/phase2.5/af416-atomic-write-hardening-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af417-atomic-write-hardening-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-416/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-416/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-417/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-417/manifest.json"
+      ],
+      "modified": [
+        ".env.example",
+        "src/admin-debug/debug-session-store.ts",
+        "test/admin-debug/af414-atomic-write-retry.spec.ts",
+        "docs/worklog/completed/phase2.5/af414-atomic-write-retry-2026-11-24.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/wp25-env-example-coverage.spec.ts test/admin-debug/af414-atomic-write-retry.spec.ts test/admin-debug/debug-session-persistence.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "4.87s",
+        "note": "53 用例全绿（13 + 28 + 12）"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 317,
+        "machine": "同上",
+        "wallClock": "25.85s",
+        "note": "317 passed / 1 skipped（文件），4806 passed / 4 skipped（用例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零 diff"
+      }
+    ],
+    "reproNotes": "定向三文件单测 → pnpm lint → pnpm typecheck → pnpm test → engine-core diff；全量在 env 修复后重跑一次。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-417 贯穿任务单、回执、提交标题" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 派发 / 分支 / 回执摄入均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全；任务单 scope / gates / artifacts 完整" },
+      { "item": "event-chain", "result": "pass", "note": "事件链由 CLI 写入，归档后 events verify 复核" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "env-template", "result": "pass", "note": "两个新 env 键已进 .env.example，WP25 覆盖契约全绿" },
+      { "item": "privacy", "result": "pass", "note": "不打印对话原文；临时文件名不含会话内容" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 scope 含 .env.example 与 src/test/docs；changedFiles 与提交 39f5be2d 对齐"
+    },
+    "backlogItems": [
+      {
+        "id": "AF417-B1",
+        "impact": "AF-414/AF-417 的 EPERM 根因仍未实证；真正闭环需让 closeSession 可等待写完成，属接口语义变更。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF417-B2",
+        "impact": "重试耗尽只有标记，没有告警计数与熔断；长时间目录锁会让该会话每个写都付 30ms 并堆队列。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF417-B3",
+        "impact": "get() 回填的 mirror 分支只由纯函数判定覆盖，缺真实 MySQL 集成用例；后续数据层测试补。",
+        "layer": "adapter",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-416 承接 AF-414 硬化，scope 为 src/test/docs",
+        "reality": "AF-416 实现完成但全量测试暴露 WP25 要求新 env 键进 .env.example，scope 不含该文件；实现阶段不可 rescope",
+        "action": "取消 AF-416 并重登 AF-417，scope 增加 .env.example；代码与测试由 AF-417 承接",
+        "why": "按仓库纪律，进入实现的任务不得改 scope；重登是唯一受审计路径"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "把 MiniMax 评审的三处真实缺口（唯一临时名、writeFile 重试、回填绕过队列）全部落地并补测；env 端口通过 WP25；内核零改动，闸门全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地代码与测试，无上游模型计费。"
+  }
+}
