@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-435",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T06:24:00+08:00",
+  "updatedAt": "2026-11-23T22:19:42.054Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/task-sheet.md",
+    "sha256": "382e74cb8f31615cc1ea529104fefad1ff5a1a4ab34b782d0ee2e5441653283e",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/receipt-RC-AF-435-1.json",
+      "sha256": "71f4ccb58bf9fb283e5e734e46afdf4b7024dd0dc72ff5acf5899f0ef9f12975",
+      "receiptId": "RC-AF-435-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-435/receipt-RC-AF-435-1-844e3eeb.json",
+      "sha256": "844e3eeb85e7cfd134ad99ed3c04e8a51e7ec1a303bc101c15f75f2a0d2af057",
+      "receiptId": "RC-AF-435-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af435-ledger-version-caveat-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-435-ledger-version-caveat.md"
+  ],
+  "tombstone": null
+}
