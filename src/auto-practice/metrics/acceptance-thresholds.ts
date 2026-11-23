@@ -218,6 +218,25 @@ export const INTAKE_EXPECTATIONS_COLD: readonly MetricExpectation[] = [
 ];
 
 /**
+ * 单场零变化的可观测明细 (I-22 诊断补充).
+ *
+ * 只含合规投影字段: 场次 id / 角色 / 咨询师模式 / 轮数 / 事件标签计数.
+ * 物理上不含对话原文、prompt、意图 rationale, 可直接随批次指标落库.
+ */
+export interface ZeroMotionSessionDetail {
+  /** 场次 id (定位逐字稿用). */
+  readonly debugSessionId: string;
+  /** 角色 slug. */
+  readonly characterSlug: string;
+  /** AI 咨询师模式 id (切片维度). */
+  readonly counselorModeId: string;
+  /** 场次轮数. */
+  readonly turns: number;
+  /** 事件标签 → 出现轮次数; 空对象 = 全程没有任何事件标签. */
+  readonly eventTagCounts: Readonly<Record<string, number>>;
+}
+
+/**
  * 零变化场次细分 (I-22 的数据来源; 由批次指标计算层逐场判定).
  *
  * 判定规则 (逐场, 基于 traces 的 eventTags —— 不含对话原文):
@@ -225,6 +244,8 @@ export const INTAKE_EXPECTATIONS_COLD: readonly MetricExpectation[] = [
  *   ② 事件层存在**非 neutral** 事件 → 记为 closure (**合理封闭**, 按任务单口径豁免,
  *      不计入失效);
  *   ③ 事件层只有 neutral (或无事件) → 记为 idle (**纯 neutral 空转**, 计入失效).
+ *
+ * 明细字段只增不删; 旧快照缺省, 读端按 undefined 处理.
  */
 export interface ZeroMotionBreakdown {
   /** 零变化场次总数. */
@@ -233,6 +254,10 @@ export interface ZeroMotionBreakdown {
   readonly closure: number;
   /** 其中"纯 neutral 空转"场次数 (计入失效). */
   readonly idle: number;
+  /** 合理封闭场次的逐场明细 (旧快照缺省). */
+  readonly closureSessions?: readonly ZeroMotionSessionDetail[];
+  /** 纯 neutral 空转场次的逐场明细 (旧快照缺省). */
+  readonly idleSessions?: readonly ZeroMotionSessionDetail[];
 }
 
 /** 一档判据 (按 counselorModeId 划分). */

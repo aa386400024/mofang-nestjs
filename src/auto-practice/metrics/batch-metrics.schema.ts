@@ -128,6 +128,24 @@ function assertMetricsMap(value: Record<string, unknown>, label: string): void {
 }
 
 /**
+ * 校验单场零变化明细 (可选; 在场则字段逐个验型).
+ *
+ * @param value 待校验值
+ * @param label 出错时的标识
+ */
+function assertZeroMotionSessionDetail(value: unknown, label: string): void {
+  if (!isObject(value)) throw new Error(`[${label}] 零变化场次明细非法`);
+  for (const field of ['debugSessionId', 'characterSlug', 'counselorModeId'] as const) {
+    if (!isString(value[field])) throw new Error(`[${label}] 零变化场次明细.${field} 非法`);
+  }
+  if (!isFiniteNumber(value['turns'])) throw new Error(`[${label}] 零变化场次明细.turns 非法`);
+  if (!isObject(value['eventTagCounts'])) throw new Error(`[${label}] 零变化场次明细.eventTagCounts 非法`);
+  for (const [tag, count] of Object.entries(value['eventTagCounts'])) {
+    if (!isFiniteNumber(count)) throw new Error(`[${label}] 零变化场次明细.eventTagCounts.${tag} 非法`);
+  }
+}
+
+/**
  * 校验零变化细分 (可选字段; 在场则逐个字段验型).
  *
  * @param value 待校验值
@@ -137,6 +155,14 @@ function assertZeroMotionBreakdown(value: unknown, label: string): void {
   if (!isObject(value)) throw new Error(`[${label}] zeroMotionBreakdown 非法`);
   for (const field of ['total', 'closure', 'idle'] as const) {
     if (!isFiniteNumber(value[field])) throw new Error(`[${label}] zeroMotionBreakdown.${field} 非法`);
+  }
+  for (const field of ['closureSessions', 'idleSessions'] as const) {
+    const details = value[field];
+    if (details === undefined) continue;
+    if (!Array.isArray(details)) throw new Error(`[${label}] zeroMotionBreakdown.${field} 非法`);
+    for (const [i, detail] of details.entries()) {
+      assertZeroMotionSessionDetail(detail, `${label}.zeroMotionBreakdown.${field}[${i}]`);
+    }
   }
 }
 

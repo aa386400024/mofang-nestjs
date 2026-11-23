@@ -6,7 +6,7 @@
 //   intention.rationale, 物理上接触不到对话文本.
 
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
-import type { ZeroMotionBreakdown } from './acceptance-thresholds.js';
+import type { ZeroMotionBreakdown, ZeroMotionSessionDetail } from './acceptance-thresholds.js';
 import type { BatchMetricsV1, MetricsSlice, SessionLineage, SkipReason } from './batch-metrics.schema.js';
 import { aggregateDisfluency, type DisfluencyMetrics } from './disfluency-lexicon.js';
 import {
@@ -215,26 +215,61 @@ function hasNonNeutralEvent(session: SessionComputationInput): boolean {
 }
 
 /**
+ * 汇总一场的合规事件标签计数.
+ *
+ * 只读 `trace.eventTags`; 空标签轮次不计入任何键. 输出按插入顺序稳定,
+ * 不含文本, 供零变化场次定位"是全程 neutral 还是完全没打标签".
+ */
+function countEventTags(session: SessionComputationInput): Readonly<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  for (const trace of session.traces) {
+    for (const tag of trace.eventTags) {
+      counts[tag] = (counts[tag] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+/** 构造单场零变化明细 (隐私边界: 仅合规投影字段). */
+function summarizeZeroMotionSession(session: SessionComputationInput): ZeroMotionSessionDetail {
+  return {
+    debugSessionId: session.debugSessionId,
+    characterSlug: session.characterSlug,
+    counselorModeId: session.counselorModeId,
+    turns: session.traces.length,
+    eventTagCounts: countEventTags(session),
+  };
+}
+
+/**
  * 零变化场次细分 (I-22): 区分"合理封闭"与"纯 neutral 空转".
  *
  * · total   = 零变化场次总数 (与 session.zero_motion 同值, 同口径);
  * · closure = 其中事件层存在非 neutral 事件的场次 (**合理封闭**, 按任务单口径豁免);
  * · idle    = 其中纯 neutral 空转的场次 (**计入失效**).
  *
- * 逐场判定, 纯函数, 零 IO.
+ * 同时输出 closureSessions / idleSessions 逐场明细, 让缺失逐字稿时也能定位
+ * 具体 sessionId 与事件标签分布. 逐场判定, 纯函数, 零 IO.
  *
  * @param sessions 场次
- * @returns 细分
+ * @returns 细分 + 逐场明细
  */
 function computeZeroMotionBreakdown(sessions: readonly SessionComputationInput[]): ZeroMotionBreakdown {
   let total = 0;
   let closure = 0;
+  const closureSessions: ZeroMotionSessionDetail[] = [];
+  const idleSessions: ZeroMotionSessionDetail[] = [];
   for (const session of sessions) {
     if (!isZeroMotion(session)) continue;
     total += 1;
-    if (hasNonNeutralEvent(session)) closure += 1;
+    if (hasNonNeutralEvent(session)) {
+      closure += 1;
+      closureSessions.push(summarizeZeroMotionSession(session));
+    } else {
+      idleSessions.push(summarizeZeroMotionSession(session));
+    }
   }
-  return { total, closure, idle: total - closure };
+  return { total, closure, idle: total - closure, closureSessions, idleSessions };
 }
 
 /**

@@ -11,6 +11,7 @@ import {
   type SkippedSession,
   type TraceInput,
 } from '../../src/auto-practice/metrics/batch-metrics.compute.js';
+import { assertBatchMetricsV1 } from '../../src/auto-practice/metrics/batch-metrics.schema.js';
 import {
   EMPTY_DISFLUENCY_METRICS,
   type DisfluencyCounts,
@@ -89,6 +90,53 @@ describe('WP-K · 批次计算正确性', () => {
     expect(result.metrics['dim.trust.delta_avg']).toBe(0);
     expect(result.metrics['session.zero_motion']).toBe(1);
     expect(result.metrics['event.neutral.rate']).toBe(0); // eventTags 为空, 不计 neutral
+  });
+
+  it('zero_motion 明细: idle / closure / 有动作三类场次可逐场定位', () => {
+    const idleNeutral = session({
+      debugSessionId: 'debug-idle-neutral',
+      traces: [trace(1, { eventTags: ['neutral'] }), trace(2, { eventTags: ['neutral'] })],
+    });
+    const idleUntagged = session({
+      debugSessionId: 'debug-idle-untagged',
+      traces: [trace(1), trace(2)],
+    });
+    const closure = session({
+      debugSessionId: 'debug-closure',
+      traces: [trace(1, { eventTags: ['empathy'] }), trace(2, { eventTags: ['neutral'] })],
+    });
+    const moving = session({
+      debugSessionId: 'debug-moving',
+      traces: [trace(1), trace(2, { bdiSnapshot: snapshot({ trust: 0.6 }) })],
+    });
+    const result = computeBatchSnapshot([idleNeutral, idleUntagged, closure, moving], [], 1, context());
+    expect(result.zeroMotionBreakdown).toMatchObject({ total: 3, closure: 1, idle: 2 });
+    expect(result.zeroMotionBreakdown?.closureSessions).toEqual([
+      {
+        debugSessionId: 'debug-closure',
+        characterSlug: 'vpt_test',
+        counselorModeId: 'expert',
+        turns: 2,
+        eventTagCounts: { empathy: 1, neutral: 1 },
+      },
+    ]);
+    expect(result.zeroMotionBreakdown?.idleSessions).toEqual([
+      {
+        debugSessionId: 'debug-idle-neutral',
+        characterSlug: 'vpt_test',
+        counselorModeId: 'expert',
+        turns: 2,
+        eventTagCounts: { neutral: 2 },
+      },
+      {
+        debugSessionId: 'debug-idle-untagged',
+        characterSlug: 'vpt_test',
+        counselorModeId: 'expert',
+        turns: 2,
+        eventTagCounts: {},
+      },
+    ]);
+    expect(() => assertBatchMetricsV1(result)).not.toThrow();
   });
 
   it('empathy 事件 + 末值变化 → 事件率与维度变化正确', () => {
