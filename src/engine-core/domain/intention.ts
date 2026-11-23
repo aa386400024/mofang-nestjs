@@ -20,11 +20,28 @@ export type BehaviorStrategy =
   | 'discussing_plans'
   | 'resistance';
 
+/** 意图锁来源: 连续性 / 保护性 / 情境诉求. */
+export type IntentionLockReason = 'continuity' | 'protective' | 'situational';
+
+/**
+ * 跨轮意图锁 (AF-349).
+ *
+ * 只锁**非保护性**策略: 抗拒 / 简短回应 / 请求由当轮风险与情境决定,
+ * 不能被上一轮的锁覆盖 —— 否则危机会被"继续探索"锁死.
+ */
+export interface IntentionLock {
+  readonly strategy: BehaviorStrategy;
+  readonly lockedAtTurn: number;
+  readonly expiresAtTurn?: number;
+  readonly reason: IntentionLockReason;
+}
+
 /**
  * 本轮决策目标.
  *
- * 规则轨只从当前状态选一个主导策略; request / insight / discussing_plans 等
- * 需要来访侧信号的策略, 本期留类型不主动选出 (由模型轨 / 后续填充), 避免凭空判定.
+ * 规则轨从当前状态选一个主导策略; request / insight / discussing_plans
+ * 在 AF-315 之后已可由情境愿望 / 依赖移情 / 反思信念选出.
+ * 跨轮连续性由 `IntentionLock` 控制, 缺省不锁.
  */
 export interface Intention {
   readonly strategy: BehaviorStrategy;

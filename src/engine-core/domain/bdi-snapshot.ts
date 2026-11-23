@@ -30,6 +30,7 @@ import type { CoreBelief, CoreBeliefActivation, MemoryBelief, TemporaryBelief } 
 import { buildInitialSnapshot } from './bootstrap.js';
 import type { SituationalDesire, UnderlyingDesire } from './desires.js';
 import type { EmotionState } from './emotion.js';
+import type { IntentionLock } from './intention.js';
 import type { TransferenceState } from './transference.js';
 
 /**
@@ -101,6 +102,13 @@ export interface BdiSnapshot {
   readonly safety: number;
   /** 纽带感 [0,1]: 来访与咨询师的情感连接强度 (WP42). */
   readonly bond: number;
+  /**
+   * 跨轮意图锁 (AF-349).
+   *
+   * null / 缺省 = 不锁；只有配置开启时才由内核写入. 锁只覆盖非保护性策略,
+   * 到期后由内核清除. 放在快照里是因为它要跨轮、跨落库恢复 —— 放运行时会丢.
+   */
+  readonly intentionLock?: IntentionLock | null;
 }
 
 /**
@@ -136,5 +144,7 @@ export function cloneBdiSnapshot(snapshot: BdiSnapshot): BdiSnapshot {
     trust: snapshot.trust,
     safety: snapshot.safety,
     bond: snapshot.bond,
+    // AF-349: 意图锁必须显式带过 —— 漏掉 = 每次落库/恢复都把锁清零, 跨轮锁等于没做.
+    ...(snapshot.intentionLock === undefined ? {} : { intentionLock: snapshot.intentionLock }),
   };
 }

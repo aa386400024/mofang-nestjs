@@ -2,8 +2,9 @@
 //   目的: 钉死「轮次位置权重」端口落地后的口径 ——
 //     ① 不传端口 = **逐字零回归** (固定 snapshot + 固定事件序列 → 快照逐字相同);
 //     ② 显式 `none` = 与缺省逐字相同 (等权);
-//     ③ 非 `none` 形态 (linear_decay / recency / window) 本单**回退等权** → 与缺省逐字相同
-//        (骨架护栏: 未实现形态不得改变行为);
+//     ③ 非 `none` 形态 (linear_decay / recency / window) AF-349 已落地曲线:
+//        `linear_decay` 线性衰减、`recency` 反比衰减、`window` 窗外归零;
+//        `turnIndex` 缺省仍回退等权 (算子取不到位置);
 //     ④ `turnIndex` 缺省 / 传入都不改变输出 (缺省即等权);
 //     ⑤ 管道顺序 = 聚合 → 人格调节 → cap → 折损 → apply; cap 报告仍按 `raw → capped` 构造
 //        (折损不改变砍幅结论); 两个出口 (transitionState / transitionStateDetailed) 口径一致;
@@ -118,19 +119,33 @@ describe('D-3 · 时序权重端口骨架 (内核)', () => {
     });
   });
 
-  describe('③ 非 none 形态本单回退等权 (骨架护栏)', () => {
-    it.each(['linear_decay', 'recency', 'window'] as const)('%s 形态 → 与缺省逐字相同 (未实现形态不得改变行为)', (kind) => {
+  describe('③ 非 none 形态按曲线折损 (AF-349)', () => {
+    it('turnIndex=7 时 linear_decay / window 权重归零，recency 按 1/(1+slope*age) 折损', () => {
       const base = createEmptyBdiSnapshot();
       const plain = transitionState(base, EVENTS);
-      const weighted = transitionState(base, EVENTS, {
-        timingWeight: { kind, slope: 0.5, windowTurns: 3 },
+      const linear = transitionState(base, EVENTS, {
+        timingWeight: { kind: 'linear_decay', slope: 0.5 },
+        turnIndex: 7,
+      });
+      const recency = transitionState(base, EVENTS, {
+        timingWeight: { kind: 'recency', slope: 0.5 },
+        turnIndex: 7,
+      });
+      const window = transitionState(base, EVENTS, {
+        timingWeight: { kind: 'window', windowTurns: 3 },
         turnIndex: 7,
       });
 
-      expect(weighted).toEqual(plain);
+      // 第 7 轮 age=6: linear 1-0.5*6<=0; window 7>3; 两者权重 0 → 关系量回到基线.
+      expect(linear.trust).toBe(base.trust);
+      expect(linear.safety).toBe(base.safety);
+      expect(window.trust).toBe(base.trust);
+      // recency 权重 = 1/(1+0.5*6)=0.25 → delta 只有 plain 的 1/4.
+      expect(recency.trust).toBeCloseTo(base.trust + (plain.trust - base.trust) * 0.25, 10);
+      expect(recency.safety).toBeCloseTo(base.safety + (plain.safety - base.safety) * 0.25, 10);
     });
 
-    it('非 none 形态 + turnIndex 缺省 → 同样回退等权', () => {
+    it('非 none 形态 + turnIndex 缺省 → 算子取不到位置，回退等权', () => {
       const base = createEmptyBdiSnapshot();
 
       expect(transitionState(base, EVENTS, { timingWeight: { kind: 'recency', slope: 0.5 } })).toEqual(transitionState(base, EVENTS));
@@ -192,11 +207,13 @@ describe('D-3 · 时序权重端口骨架 (内核)', () => {
       expect(none).toEqual(plain);
     });
 
-    it('注入非 none 形态 → 本单回退等权 → 与缺省逐字相同 (骨架护栏)', async () => {
+    it('注入非 none 形态 → 曲线真实进入落库路径 (与缺省不再逐字相同)', async () => {
       const plain = await runTurns(createSession(), 2);
       const recency = await runTurns(createSession({ kind: 'recency', slope: 0.5 }), 2);
 
-      expect(recency).toEqual(plain);
+      expect(recency).not.toEqual(plain);
+      // 第 2 轮 recency 权重 = 1/(1+0.5)=0.667 → 第二轮 trust 低于等权基线.
+      expect(recency[1]?.trust).toBeLessThan(plain[1]?.trust ?? 0);
     });
 
     it('轮次号口径: 多轮推进 turnIndex 递增 (1 起, 同既有基线)', async () => {
