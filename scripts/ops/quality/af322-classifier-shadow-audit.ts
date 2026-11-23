@@ -8,6 +8,7 @@
 //   用法 (pnpm, 禁裸 npx):
 //     pnpm audit:classifier-shadow -- --rule-only
 //     pnpm audit:classifier-shadow -- --sample-per-session 3 --limit 24
+//     pnpm audit:classifier-shadow -- --rule-only --legacy   # 仅历史复现，默认 v2 与生产一致
 //
 //   ⚠️ 隐私红线 (AGENTS.md §5.4): 控制台与 JSON 只有 id / 计数 / 比率 / 标签 / 模型标识.
 
@@ -49,6 +50,7 @@ interface Options {
   readonly samplePerSession: number;
   readonly limit: number;
   readonly ruleOnly: boolean;
+  readonly legacy: boolean;
 }
 
 interface SampleTurn {
@@ -77,6 +79,7 @@ function parseOptions(argv: readonly string[]): Options {
     samplePerSession: Number.isFinite(samplePerSession) && samplePerSession > 0 ? Math.floor(samplePerSession) : 3,
     limit: Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 24,
     ruleOnly: argv.includes('--rule-only'),
+    legacy: argv.includes('--legacy'),
   };
 }
 
@@ -132,6 +135,7 @@ async function main(): Promise<void> {
   console.log(`trace 目录 ${options.dir}`);
   console.log(`目标场次 ${options.ids.length} | 每场抽样 ${options.samplePerSession} | 总调用上限 ${options.limit}`);
   console.log(`模式 ${options.ruleOnly ? 'rule_only（零模型调用）' : 'shadow（规则轨 + 模型轨）'}`);
+  console.log(`规则轨 ${options.legacy ? 'legacy（历史复现）' : 'v2（与生产一致）'}`);
 
   if (!fs.existsSync(options.dir)) {
     console.error(`目录不存在: ${options.dir}`);
@@ -151,7 +155,7 @@ async function main(): Promise<void> {
   }
   console.log(`可抽样轮 ${samples.length} | 缺失场次 ${missing.length > 0 ? missing.join('、') : '无'}`);
 
-  const rule = new RuleBasedClassifier();
+  const rule = new RuleBasedClassifier({ semantics: options.legacy ? 'legacy' : 'v2' });
   let records: ModelClassifierObservation[] = [];
   let sessions = 0;
 
