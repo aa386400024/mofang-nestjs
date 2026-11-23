@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-402",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T02:10:00+08:00",
+  "updatedAt": "2026-11-23T18:10:52.604Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-402/task-sheet.md",
+    "sha256": "91377a8454afcb9555d1e2919346e3289118da0b3dcd7b43bc4a6597c1273612",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-402/receipt-RC-AF-402-1.json",
+      "sha256": "403a6a481eb1071f4f98ec11bcbc2df134f696f05588b45a99dbb94658f3a7ca",
+      "receiptId": "RC-AF-402-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af402-debug-tts-route-prefix-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af402-debug-tts-route-prefix-2026-11-24.md"
+  ],
+  "tombstone": null
+}
