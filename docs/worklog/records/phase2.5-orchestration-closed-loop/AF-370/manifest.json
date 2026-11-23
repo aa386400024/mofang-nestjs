@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-370",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T16:30:00+08:00",
+  "updatedAt": "2026-11-23T08:17:57.093Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-370/task-sheet.md",
+    "sha256": "12ca801fd5714b74682957ff2db9e96cebc0c2040c292b8894c3ce60c418882e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-370-state-reconcile.md"
+  ],
+  "tombstone": null
+}
