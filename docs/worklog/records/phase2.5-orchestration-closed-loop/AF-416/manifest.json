@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-416",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-24T04:25:00+08:00",
+  "updatedAt": "2026-11-23T20:19:37.143Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-416/task-sheet.md",
+    "sha256": "c87c56595e493b95da9d0c156137d57ac939685bf9ebb37ec128c0b2e246caab",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af416-atomic-write-hardening-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af416-atomic-write-hardening.md"
+  ],
+  "tombstone": {
+    "reason": "scope 缺 .env.example，WP25 env 覆盖契约阻断；实现阶段不可 rescope，取消后重登 AF-417"
+  }
+}

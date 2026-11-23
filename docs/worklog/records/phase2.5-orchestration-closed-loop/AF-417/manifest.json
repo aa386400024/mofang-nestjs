@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-417",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-24T04:35:00+08:00",
+  "updatedAt": "2026-11-23T20:19:39.902Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-417/task-sheet.md",
+    "sha256": "7f70e6a542a4c63770e9b226b5436244a6f6cf115691404008168610ca17d48d",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af417-atomic-write-hardening-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af417-atomic-write-hardening.md"
+  ],
+  "tombstone": null
+}
