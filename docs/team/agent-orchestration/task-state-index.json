@@ -4,10 +4,122 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1627,
+    "lastEventSeq": 1653,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-385",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-23T12:56:33.499Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-23T13:00:06.472Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "编排状态面同步与取消任务记录补齐",
+      "type": "fix",
+      "baselineRef": "813c4cc93be88aff94a567e974378af167c2fb13",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.2.0",
+      "policyRefs": [
+        "conventions.md#1.3",
+        "agent-orchestration/README.md#强制准入"
+      ],
+      "createdAt": "2026-11-23T12:56:33.049Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "riskClass": "R1",
+      "riskRationale": "只同步编排状态面投影并补齐取消任务记录包，不改业务代码、CI 与运行逻辑。",
+      "gateProfile": "full",
+      "objective": "把 AF-384 归档后的状态面投影提交到 integrate，补齐 AF-379/AF-380/AF-381 取消记录包，并移除 AF-382 的 legacy 重复副本，使远端索引与事件链一致。",
+      "successCriteria": [
+        "远端 integrate 的 task-state-index.json 含 AF-384 completed、AF-379/AF-380/AF-381 canceled",
+        "events verify 通过且哈希链与索引投影一致",
+        "AF-379/AF-380/AF-381 任务单与 manifest 进入 records，legacy/AF-382 重复副本移除",
+        "src/engine-core 无任何改动"
+      ],
+      "outOfScope": [
+        "不改业务代码、engine-core、migration、CI workflow",
+        "不改已完成任务的交付记录与回执内容",
+        "不重放 AF-363..AF-372、AF-376 的历史归档事件",
+        "不处理 data/ 下的本地评测证据与 .tmp/ 临时文件"
+      ],
+      "references": [],
+      "priorTasks": [
+        "AF-384",
+        "AF-383"
+      ],
+      "constraints": [
+        "状态面只能经 CLI 写入",
+        "不手工修改 task-state-index.json",
+        "回执先 freeze 再 run-once",
+        "任何提交不得使用 --no-verify"
+      ],
+      "scope": {
+        "files": [
+          "docs/team/agent-orchestration/",
+          "docs/worklog/records/",
+          "docs/worklog/completed/phase2.5/",
+          "web/orchestration/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-385/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af385-orchestration-state-sync-2026-11-23.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链与索引投影一致",
+          "threshold": "PASS，哈希链一致"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "ESLint 全绿",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "TypeScript 全量类型检查通过",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量单测通过",
+          "threshold": "exit 0，0 failed"
+        }
+      ],
+      "assertions": [
+        "git diff --stat HEAD -- src/engine-core 为空",
+        "远端 task-state-index.json 中 AF-384 status=completed"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af385-orchestration-state-sync-2026-11-23.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "promotedAt": "2026-11-23T12:56:33.498Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -3170,6 +3282,60 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af378-ci-zero-cost-2026-11-23.md",
         "reply": "docs/team/agent-orchestration/transport/receipts/AF-378.json"
       }
+    },
+    {
+      "taskId": "AF-379",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-379/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af379-public-hardening-and-selfhosted-prep-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-380",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-380/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af380-public-hardening-and-selfhosted-prep-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-382",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-382/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af382-orchestrator-resource-env-bak-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-381",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-381/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af381-public-hardening-and-selfhosted-prep-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-383",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-383/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af383-orchestrator-resource-env-bak-2026-11-23.md",
+        "reply": "docs/team/agent-orchestration/transport/receipts/AF-383.json"
+      }
+    },
+    {
+      "taskId": "AF-384",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-384/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af384-public-hardening-and-selfhosted-prep-2026-11-23.md",
+        "reply": "docs/team/agent-orchestration/transport/receipts/AF-384.json"
+      }
     }
   ],
   "archivedNotes": {
@@ -3220,6 +3386,7 @@
     "AF-312": "scope 重签发 → AF-313",
     "AF-325": "scope 重签发 → AF-326",
     "AF-327": "scope 重签发 → AF-328",
-    "AF-356": "scope 重签发 → AF-357"
+    "AF-356": "scope 重签发 → AF-357",
+    "AF-381": "前置未合并且已重签 AF-384"
   }
 }
