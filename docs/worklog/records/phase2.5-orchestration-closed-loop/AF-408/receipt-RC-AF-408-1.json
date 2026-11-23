@@ -1,0 +1,175 @@
+{
+  "deliveredAt": "2026-11-24T03:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-408-1",
+    "taskId": "AF-408",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "2dbedce2bcb0a871577b50541e2feeda9f6a575b",
+    "dependsOn": [],
+    "priorTasks": ["AF-322", "AF-323", "AF-405"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-408/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af408-bdi-presence-calibration-2026-11-24.md",
+      "reply": "docs/worklog/pending/archive/relay-response-BDI-calibration-20261124-0320.md",
+      "others": [
+        "scripts/ops/quality/af408-presence-calibration.mjs",
+        "scripts/orchestration/__tests__/af408-presence-calibration.spec.mjs"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["d6090cf8"],
+      "added": [
+        "scripts/ops/quality/af408-presence-calibration.mjs",
+        "scripts/orchestration/__tests__/af408-presence-calibration.spec.mjs",
+        "docs/worklog/completed/phase2.5/af408-bdi-presence-calibration-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-408/task-sheet.md"
+      ],
+      "modified": ["scripts/ops/quality/af322-classifier-shadow-audit.ts"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/af408-presence-calibration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "10ms",
+        "note": "9 用例全绿"
+      },
+      {
+        "command": "node scripts/ops/quality/af408-presence-calibration.mjs --dir data/debug-sessions",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "13 场 / 205 轮 / 落盘 neutral-only 157；A 命中 16，AS 命中 135"
+      },
+      {
+        "command": "pnpm audit:classifier-shadow -- --rule-only --ids <13 场> --sample-per-session 20 --limit 300",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "v2 neutral 120/205=58.54%；legacy 116/205=56.59%"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；仅 pnpm node>=26 engine warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": 314,
+        "machine": "同上",
+        "wallClock": "25.38s",
+        "note": "313 passed / 1 skipped，4769 passed / 4 skipped"
+      }
+    ],
+    "reproNotes": "定向单测 → 校准脚本 → v2/legacy 影子审计 → pnpm lint → pnpm typecheck → pnpm test。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-408 贯穿任务单、回执、交付记录与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执摄入均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "事件链由 CLI 写入，归档后以 events verify 复核"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "校准脚本只输出计数与合成样例，不打印逐字稿原文"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "影子审计 v2 切换与 205 轮实测一致；MiniMax 独立评估的 119/203 与本地 120/205 可互相印证"
+    },
+    "backlogItems": [
+      {
+        "id": "AF408-B1",
+        "impact": "落盘 eventTags 是历史词表快照，当前 v2 重放相差 37/205（18.0%）；没有 classifierSemantics + 词表版本戳，所有中性率结论不可跨天比较。",
+        "layer": "framework",
+        "status": "candidate"
+      },
+      {
+        "id": "AF408-B2",
+        "impact": "A/B/C/D 结构启发式不可原样上线：A 只覆盖 16/157 neutral，AS 覆盖 135/157；B/C 各只命中 1 轮。需要 A′ 结构化维度 + 人工标注 + 对峙语料。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF408-B3",
+        "impact": "1 轮 holding_present 即可翻转 zero_motion，指标对 presence 误判是轮级敏感；未标注规则上线等于给指标装误判开关。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "校准“疑问结构 → holding_present”的覆盖率与 neutral 降幅",
+        "reality": "初版把启发式套在全部 205 轮上，得到 176–191 轮 holding 的虚高覆盖率；实际适配层只接管 neutral 轮，eligible 池是 157 轮",
+        "action": "改为按落盘 eventTags 取 neutral-only 池，并用 MiniMax 的当前 v2 重放口径交叉验证",
+        "why": "只有 neutral-only 的增量才是真实降幅；全量分母会把已判行为事件的轮次重复计入"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "影子审计口径已与生产 v2 对齐并有 205 轮实测；在场启发式得出明确的负结论与下一步收窄条件，没有改生产行为、没有碰内核。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "校准与影子审计均为本地只读重放，无上游模型计费；MiniMax 评估为只读，无代码改动。"
+  }
+}
