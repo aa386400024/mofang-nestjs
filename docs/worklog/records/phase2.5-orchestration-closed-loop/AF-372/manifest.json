@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-372",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-23T16:50:00+08:00",
+  "updatedAt": "2026-11-23T08:28:55.878Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/task-sheet.md",
+    "sha256": "761cfb5e3ce77141ec59412d1b8bc5e1a46bab47aad737148f8cb460f7632cee",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-372-ci-coverage-contexts.md"
+  ],
+  "tombstone": null
+}

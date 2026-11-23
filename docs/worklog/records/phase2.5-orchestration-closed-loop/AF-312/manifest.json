@@ -4,14 +4,14 @@
   "contextId": "phase2.5-orchestration-closed-loop",
   "status": "canceled",
   "createdAt": "2026-11-22T20:30:00+08:00",
-  "updatedAt": "2026-11-22T12:40:45.831Z",
+  "updatedAt": "2026-11-23T08:17:57.373Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-312/task-sheet.md",
     "sha256": "a05e264bdaf673de9475f81631b787a5db86c077f139c738203b1154e8216dba",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": "",
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af313-admin-debug-remote-store-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af312-admin-debug-remote-store-2026-11-22.md"
   ],
