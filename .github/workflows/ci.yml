@@ -20,13 +20,17 @@ env:
   # 任务分支不提交运行态索引；PR 上的状态面断言按解耦口径降级，integrate 推送仍全量。
   ORCH_STATE_FREE: ${{ github.event_name == 'pull_request' && '1' || '0' }}
 
+# runner 选择：仓库变量 CI_RUNNER 为空时回退 GitHub 托管 runner；
+# 私有仓切换 self-hosted 时把 CI_RUNNER 设为 mofang-ci（与 runner 标签一致）。
+# 不要在 job 内写死 ubuntu-latest，否则私有后会直接消耗 2,000 分钟额度。
+
 jobs:
   # 风险分级（框架 v2.1）：先算 riskClass 与执行面，再决定哪些重检查跑。
   # required checks 由 branch protection 声明维护；未执行项通过同名 job 的 skipped step 保持 success。
   risk-gate:
     name: Risk Gate
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     outputs:
       risk_class: ${{ steps.risk.outputs.risk_class }}
@@ -88,7 +92,7 @@ jobs:
             (github.ref == 'refs/heads/integrate' || startsWith(github.ref, 'refs/heads/task/')))
         )
       }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -173,7 +177,7 @@ jobs:
     name: Contracts (framework 2.1.0)
     needs: risk-gate
     if: needs.risk-gate.outputs.run_contracts == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     env:
       ORCH_FRAMEWORK_DIR: ${{ github.workspace }}/contracts/agent-collaboration-framework/2.1.0
@@ -234,7 +238,7 @@ jobs:
   lint-and-typecheck:
     name: Lint + Typecheck
     needs: risk-gate
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Lint skipped by risk gate
@@ -315,7 +319,7 @@ jobs:
     name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
     needs: risk-gate
     if: needs.risk-gate.outputs.run_unit == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数.
     #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
@@ -448,7 +452,7 @@ jobs:
     name: E2E
     needs: risk-gate
     if: needs.risk-gate.outputs.run_e2e == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     services:
       mysql:
@@ -542,7 +546,7 @@ jobs:
   # ============================================================
   coverage-gate:
     name: Coverage Gate
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     needs: [risk-gate, unit]
     if: ${{ always() && needs.risk-gate.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
@@ -613,7 +617,7 @@ jobs:
     name: Build (Docker)
     needs: risk-gate
     if: needs.risk-gate.outputs.run_build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -643,7 +647,7 @@ jobs:
     name: Security Audit
     needs: risk-gate
     if: needs.risk-gate.outputs.run_security == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5

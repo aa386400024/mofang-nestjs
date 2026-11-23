@@ -114,7 +114,12 @@ import {
 import { deriveCommitTrailer, withTaskTrailer } from '../commit-trailer.mjs';
 import { classifySealStatus } from '../state-seal.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
-import { evaluateRequiredChecks, findForeignCommitTaskIds, hasPassedDurableReceipt } from '../pr-release.mjs';
+import {
+  buildPullRequestCreatePayload,
+  evaluateRequiredChecks,
+  findForeignCommitTaskIds,
+  hasPassedDurableReceipt,
+} from '../pr-release.mjs';
 import {
   buildBranchName,
   validateBranchName,
@@ -4634,5 +4639,37 @@ describe('worklog 状态面解耦孤儿判定', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('AF-380 PR 生命周期与 runner 选择', () => {
+  it('create 默认 payload 是 draft，且 head/base/body 正确', () => {
+    const payload = buildPullRequestCreatePayload({
+      task: {
+        taskId: 'AF-380',
+        type: 'implementation',
+        title: '公开仓泄露面收敛与 4C8G self-hosted runner 接入准备（重签）',
+        artifacts: {
+          taskSheet: 'docs/worklog/records/ctx/AF-380/task-sheet.md',
+          deliveryRecord: 'docs/worklog/completed/phase2.5/af380.md',
+        },
+      },
+      branch: 'task/AF-380-4c8g-self-hosted-runner',
+      base: 'integrate',
+    });
+    expect(payload).toMatchObject({
+      draft: true,
+      head: 'task/AF-380-4c8g-self-hosted-runner',
+      base: 'integrate',
+      maintainer_can_modify: true,
+    });
+    expect(payload.body).toContain('AF-380');
+    expect(payload.body).toContain('docs/worklog/records/ctx/AF-380/task-sheet.md');
+  });
+
+  it('ci.yml 不再把 ubuntu-latest 写死为 runs-on，统一经 CI_RUNNER 回退', () => {
+    const ci = readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
+    expect(ci).not.toMatch(/runs-on:\s*ubuntu-latest/);
+    expect(ci.match(/runs-on:\s*\$\{\{\s*vars\.CI_RUNNER\s*\|\|\s*'ubuntu-latest'\s*\}\}/g)?.length).toBe(9);
   });
 });

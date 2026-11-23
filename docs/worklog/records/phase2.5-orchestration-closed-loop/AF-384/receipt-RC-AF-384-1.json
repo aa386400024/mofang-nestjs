@@ -1,0 +1,191 @@
+{
+  "deliveredAt": "2026-11-23T12:45:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-384-1",
+    "taskId": "AF-384",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "31eaf7d2faabcdd5957b10cfc0ee4065e795a526",
+    "dependsOn": [],
+    "priorTasks": ["AF-383", "AF-382", "AF-381", "AF-380", "AF-379"],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-384/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af384-public-hardening-and-selfhosted-prep-2026-11-23.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-384.json",
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["204b9d77e9520cac86364f28e8abe47ba3a8bac1"],
+      "added": [
+        "docs/security/secret-rotation-2026-11-23.md",
+        "docs/security/self-hosted-runner.md",
+        "docs/worklog/completed/phase2.5/af380-public-hardening-and-selfhosted-prep-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af384-public-hardening-and-selfhosted-prep-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-384/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-384/task-sheet.md"
+      ],
+      "modified": [
+        ".github/workflows/ci.yml",
+        ".gitignore",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "scripts/orchestration/pr-release.mjs"
+      ],
+      "deleted": [
+        ".env.bak.rsa-fix-2026-10-15"
+      ],
+      "deletionChecks": [
+        {
+          "file": ".env.bak.rsa-fix-2026-10-15",
+          "reason": "公开仓已跟踪的真实密钥备份，从 HEAD 移除；历史旧 blob 留待私有化窗口清理",
+          "outOfScope": false
+        }
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "local",
+        "wallClock": "2.09s",
+        "note": "272 passed / 272"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "eslint 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "tsc 0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "machine": "local",
+        "wallClock": "27.11s",
+        "note": "311 passed / 1 skipped 文件；4751 passed / 4 skipped 用例"
+      },
+      {
+        "command": "node -e vars.CI_RUNNER YAML parse",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "9 个 job 可解析；runs-on 统一经 vars.CI_RUNNER 回退；pull_request.types 含 ready_for_review"
+      },
+      {
+        "command": "git ls-files -- .env.bak*",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "输出为空"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "local",
+        "wallClock": null,
+        "note": "事件链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/pr-release.mjs merge --taskId AF-383 --apply",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "remote",
+        "wallClock": null,
+        "note": "draft PR #186 GraphQL 转 ready；20 checks pass；squash d494805a"
+      }
+    ],
+    "reproNotes": "REST 无 ready_for_review 端点，实测 POST /pulls/186/ready_for_review 返回 404；改为 POST /graphql mutation markPullRequestReadyForReview，AF-383 已实弹验证。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "任务单 scope 覆盖全部变更", "result": "pass", "note": "11 个文件均在 .github / scripts / docs/security / docs/worklog 范围内" },
+      { "item": "删除路径在资源域内", "result": "pass", "note": "AF-383 已把 .env.bak.rsa-fix-2026-10-15 加入 orchestrator resources" },
+      { "item": "PR 默认 draft", "result": "pass", "note": "create payload draft=true；merge 先 GraphQL 转 ready 再等 checks" },
+      { "item": "runner 选择统一", "result": "pass", "note": "9 个 job 全部 vars.CI_RUNNER 回退，无裸 ubuntu-latest" },
+      { "item": "密钥值零输出", "result": "pass", "note": "报告只列键名与处置动作，未打印任何值" },
+      { "item": "不重写公开历史", "result": "pass", "note": "仅删除 HEAD 文件，未 filter-repo" },
+      { "item": "engine-core 零改动", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "receipt 1.0.0 / task-sheet 1.2.0 / task-state-index 1.2.0" },
+    "backlogItems": [
+      {
+        "id": "IM-074",
+        "title": "公开仓历史密钥清理与 GitHub 安全设置落地",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "status": "candidate",
+        "relatedTask": "AF-384",
+        "evidence": "docs/security/secret-rotation-2026-11-23.md",
+        "impact": "历史 blob 仍可访问；Secret Scanning/Push Protection/fork PR 审批未实际开启",
+        "suggestion": "私有化窗口执行 filter-repo 或干净重建仓；在 GitHub 侧开启安全设置并验证"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "runbook 放 docs/runbooks/self-hosted-runner.md",
+        "reality": "docs/runbooks/ 不在 orchestrator Agent Card 的 resources 资源域，AF-379 因此被拒派发",
+        "action": "改放 docs/security/self-hosted-runner.md，并把删除路径补入资源域（AF-383）",
+        "why": "避免为单个文档扩大整个资源域，先让 runbook 落在已授权的 docs/security/"
+      },
+      {
+        "taskSays": "draft PR 转 ready 走 REST POST /pulls/{n}/ready_for_review",
+        "reality": "实测该 REST 端点返回 404；GitHub 只提供 GraphQL mutation",
+        "action": "改为 POST /graphql 的 markPullRequestReadyForReview，PR node_id 从 REST 详情取",
+        "why": "保留 draft 默认与 merge 前只跑一次全量的目标，同时不引入额外依赖"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "密钥备份已从 HEAD 移除并阻断同类文件；轮换清单与 runner 手册落盘；CI runner 变量化与 draft PR 生命周期已实弹验证；全部闸门通过，engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}

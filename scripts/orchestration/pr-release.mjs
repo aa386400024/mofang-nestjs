@@ -328,36 +328,55 @@ function pullRequestTitle(task) {
   return buildSquashCommitMessage({ taskId: task.taskId, taskType: task.type, title: task.title }).split('\n')[0];
 }
 
-async function createOrUpdatePullRequest({ repo, base, taskId, apply }) {
-  const branch = currentTaskBranch(taskId);
-  const task = taskInfo(taskId);
-  assertSingleTaskBranch({ branch, base, taskId, allowedTaskIds: task.priorTasks ?? [] });
-  if (!apply) {
-    console.log(JSON.stringify({ mode: 'dry-run', action: 'create', repo, base, branch, title: pullRequestTitle(task) }, null, 2));
-    return;
-  }
-  git(['push', '-u', 'origin', branch]);
-  const existing = await findPullRequest(repo, branch, base);
-  if (existing) {
-    console.log(`[ORCH-PR] 已存在 PR #${existing.number} ${existing.html_url} head=${existing.head.sha}`);
-    return;
-  }
+export function buildPullRequestCreatePayload({ task, branch, base }) {
   const body = [
-    `## 编排任务 ${taskId}`,
+    `## 编排任务 ${task.taskId}`,
     '',
     `- 任务单：\`${task.artifacts?.taskSheet ?? '见状态索引'}\``,
     `- 交付记录：\`${task.artifacts?.deliveryRecord ?? '验收后补齐'}\``,
     '- 合并策略：CI 与 Orchestration Gate 全绿后 squash；禁止直接推送 integrate。',
     '- L4（master / tag / release / deploy）不在本 PR 授权范围内。',
   ].join('\n');
+  return {
+    title: pullRequestTitle(task),
+    head: branch,
+    base,
+    body,
+    maintainer_can_modify: true,
+    // 默认 draft：PR 创建与后续 push 不触发全量 CI；merge 前显式转 ready 跑一次。
+    draft: true,
+  };
+}
+
+async function createOrUpdatePullRequest({ repo, base, taskId, apply }) {
+  const branch = currentTaskBranch(taskId);
+  const task = taskInfo(taskId);
+  assertSingleTaskBranch({ branch, base, taskId, allowedTaskIds: task.priorTasks ?? [] });
+  if (!apply) {
+    console.log(
+      JSON.stringify(
+        { mode: 'dry-run', action: 'create', repo, base, branch, payload: buildPullRequestCreatePayload({ task, branch, base }) },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  git(['push', '-u', 'origin', branch]);
+  const existing = await findPullRequest(repo, branch, base);
+  if (existing) {
+    console.log(`[ORCH-PR] 已存在 PR #${existing.number} ${existing.html_url} head=${existing.head.sha} draft=${existing.draft === true}`);
+    return;
+  }
+  const payload = buildPullRequestCreatePayload({ task, branch, base });
   const pr = unwrapGithub(
     await githubRequest({
       method: 'POST',
       path: `/repos/${repo}/pulls`,
-      body: { title: pullRequestTitle(task), head: branch, base, body, maintainer_can_modify: true },
+      body: payload,
     }),
   );
-  console.log(`[ORCH-PR] 已创建 PR #${pr.number} ${pr.html_url} head=${pr.head.sha}`);
+  console.log(`[ORCH-PR] 已创建 draft PR #${pr.number} ${pr.html_url} head=${pr.head.sha}`);
 }
 
 /** 仓库级 status：不在任务分支时按 branch 前缀反查，避免只能在分支内用。 */
@@ -424,6 +443,23 @@ async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, int
     throw new Error(`任务 ${taskId} 没有可合并的 durable 回执（passed，或已登记 backlog 且无人工复核项的 conditional-pass）`);
   if (!pr) throw new Error(`未找到 ${branch} → ${base} 的开放 PR`);
   if (pr.head.sha !== plan.localHead) throw new Error(`PR HEAD ${pr.head.sha} 不等于本地 HEAD ${plan.localHead}；请先推送最新状态`);
+  if (pr.draft) {
+    if (!pr.node_id) throw new Error(`draft PR #${pr.number} 缺少 node_id，无法转 ready`);
+    // REST 没有 ready_for_review 端点（实测 404）；GitHub 只提供 GraphQL mutation。
+    const ready = await githubRequest({
+      method: 'POST',
+      path: '/graphql',
+      body: {
+        query: 'mutation($id:ID!){markPullRequestReadyForReview(input:{pullRequestId:$id}){pullRequest{isDraft}}}',
+        variables: { id: pr.node_id },
+      },
+    });
+    if (!ready.ok) throw new Error(`draft PR #${pr.number} 转 ready 失败：${ready.error}`);
+    if (Array.isArray(ready.body?.errors) && ready.body.errors.length > 0) {
+      throw new Error(`draft PR #${pr.number} 转 ready 失败：${ready.body.errors.map((item) => item.message).join('；')}`);
+    }
+    console.log(`[ORCH-PR] draft PR #${pr.number} 已转 ready，等待 required checks`);
+  }
   await waitForRequiredChecks({ repo, sha: pr.head.sha, timeoutMinutes, intervalSeconds });
   const merged = unwrapGithub(
     await githubRequest({
