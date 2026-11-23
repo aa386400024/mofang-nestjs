@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-392",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-23T23:18:00+08:00",
+  "updatedAt": "2026-11-23T15:21:29.386Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-392/task-sheet.md",
+    "sha256": "a755f8afc96d25d8a523a083152f8a5f89f40ddbcf2d1fb93f9f86b157f5f9ef",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af392-crisis-risk-closing-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af392-crisis-risk-closing-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

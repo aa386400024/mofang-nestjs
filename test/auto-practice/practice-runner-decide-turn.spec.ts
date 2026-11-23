@@ -108,7 +108,7 @@ describe('AF-133 · decideTurn · 危机窗用满不再硬切（留 1 轮风险�
     expect(decisions).toEqual(['continue', 'continue', 'continue', 'continue', 'continue', 'continue']);
   });
 
-  it('legacy 档: 危机窗计数一到就结束（档案契约"危机窗 4"不变）', () => {
+  it('legacy 档: 危机窗用满后多留 1 轮风险收束（AF-392）', () => {
     const state = freshState();
     const legacyThresholds = sessionThresholdsOf(LEGACY_SESSION_PROFILE);
     decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, legacyThresholds);
@@ -116,8 +116,21 @@ describe('AF-133 · decideTurn · 危机窗用满不再硬切（留 1 轮风险�
       const decision = decideTurn({ ...TURN, turnIndex: 1 + postTurn }, state.crisisWindow, state.stagnation, legacyThresholds);
       expect(decision.kind).toBe('continue');
     }
-    const fourth = decideTurn({ ...TURN, turnIndex: 5 }, state.crisisWindow, state.stagnation, legacyThresholds);
-    expect(fourth).toEqual({ kind: 'stop', reason: 'crisis_practice_max' });
+    // postTurns = 4 = legacy 上限: 不再硬切, 下一轮必须是风险收束轮.
+    const atLimit = decideTurn({ ...TURN, turnIndex: 5 }, state.crisisWindow, state.stagnation, legacyThresholds);
+    expect(atLimit.kind).toBe('continue');
+    const closingCue = decideTurnCue({
+      turnIndex: 6,
+      maxTurns: LEGACY_SESSION_PROFILE.maxTurns,
+      crisisActive: state.crisisWindow.active,
+      crisisPostTurns: state.crisisWindow.postTurns,
+      crisisPracticeTurns: legacyThresholds.crisisPracticeTurns,
+    });
+    expect(closingCue.crisisClosing).toBe(true);
+    // 收束轮之后 (postTurns = 5) 才结束.
+    const afterClosingRound = decideTurn({ ...TURN, turnIndex: 6 }, state.crisisWindow, state.stagnation, legacyThresholds);
+    expect(afterClosingRound).toEqual({ kind: 'stop', reason: 'crisis_practice_max' });
+    expect(state.crisisWindow.postTurns).toBe(5);
   });
 });
 
@@ -521,6 +534,33 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     expect(result.exitReason).toBe('crisis_practice_max');
     expect(result.metrics.crisisPostTurns).toBe(7);
     expect(engine.turn).toHaveBeenCalledTimes(9);
+  });
+
+  it('AF-392: legacy 档危机窗用满后仍跑风险收束轮并完成五组', async () => {
+    // 第 2 轮披露危机；legacy 危机窗 4 轮用满后不应硬切，第 7 轮做风险收束。
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '今晚我一个人在家'))
+      .mockResolvedValueOnce(makeTurn(4, '试了呼吸，稍微能坐住了'))
+      .mockResolvedValueOnce(makeTurn(5, '我姐可以过来陪我'))
+      .mockResolvedValueOnce(makeTurn(6, '明天我打算去找医生聊一聊'))
+      .mockResolvedValueOnce(makeTurn(7, '那我今晚先把药收起来'))
+      .mockResolvedValueOnce(makeTurn(8, '谢谢你陪我'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 12,
+      sessionProfile: 'legacy',
+    });
+
+    const calls = counselor.generate.mock.calls;
+    expect(calls).toHaveLength(7);
+    expect(calls[6]?.[2]?.crisisClosing).toBe(true);
+    expect(result.exitReason).toBe('crisis_practice_max');
+    expect(result.crisisOutcome).toBe('safety_plan_completed');
+    expect(result.status).toBe('completed');
   });
 
   it('AF-137: 升级后先跑评估轮 + 计划轮，再以 crisis_escalated 结束', async () => {

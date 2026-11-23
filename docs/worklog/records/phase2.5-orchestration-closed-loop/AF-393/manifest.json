@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-393",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-23T23:26:00+08:00",
+  "updatedAt": "2026-11-23T15:27:13.266Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-393/task-sheet.md",
+    "sha256": "802bf4c38c0af98bef7d22047f16c76a88e3a0ed8c511839f954c47b82fc71fc",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-393/receipt-RC-AF-393-1.json",
+      "sha256": "8ca67153cc4a8c59466e05e1153900b716161ebff4151ddc6261c74834ce3883",
+      "receiptId": "RC-AF-393-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af393-crisis-risk-closing-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af393-crisis-risk-closing-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

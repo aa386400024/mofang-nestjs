@@ -219,13 +219,14 @@ describe('PracticeRunnerService', () => {
 
     expect(result.status).toBe('completed');
     expect(result.exitReason).toBe('crisis_practice_max');
-    // 危机没有终止对话: 披露后继续跑了 4 轮.
+    // 危机没有终止对话: 披露后继续跑了 4 轮；本轮已在 forcedClose 窗，收束五组已补齐。
     expect(engine.turn).toHaveBeenCalledTimes(6);
     expect(result.metrics.crisisPracticed).toBe(true);
     expect(result.metrics.crisisFirstTurn).toBe(2);
     expect(result.metrics.crisisPostTurns).toBe(4);
     expect(result.metrics.crisisPeakLevel).toBe(1);
     expect(result.crisisEnded).toBe(false);
+    expect(result.crisisOutcome).toBe('safety_plan_completed');
   });
 
   it('危机强度上升 (二次升级) → 才交回 crisis_ended', async () => {
