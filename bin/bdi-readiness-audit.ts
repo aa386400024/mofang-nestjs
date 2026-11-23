@@ -40,7 +40,7 @@ import { DEFAULT_UNDERLYING_DESIRES } from '../src/engine-core/domain/desires.js
 const KERNEL_DESIRE_KEYS = ['understood', 'accepted', 'avoid_pain', 'control'] as const;
 
 /** 审计版本（产物可追溯）. */
-const AUDIT_VERSION = 'af357-bdi-readiness-1.1.0';
+const AUDIT_VERSION = 'af358-bdi-readiness-1.2.0';
 
 /** 免责声明：工程审计，不是临床结论. */
 const DISCLAIMER = '本审计只回答"真实种子能否触发决策分支"，不代表临床有效性，也不含任何对话原文.';
@@ -65,6 +65,8 @@ interface RoleCoverage {
   readonly coveredKeys: readonly string[];
   readonly missingKeys: readonly string[];
   readonly weights: Record<string, number | undefined>;
+  /** avoid_pain 是否主导 (差值 > avoidanceMargin; 只在映射让该键首次可计算时才有意义). */
+  readonly avoidanceDominant: boolean;
   readonly mapping: { originalKey: string; coreKey: string | null; effectiveWeight: number }[];
 }
 
@@ -107,7 +109,7 @@ function buildConfigReader(): ConfigService {
 }
 
 /** 汇总角色覆盖矩阵 (映射前原始键 → 映射后内核键). */
-function buildCoverage(roles: readonly RoleSeed[]): RoleCoverage[] {
+function buildCoverage(roles: readonly RoleSeed[], avoidanceMargin: number): RoleCoverage[] {
   return roles.map((role) => {
     const desires = role.underlyingDesires ?? [];
     const mapped = mapRoleDesiresToCoreDetailed(desires);
@@ -115,6 +117,8 @@ function buildCoverage(roles: readonly RoleSeed[]): RoleCoverage[] {
     for (const desire of mapped.desires) weights[desire.key] = desire.baselineWeight;
     const coveredKeys = KERNEL_DESIRE_KEYS.filter((key) => weights[key] !== undefined);
     const missingKeys = KERNEL_DESIRE_KEYS.filter((key) => weights[key] === undefined);
+    const avoidPain = weights['avoid_pain'] ?? 0;
+    const maxPositive = Math.max(weights['understood'] ?? 0, weights['accepted'] ?? 0);
     return {
       templateId: role.templateId,
       displayName: role.displayName,
@@ -124,6 +128,7 @@ function buildCoverage(roles: readonly RoleSeed[]): RoleCoverage[] {
       coveredKeys,
       missingKeys,
       weights,
+      avoidanceDominant: avoidPain - maxPositive > avoidanceMargin,
       mapping: mapped.entries.map((entry) => ({
         originalKey: entry.originalKey,
         coreKey: entry.coreKey,
@@ -146,12 +151,18 @@ function buildReachability(
 ): StrategyReachability[] {
   const rolesWithControl = coverage.filter((role) => role.weights['control'] !== undefined);
   const rolesWithControlAboveGate = rolesWithControl.filter((role) => (role.weights['control'] ?? 0) >= planGate);
+  const avoidanceDominantRoles = coverage.filter((role) => role.avoidanceDominant);
   return [
     {
       strategy: 'recounting',
       reachable: true,
       basis: 'static',
-      reason: '默认兜底分支，任何状态都可落在这里',
+      reason:
+        avoidanceDominantRoles.length > 0
+          ? `默认兜底分支；映射让 avoid_pain 首次可计算，${avoidanceDominantRoles.length} 个角色 avoidanceDominant=true（${avoidanceDominantRoles
+              .map((role) => role.displayName)
+              .join(' / ')}），探索与后段分支被否决，这些角色恒落 recounting`
+          : '默认兜底分支，任何状态都可落在这里',
       evidence: ['src/engine-core/cognition/intention-planner.ts'],
     },
     {
@@ -189,7 +200,7 @@ function buildReachability(
       basis: 'runtime-config',
       reason:
         runtime.beliefConfig?.formationEnabled === true
-          ? '短期信念生成已开启：来访自我觉察陈述会写入 source=observed 信念，连续复述达到 reflectiveBeliefGate 后 insight 分支可判'
+          ? '短期信念生成已开启：来访自我觉察陈述会写入 source=observed 信念，同一条被展开达到 reflectiveBeliefGate 后 insight 分支可判'
           : '短期信念生成缺省关闭：生成算子已实现（来访自我觉察 → observed 信念），但未注入 beliefConfig，当前部署下 temporaryBeliefs 不会新增；开启后 insight 可判',
       evidence: [
         'src/engine-core/cognition/state-transition.ts',
@@ -235,8 +246,8 @@ function renderMarkdown(report: {
     '',
     '## 角色 × 内核四键覆盖（AF-357 显式映射后）',
     '',
-    '| 角色 | 原始键 → 内核键 | understood | accepted | avoid_pain | control | 未映射键 | 缺失键 |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| 角色 | 原始键 → 内核键 | understood | accepted | avoid_pain | control | avoidanceDominant | 未映射键 | 缺失键 |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
   );
   for (const role of report.coverage) {
     const cell = (key: string): number | string => {
@@ -246,8 +257,8 @@ function renderMarkdown(report: {
     const mapping = role.mapping.map((entry) => `${entry.originalKey}→${entry.coreKey ?? '保留'}`).join(' / ');
     lines.push(
       `| ${role.displayName} (${role.templateId}) | ${mapping === '' ? '—' : mapping} | ${cell('understood')} | ${cell('accepted')} | ${cell('avoid_pain')} | ${cell('control')} | ${
-        role.unmappedKeys.length === 0 ? '无' : role.unmappedKeys.join(' / ')
-      } | ${role.missingKeys.length === 0 ? '无' : role.missingKeys.join(' / ')} |`,
+        role.avoidanceDominant ? '是' : '否'
+      } | ${role.unmappedKeys.length === 0 ? '无' : role.unmappedKeys.join(' / ')} | ${role.missingKeys.length === 0 ? '无' : role.missingKeys.join(' / ')} |`,
     );
   }
   lines.push('', '## 机制开关', '');
@@ -285,7 +296,7 @@ function main(): void {
   const roles: readonly RoleSeed[] = [...CHARACTER_PROFILE_SEED_SPECS, ...DB_ONLY_CHARACTER_PROFILE_SEED_SPECS, ...builtinRoles];
   if (roles.length === 0) fail('没有读到任何角色种子');
 
-  const coverage = buildCoverage(roles);
+  const coverage = buildCoverage(roles, thresholds.avoidanceMargin);
   const reachability = buildReachability(coverage, runtime, thresholds.controlPlanGate);
 
   const mechanisms: Record<string, unknown> = {

@@ -669,6 +669,8 @@ export interface TransitionStateOptions {
    * 缺省 = 空串 = 不生成 (与 beliefConfig.formationEnabled=false 同效).
    */
   readonly priorVisitorText?: string;
+  /** 本轮 `priorVisitorText` 对应的来访发言序号 (缺省 = 不做序号判定; AF-358). */
+  readonly priorVisitorSeq?: number;
   /** 信念算子系数端口 (WP57; 缺省 = 内核种子值). */
   readonly beliefConfig?: BeliefOperatorConfig;
   /**
@@ -1127,11 +1129,41 @@ const BELIEF_FORMATION_RISK_TERMS = [
   '杀死',
 ] as const;
 
-/** 第三人称转述: 不是来访自己的觉察. */
-const THIRD_PERSON_REPORT = /(他|她|他们|她们|别人|对方)(说|讲|告诉|觉得|认为|表示)/;
+/** 第三人称转述: 第三方主体 + 短窗口言语动词 (AF-358 加宽).
+ *
+ * 口径: 拦的是「别人对我说什么」这类**转述**; 来访对第三方的观察
+ * ("我发现她总是这样") 仍是来访自己的知觉, 允许保留.
+ */
+const THIRD_PERSON_SUBJECT = '(他|她|他们|她们|别人|对方|朋友|同事|老师|医生|家人|父母|伴侣|妈妈|爸爸)';
+const REPORT_VERB = '(说|讲|告诉|觉得|认为|表示|提到|评价)';
+const THIRD_PERSON_REPORT = new RegExp(`${THIRD_PERSON_SUBJECT}[^，。！？]{0,4}${REPORT_VERB}`);
 
 /** 句末疑问语气: 是问句, 不是陈述. */
 const QUESTION_TAIL = /[吗么呢吧]$/;
+
+/**
+ * 句中疑问结构 (AF-358 · P0-3).
+ *
+ * 中文疑问句大量把疑问结构放在句中 ("我发现我**是不是**太敏感了" —— 句尾没有语气词),
+ * 这类自我怀疑句在咨询里高频出现, 被当成"来访已形成的自我觉察"是直接的语义错误.
+ */
+const QUESTION_STRUCTURES = ['是不是', '有没有', '会不会', '能不能', '该不该', '算不算', '为什么', '怎么办', '好不好'] as const;
+
+/**
+ * 否定词 (紧邻标记时 = 否定该标记; AF-358 · P0-2).
+ *
+ * 为什么必须**紧邻**而不是"标记前 3 字内出现":
+ *   · 中文否定句的常态是插在"我"与动词之间 ("我没有意识到" / "我好像没发现") ——
+ *     这类句子里标记"我发现"根本不连续, 会被"无标记"规则挡掉;
+ *   · 真正需要否定规则兜底的是**标记后置否定** ("我似乎没有意识到…" / "我好像没发现…"),
+ *     否定词落在标记**之后**, 前缀窗口永远看不到;
+ *   · 而"标记前 3 字内出现否定词"会误伤 ("我不知道我发现…" 里否定的是"知道", 不是"发现").
+ */
+const BELIEF_NEGATION_PREFIX_TOKENS = ['没有', '从没', '从未', '没', '不', '未'] as const;
+const BELIEF_NEGATION_SUFFIX_TOKENS = ['从来没有', '从来没', '并没有', '并没', '没有', '从未', '从没', '并不', '没', '未'] as const;
+
+/** 生成开启时保留的短期信念条数上限 (AF-358 · P1-5 隐私 / 快照体积护栏). */
+const MAX_TEMPORARY_BELIEFS = 40;
 
 /**
  * 短期信念生成结果 (纯函数, AF-357).
@@ -1147,6 +1179,7 @@ export function applyBeliefFormation(
   visitorText: string,
   config?: BeliefOperatorConfig,
   turnNumber?: number,
+  visitorSeq?: number,
 ): BdiSnapshot {
   const cfg = resolveBeliefOperatorConfig(config);
   const maxPerTurn = cfg.formationMaxPerTurn ?? DEFAULT_BELIEF_FORMATION_MAX_PER_TURN;
@@ -1154,53 +1187,126 @@ export function applyBeliefFormation(
   const candidates = extractReflectiveStatements(visitorText, cfg).slice(0, maxPerTurn);
   if (candidates.length === 0) return snapshot;
 
-  const turn = Number.isFinite(turnNumber) && (turnNumber ?? 0) >= 1 ? Math.trunc(turnNumber!) : undefined;
+  const turn = toPositiveInteger(turnNumber);
+  const seq = toPositiveInteger(visitorSeq);
   const beliefs: TemporaryBelief[] = [...snapshot.temporaryBeliefs];
+  for (const statement of candidates) applyFormationCandidate(beliefs, statement, cfg, turn, seq);
 
-  for (const statement of candidates) {
-    const key = normalizeBeliefStatement(statement);
-    const existingIndex = beliefs.findIndex((belief) => normalizeBeliefStatement(belief.statement) === key);
-    const existing = existingIndex === -1 ? undefined : beliefs[existingIndex];
+  // AF-358 · P1-5: 生成开启时才裁剪 —— 关闭时不碰既有快照, 保证逐字零回归.
+  return { ...snapshot, temporaryBeliefs: capTemporaryBeliefs(beliefs) };
+}
 
-    if (existing) {
-      const nextConfidence = clamp01(
-        Math.max(existing.confidence, cfg.formationBaseConfidence ?? DEFAULT_BELIEF_FORMATION_BASE_CONFIDENCE) +
-          (cfg.formationReinforcement ?? DEFAULT_BELIEF_FORMATION_REINFORCEMENT),
-      );
-      beliefs[existingIndex] = {
-        ...existing,
-        // 来访自己说出来了 → 即使原来是 introduced, 也升级为 observed.
-        source: 'observed',
-        confidence: nextConfidence,
-        evidenceCount: (existing.evidenceCount ?? 1) + 1,
-        firstFormedAtTurn: existing.firstFormedAtTurn ?? turn,
-        lastObservedAtTurn: turn,
-      };
-      continue;
-    }
+/** 轮次 / 序号只接受 >=1 的整数; 其余 (NaN / 小数 / 0 / 负数) 视为缺省. */
+function toPositiveInteger(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1 ? Math.trunc(value) : undefined;
+}
 
-    beliefs.push({
-      id: `belief-observed-${stableBeliefHash(key)}`,
-      statement,
-      confidence: clamp01(cfg.formationBaseConfidence ?? DEFAULT_BELIEF_FORMATION_BASE_CONFIDENCE),
-      source: 'observed',
-      evidenceCount: 1,
-      firstFormedAtTurn: turn,
+/** 把一条候选陈述并入临时信念集 (原地修改). */
+function applyFormationCandidate(
+  beliefs: TemporaryBelief[],
+  statement: string,
+  cfg: BeliefOperatorConfig,
+  turn: number | undefined,
+  seq: number | undefined,
+): void {
+  const key = normalizeBeliefStatement(statement);
+
+  // AF-358 · P1-1: 逐字复读不算强化.
+  //   复读更常见于模板化生成 (LLM 来访者) 或防御性复述 —— 临床上它指向"尚未整合",
+  //   而不是"已整合"; 只有同一条被展开 (新句包含旧句且更长) 才视为深化.
+  const exactIndex = beliefs.findIndex((belief) => normalizeBeliefStatement(belief.statement) === key);
+  if (exactIndex !== -1) {
+    const exact = beliefs[exactIndex];
+    if (!exact) return;
+    beliefs[exactIndex] = {
+      ...exact,
+      evidenceCount: exact.evidenceCount ?? 1,
       lastObservedAtTurn: turn,
-    });
+      ...(seq === undefined ? {} : { lastObservedAtVisitorSeq: seq }),
+    };
+    return;
   }
 
-  return { ...snapshot, temporaryBeliefs: beliefs };
+  const expansion = findExpansion(beliefs, key);
+  if (!expansion) {
+    beliefs.push(createFormedBelief(statement, key, cfg, turn, seq));
+    return;
+  }
+
+  const { index, existing } = expansion;
+  // AF-358 · P0-1: 同一句原话被**重复读到** (降级轮不追加来访腿) 不算新的观察.
+  const lastSeq = existing.lastObservedAtVisitorSeq;
+  if (seq !== undefined && lastSeq !== undefined && seq <= lastSeq) return;
+
+  // 递减增量: 第 n 次展开的增量按 1/n 衰减, 避免连续展开把置信度堆到 1.0.
+  const reinforcement = (cfg.formationReinforcement ?? DEFAULT_BELIEF_FORMATION_REINFORCEMENT) / Math.max(1, existing.evidenceCount ?? 1);
+  const base = cfg.formationBaseConfidence ?? DEFAULT_BELIEF_FORMATION_BASE_CONFIDENCE;
+  beliefs[index] = {
+    ...existing,
+    // 展开后用更具体的那句; 来访自己说出来 → 即使原来是 introduced, 也升级为 observed.
+    statement,
+    source: 'observed',
+    confidence: clamp01(Math.max(existing.confidence, base) + reinforcement),
+    evidenceCount: (existing.evidenceCount ?? 1) + 1,
+    firstFormedAtTurn: existing.firstFormedAtTurn ?? turn,
+    lastObservedAtTurn: turn,
+    ...(seq === undefined ? {} : { lastObservedAtVisitorSeq: seq }),
+  };
+}
+
+/** 同一条的**展开**: 新句包含旧句且更长 → 这才是支持整合的证据; 取最长匹配旧句. */
+function findExpansion(
+  beliefs: readonly TemporaryBelief[],
+  key: string,
+): { readonly index: number; readonly existing: TemporaryBelief } | undefined {
+  let bestIndex = -1;
+  let bestLength = 0;
+  for (const [index, belief] of beliefs.entries()) {
+    const candidateKey = normalizeBeliefStatement(belief.statement);
+    if (candidateKey.length === 0 || candidateKey.length >= key.length) continue;
+    if (!key.includes(candidateKey) || candidateKey.length <= bestLength) continue;
+    bestIndex = index;
+    bestLength = candidateKey.length;
+  }
+  if (bestIndex === -1) return undefined;
+  const existing = beliefs[bestIndex];
+  return existing ? { index: bestIndex, existing } : undefined;
+}
+
+/** 新形成的短期信念 (source=observed; 只从来访原话来). */
+function createFormedBelief(
+  statement: string,
+  key: string,
+  cfg: BeliefOperatorConfig,
+  turn: number | undefined,
+  seq: number | undefined,
+): TemporaryBelief {
+  return {
+    id: `belief-observed-${stableBeliefHash(key)}`,
+    statement,
+    confidence: clamp01(cfg.formationBaseConfidence ?? DEFAULT_BELIEF_FORMATION_BASE_CONFIDENCE),
+    source: 'observed',
+    evidenceCount: 1,
+    firstFormedAtTurn: turn,
+    lastObservedAtTurn: turn,
+    ...(seq === undefined ? {} : { lastObservedAtVisitorSeq: seq }),
+  };
+}
+
+/** 按置信度保留高价值条目, 其余丢弃 (只在上限溢出时换新数组). */
+function capTemporaryBeliefs(beliefs: readonly TemporaryBelief[]): TemporaryBelief[] {
+  if (beliefs.length <= MAX_TEMPORARY_BELIEFS) return [...beliefs];
+  return beliefs.toSorted((a, b) => b.confidence - a.confidence).slice(0, MAX_TEMPORARY_BELIEFS);
 }
 
 /**
  * 从来访原话中提取第一人称自我觉察陈述 (纯函数).
  *
  * 规则:
- *   1. 按句号 / 问号 / 感叹号 / 分号 / 换行切句; 只在单句内找标记, 不跨句拼接;
+ *   1. 按句号 / 问号 / 感叹号 / 分号 / 逗号 / 省略号 / 换行切句; 只在单句内找标记, 不跨句拼接;
  *   2. 句内必须含“我”, 且含一个自我觉察标记;
- *   3. 标记前 3 字内出现否定词 → 不是觉察 (“我没发现…”);
- *   4. 问句 / 第三人称转述 / 危机词表 → 排除;
+ *   3. 否定词**紧邻**标记 (前后任一侧) → 不是觉察 (“我似乎没有意识到…”);
+ *   4. 问句 (句尾语气词或句中疑问结构) / 第三人称转述 / 危机词表 → 排除;
  *   5. 去标点后长度落在 [formationMinChars, formationMaxChars];
  *   6. 同一文本内重复候选只保留第一条.
  *
@@ -1218,28 +1324,66 @@ export function extractReflectiveStatements(visitorText: string, config?: Belief
   const seen = new Set<string>();
   const result: string[] = [];
 
-  for (const rawClause of text.split(/[\n。！？!?；;]+/)) {
-    const clause = rawClause.trim().replaceAll(/\s+/g, ' ');
-    if (clause.length === 0) continue;
-    if (!clause.includes('我')) continue;
-    if (THIRD_PERSON_REPORT.test(clause)) continue;
-    if (QUESTION_TAIL.test(clause)) continue;
-    if (BELIEF_FORMATION_RISK_TERMS.some((term) => clause.includes(term))) continue;
-
-    const marker = SELF_REFLECTION_MARKERS.find((item) => clause.includes(item));
-    if (!marker) continue;
-
-    const markerIndex = clause.indexOf(marker);
-    const prefix = clause.slice(Math.max(0, markerIndex - 3), markerIndex);
-    if (/没|没有|不|未/.test(prefix)) continue;
-
-    const normalized = normalizeBeliefStatement(clause);
-    if (normalized.length < minChars || normalized.length > maxChars) continue;
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    result.push(clause);
+  for (const rawClause of text.split(/[\n。！？!?；;…．]+/)) {
+    for (const clause of splitByContinuationComma(rawClause)) {
+      const cleaned = clause.trim().replaceAll(/\s+/g, ' ');
+      if (!isReflectiveClause(cleaned, minChars, maxChars)) continue;
+      const normalized = normalizeBeliefStatement(cleaned);
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      result.push(cleaned);
+    }
   }
 
+  return result;
+}
+
+/** 单句判定: 第一人称 + 自我觉察标记 + 非否定 / 非问句 / 非转述 / 非危机 + 长度区间. */
+function isReflectiveClause(clause: string, minChars: number, maxChars: number): boolean {
+  if (clause.length === 0 || !clause.includes('我')) return false;
+  if (THIRD_PERSON_REPORT.test(clause) || QUESTION_TAIL.test(clause)) return false;
+  if (QUESTION_STRUCTURES.some((structure) => clause.includes(structure))) return false;
+  if (BELIEF_FORMATION_RISK_TERMS.some((term) => clause.includes(term))) return false;
+
+  const marker = SELF_REFLECTION_MARKERS.find((item) => clause.includes(item));
+  if (!marker) return false;
+
+  const markerIndex = clause.indexOf(marker);
+  const prefix = clause.slice(0, markerIndex);
+  if (BELIEF_NEGATION_PREFIX_TOKENS.some((token) => prefix.endsWith(token))) return false;
+  // 标记**紧邻**否定词 → 否定的是该标记本身 ("我似乎没有意识到…").
+  //   只查紧邻, 不查整句: "我发现我并不开心" 里否定的是"不开心", 不是"发现", 应保留.
+  const suffix = clause.slice(markerIndex + marker.length);
+  if (BELIEF_NEGATION_SUFFIX_TOKENS.some((token) => suffix.startsWith(token))) return false;
+
+  const normalizedLength = normalizeBeliefStatement(clause).length;
+  return normalizedLength >= minChars && normalizedLength <= maxChars;
+}
+
+/**
+ * 逗号只在“后半句又是一个新的自我觉察”时切分 (AF-358 · P2-9 的保守实现).
+ *
+ * 为什么不无条件按逗号切:
+ *   "我意识到我一直在讨好别人，怕被抛弃" 的后半句是同一条觉察的**展开**;
+ *   无条件切会把展开切断, 让 P1-1 的"只认展开"永远没有输入.
+ *   而 "我意识到A，我发现B" 这类并列觉察仍应拆成两条, 否则后半条会被并进同一条.
+ */
+function splitByContinuationComma(rawClause: string): string[] {
+  if (!/[，,、]/.test(rawClause)) return [rawClause];
+  const parts = rawClause.split(/[，,、]/);
+  const result: string[] = [];
+  let buffer = parts[0] ?? '';
+  for (let index = 1; index < parts.length; index += 1) {
+    const part = parts[index] ?? '';
+    const startsNewReflection = SELF_REFLECTION_MARKERS.some((marker) => part.includes(marker));
+    if (startsNewReflection) {
+      result.push(buffer);
+      buffer = part;
+    } else {
+      buffer = `${buffer}，${part}`;
+    }
+  }
+  result.push(buffer);
   return result;
 }
 
@@ -1248,11 +1392,11 @@ export function normalizeBeliefStatement(statement: string): string {
   return statement.replaceAll(/[\s\p{P}]/gu, '').toLowerCase();
 }
 
-/** FNV-1a 32 位稳定 hash (纯函数; 不引第三方库). */
+/** FNV-1a 32 位稳定 hash (纯函数; 不引第三方库; 按码点遍历, 代理对不被拆开). */
 function stableBeliefHash(input: string): string {
   let hash = 2_166_136_261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.codePointAt(index) ?? 0;
+  for (const character of input) {
+    hash ^= character.codePointAt(0) ?? 0;
     hash = Math.imul(hash, 16_777_619) >>> 0;
   }
   return hash.toString(36);
@@ -1275,11 +1419,11 @@ export function applyBeliefEvolution(
   snapshot: BdiSnapshot,
   counselorText: string,
   config?: BeliefOperatorConfig,
-  formation?: { readonly visitorText?: string; readonly turnNumber?: number },
+  formation?: { readonly visitorText?: string; readonly turnNumber?: number; readonly visitorSeq?: number },
 ): BdiSnapshot {
   const decayed = applyTemporaryBeliefDecay(applyBeliefActivationDelta(snapshot, counselorText, config), config);
   if (!formation?.visitorText) return decayed;
-  return applyBeliefFormation(decayed, formation.visitorText, config, formation.turnNumber);
+  return applyBeliefFormation(decayed, formation.visitorText, config, formation.turnNumber, formation.visitorSeq);
 }
 
 /**
@@ -1316,6 +1460,7 @@ export function transitionState(snapshot: BdiSnapshot, events: readonly SessionE
   return applyBeliefEvolution(applyDeltaVector(snapshot, delta), options?.counselorText ?? '', options?.beliefConfig, {
     visitorText: options?.priorVisitorText,
     turnNumber: options?.turnIndex,
+    visitorSeq: options?.priorVisitorSeq,
   });
 }
 
@@ -1344,6 +1489,7 @@ export function transitionStateDetailed(
   const next = applyBeliefEvolution(applyDeltaVector(snapshot, delta), options?.counselorText ?? '', options?.beliefConfig, {
     visitorText: options?.priorVisitorText,
     turnNumber: options?.turnIndex,
+    visitorSeq: options?.priorVisitorSeq,
   });
   return { snapshot: next, capped: report };
 }

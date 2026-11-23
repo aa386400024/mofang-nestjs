@@ -100,6 +100,16 @@ export interface UnderlyingDesireSeed {
   readonly key: string;
   readonly label: string;
   readonly baselineWeight: number;
+  /**
+   * 映射前的角色级愿望键 (AF-358 · P1-2).
+   *
+   * 多个角色级愿望落到同一内核键时, 内核只取最大权重一条; 来源键与标签
+   * 保留在这里, 供审计 / 督导追溯, 不让次级诉求从数据面消失.
+   * 缺省 = 该条目本身就是内核键 (或旧数据), 没有来源可追溯.
+   */
+  readonly sourceKeys?: readonly string[];
+  /** 映射前的角色级愿望标签 (与 sourceKeys 一一对应). */
+  readonly sourceLabels?: readonly string[];
 }
 
 /** 角色内核: 由 adapter 解析后经 openSession.characterProfile 注入. */

@@ -509,6 +509,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
       counselorText: userText,
       // AF-357: 短期信念生成源 = 上一轮来访真实发言; 与落库路径同一份.
       priorVisitorText: input.priorVisitorText,
+      // AF-358: 同一条被重复读到不重复计分 —— 序号与文本同源透传.
+      priorVisitorSeq: input.priorVisitorSeq,
       beliefConfig: this.beliefConfig,
       // D-3: 时序权重端口 —— 轮次号 **1 起** (同 `MatchContext` 口径: runtime.turnIndex + 1),
       //   权重配置走构造注入 (缺省 = 不折损, delta 逐字不变).
@@ -553,6 +555,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     const baseNextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, weightedFinalDelta), userText, this.beliefConfig, {
       visitorText: input.priorVisitorText,
       turnNumber: runtime.turnIndex + 1,
+      visitorSeq: input.priorVisitorSeq,
     });
     const nextSnapshot = this.finalizeSnapshotForTurn(baseNextSnapshot, events, intention.strategy, runtime.turnIndex + 1);
     //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".

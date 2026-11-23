@@ -71,6 +71,31 @@ export type BdiBeliefConfig = NonNullable<EngineSessionOptions['beliefConfig']>;
 export type BdiRuntimeWarn = (message: string) => void;
 
 /**
+ * 信念生成种子与 intent 门槛的交叉校验 (AF-358 · P1-3).
+ *
+ * 两把尺子互不相关: BASE_CONFIDENCE 决定首句强度, reflectiveBeliefGate 决定
+ * 何时进入 insight. 配成 base >= gate 会让**一句**自我觉察就越过门槛;
+ * 配成 base + reinforcement <= gate 会让"展开一次"也过不去. 两种都不报错,
+ * 只会静默改变策略分布 —— 在装配期喊出来.
+ *
+ * @returns 告警文案 (空数组 = 配置自洽或机制未开启)
+ */
+export function describeBeliefGateCoupling(belief: Partial<BdiBeliefConfig> | undefined, gate: number): string[] {
+  if (!belief?.formationEnabled) return [];
+  const base = belief.formationBaseConfidence ?? BELIEF_FORMATION_DEFAULTS.formationBaseConfidence;
+  const reinforcement = belief.formationReinforcement ?? BELIEF_FORMATION_DEFAULTS.formationReinforcement;
+  if (base >= gate) {
+    return [`[af358] 短期信念生成 base(${base}) >= reflectiveBeliefGate(${gate}) —— 一句自我觉察即可越过门槛, 请确认这是有意配置`];
+  }
+  if (base + reinforcement <= gate) {
+    return [
+      `[af358] 短期信念生成 base(${base}) + reinforcement(${reinforcement}) <= reflectiveBeliefGate(${gate}) —— 即使同一条被展开一次也过不了门槛, 请确认这是有意配置`,
+    ];
+  }
+  return [];
+}
+
+/**
  * 装配结果（三项都可缺省）.
  *
  * 缺省字段 = 不注入内核 = 内核根本不走那一步（逐字零回归）.

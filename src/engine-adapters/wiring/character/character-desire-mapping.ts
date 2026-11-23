@@ -128,8 +128,24 @@ export function mapRoleDesiresToCoreDetailed(desires: readonly UnderlyingDesireS
     }
 
     const current = merged.get(coreKey);
-    if (!current || desire.baselineWeight > current.baselineWeight) {
-      merged.set(coreKey, { key: coreKey, label: desire.label, baselineWeight: desire.baselineWeight });
+    if (current) {
+      // 同一内核键出现多次: 权重取最大 (不求和), 但来源键与标签全部保留 ——
+      //   合并是投影, 不是删除; 督导视图要能看到被合并掉的次级诉求.
+      merged.set(coreKey, {
+        ...current,
+        ...(desire.baselineWeight > current.baselineWeight ? { label: desire.label, baselineWeight: desire.baselineWeight } : {}),
+        sourceKeys: [...new Set([...(current.sourceKeys ?? [coreKey]), desire.key])],
+        sourceLabels: [...new Set([...(current.sourceLabels ?? [current.label]), desire.label])],
+      });
+    } else {
+      // AF-358 · P1-2: 只有"角色键 ≠ 内核键"时才需要来源字段 —— 直接命中的内核键
+      //   本身就是唯一真相, 不额外制造可空字段. 已经带来源的映射结果再映射时必须原样保留 (幂等).
+      merged.set(coreKey, {
+        key: coreKey,
+        label: desire.label,
+        baselineWeight: desire.baselineWeight,
+        ...provenanceFor(desire, coreKey),
+      });
     }
     candidates.push({ originalKey: desire.key, coreKey, baselineWeight: desire.baselineWeight });
   }
@@ -149,4 +165,13 @@ export function mapRoleDesiresToCoreDetailed(desires: readonly UnderlyingDesireS
     entries,
     unmapped,
   };
+}
+
+/** 首次映射时的来源字段: 已带来源 → 原样继承 (幂等); 直接命中内核键 → 不造冗余字段. */
+function provenanceFor(desire: UnderlyingDesireSeed, coreKey: CoreDesireKey): Pick<UnderlyingDesireSeed, 'sourceKeys' | 'sourceLabels'> {
+  if (desire.sourceKeys) {
+    return { sourceKeys: [...desire.sourceKeys], sourceLabels: [...(desire.sourceLabels ?? [desire.label])] };
+  }
+  if (desire.key === coreKey) return {};
+  return { sourceKeys: [desire.key], sourceLabels: [desire.label] };
 }

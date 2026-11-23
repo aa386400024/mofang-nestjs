@@ -12,7 +12,11 @@
 import type { ConfigService } from '@nestjs/config';
 import { describe, expect, it } from 'vitest';
 
-import { resolveBdiRuntimeConfig, resolveBdiRuntimeConfigFromEnv } from '../../src/engine-adapters/wiring/bdi-runtime.config.js';
+import {
+  resolveBdiRuntimeConfig,
+  resolveBdiRuntimeConfigFromEnv,
+  describeBeliefGateCoupling,
+} from '../../src/engine-adapters/wiring/bdi-runtime.config.js';
 import {
   DEFAULT_BELIEF_FORMATION_BASE_CONFIDENCE,
   DEFAULT_BELIEF_FORMATION_MAX_CHARS,
@@ -130,6 +134,36 @@ describe('AF-357 · ③ 非法值逐项回退', () => {
     );
     expect(result.beliefConfig?.formationMaxPerTurn).toBe(0);
     expect(warnings).toHaveLength(0);
+  });
+});
+
+describe('AF-358 · ⑤ 种子与门槛交叉校验', () => {
+  const ON_BELIEF = { formationEnabled: true, formationBaseConfidence: 0.6, formationReinforcement: 0.1 };
+
+  it('未开启 → 不校验、不告警', () => {
+    expect(describeBeliefGateCoupling({ ...ON_BELIEF, formationEnabled: false }, 0.6)).toEqual([]);
+    expect(describeBeliefGateCoupling(undefined, 0.6)).toEqual([]);
+  });
+
+  it('base >= gate → 告警（一句即过门槛）', () => {
+    const warnings = describeBeliefGateCoupling(ON_BELIEF, 0.6);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('一句自我觉察即可越过门槛');
+  });
+
+  it('base + reinforcement <= gate → 告警（展开一次也过不去）', () => {
+    const warnings = describeBeliefGateCoupling(
+      { formationEnabled: true, formationBaseConfidence: 0.3, formationReinforcement: 0.05 },
+      0.6,
+    );
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('展开一次也过不了门槛');
+  });
+
+  it('自洽配置 → 不告警', () => {
+    expect(describeBeliefGateCoupling({ formationEnabled: true, formationBaseConfidence: 0.55, formationReinforcement: 0.1 }, 0.6)).toEqual(
+      [],
+    );
   });
 });
 

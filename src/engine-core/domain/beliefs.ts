@@ -41,6 +41,13 @@ export interface TemporaryBelief {
   readonly firstFormedAtTurn?: number;
   /** 最近一次被观察到的轮次 (1 起; 旧快照缺省). */
   readonly lastObservedAtTurn?: number;
+  /**
+   * 最近一次被观察到的**来访发言序号** (1 起; 旧快照缺省, AF-358).
+   *
+   * 为什么需要: 渲染降级轮不追加来访腿, 同一句原话会被连续多轮读到.
+   * 只有序号严格变大才算一次新的观察 —— 同一条被重复读到不重复计分.
+   */
+  readonly lastObservedAtVisitorSeq?: number;
 }
 
 /** 记忆信念: 长时召回用, 带时效. 本期仅类型占位, 召回属 WP2. */

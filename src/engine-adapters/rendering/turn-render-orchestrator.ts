@@ -598,6 +598,15 @@ export class TurnRenderOrchestrator {
   /** 每个句柄的最近对话序列 (旧 → 新). */
   private readonly histories = new Map<string, RenderContextTurn[]>();
   /**
+   * 每个句柄**最近一条真实来访发言**及其序号 (1 起, 会话内单调递增; AF-358).
+   *
+   * 为什么需要: 降级渲染轮**不追加来访腿** (兜底句不是来访真说的话), 于是
+   *   history 里最近一条来访发言在连续几个降级轮里是**同一句**. 若内核按
+   *   "读到一次 = 观察一次"计分, 一句原话就能把置信度顶过 reflectiveBeliefGate,
+   *   凭空造出"整合领悟". 有了序号, 内核能分清"来访真的又说了一遍"与"同一条被重复读到".
+   */
+  private readonly lastVisitorLegByHandle = new Map<string, { readonly seq: number; readonly text: string }>();
+  /**
    * 每个句柄**上一轮结束时的** BDI 快照 (V2026-11-05 WP64 · 影子审议用).
    *
    * 为什么门面要自己记一份:
@@ -783,6 +792,8 @@ export class TurnRenderOrchestrator {
    */
   forgetSession(handleId: string): void {
     this.histories.delete(handleId);
+    // AF-358: 来访序号与 history 同生命周期 —— 一起清, 不留跨场残留.
+    this.lastVisitorLegByHandle.delete(handleId);
     // WP64: 影子审议的“上一轮快照”与历史同生命周期 —— 一起清, 不留残留.
     this.lastSnapshots.delete(handleId);
     // D-1 第二段: 模型轨的跨轮状态**同生命周期** —— 一起清, 不留跨场残留 (风险 O).
@@ -833,7 +844,14 @@ export class TurnRenderOrchestrator {
   private withPriorVisitorText(handleId: string, input: EngineTurnInput): EngineTurnInput {
     const priorVisitorText = this.lastVisitorText(handleId);
     if (!priorVisitorText) return input;
-    return { ...input, priorVisitorText };
+    const leg = this.lastVisitorLegByHandle.get(handleId);
+    // AF-358: 同一条被重复读到 → 序号不变 → 内核不重复计分;
+    //   与登记腿不一致 (恢复会话等) → 自愈成新序号, 不让内核拿到脏序号.
+    const seq = leg && leg.text === priorVisitorText ? leg.seq : (leg?.seq ?? 0) + 1;
+    if (!leg || leg.text !== priorVisitorText) {
+      this.lastVisitorLegByHandle.set(handleId, { seq, text: priorVisitorText });
+    }
+    return { ...input, priorVisitorText, priorVisitorSeq: seq };
   }
 
   /**
@@ -871,6 +889,15 @@ export class TurnRenderOrchestrator {
    */
   restoreHistory(handleId: string, turns: readonly RenderContextTurn[]): void {
     this.setHistory(handleId, turns);
+    // AF-358: 恢复历史后重建来访序号 —— 否则下一条真实发言会从 0 重新计数,
+    //   与内核已记住的 lastObservedAtVisitorSeq 形成脏比较.
+    const visitorTurns = turns.filter((turn) => turn.role === 'visitor');
+    const lastVisitor = visitorTurns.at(-1);
+    if (lastVisitor) {
+      this.lastVisitorLegByHandle.set(handleId, { seq: visitorTurns.length, text: lastVisitor.text });
+    } else {
+      this.lastVisitorLegByHandle.delete(handleId);
+    }
   }
 
   /**
@@ -1361,6 +1388,10 @@ export class TurnRenderOrchestrator {
     const next: RenderContextTurn[] = [...history, { role: 'counselor', text: counselorText }];
     if (!rendered.degraded) {
       next.push({ role: 'visitor', text: rendered.text });
+      // AF-358: 真实来访发言才占一个序号 (降级轮不占) —— 内核据此区分
+      //   "来访又说了一遍" 与 "同一条被重复读到".
+      const prev = this.lastVisitorLegByHandle.get(handleId);
+      this.lastVisitorLegByHandle.set(handleId, { seq: (prev?.seq ?? 0) + 1, text: rendered.text });
     }
     this.setHistory(handleId, next);
 

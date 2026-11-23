@@ -99,13 +99,23 @@ describe('AF-357 · ② 合法自我觉察生成', () => {
     const after = applyBeliefFormation(snap(), text, ON, 4);
     expect(after.temporaryBeliefs).toHaveLength(DEFAULT_BELIEF_FORMATION_MAX_PER_TURN);
   });
+
+  it('生成开启时临时信念最多保留 40 条（按置信度留高价值条目）', () => {
+    const text = Array.from({ length: 50 }, (_, index) => `我意识到我一直在讨好别人第${index}次`).join('；');
+    const after = applyBeliefFormation(snap(), text, { ...ON, formationMaxPerTurn: 50 }, 4);
+    expect(after.temporaryBeliefs).toHaveLength(40);
+    for (const item of after.temporaryBeliefs) expect(item.confidence).toBeGreaterThan(0);
+  });
 });
 
 describe('AF-357 · ③ 过滤规则', () => {
   const cases: { readonly name: string; readonly text: string }[] = [
     { name: '问句', text: '我意识到我一直在讨好别人吗' },
     { name: '第三人称转述', text: '我意识到他说我一直在讨好别人' },
-    { name: '否定式', text: '我并未发现我一直在讨好别人' },
+    { name: '否定式（标记后置否定）', text: '我似乎没有意识到我很容易焦虑' },
+    { name: '否定式（标记后置否定）', text: '我好像没发现自己很生气' },
+    { name: '句中疑问结构', text: '我发现我是不是太敏感了' },
+    { name: '第三方转述', text: '我发现我朋友说我一直在讨好别人' },
     { name: '危机词', text: '我意识到我想死' },
     { name: '过短', text: '我发现我累' },
     { name: '过长', text: `我发现${'我'.repeat(100)}` },
@@ -128,38 +138,57 @@ describe('AF-357 · ③ 过滤规则', () => {
     const text = '我意识到我一直在讨好别人';
     expect(extractReflectiveStatements(text, ON)).toEqual([text]);
   });
+
+  it('否定宾语不是否定标记 → 仍可提取', () => {
+    expect(extractReflectiveStatements('我发现我并不开心', ON)).toEqual(['我发现我并不开心']);
+  });
+
+  it('来访对第三方的观察不是转述 → 保留', () => {
+    expect(extractReflectiveStatements('我发现她总是这样', ON)).toEqual(['我发现她总是这样']);
+  });
 });
 
-describe('AF-357 · ④ 重复强化与来源升级', () => {
-  it('重复出现同一条 → 置信度按 base 抬底后再 +reinforcement、evidenceCount+1、lastObservedAtTurn 更新', () => {
+describe('AF-357 · ④ 复读不强化、展开才强化（AF-358 语义）', () => {
+  it('逐字复读 → 置信度与证据计数不动，只刷新最近观察轮次', () => {
     const before = snap({
       temporaryBeliefs: [belief({ confidence: 0.5, evidenceCount: 1, firstFormedAtTurn: 2, lastObservedAtTurn: 2 })],
     });
     const after = applyBeliefFormation(before, '我意识到我一直在讨好别人。', ON, 6);
     const item = after.temporaryBeliefs[0];
-    expect(item.confidence).toBeCloseTo(0.65, 6);
-    expect(item.evidenceCount).toBe(2);
+    expect(item.confidence).toBeCloseTo(0.5, 6);
+    expect(item.evidenceCount).toBe(1);
     expect(item.firstFormedAtTurn).toBe(2);
     expect(item.lastObservedAtTurn).toBe(6);
   });
 
-  it('已有高置信度 → 取 max(existing, base)+reinforcement，不被种子压低', () => {
+  it('同一条被展开（新句包含旧句且更长）→ 置信度递增、证据计数+1、陈述更新为更具体那句', () => {
+    const before = snap({
+      temporaryBeliefs: [belief({ confidence: 0.55, evidenceCount: 1, statement: '我意识到我一直在讨好别人' })],
+    });
+    const after = applyBeliefFormation(before, '我意识到我一直在讨好别人，怕被抛弃。', ON, 6);
+    const item = after.temporaryBeliefs[0];
+    expect(item.confidence).toBeCloseTo(0.65, 6);
+    expect(item.evidenceCount).toBe(2);
+    expect(item.statement).toBe('我意识到我一直在讨好别人，怕被抛弃');
+  });
+
+  it('已有高置信度 → 展开时取 max(existing, base)+递减增量', () => {
     const before = snap({ temporaryBeliefs: [belief({ confidence: 0.85 })] });
-    const after = applyBeliefFormation(before, '我意识到我一直在讨好别人。', ON, 4);
+    const after = applyBeliefFormation(before, '我意识到我一直在讨好别人，怕被抛弃。', ON, 4);
     expect(after.temporaryBeliefs[0].confidence).toBeCloseTo(0.95, 6);
   });
 
-  it('introduced 被来访自己说出来 → 升级 observed', () => {
+  it('introduced 被逐字复读 → 不升级 observed（复读不构成独立观察）', () => {
     const before = snap({ temporaryBeliefs: [belief({ source: 'introduced', confidence: 0.3 })] });
     const after = applyBeliefFormation(before, '我意识到我一直在讨好别人。', ON, 4);
-    expect(after.temporaryBeliefs[0].source).toBe('observed');
+    expect(after.temporaryBeliefs[0].source).toBe('introduced');
   });
 
-  it('规范化后相同（标点/空白差异）也视为同一条', () => {
+  it('规范化后相同（标点/空白差异）视为逐字复读，不增加证据计数', () => {
     const before = snap({ temporaryBeliefs: [belief({ statement: '我意识到  我一直在讨好别人！' })] });
     const after = applyBeliefFormation(before, '我意识到我一直在讨好别人。', ON, 4);
     expect(after.temporaryBeliefs).toHaveLength(1);
-    expect(after.temporaryBeliefs[0].evidenceCount).toBe(2);
+    expect(after.temporaryBeliefs[0].evidenceCount).toBe(1);
     expect(normalizeBeliefStatement('我意识到  我一直在讨好别人！')).toBe(normalizeBeliefStatement('我意识到我一直在讨好别人'));
   });
 });
@@ -197,15 +226,15 @@ describe('AF-357 · ⑤ 演化顺序', () => {
     expect(after.temporaryBeliefs[0].evidenceCount).toBe(1);
   });
 
-  it('同一条自我觉察重复两次 → 置信度过 reflectiveBeliefGate，第 12 轮 insight 分支可达', () => {
+  it('同一条自我觉察被展开一次 → 置信度过 reflectiveBeliefGate，第 8 轮 insight 分支可达', () => {
     let snapshot = snap({ trust: 0.8, safety: 0.8, bond: 0.7, resistance: { verbal: 0.1, depth: 0.1, style: 0.1 } });
     snapshot = applyBeliefFormation(snapshot, '我意识到我一直在讨好别人。', ON, 4);
-    snapshot = applyBeliefFormation(snapshot, '我意识到我一直在讨好别人。', ON, 5);
+    snapshot = applyBeliefFormation(snapshot, '我意识到我一直在讨好别人，怕被抛弃。', ON, 5);
 
     const item = snapshot.temporaryBeliefs[0];
     expect(item.confidence).toBeCloseTo(0.65, 6);
 
-    const intention = planIntention(snapshot, undefined, undefined, { turnNumber: 12 });
+    const intention = planIntention(snapshot, undefined, undefined, { turnNumber: 8 });
     expect(intention.strategy).toBe('insight');
   });
 });
