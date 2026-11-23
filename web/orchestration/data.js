@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-23T19:44:34.448Z",
+  "generatedAt": "2026-11-23T19:57:51.806Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1787,6 +1787,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-251",
+      "recordedAt": "2026-11-23T19:52:48.484Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-414",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-414-atomic-write-retry"
+      ]
+    },
+    {
+      "auditId": "AUD-250",
+      "recordedAt": "2026-11-23T19:52:40.103Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-414",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-414",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-414.json"
+      ]
+    },
+    {
+      "auditId": "AUD-249",
+      "recordedAt": "2026-11-23T19:52:17.668Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-413",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-248",
       "recordedAt": "2026-11-23T19:39:49.687Z",
       "actorRef": "orchestrator",
@@ -1973,67 +2020,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-236",
-      "recordedAt": "2026-11-23T18:50:49.216Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-406",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-406-commit-compliance"
-      ]
-    },
-    {
-      "auditId": "AUD-235",
-      "recordedAt": "2026-11-23T18:50:41.213Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-406",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-406",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-406.json"
-      ]
-    },
-    {
-      "auditId": "AUD-234",
-      "recordedAt": "2026-11-23T18:50:29.416Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-406",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 248,
+    "total": 251,
     "byResult": {
-      "allowed": 248,
+      "allowed": 251,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 247,
+      "TOOL-QUEUE-SCHEDULER": 250,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 248
+      "orchestrator": 251
     }
   },
   "protocolView": {
@@ -8817,6 +8817,42 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af410-presence-false-positive-impact-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-413",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-413/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af413-atomic-write-retry-2026-11-24.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-414",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-414/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af414-atomic-write-retry-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -8841,5 +8877,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 385
+  "archivedCount": 387
 };
