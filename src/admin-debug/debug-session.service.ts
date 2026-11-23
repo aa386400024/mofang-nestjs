@@ -107,6 +107,7 @@ import {
   resolveDeliberationEnabled,
   type DeliberationTraceRecord,
 } from '../engine-adapters/deliberation/llm-deliberation.service.js';
+import { KERNEL_REF } from '../engine-adapters/observability/kernel-fingerprint.js';
 import {
   CHARACTER_PROFILE_RESOLVER,
   type CharacterProfileResolver,
@@ -1022,6 +1023,8 @@ export class DebugSessionService {
         ...(scenarioType === undefined ? {} : { scenarioType }),
         // AF-187: 接触方式 —— 条件展开（缺省 = 旧记录同款，恢复后 prompt 逐字不变）.
         ...(encounter === undefined ? {} : { encounter }),
+        // 内核指纹 —— 判定语料属于哪版 delta 系数（AF-428 语料跨版本漂移的根治项）.
+        kernelRef: KERNEL_REF,
       });
     } catch (error) {
       this.logger.warn(`[debug_chat] 调试会话建档失败 session=${debugSessionId}: ${errorName(error)}`);

@@ -1,0 +1,156 @@
+{
+  "deliveredAt": "2026-11-24T08:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-444-1",
+    "taskId": "AF-444",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "f89aa09165acda2d403ddad1e9f8c4474e3e1add",
+    "dependsOn": [],
+    "priorTasks": ["AF-443", "AF-442", "AF-439", "AF-437", "AF-436"],
+    "policyRefs": ["docs/team/conventions.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-444/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af444-orchestration-closure-2026-11-24.md",
+      "reply": null,
+      "others": ["src/engine-adapters/observability/kernel-fingerprint.ts"]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-444/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-444/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-444/receipt-RC-AF-444-1.json",
+        "docs/worklog/completed/phase2.5/af444-orchestration-closure-2026-11-24.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/kernel-fingerprint.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "369ms",
+        "note": "1 file / 5 tests passed"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上（eslint --cache）",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 段与 scripts 段均 0 error 0 warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上（tsc --incremental）",
+        "wallClock": "增量",
+        "note": "0 error"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "PASS：五份记录包与占位齐全"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "索引投影一致"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "0 行"
+      }
+    ],
+    "reproNotes": "指纹单测与三类闸门命令均可复跑；记录完整性用 worklog verify --strict。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-444 一致；提交标题各含单一任务号" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "state-plane", "result": "pass", "note": "实现与状态面分提交" },
+      { "item": "chain", "result": "pass", "note": "priorTasks 覆盖 PR 内全部任务号" },
+      { "item": "records", "result": "pass", "note": "五份记录包声明路径全部落地" },
+      { "item": "dispatch", "result": "pass", "note": "gui-relay 失败后 fallback 留痕" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "单 PR 内实现/记录/状态面同时为绿，Orchestration Gate 逐提交 PASS"
+    },
+    "backlogItems": [
+      {
+        "id": "AF444-B1",
+        "impact": "gui-relay-send.ps1 依赖 Get-FileHash，cli 子进程 PSModulePath 污染导致模块不自动加载，外部执行器派发链路不可用（AF-437/AF-442/AF-444 三次复现）。",
+        "layer": "framework",
+        "status": "candidate"
+      },
+      {
+        "id": "AF444-B2",
+        "impact": "worklog verify 对 canceled/rejected 任务同样强制记录文件存在，取消任务会变成全局提交阻断。",
+        "layer": "framework",
+        "status": "candidate"
+      },
+      {
+        "id": "AF444-B3",
+        "impact": "PR 任务链校验缺少「原子收口任务」概念，互相引用的两单无法各自成 PR。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "执行主体",
+        "taskSays": "executor 经 gui-relay 执行",
+        "reality": "relay 子进程 Get-FileHash 不可用（exit 9）",
+        "action": "channel fallback --cause transient，编排者代执行",
+        "why": "环境缺陷，非代码问题"
+      },
+      {
+        "item": "PR 载体",
+        "taskSays": "—",
+        "reality": "AF-442 的 #214 因记录包缺失被判红，且链校验不允许混入 AF-443",
+        "action": "新建 AF-444 分支承载六个提交，#214 关闭",
+        "why": "两单产物互相引用，必须原子收口"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "复用既有已验实现，只追加记录与状态提交；链显式声明；逐提交门禁全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地闸门与记录收口。"
+  }
+}
