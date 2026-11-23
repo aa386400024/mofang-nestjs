@@ -87,8 +87,22 @@ function Save-WindowShot([string]$Path, [IntPtr]$Handle) {
   }
 }
 
+# AF-445：不再依赖 Get-FileHash。子进程继承的 PSModulePath 可能被 PowerShell 7 改写，
+# 5.1 找不到 Microsoft.PowerShell.Utility 时 Get-FileHash 会直接不可用（AF-437/442/444 三次复现）。
+# 改用纯 .NET 实现，与模块加载状态无关。
 function Get-FileSha([string]$Path) {
-  (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+  $stream = [System.IO.File]::OpenRead($Path)
+  try {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $bytes = $sha.ComputeHash($stream)
+    } finally {
+      $sha.Dispose()
+    }
+  } finally {
+    $stream.Dispose()
+  }
+  return ([System.BitConverter]::ToString($bytes) -replace '-', '').ToLowerInvariant()
 }
 
 function Click-Composer([IntPtr]$Handle, [double]$RatioX, [double]$RatioY) {
