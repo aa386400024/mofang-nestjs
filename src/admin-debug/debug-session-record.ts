@@ -64,6 +64,14 @@ export interface DebugSessionRecord {
   readonly scenarioType?: DeliberationScenarioType;
   /** 本场接触方式 (老记录没有 → undefined). */
   readonly encounter?: EncounterInput;
+  /**
+   * 建档时的内核指纹 (`kr1-<16位十六进制>`; 老记录没有 → undefined).
+   *
+   * 用途: 判定语料属于哪版 delta 系数. 同一指纹内部才可横比 ——
+   * 不写它的话, 跨版本混合语料会把「实测/系数比」算成一个既不真也不假的均值
+   * (AF-428 取证的实际后果).
+   */
+  readonly kernelRef?: string;
 }
 
 /** 会话列表的一行 (列表不返 messages/traces). */
