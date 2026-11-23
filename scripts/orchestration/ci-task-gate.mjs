@@ -101,6 +101,7 @@ export function evaluateCommitSnapshot({
   taskSheetExists,
   taskSheetPath = null,
   taskSheetSnapshot = null,
+  extraScopeFiles = [],
   receipts = [],
   rootDir = null,
   message = null,
@@ -157,7 +158,11 @@ export function evaluateCommitSnapshot({
           taskId: commitTaskId,
           status: 'submitted',
           agentRole: taskSheetSnapshot.agentRole,
-          scope: { files: taskSheetSnapshot.scopeFiles ?? [], modules: [], interfaces: [] },
+          scope: {
+            files: [...new Set([...(taskSheetSnapshot.scopeFiles ?? []), ...extraScopeFiles])],
+            modules: [],
+            interfaces: [],
+          },
           artifacts: {
             taskSheet: taskSheetPath ?? undefined,
             deliveryRecord: taskSheetSnapshot.artifactPaths?.[0] ?? undefined,
@@ -170,9 +175,18 @@ export function evaluateCommitSnapshot({
     (task) => task?.taskId === commitTaskId && task?.status === 'completed',
   );
   // 状态面解耦：任务分支不提交 index，最终 HEAD 以「任务单 + 可合并 durable 回执」合成 archived。
-  const currentArchived =
-    recordedArchived ??
-    (taskSheetTask && mergeableDurableReceipts(receipts).length > 0 ? { ...taskSheetTask, status: 'completed' } : undefined);
+  const currentArchived = recordedArchived
+    ? {
+        ...recordedArchived,
+        scope: {
+          files: [...new Set([...(recordedArchived.scope?.files ?? []), ...extraScopeFiles])],
+          modules: recordedArchived.scope?.modules ?? [],
+          interfaces: recordedArchived.scope?.interfaces ?? [],
+        },
+      }
+    : taskSheetTask && mergeableDurableReceipts(receipts).length > 0
+      ? { ...taskSheetTask, status: 'completed' }
+      : undefined;
   const parentHasTask = [...parentTasks, ...parentArchivedTasks].some((task) => task?.taskId === commitTaskId);
   // squash 会把 register → implement → receipt → archive 压成一个提交，parent 根本没有任务。
   // 仅在可合并 durable 回执证明已验收时，合成“父在办”快照复用 archived-transition；否则仍拒绝。
@@ -184,6 +198,7 @@ export function evaluateCommitSnapshot({
     archivedTasks: currentIndex?.archivedTasks ?? [],
     headTasks: effectiveParentTasks,
     explicitTaskId: commitTaskId,
+    extraScopeFiles,
     rootDir,
   });
   const output = {
@@ -571,6 +586,18 @@ export function unionSquashScopeFiles(tasks = [], fallbackFiles = []) {
   return files.length > 0 ? files : fallbackFiles;
 }
 
+/**
+ * 从 squash 提交携带的任务单中提取 scope 并集。
+ * 只有具备可合并 durable 回执的任务单才可扩张 scope，防止提交夹带伪造任务单越权。
+ */
+export function collectAcceptedSquashScopeFiles(sheets = []) {
+  const accepted = (sheets ?? []).filter((sheet) => sheet?.taskId && mergeableDurableReceipts(sheet.receipts ?? []).length > 0);
+  return unionSquashScopeFiles(
+    accepted.map((sheet) => ({ scope: { files: sheet.scopeFiles ?? [] } })),
+    [],
+  );
+}
+
 /** 读取一个真实 git 提交并执行快照判定（只读）。 */
 export function evaluateCommitAt(sha) {
   const subject = git(['show', '-s', '--format=%s', sha]);
@@ -671,6 +698,22 @@ export function evaluateCommitAt(sha) {
   }
   const sheet = taskSheetPresence(sha, commitTaskId, evaluatedCurrentIndex, parentIndex);
   const receipts = commitTaskId ? readAcceptanceReceiptsAt(sha, commitTaskId) : [];
+  const bundledTaskSheets = (changedFiles ?? [])
+    .filter((path) => path.startsWith('docs/worklog/records/') && path.endsWith('/task-sheet.md'))
+    .flatMap((path) => {
+      const text = git(['show', `${sha}:${path}`], { allowFailure: true });
+      if (typeof text !== 'string' || !text.trim()) return [];
+      const snapshot = parseTaskSheetSnapshotForGate(text, path);
+      if (!snapshot?.taskId) return [];
+      return [
+        {
+          taskId: snapshot.taskId,
+          scopeFiles: snapshot.scopeFiles ?? [],
+          receipts: readAcceptanceReceiptsAt(sha, snapshot.taskId),
+        },
+      ];
+    });
+  const extraScopeFiles = collectAcceptedSquashScopeFiles(bundledTaskSheets);
   let taskSheetSnapshot = null;
   if (sheet.path) {
     const sheetText = git(['show', `${sha}:${sheet.path}`], { allowFailure: true });
@@ -686,6 +729,7 @@ export function evaluateCommitAt(sha) {
     taskSheetExists: sheet.exists,
     taskSheetPath: sheet.path,
     taskSheetSnapshot,
+    extraScopeFiles,
     receipts,
     rootDir: process.cwd(),
     message,

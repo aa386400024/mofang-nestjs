@@ -109,6 +109,7 @@ import {
   extractTaskTrailer,
   resolveCommitTaskId,
   unionSquashScopeFiles,
+  collectAcceptedSquashScopeFiles,
 } from '../ci-task-gate.mjs';
 import { deriveCommitTrailer, withTaskTrailer } from '../commit-trailer.mjs';
 import { classifySealStatus } from '../state-seal.mjs';
@@ -3623,6 +3624,15 @@ describe('IM-012 squash 合并收口', () => {
         index: { tasks: [], archivedTasks: [] },
       }),
     ).toEqual({ taskId: null, none: true });
+    expect(
+      deriveCommitTrailer({
+        changedFiles: [
+          'docs/worklog/records/phase2.5-orchestration-closed-loop/AF-377/task-sheet.md',
+          'docs/worklog/records/phase2.5-orchestration-closed-loop/AF-377/manifest.json',
+        ],
+        index: { tasks: [], archivedTasks: [] },
+      }),
+    ).toEqual({ taskId: null, none: true });
     expect(() =>
       deriveCommitTrailer({
         changedFiles: ['src/user/user.service.ts'],
@@ -4222,6 +4232,38 @@ describe('AF-058 squash 全生命周期归档门', () => {
       ]),
     ).toEqual(['scripts/a.mjs', 'scripts/b.mjs', 'scripts/c.mjs']);
     expect(unionSquashScopeFiles([], ['scripts/fallback.mjs'])).toEqual(['scripts/fallback.mjs']);
+  });
+
+  it('squash scope 并集只吸收带 durable 回执的任务单，伪造任务单不得扩张 scope', () => {
+    const accepted = { taskId: 'AF-375', scopeFiles: ['.github/workflows/ci.yml', 'docs/team/'], receipts: [passedReceipt] };
+    const primary = { taskId: 'AF-376', scopeFiles: ['scripts/orchestration/', '.github/workflows/ci.yml'], receipts: [passedReceipt] };
+    const forged = { taskId: 'AF-999', scopeFiles: ['src/**'], receipts: [] };
+    expect(collectAcceptedSquashScopeFiles([accepted, primary, forged])).toEqual([
+      '.github/workflows/ci.yml',
+      'docs/team/',
+      'scripts/orchestration/',
+    ]);
+    expect(collectAcceptedSquashScopeFiles([forged])).toEqual([]);
+  });
+
+  it('stacked squash 单任务判定吸收同提交内已验收任务 scope', () => {
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-376 state plane',
+      changedFiles: [
+        'docs/team/agent-orchestration/task-state-index.json',
+        '.github/workflows/ci.yml',
+        'docs/worklog/completed/phase2.5/af375-state.md',
+        'scripts/orchestration/ci-task-gate.mjs',
+      ],
+      currentIndex: { tasks: [], archivedTasks: [] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetSnapshot: { taskId: 'AF-376', scopeFiles: ['scripts/orchestration/', 'docs/worklog/completed/phase2.5/'] },
+      taskSheetPath: 'docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/task-sheet.md',
+      taskSheetExists: true,
+      receipts: [passedReceipt],
+      extraScopeFiles: ['.github/workflows/ci.yml', 'docs/worklog/completed/phase2.5/'],
+    });
+    expect(result).toMatchObject({ pass: true, taskId: 'AF-376', commitTaskId: 'AF-376' });
   });
 
   it('父提交无任务但缺 passed 回执时仍拒绝 squash', () => {

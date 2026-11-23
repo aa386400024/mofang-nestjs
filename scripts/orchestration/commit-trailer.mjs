@@ -43,6 +43,7 @@ export function deriveCommitTrailer({ changedFiles, index }) {
     headTasks: [],
     explicitTaskId: null,
   });
+  if (result.ok && result.reason === 'state-plane-only') return { taskId: null, none: true };
   if (!result.ok || !result.taskId) {
     throw new Error(`暂存文件无法唯一归属到在办任务：${result.message ?? result.reason}`);
   }
@@ -65,6 +66,8 @@ function main() {
   const message = readFileSync(file, 'utf8');
   const firstLine = message.split(/\r?\n/).find((line) => line.trim() && !line.startsWith('#'));
   if (/^(Merge |Revert |fixup! |squash! )/.test(firstLine ?? '')) return;
+  // 契约：已有 Task trailer 一律不覆盖；其正确性由逐提交门校验。
+  if (extractTaskTrailer(message).present) return;
   const changedFiles = stagedFiles(REPO_ROOT);
   const index = readIndex(REPO_ROOT);
   const trailer = deriveCommitTrailer({ changedFiles, index });
