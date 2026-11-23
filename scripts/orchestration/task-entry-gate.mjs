@@ -149,6 +149,7 @@ export function evaluateTaskEntry({
   archivedTasks = [],
   headTasks = [],
   explicitTaskId = null,
+  extraScopeFiles = [],
   rootDir = null,
 } = {}) {
   const changed = normalizeFiles(changedFiles);
@@ -291,8 +292,18 @@ export function evaluateTaskEntry({
     };
   }
 
-  const relevant = changed.filter((file) => !isExemptForTask(file, selected));
-  const { covered, residual } = detectResidualFiles(relevant, selected, { rootDir });
+  const selectedWithStackedScope =
+    extraScopeFiles.length > 0
+      ? {
+          ...selected,
+          scope: {
+            ...selected.scope,
+            files: [...new Set([...(selected.scope?.files ?? []), ...extraScopeFiles])],
+          },
+        }
+      : selected;
+  const relevant = changed.filter((file) => !isExemptForTask(file, selectedWithStackedScope));
+  const { covered, residual } = detectResidualFiles(relevant, selectedWithStackedScope, { rootDir });
 
   if (residual.length > 0) {
     return {
