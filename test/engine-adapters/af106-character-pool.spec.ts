@@ -7,7 +7,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { getBaselineCalibration } from '../../src/engine-adapters/wiring/character/character-baseline-calibration.js';
-import { buildDbOnlyCharacterProfileSeeds } from '../../src/engine-adapters/wiring/character/character-profile.db-only.seed.js';
+import {
+  buildDbOnlyCharacterProfileSeeds,
+  DB_ONLY_CHARACTER_PROFILE_SEED_SPECS,
+} from '../../src/engine-adapters/wiring/character/character-profile.db-only.seed.js';
 import {
   CHARACTER_PROFILE_SEED_SPECS,
   deriveCharacterProfileId,
@@ -32,7 +35,13 @@ describe('AF-106 · 8 角色池', () => {
       expect(seed.coreBeliefs.length).toBeGreaterThanOrEqual(2);
       expect(seed.coreBeliefs.every((belief) => belief.statement.length > 0)).toBe(true);
       expect(seed.coreBeliefs.every((belief) => belief.theme !== 'unspecified')).toBe(true);
-      expect(seed.underlyingDesires.length).toBeGreaterThanOrEqual(2);
+      // AF-357 起，装配后的 underlyingDesires 已是内核四键规范形；多个角色级愿望
+      //   可能合并到同一内核键（如安然 acceptance+authenticity→accepted），
+      //   因此这里守的是“原始池至少有 2 条诉求 + 规范形至少保留 1 条”，
+      //   而不是要求规范形长度仍为 2（那会把映射合并误判成数据缺失）。
+      const raw = DB_ONLY_CHARACTER_PROFILE_SEED_SPECS.find((spec) => spec.templateId === seed.templateId);
+      expect(raw?.underlyingDesires.length).toBeGreaterThanOrEqual(2);
+      expect(seed.underlyingDesires.length).toBeGreaterThanOrEqual(1);
     }
   });
 

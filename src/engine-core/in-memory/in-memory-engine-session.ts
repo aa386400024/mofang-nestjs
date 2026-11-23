@@ -62,6 +62,7 @@ import {
   scaleDeltaVector,
   transitionState,
   applyBeliefEvolution,
+  type BeliefOperatorConfig,
   type DeltaCapConfig,
   type DeltaCapObserver,
   type DeltaVector,
@@ -304,6 +305,12 @@ export interface InMemoryEngineSessionOptions {
    */
   readonly desireEvolutionConfig?: DesireEvolutionConfig;
   /**
+   * 信念算子系数端口 (AF-357; 缺省 = 内核种子值).
+   *
+   * 与 cap / 人格 / 同盟同款: 系数是部署形态决定, 构造注入; 缺省 = 只衰减不生成.
+   */
+  readonly beliefConfig?: BeliefOperatorConfig;
+  /**
    * 意图锁配置 (AF-349).
    *
    * 缺省 = 关闭 (不写锁, 决策链逐字不变). 开启后非保护性策略跨轮保持, 到期自动清除.
@@ -372,6 +379,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly timingWeightConfig: InMemoryEngineSessionOptions['timingWeightConfig'];
   /** 愿望演化配置 (AF-349 · 缺省 = 关闭). */
   private readonly desireEvolutionConfig: DesireEvolutionConfig | undefined;
+  /** 信念算子配置 (AF-357 · 缺省 = 内核种子值, 不生成). */
+  private readonly beliefConfig: BeliefOperatorConfig | undefined;
   /** 意图锁配置 (AF-349 · 缺省 = 关闭). */
   private readonly intentionLockConfig: IntentionLockConfig | undefined;
   /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
@@ -394,6 +403,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.sessionDecayConfig = options.sessionDecayConfig;
     this.timingWeightConfig = options.timingWeightConfig;
     this.desireEvolutionConfig = options.desireEvolutionConfig;
+    this.beliefConfig = options.beliefConfig;
     this.intentionLockConfig = options.intentionLockConfig;
     this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
     this.deliberationHook = options.deliberationHook;
@@ -497,6 +507,11 @@ export class InMemoryEngineSession implements EngineSessionPort {
       //   临时快照与落库快照**两处口径必须一致** —— 两处都从 base.snapshot 出发,
       //   所以不会重复演化 (各演一次, 结果相同).
       counselorText: userText,
+      // AF-357: 短期信念生成源 = 上一轮来访真实发言; 与落库路径同一份.
+      priorVisitorText: input.priorVisitorText,
+      // AF-358: 同一条被重复读到不重复计分 —— 序号与文本同源透传.
+      priorVisitorSeq: input.priorVisitorSeq,
+      beliefConfig: this.beliefConfig,
       // D-3: 时序权重端口 —— 轮次号 **1 起** (同 `MatchContext` 口径: runtime.turnIndex + 1),
       //   权重配置走构造注入 (缺省 = 不折损, delta 逐字不变).
       //   AF-349: 临时快照与落库路径**同一口径** —— 落库在 cap 后按同一权重折损.
@@ -537,7 +552,11 @@ export class InMemoryEngineSession implements EngineSessionPort {
     // D-3 / AF-349: 落库路径也在 cap 之后折损 —— 与 `transitionState` 同一把尺子.
     //   缺省权重 1 → `scaleDeltaVector` 原样返回, 旧口径逐字不变.
     const weightedFinalDelta = scaleDeltaVector(finalDelta, resolveTimingWeight(this.timingWeightConfig, runtime.turnIndex + 1));
-    const baseNextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, weightedFinalDelta), userText);
+    const baseNextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, weightedFinalDelta), userText, this.beliefConfig, {
+      visitorText: input.priorVisitorText,
+      turnNumber: runtime.turnIndex + 1,
+      visitorSeq: input.priorVisitorSeq,
+    });
     const nextSnapshot = this.finalizeSnapshotForTurn(baseNextSnapshot, events, intention.strategy, runtime.turnIndex + 1);
     //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".
     notifyDeltaCap(

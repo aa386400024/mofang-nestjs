@@ -155,6 +155,26 @@ export interface EngineSessionHandle {
 export interface EngineTurnInput {
   /** 咨询师本轮文本 (ASR final). 空白视为非法入参. */
   readonly userText: string;
+  /**
+   * 上一轮**真实来访发言** (AF-357 · 短期信念生成的唯一来源).
+   *
+   * 缺省 = 不传 = 不生成, 既有行为逐字不变. 由渲染门面从 history 取最近一条
+   * visitor turn; 渲染降级时的兜底句不是来访真说的话, 不进这里.
+   *
+   * 为什么放在 turn 入参而不是会话构造: 它是**逐轮变化**的对话事实, 不是部署配置.
+   */
+  readonly priorVisitorText?: string;
+  /**
+   * `priorVisitorText` 对应的**来访发言序号** (1 起, 会话内单调递增; AF-358).
+   *
+   * 为什么需要: 门面取的是 history 里最近一条来访发言, 而降级渲染轮不追加来访腿,
+   * 于是同一句原话会被连续多轮重复喂进内核. 若内核按"读到一次 = 观察一次"计分,
+   * 一句原话就能把置信度顶过 reflectiveBeliefGate, 凭空造出"整合领悟".
+   * 有了序号, 内核能分清"来访真的又说了一遍"与"同一条被重复读到".
+   *
+   * 缺省 = 不传 = 不做序号判定 (旧行为: 读到即计分).
+   */
+  readonly priorVisitorSeq?: number;
   /** 链路 trace id, 仅用于可观测 (日志 / 指标关联), 不参与内核决策. */
   readonly traceId?: string;
   /** 中断信号 (语音侧 barge-in). 已触发时内核抛 ABORTED, 不产生状态变更. */

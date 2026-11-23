@@ -598,6 +598,15 @@ export class TurnRenderOrchestrator {
   /** 每个句柄的最近对话序列 (旧 → 新). */
   private readonly histories = new Map<string, RenderContextTurn[]>();
   /**
+   * 每个句柄**最近一条真实来访发言**及其序号 (1 起, 会话内单调递增; AF-358).
+   *
+   * 为什么需要: 降级渲染轮**不追加来访腿** (兜底句不是来访真说的话), 于是
+   *   history 里最近一条来访发言在连续几个降级轮里是**同一句**. 若内核按
+   *   "读到一次 = 观察一次"计分, 一句原话就能把置信度顶过 reflectiveBeliefGate,
+   *   凭空造出"整合领悟". 有了序号, 内核能分清"来访真的又说了一遍"与"同一条被重复读到".
+   */
+  private readonly lastVisitorLegByHandle = new Map<string, { readonly seq: number; readonly text: string }>();
+  /**
    * 每个句柄**上一轮结束时的** BDI 快照 (V2026-11-05 WP64 · 影子审议用).
    *
    * 为什么门面要自己记一份:
@@ -637,7 +646,9 @@ export class TurnRenderOrchestrator {
     //    调用方拿不到"这一轮是谁判的"; 通道记下来, 审计表才有 source 列可填.
     // D-1 第二段: **先把上一轮来访话语交给模型轨** (内核分类发生在这一行内部, 得先备好).
     this.prepareModelClassifierContext(handleId);
-    const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
+    const { value: output, source } = await runWithProbeSource(() =>
+      this.deps.session.turn(handleId, this.withPriorVisitorText(handleId, input)),
+    );
 
     // 1.5 学员侧处置判定 (WP14): side/等级/类别三条边界 + 监测场次的强制远端探测.
     const disposal = await this.resolveDisposal(handleId, input.userText, output.safety, source);
@@ -716,7 +727,9 @@ export class TurnRenderOrchestrator {
     // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡; 探测来源通道同样包住这一段).
     // D-1 第二段: **先把上一轮来访话语交给模型轨** (内核分类发生在这一行内部, 得先备好).
     this.prepareModelClassifierContext(handleId);
-    const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
+    const { value: output, source } = await runWithProbeSource(() =>
+      this.deps.session.turn(handleId, this.withPriorVisitorText(handleId, input)),
+    );
 
     // 1.5 学员侧处置判定 (WP14): 与聚合路径**同一份**判定, 不复制一份流式专属逻辑.
     const disposal = await this.resolveDisposal(handleId, input.userText, output.safety, source);
@@ -779,6 +792,8 @@ export class TurnRenderOrchestrator {
    */
   forgetSession(handleId: string): void {
     this.histories.delete(handleId);
+    // AF-358: 来访序号与 history 同生命周期 —— 一起清, 不留跨场残留.
+    this.lastVisitorLegByHandle.delete(handleId);
     // WP64: 影子审议的“上一轮快照”与历史同生命周期 —— 一起清, 不留残留.
     this.lastSnapshots.delete(handleId);
     // D-1 第二段: 模型轨的跨轮状态**同生命周期** —— 一起清, 不留跨场残留 (风险 O).
@@ -812,6 +827,31 @@ export class TurnRenderOrchestrator {
     const context = this.resolveContext(handleId);
     if (!context) return;
     port.forgetSession(context.sessionId);
+  }
+
+  /**
+   * 把最近一条真实来访发言放进本轮内核入参 (AF-357).
+   *
+   * 为什么在门面做而不是内核自己读 history: 内核零渲染、拿不到来访文本
+   * (见 in-memory-engine-session 的 rememberTurn 说明). 门面的 history 里有
+   * "咨询师问 + 来访答" 两条腿, 最近一条 visitor 才是真来访发言;
+   * 渲染降级轮的兜底句不追加 visitor 腿, 因此天然不会进这里.
+   *
+   * @param handleId 内核会话句柄
+   * @param input 调用方本轮入参
+   * @returns 带 priorVisitorText 的入参; 没有来访发言时原样返回 (零回归)
+   */
+  private withPriorVisitorText(handleId: string, input: EngineTurnInput): EngineTurnInput {
+    const priorVisitorText = this.lastVisitorText(handleId);
+    if (!priorVisitorText) return input;
+    const leg = this.lastVisitorLegByHandle.get(handleId);
+    // AF-358: 同一条被重复读到 → 序号不变 → 内核不重复计分;
+    //   与登记腿不一致 (恢复会话等) → 自愈成新序号, 不让内核拿到脏序号.
+    const seq = leg && leg.text === priorVisitorText ? leg.seq : (leg?.seq ?? 0) + 1;
+    if (!leg || leg.text !== priorVisitorText) {
+      this.lastVisitorLegByHandle.set(handleId, { seq, text: priorVisitorText });
+    }
+    return { ...input, priorVisitorText, priorVisitorSeq: seq };
   }
 
   /**
@@ -849,6 +889,15 @@ export class TurnRenderOrchestrator {
    */
   restoreHistory(handleId: string, turns: readonly RenderContextTurn[]): void {
     this.setHistory(handleId, turns);
+    // AF-358: 恢复历史后重建来访序号 —— 否则下一条真实发言会从 0 重新计数,
+    //   与内核已记住的 lastObservedAtVisitorSeq 形成脏比较.
+    const visitorTurns = turns.filter((turn) => turn.role === 'visitor');
+    const lastVisitor = visitorTurns.at(-1);
+    if (lastVisitor) {
+      this.lastVisitorLegByHandle.set(handleId, { seq: visitorTurns.length, text: lastVisitor.text });
+    } else {
+      this.lastVisitorLegByHandle.delete(handleId);
+    }
   }
 
   /**
@@ -1339,6 +1388,10 @@ export class TurnRenderOrchestrator {
     const next: RenderContextTurn[] = [...history, { role: 'counselor', text: counselorText }];
     if (!rendered.degraded) {
       next.push({ role: 'visitor', text: rendered.text });
+      // AF-358: 真实来访发言才占一个序号 (降级轮不占) —— 内核据此区分
+      //   "来访又说了一遍" 与 "同一条被重复读到".
+      const prev = this.lastVisitorLegByHandle.get(handleId);
+      this.lastVisitorLegByHandle.set(handleId, { seq: (prev?.seq ?? 0) + 1, text: rendered.text });
     }
     this.setHistory(handleId, next);
 

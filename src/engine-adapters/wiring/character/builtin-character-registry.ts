@@ -101,6 +101,7 @@
 //
 //   ⚠️ 数值与取值档位是**工程种子值, 非临床标定** —— 待真实对练校准.
 
+import { mapRoleDesiresToCore } from './character-desire-mapping.js';
 import type {
   CharacterPresetInput,
   CharacterProfileResolver,
@@ -334,7 +335,7 @@ export function buildCharacterProfile(seed: BuiltinCharacterSeed, preset?: Chara
   return {
     coreBeliefs: seed.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
     attachmentStyle: seed.attachmentStyle,
-    underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
+    underlyingDesires: mapRoleDesiresToCore(seed.underlyingDesires),
     baseline: {
       trust: clamp01(seed.baseline.trust),
       resistance: buildResistance(seed, preset),

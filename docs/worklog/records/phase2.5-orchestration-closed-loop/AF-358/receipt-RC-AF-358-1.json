@@ -1,0 +1,306 @@
+{
+  "deliveredAt": "2026-11-23T12:52:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-358-1",
+    "taskId": "AF-358",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "c365be2bbb9a",
+    "dependsOn": ["AF-357"],
+    "priorTasks": ["AF-357", "AF-354", "AF-349"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "conventions.md#2.5"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-358/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af358-bdi-review-remediation-2026-11-23.md",
+      "reply": "docs/worklog/pending/archive/relay-response-AF357-review-20261123-1200.md",
+      "others": [
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/beliefs.ts",
+        "src/engine-core/domain/bootstrap.ts",
+        "src/engine-core/domain/character-profile.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/wiring/bdi-runtime.config.ts",
+        "src/engine-adapters/wiring/character/character-desire-mapping.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "bin/bdi-readiness-audit.ts",
+        ".env.example",
+        "test/engine-core/af357-bdi-belief-formation.spec.ts",
+        "test/engine-core/af358-belief-extraction-matrix.spec.ts",
+        "test/engine-core/af358-belief-degraded-regression.spec.ts",
+        "test/engine-adapters/af357-bdi-runtime-config.spec.ts",
+        "test/engine-adapters/af358-character-desire-provenance.spec.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["1bd67fd35b7f"],
+      "added": [
+        "test/engine-core/af358-belief-extraction-matrix.spec.ts",
+        "test/engine-core/af358-belief-degraded-regression.spec.ts",
+        "test/engine-adapters/af358-character-desire-provenance.spec.ts",
+        "docs/worklog/completed/phase2.5/af358-bdi-review-remediation-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-358/task-sheet.md"
+      ],
+      "modified": [
+        ".env.example",
+        "bin/bdi-readiness-audit.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/wiring/bdi-runtime.config.ts",
+        "src/engine-adapters/wiring/character/character-desire-mapping.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/beliefs.ts",
+        "src/engine-core/domain/bootstrap.ts",
+        "src/engine-core/domain/character-profile.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "test/engine-adapters/af357-bdi-runtime-config.spec.ts",
+        "test/engine-core/af357-bdi-belief-formation.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 16s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 45s",
+        "note": "全量 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/af357-bdi-belief-formation.spec.ts test/engine-core/af358-belief-extraction-matrix.spec.ts test/engine-core/af358-belief-degraded-regression.spec.ts test/engine-adapters/af357-character-desire-mapping.spec.ts test/engine-adapters/af358-character-desire-provenance.spec.ts test/engine-adapters/af357-bdi-runtime-config.spec.ts test/engine-adapters/af106-character-pool.spec.ts test/engine-core/boundary.spec.ts test/config/wp25-env-example-coverage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 9,
+        "tests": 140,
+        "machine": "同上",
+        "wallClock": "约 5.1s",
+        "note": "9 文件 / 140 例通过；boundary 12、env 12、AF-106 3"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 309,
+        "tests": 4718,
+        "machine": "同上；无 nest watch / vite dev 长驻进程，正常盘读取",
+        "wallClock": "27.86s",
+        "note": "308 文件通过 / 1 跳过（309）；4714 例通过 / 4 跳过（4718）"
+      },
+      {
+        "command": "pnpm exec tsx bin/bdi-readiness-audit.ts --out .tmp/af358-audit --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "阻断项 0；10 角色覆盖；念安 / 惊尘 / 回避依恋 L1 avoidanceDominant=true；insight 标为运行时缺省关闭"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS (strict) 活跃=1 归档=347 记录包=349 inbox=0 legacy指针=133 无任务单=14"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-358 status=submitted files=20 covered=14"
+      }
+    ],
+    "reproNotes": "P0-1: 渲染门面按真实来访腿分配会话内单调序号，降级轮不占号；内核只在序号严格变大时承认新观察。P0-2/P0-3: 否定词紧邻标记；问句句尾 + 句中疑问结构双判；第三人称主体 + 短窗口言语动词。P1-1: 逐字复读只刷新时间/序号，展开才按 1/n 递减强化。P1-2: 同键合并累积 sourceKeys/sourceLabels，二次映射幂等。P1-3: 装配期用实际 reflectiveBeliefGate 校验 base 与 reinforcement。P1-5: 生成开启最多 40 条。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-358 经 CLI register / promote / run-once；dependsOn=AF-357 已归档"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，未手改索引或事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-358 submitted；事件链由 CLI 写入"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "仅 7 个授权文件；boundary.spec.ts 12/12；barrel 未新增公开符号"
+      },
+      {
+        "item": "seq-monotonic",
+        "result": "pass",
+        "note": "降级轮不占来访序号；restoreHistory 重建；forgetSession 清理；5 例回归"
+      },
+      {
+        "item": "clinical-numeric-integrity",
+        "result": "pass",
+        "note": "未改 12 个阈值与愿望演化 5 参数；惊尘 control=0.50 不强行达标"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "审计 / 日志 / 报告无对话原文；会话快照原文边界登记 backlog B4"
+      },
+      {
+        "item": "zero-regression",
+        "result": "pass",
+        "note": "formationEnabled=false 不生成、不裁剪；不传序号时行为逐字不变"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord / reply 均已落文件；worklog verify --strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef c365be2b；type fix；最终状态 completed；提交 1bd67fd35b7f 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF358-B1",
+        "impact": "角色愿望映射语义（safe_grief→understood、belonging→accepted、continuity/rest→avoid_pain 等）是工程种子，需真实咨询师逐轮标注；建议单列督导纪要。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B2",
+        "impact": "base 0.55、reinforcement 0.10、单轮 2 条、长度 6–80 字、40 条上限均为工程种子；复读/展开的临床阈值需督导确认。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B3",
+        "impact": "ENGINE_BELIEF_FORMATION_ENABLED 缺省 false；建议先完成映射语义复核，再按灰度批次开启信念生成并观察 insight 轮次分布。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B4",
+        "impact": "statement 仍会进入 BDI 快照 JSON 与 admin 调试接口；需产品 / 隐私负责人决定调试响应掩码或按权限分级。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B5",
+        "impact": "sourceLabels 用 Set 去重，两个不同来源键若标签同名会合并成一个标签；当前数据面未出现，保留为督导视图优化。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B6",
+        "impact": "belief-observed-<hash> 未加会话盐；临时信念不跨会话持久化，当前不影响隔离；若未来持久化需加会话盐。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B7",
+        "impact": "审计仍读静态种子与 env，不读 DB 活数据；DB 与种子漂移时以运行时为准。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF358-B8",
+        "impact": "introduced→observed 当前“来访原话展开即升级”，未区分 introduced 的初始来源；若放开咨询师引入信念需单独安全评审。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "复读不强化 / 展开才强化是否作为正式临床标定口径",
+      "角色愿望映射三条语义是否由督导纪要确认",
+      "信念生成在灰度环境何时开启、按哪个批次",
+      "admin 调试接口是否对 statement 做掩码"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-357 §4 规范化后相同 → 置信度递增",
+        "reality": "临床语义上逐字复读不等于整合",
+        "action": "逐字复读只刷新观察时间/序号；展开才强化",
+        "why": "防止一句原话在降级轮里堆出“整合领悟”；语义变更需复核"
+      },
+      {
+        "taskSays": "切句符补充逗号",
+        "reality": "无条件按逗号切会切断“我意识到…，怕被抛弃”的展开",
+        "action": "后半句含新自我觉察标记才拆，纯续写并入同条",
+        "why": "保守实现；并列觉察仍拆分，展开仍保留"
+      },
+      {
+        "taskSays": "P1-1 建议 max(existing, base)+0.10",
+        "reality": "连续展开会过快堆高置信度",
+        "action": "保留 max 语义，增量改为 reinforcement / max(1, evidenceCount)",
+        "why": "递减增量；仍高于单纯复读"
+      },
+      {
+        "taskSays": "定向闸门原写 9 文件",
+        "reality": "初版任务单闸门残留 af356-* 假绿",
+        "action": "改为真实存在的 9 个文件并实测 140 例",
+        "why": "vitest 对不存在过滤器静默忽略，必须真实命中"
+      },
+      {
+        "taskSays": "审计输出策略收窄事实",
+        "reality": "审计只读种子，不读 DB 活数据",
+        "action": "输出 avoidanceDominant 与 recounting 静态事实",
+        "why": "保持审计只读、可复现；DB 漂移进 backlog"
+      },
+      {
+        "taskSays": "P1-5 隐私上限",
+        "reality": "statement 原文仍进 BDI 快照 / admin 调试接口",
+        "action": "只做 40 条上限；原文暴露进 backlog B4",
+        "why": "会话快照是决策必需数据面，掩码需隐私负责人拍板"
+      },
+      {
+        "taskSays": ".env.example 旧注释“连续复述”",
+        "reality": "实际语义已改为“同一条被展开”",
+        "action": "同步修正，并注明 insightMinTurn=8 不是 12",
+        "why": "文档事实必须与代码一致"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三条 P0 与四条 P1 均有实现、定向回归与全量证据；缺省关闭保证线上零回归；未改任何临床数值；审计 strict 阻断 0；定向 9 文件 140 例全绿，全量 4714 例通过；MiniMax 评审意见已逐条闭环。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本单零新增模型调用；MiniMax Code 评审为复用既有桌面会话，不产生额外 API 费用。"
+  }
+}

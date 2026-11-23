@@ -29,6 +29,8 @@ import { join } from 'node:path';
 
 import { resolveAllianceConfig } from '../src/engine-adapters/wiring/alliance-config.js';
 import { resolveBdiRuntimeConfig } from '../src/engine-adapters/wiring/bdi-runtime.config.js';
+import { BUILTIN_CHARACTER_SEEDS } from '../src/engine-adapters/wiring/character/builtin-character-registry.js';
+import { mapRoleDesiresToCoreDetailed } from '../src/engine-adapters/wiring/character/character-desire-mapping.js';
 import { DB_ONLY_CHARACTER_PROFILE_SEED_SPECS } from '../src/engine-adapters/wiring/character/character-profile.db-only.seed.js';
 import { CHARACTER_PROFILE_SEED_SPECS } from '../src/engine-adapters/wiring/character/character-profile.seed.js';
 import { resolveAllianceThresholds } from '../src/engine-core/cognition/alliance-config.js';
@@ -38,7 +40,7 @@ import { DEFAULT_UNDERLYING_DESIRES } from '../src/engine-core/domain/desires.js
 const KERNEL_DESIRE_KEYS = ['understood', 'accepted', 'avoid_pain', 'control'] as const;
 
 /** 审计版本（产物可追溯）. */
-const AUDIT_VERSION = 'af354-bdi-readiness-1.0.0';
+const AUDIT_VERSION = 'af359-bdi-readiness-1.3.0';
 
 /** 免责声明：工程审计，不是临床结论. */
 const DISCLAIMER = '本审计只回答"真实种子能否触发决策分支"，不代表临床有效性，也不含任何对话原文.';
@@ -47,16 +49,27 @@ const DISCLAIMER = '本审计只回答"真实种子能否触发决策分支"，�
 interface RoleSeed {
   readonly templateId: string;
   readonly displayName: string;
-  readonly underlyingDesires?: readonly { readonly key: string; readonly baselineWeight: number }[];
+  readonly underlyingDesires?: readonly { readonly key: string; readonly label: string; readonly baselineWeight: number }[];
 }
 
 /** 单角色覆盖行. */
 interface RoleCoverage {
   readonly templateId: string;
   readonly displayName: string;
-  readonly coveredKeys: string[];
-  readonly missingKeys: string[];
+  /** 角色种子里的原始愿望键 (映射前). */
+  readonly rawKeys: readonly string[];
+  /** 映射后实际进入内核快照的键. */
+  readonly mappedKeys: readonly string[];
+  /** 未登记映射、原样保留但不驱动内核四键的键. */
+  readonly unmappedKeys: readonly string[];
+  readonly coveredKeys: readonly string[];
+  readonly missingKeys: readonly string[];
   readonly weights: Record<string, number | undefined>;
+  /** avoid_pain 是否主导 (差值 > avoidanceMargin + 1e-9; 只在映射让该键首次可计算时才有意义). */
+  readonly avoidanceDominant: boolean;
+  /** avoid_pain - max(understood, accepted); 审计按四位小数输出, 让“发丝判定”可见 (AF-359). */
+  readonly avoidanceDelta: number;
+  readonly mapping: { originalKey: string; coreKey: string | null; effectiveWeight: number }[];
 }
 
 /** 策略可达性判定. */
@@ -97,20 +110,35 @@ function buildConfigReader(): ConfigService {
   return reader as unknown as ConfigService;
 }
 
-/** 汇总角色覆盖矩阵. */
-function buildCoverage(roles: readonly RoleSeed[]): RoleCoverage[] {
+/** 汇总角色覆盖矩阵 (映射前原始键 → 映射后内核键). */
+function buildCoverage(roles: readonly RoleSeed[], avoidanceMargin: number): RoleCoverage[] {
   return roles.map((role) => {
     const desires = role.underlyingDesires ?? [];
+    const mapped = mapRoleDesiresToCoreDetailed(desires);
     const weights: Record<string, number | undefined> = {};
-    for (const desire of desires) weights[desire.key] = desire.baselineWeight;
+    for (const desire of mapped.desires) weights[desire.key] = desire.baselineWeight;
     const coveredKeys = KERNEL_DESIRE_KEYS.filter((key) => weights[key] !== undefined);
     const missingKeys = KERNEL_DESIRE_KEYS.filter((key) => weights[key] === undefined);
+    const avoidPain = weights['avoid_pain'] ?? 0;
+    const maxPositive = Math.max(weights['understood'] ?? 0, weights['accepted'] ?? 0);
+    const avoidanceDelta = avoidPain - maxPositive;
     return {
       templateId: role.templateId,
       displayName: role.displayName,
+      rawKeys: desires.map((desire) => desire.key),
+      mappedKeys: mapped.desires.map((desire) => desire.key),
+      unmappedKeys: mapped.unmapped,
       coveredKeys,
       missingKeys,
       weights,
+      // AF-359: 与内核同一容差口径; 0.68 - 0.58 的 IEEE-754 发丝差值不再判 dominant.
+      avoidanceDominant: avoidanceDelta > avoidanceMargin + 1e-9,
+      avoidanceDelta,
+      mapping: mapped.entries.map((entry) => ({
+        originalKey: entry.originalKey,
+        coreKey: entry.coreKey,
+        effectiveWeight: entry.effectiveWeight,
+      })),
     };
   });
 }
@@ -128,12 +156,18 @@ function buildReachability(
 ): StrategyReachability[] {
   const rolesWithControl = coverage.filter((role) => role.weights['control'] !== undefined);
   const rolesWithControlAboveGate = rolesWithControl.filter((role) => (role.weights['control'] ?? 0) >= planGate);
+  const avoidanceDominantRoles = coverage.filter((role) => role.avoidanceDominant);
   return [
     {
       strategy: 'recounting',
       reachable: true,
       basis: 'static',
-      reason: '默认兜底分支，任何状态都可落在这里',
+      reason:
+        avoidanceDominantRoles.length > 0
+          ? `默认兜底分支；映射让 avoid_pain 首次可计算，${avoidanceDominantRoles.length} 个角色 avoidanceDominant=true（${avoidanceDominantRoles
+              .map((role) => role.displayName)
+              .join(' / ')}），探索与后段分支被否决，这些角色恒落 recounting`
+          : '默认兜底分支，任何状态都可落在这里',
       evidence: ['src/engine-core/cognition/intention-planner.ts'],
     },
     {
@@ -156,9 +190,10 @@ function buildReachability(
       basis: 'seed-matrix',
       reason:
         rolesWithControlAboveGate.length > 0
-          ? `${rolesWithControlAboveGate.length} 个角色掌控愿望基线 >= ${planGate}，分支可在对应角色上触发`
-          : `没有角色掌控愿望基线 >= ${planGate}：${rolesWithControl.length} 个角色含 control 键，但权重不足；该分支只能靠运行时愿望演化把 control 抬上去`,
+          ? `${rolesWithControlAboveGate.length} 个角色映射后的掌控愿望基线 >= ${planGate}，分支可在对应角色上触发`
+          : `没有角色映射后的掌控愿望基线 >= ${planGate}：${rolesWithControl.length} 个角色含 control 键，但权重不足；该分支只能靠运行时愿望演化把 control 抬上去`,
       evidence: [
+        'src/engine-adapters/wiring/character/character-desire-mapping.ts',
         'src/engine-adapters/wiring/character/character-profile.seed.ts',
         'src/engine-adapters/wiring/character/character-profile.db-only.seed.ts',
         'src/engine-core/cognition/intention-planner.ts',
@@ -166,13 +201,16 @@ function buildReachability(
     },
     {
       strategy: 'insight',
-      reachable: false,
-      basis: 'static',
-      reason: '依赖 temporaryBeliefs 中 source=observed 且置信度过阈的条目；当前内核只有衰减读取，没有写入点',
+      reachable: runtime.beliefConfig?.formationEnabled === true,
+      basis: 'runtime-config',
+      reason:
+        runtime.beliefConfig?.formationEnabled === true
+          ? '短期信念生成已开启：来访自我觉察陈述会写入 source=observed 信念，同一条被展开达到 reflectiveBeliefGate 后 insight 分支可判'
+          : '短期信念生成缺省关闭：生成算子已实现（来访自我觉察 → observed 信念），但未注入 beliefConfig，当前部署下 temporaryBeliefs 不会新增；开启后 insight 可判',
       evidence: [
         'src/engine-core/cognition/state-transition.ts',
-        'src/engine-core/domain/bootstrap.ts',
         'src/engine-core/cognition/intention-planner.ts',
+        'src/engine-adapters/wiring/bdi-runtime.config.ts',
       ],
     },
     {
@@ -211,20 +249,21 @@ function renderMarkdown(report: {
     `- 生成时间：${report.generatedAt}`,
     `- 免责声明：${DISCLAIMER}`,
     '',
-    '## 角色 × 内核四键覆盖',
+    '## 角色 × 内核四键覆盖（AF-357 显式映射后）',
     '',
-    '| 角色 | understood | accepted | avoid_pain | control | 缺失键 |',
-    '| --- | --- | --- | --- | --- | --- |',
+    '| 角色 | 原始键 → 内核键 | understood | accepted | avoid_pain | control | avoidanceDelta | avoidanceDominant | 未映射键 | 缺失键 |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
   );
   for (const role of report.coverage) {
-    const cell = (key: string): string => {
+    const cell = (key: string): number | string => {
       const value = role.weights[key];
-      return value === undefined ? '—' : value.toFixed(2);
+      return value === undefined ? '—' : value.toFixed(4);
     };
+    const mapping = role.mapping.map((entry) => `${entry.originalKey}→${entry.coreKey ?? '保留'}`).join(' / ');
     lines.push(
-      `| ${role.displayName} (${role.templateId}) | ${cell('understood')} | ${cell('accepted')} | ${cell('avoid_pain')} | ${cell('control')} | ${
-        role.missingKeys.length === 0 ? '无' : role.missingKeys.join(' / ')
-      } |`,
+      `| ${role.displayName} (${role.templateId}) | ${mapping === '' ? '—' : mapping} | ${cell('understood')} | ${cell('accepted')} | ${cell('avoid_pain')} | ${cell('control')} | ${role.avoidanceDelta.toFixed(4)} | ${
+        role.avoidanceDominant ? '是' : '否'
+      } | ${role.unmappedKeys.length === 0 ? '无' : role.unmappedKeys.join(' / ')} | ${role.missingKeys.length === 0 ? '无' : role.missingKeys.join(' / ')} |`,
     );
   }
   lines.push('', '## 机制开关', '');
@@ -254,10 +293,15 @@ function main(): void {
   const warnings: string[] = [];
   const runtime = resolveBdiRuntimeConfig(config, (message) => warnings.push(message));
 
-  const roles: readonly RoleSeed[] = [...CHARACTER_PROFILE_SEED_SPECS, ...DB_ONLY_CHARACTER_PROFILE_SEED_SPECS];
+  const builtinRoles: readonly RoleSeed[] = BUILTIN_CHARACTER_SEEDS.map((seed) => ({
+    templateId: seed.key,
+    displayName: seed.displayName,
+    underlyingDesires: seed.underlyingDesires,
+  }));
+  const roles: readonly RoleSeed[] = [...CHARACTER_PROFILE_SEED_SPECS, ...DB_ONLY_CHARACTER_PROFILE_SEED_SPECS, ...builtinRoles];
   if (roles.length === 0) fail('没有读到任何角色种子');
 
-  const coverage = buildCoverage(roles);
+  const coverage = buildCoverage(roles, thresholds.avoidanceMargin);
   const reachability = buildReachability(coverage, runtime, thresholds.controlPlanGate);
 
   const mechanisms: Record<string, unknown> = {
@@ -265,6 +309,12 @@ function main(): void {
     intentionLockEnabled: runtime.intentionLockConfig?.enabled === true,
     intentionLockTtlTurns: runtime.intentionLockConfig?.ttlTurns ?? null,
     timingWeightKind: runtime.timingWeightConfig?.kind ?? 'none',
+    beliefFormationEnabled: runtime.beliefConfig?.formationEnabled === true,
+    beliefFormationBaseConfidence: runtime.beliefConfig?.formationBaseConfidence ?? null,
+    beliefFormationReinforcement: runtime.beliefConfig?.formationReinforcement ?? null,
+    beliefFormationMaxPerTurn: runtime.beliefConfig?.formationMaxPerTurn ?? null,
+    beliefFormationMinChars: runtime.beliefConfig?.formationMinChars ?? null,
+    beliefFormationMaxChars: runtime.beliefConfig?.formationMaxChars ?? null,
     explorationMinTurn: thresholds.explorationMinTurn,
     coreActivationGate: thresholds.coreActivationGate,
     coreActivationSafetyGate: thresholds.coreActivationSafetyGate,
@@ -280,6 +330,12 @@ function main(): void {
     if (!hasSituational?.reachable) {
       blockers.push({ code: 'desire-enabled-but-no-situational', message: '愿望演化已开启，但情境请求分支仍不可达' });
     }
+  }
+  if (runtime.beliefConfig?.formationEnabled === true && runtime.beliefConfig.formationMaxPerTurn === 0) {
+    blockers.push({
+      code: 'belief-enabled-but-zero-cap',
+      message: '短期信念生成已开启，但 formationMaxPerTurn=0 —— 结构上不会生成任何条目',
+    });
   }
   for (const role of coverage) {
     if (role.coveredKeys.length === 0) {

@@ -53,7 +53,15 @@ export const DEFAULT_EMOTION: EmotionState = { label: 'neutral', valence: 0, aro
 
 function seedToDesire(seed: UnderlyingDesireSeed): UnderlyingDesire {
   const baselineWeight = clamp01(seed.baselineWeight);
-  return { key: seed.key, label: seed.label, baselineWeight, currentWeight: baselineWeight };
+  return {
+    key: seed.key,
+    label: seed.label,
+    baselineWeight,
+    currentWeight: baselineWeight,
+    // AF-358 · P1-2: 来源键与标签只做追溯, 不参与决策; 缺省不写字段 (旧快照逐字兼容).
+    ...(seed.sourceKeys ? { sourceKeys: [...seed.sourceKeys] } : {}),
+    ...(seed.sourceLabels ? { sourceLabels: [...seed.sourceLabels] } : {}),
+  };
 }
 
 /** 装配三维阻抗基线: 逐维取 profile 值, 缺省回落默认, 统一 clamp 到 [0,1]. */

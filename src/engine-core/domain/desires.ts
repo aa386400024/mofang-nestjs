@@ -26,6 +26,10 @@ export interface UnderlyingDesire {
   readonly baselineWeight: number;
   /** 当前权重 [0,1], 初始 = baselineWeight. */
   readonly currentWeight: number;
+  /** 映射前的角色级愿望键 (AF-358 · P1-2; 缺省 = 无来源可追溯). */
+  readonly sourceKeys?: readonly string[];
+  /** 映射前的角色级愿望标签 (与 sourceKeys 一一对应). */
+  readonly sourceLabels?: readonly string[];
 }
 
 /** 情境愿望: 本轮具体诉求, 带优先级. */

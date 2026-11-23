@@ -110,6 +110,7 @@ import {
   getBaselineCalibration,
   validateBaselineRowRanges,
 } from './character-baseline-calibration.js';
+import { mapRoleDesiresToCore } from './character-desire-mapping.js';
 import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity.js';
 import { CharacterProfileEntity } from './character-profile.entity.js';
 import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core/index.js';
@@ -579,7 +580,7 @@ export function assembleCharacterProfileSeed(spec: CharacterProfileSeedSpec, sta
         activationTags: [...(meta?.activationTags ?? [])],
       };
     }),
-    underlyingDesires: spec.underlyingDesires.map((desire) => ({ ...desire })),
+    underlyingDesires: mapRoleDesiresToCore(spec.underlyingDesires),
     forbiddenBehaviors: [...spec.forbiddenBehaviors],
     sensitiveTopics: [...spec.sensitiveTopics],
     // 表达风格三列: 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).

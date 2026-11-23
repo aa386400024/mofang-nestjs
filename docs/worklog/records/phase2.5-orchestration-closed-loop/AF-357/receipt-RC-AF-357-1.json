@@ -1,0 +1,287 @@
+{
+  "deliveredAt": "2026-11-23T12:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-357-1",
+    "taskId": "AF-357",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "cb3cb868d5b27c134862a333a32f9bd76d6bd9af",
+    "dependsOn": [],
+    "priorTasks": ["AF-356", "AF-349", "AF-354", "AF-355"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "conventions.md#2.5"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "src/engine-adapters/wiring/character/character-desire-mapping.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/beliefs.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/wiring/bdi-runtime.config.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "bin/bdi-readiness-audit.ts",
+        ".env.example",
+        "test/engine-core/af357-bdi-belief-formation.spec.ts",
+        "test/engine-adapters/af357-character-desire-mapping.spec.ts",
+        "test/engine-adapters/af357-bdi-runtime-config.spec.ts",
+        "test/engine-adapters/af106-character-pool.spec.ts",
+        "docs/worklog/completed/phase2.5/af356-bdi-desire-belief-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["d04d3e856f23904512b865f81cd0a595cdeacb61"],
+      "added": [
+        "src/engine-adapters/wiring/character/character-desire-mapping.ts",
+        "test/engine-core/af357-bdi-belief-formation.spec.ts",
+        "test/engine-adapters/af357-character-desire-mapping.spec.ts",
+        "test/engine-adapters/af357-bdi-runtime-config.spec.ts",
+        "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af356-bdi-desire-belief-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-356/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-356/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/manifest.json"
+      ],
+      "modified": [
+        ".env.example",
+        "bin/bdi-readiness-audit.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/wiring/bdi-runtime.config.ts",
+        "src/engine-adapters/wiring/character/builtin-character-registry.ts",
+        "src/engine-adapters/wiring/character/character-profile.seed.ts",
+        "src/engine-adapters/wiring/character/db-character-profile.resolver.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/beliefs.ts",
+        "src/engine-core/domain/engine-session.types.ts",
+        "src/engine-core/in-memory/in-memory-engine-session.ts",
+        "test/engine-adapters/af106-character-pool.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 16s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 45s",
+        "note": "全量 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/af357-bdi-belief-formation.spec.ts test/engine-adapters/af357-character-desire-mapping.spec.ts test/engine-adapters/af357-bdi-runtime-config.spec.ts test/engine-adapters/af106-character-pool.spec.ts test/engine-core/boundary.spec.ts test/config/wp25-env-example-coverage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 6,
+        "tests": 88,
+        "machine": "同上",
+        "wallClock": "约 5.9s",
+        "note": "6 文件 / 88 例通过；boundary 12、env 12、AF-106 3"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 306,
+        "tests": 4666,
+        "machine": "同上；无 nest watch / vite dev 长驻进程，正常盘读取",
+        "wallClock": "29.94s",
+        "note": "305 文件通过 / 1 跳过（306）；4662 例通过 / 4 跳过（4666）"
+      },
+      {
+        "command": "pnpm exec tsx bin/bdi-readiness-audit.ts --out <tmp> --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "阻断项 0；10 角色全部覆盖；discussing_plans 有 3 个角色可达；insight 标为运行时缺省关闭但生成算子已实现"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "仅 state-transition.ts / beliefs.ts / engine-session.types.ts / in-memory-engine-session.ts 四个授权文件；boundary.spec.ts 未改"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS 活跃=1 归档=346 记录包=348 inbox=0"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-357 status=submitted files=28 covered=13"
+      }
+    ],
+    "reproNotes": "角色映射：10 个角色（8 真实 + 2 内置）映射后全部覆盖内核四键；同键取最大基线不求和；未知键保留。信念生成：只从来访上一轮第一人称自我觉察生成 observed 信念；缺省关闭；重复两次 0.65 过 reflectiveBeliefGate 0.6，第 12 轮 insight 可判。审计只读本地种子与 env。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-357 经 CLI register / promote / run-once；AF-356 经 CLI reissue 取消"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，未手改索引或事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-356 canceled 归档；AF-357 submitted；事件链由 CLI 写入"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "仅四个授权文件；boundary.spec.ts 12/12 通过；barrel 未新增公开符号"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "信念只进 BDI 快照；审计只输出键名 / 权重 / 布尔 / 计数，无对话原文"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "映射语义与 0.55 / 0.10 等参数标注工程种子；惊尘 control=0.50 不强行达标"
+      },
+      {
+        "item": "zero-regression",
+        "result": "pass",
+        "note": "未配置 ENGINE_BELIEF_FORMATION_* → beliefConfig 不注入；角色映射只改键不改数值"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "AF-356 / AF-357 声明路径均已落文件；worklog verify --strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef cb3cb868；type implementation；最终状态 completed；提交 d04d3e85 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF357-B1",
+        "impact": "角色愿望映射语义（acceptance→accepted、recognition→understood、autonomy/competence/self_reliability→control、stability/continuity/rest/safety/security→avoid_pain）是工程种子，需真实咨询师逐轮标注校准。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF357-B2",
+        "impact": "首次置信度 0.55、重复增量 0.10、单轮 2 条、长度 6–80 字未做临床标定；一句重复即达 0.65 是否足以进入整合领悟需督导判断。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF357-B3",
+        "impact": "extractReflectiveStatements 的否定式判断依赖“标记前 3 字”，常见“我没发现…”靠无标记被排除；是否增加独立否定词表待临床/产品决策。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF357-B4",
+        "impact": "ENGINE_BELIEF_FORMATION_ENABLED 缺省 false；灰度环境是否开启、按哪个批次开启待用户/临床负责人决定。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF357-B5",
+        "impact": "introduced 信念仍不从来访原文或咨询师解释生成；若未来允许咨询师引入信念，需单独临床决策与安全评审。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "角色愿望映射是否由真实咨询师逐轮标注后改判",
+      "信念形成机制在灰度环境何时开启、按哪个批次",
+      "否定式过滤是否增加独立词表",
+      "introduced 信念是否需要单独临床决策"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "定向闸门文件名 af356-*",
+        "reality": "任务已重签发为 AF-357",
+        "action": "使用 af357-* 三个测试文件，并跑同等 boundary / env 门",
+        "why": "任务单是重签发副本，文件名残留 AF-356；测试内容与范围一致"
+      },
+      {
+        "taskSays": "成功标准未要求扩 barrel",
+        "reality": "新增算子最初从 index.ts 导出，触发 boundary ⑥ 多导出",
+        "action": "收回 barrel，仅复用已公开 DEFAULT_BELIEF_OPERATOR_CONFIG；测试直读内核模块",
+        "why": "boundary.spec.ts 不改是硬红线，不能为方便扩公开面"
+      },
+      {
+        "taskSays": "审计只标 insight 是否可达",
+        "reality": "机制代码已实现但缺省关闭",
+        "action": "标为“不可达（运行时缺省关闭）+ 生成算子已实现，开启后可判”",
+        "why": "不把代码可达冒充线上已开启，也不再把缺口说成结构性不可达"
+      },
+      {
+        "taskSays": "任务单未要求改已有测试",
+        "reality": "全量测试暴露 af106-character-pool.spec.ts 断言装配后 desires 至少 2 条",
+        "action": "改为“原始池至少 2 条 + 规范形至少 1 条”",
+        "why": "安然 acceptance + authenticity 合法合并到同一内核键 accepted，原断言把映射合并误判成数据缺失"
+      },
+      {
+        "taskSays": "AF-356 交付记录路径为 af356-bdi-desire-belief-2026-11-23.md",
+        "reality": "任务取消、无实现",
+        "action": "写取消指针",
+        "why": "不阻断 strict 校验，也不冒充实现交付"
+      },
+      {
+        "taskSays": "未要求 MiniMax Code 参与",
+        "reality": "用户要求把长期闲置的 MiniMax Code 接入开发闭环",
+        "action": "派发 AF-357 独立只读评审，登记 relay job AF-357，固定回复文件",
+        "why": "异步第二意见不阻塞主交付，同时避免与主控在途改动冲突"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "角色愿望映射与短期信念生成均有实现、单测、审计与运行时通道；缺省关闭保证零回归；临床数值未被篡改；A/F-106 测试断言按映射合并语义修正；AF-356 取消指针已落文件；typecheck 0、lint 0/0、定向 88 例、全量 4662 例通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本单零新增模型调用；MiniMax Code 评审为复用既有桌面会话，不产生额外 API 费用。"
+  }
+}

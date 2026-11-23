@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-356",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T11:20:00+08:00",
+  "updatedAt": "2026-11-23T03:38:38.482Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-356/task-sheet.md",
+    "sha256": "229819cb9b1f32e684675675fc99dde31bd1aa663e0ceef69c27777ce8e38a7d",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af356-bdi-desire-belief-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/phase2.5-af356-bdi-desire-belief-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

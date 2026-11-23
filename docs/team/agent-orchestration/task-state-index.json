@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1583,
+    "lastEventSeq": 1602,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -3089,6 +3089,42 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af355-canceled-task-pointers-2026-11-23.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-356",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-356/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af356-bdi-desire-belief-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-357",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-357/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af357-bdi-desire-belief-2026-11-23.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-358",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-358/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af358-bdi-review-remediation-2026-11-23.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF357-review-20261123-1200.md"
+      }
+    },
+    {
+      "taskId": "AF-359",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-359/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md",
+        "reply": "docs/worklog/pending/relay-response-AF358-review-20261123-1300.md"
+      }
     }
   ],
   "archivedNotes": {
@@ -3138,6 +3174,7 @@
     "AF-279": "旁路评审任务取消归档；评审报告保留为 AF-278 生产可用性证据，P0/P1 转新返修任务",
     "AF-312": "scope 重签发 → AF-313",
     "AF-325": "scope 重签发 → AF-326",
-    "AF-327": "scope 重签发 → AF-328"
+    "AF-327": "scope 重签发 → AF-328",
+    "AF-356": "scope 重签发 → AF-357"
   }
 }
