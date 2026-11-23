@@ -2,8 +2,8 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ WP-A/C/D/E/F/G/H、WP-J 系列独立单、WP-K/L/M/N、WP-N-FE 已交付；🚧 Phase2.5 仍在出口取证。2026-11-17 环境重置后旧 96 场批次 `g3ONzlqSGMVJqkFMF9Lwh` 库内计数 0，当前仅 8 场 `uJHgP8uQGeM8Z6HbZY7M5`，intake 全局 FAIL；出口 ② 批次入口缺 `scenarioType`、③ 审议成本无证据、④ 质量未通过且 80% 不可判、⑤ 仅 8/1000+。详见 [AF-060 交付记录](../completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)。
-> **最近核对**：2026-11-17（数据库与本地快照实查）
+> **状态**：✅ WP-A/C/D/E/F/G/H、WP-J 系列独立单、WP-K/L/M/N、WP-N-FE 已交付；🚧 Phase2.5 仍在出口取证。2026-11-23 23:00 只读实查：`ap_practice_sessions` **491 场 / 12,848 轮 / 39 批（25 valid）**，completed **368**、stagnant 68、failed 38、crisis_ended 17；出口④ 最新正式判读仍为 AF-177 **4/6**（safety 6 场=2、κ 0.295711<0.40）；出口⑤ 距 completed 1000 场差 **632 场**，1000 场批次未启动；① 合规代码口径保持、② exam 规则层已达标（AF-086 24/24 场、257/257 条 `rule_only_skip`）、③ 成本仍为 shadow 保守上界口径。完整基线见 [Phase2.5 README §3.2.22](phase2.5-README.md#3222-2026-11-23-真实库基线重写af-389)。
+> **最近核对**：2026-11-23（MySQL 只读实查，AF-389）
 > **创建日期**：2026-11-08
 
 ---

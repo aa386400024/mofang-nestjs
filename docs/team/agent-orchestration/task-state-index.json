@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1670,
+    "lastEventSeq": 1680,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -3259,6 +3259,24 @@
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-388/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af388-workspace-artifact-cleanup-landing-2026-11-23.md",
         "reply": "docs/team/agent-orchestration/transport/receipts/AF-388.json"
+      }
+    },
+    {
+      "taskId": "AF-389",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-389/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-390",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-390/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af390-phase25-baseline-rebaseline-2026-11-23.md",
+        "reply": null
       }
     }
   ],
