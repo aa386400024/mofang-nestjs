@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-427",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T06:05:00+08:00",
+  "updatedAt": "2026-11-23T21:47:02.060Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-427/task-sheet.md",
+    "sha256": "e339ea9c084e3c5d27de01c1d39c7e690cf7ddb388a83259d0786fae582fdaa7",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-427/receipt-RC-AF-427-1.json",
+      "sha256": "546099204676400bec16cf157fe2fcef54c42b839766d1d04bd11cb5982c30fa",
+      "receiptId": "RC-AF-427-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af427-operator-delta-ledger-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-427-operator-delta-ledger.md"
+  ],
+  "tombstone": null
+}
