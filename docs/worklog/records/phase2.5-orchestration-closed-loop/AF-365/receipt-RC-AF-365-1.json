@@ -1,0 +1,297 @@
+{
+  "deliveredAt": "2026-11-23T15:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-365-1",
+    "taskId": "AF-365",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "06955ce535be1b2df9bc1571738934ef3960f340",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-364",
+      "AF-363"
+    ],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af365-orchestration-v21-2026-11-23.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "114b13cc97f5ff0a9059f4c005098352a3dd1551",
+        "719131efeed9bae0d8986d9741f393b4da5183c4"
+      ],
+      "added": [
+        "contracts/agent-collaboration-framework/2.1.0/PROVENANCE.json",
+        "contracts/agent-collaboration-framework/2.1.0/README.md",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/agent-card.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/approval.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/contract-enums.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/delivery-package.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/escalation.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/executor-session.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/protocol-view.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/receipt.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/review-handover.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/state-event.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/task-sheet.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/task-state-index.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/tool-audit-event.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/tool-contract.schema.json",
+        "contracts/agent-collaboration-framework/2.1.0/schemas/versions.json",
+        "docs/worklog/completed/phase2.5/af361-orchestration-v21-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af364-orchestrator-card-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af365-orchestration-v21-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-363/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-363/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-364/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-364/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/task-sheet.md",
+        "scripts/orchestration/__tests__/v21-adapters.spec.mjs",
+        "scripts/orchestration/executor-session.mjs",
+        "scripts/orchestration/receipt-scaffold.mjs",
+        "scripts/orchestration/risk-gate.mjs"
+      ],
+      "modified": [
+        ".github/workflows/ci.yml",
+        "docs/team/agent-orchestration/README.md",
+        "docs/team/agent-orchestration/agent-cards/README.md",
+        "docs/team/agent-orchestration/agent-cards/orchestrator.json",
+        "docs/team/agent-orchestration/autonomous-team-design.md",
+        "docs/team/agent-orchestration/framework-version-anchor.md",
+        "package.json",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "scripts/orchestration/branch-protection.mjs",
+        "scripts/orchestration/branch-workflow.mjs",
+        "scripts/orchestration/ci-task-gate.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/config.json",
+        "scripts/orchestration/contract-enums.json",
+        "scripts/orchestration/contract-enums.mjs",
+        "scripts/orchestration/event-store.mjs",
+        "scripts/orchestration/pr-release.mjs",
+        "scripts/orchestration/scope-mutex.mjs",
+        "scripts/orchestration/state-store.mjs",
+        "scripts/orchestration/task-entry-gate.mjs",
+        "scripts/orchestration/validator.mjs",
+        "scripts/orchestration/verify-framework-bundle.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30s",
+        "note": "全量 0 error / 0 warning（含 scripts/orchestration eslint 配置）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "tests": 4743,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "311 passed + 1 skipped（files）；4739 passed + 4 skipped（tests）"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs scripts/orchestration/__tests__/v21-adapters.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "tests": 273,
+        "machine": "同上",
+        "wallClock": "1.47s",
+        "note": "orchestration 260 + v21 adapters 13，全通过"
+      },
+      {
+        "command": "node scripts/orchestration/verify-framework-bundle.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "[PASS] 框架契约包 2.1.0（feat/v2.1-operational-contracts / e412403）：15 个文件哈希与版本一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "全部 PASS，含索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS (strict) 活跃=1 归档=352 记录包=354 inbox=0 legacy指针=133/133 无任务单=14/14"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；未触 engine-core 纯层"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base 06955ce535be1b2df9bc1571738934ef3960f340 --head HEAD",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "total=3 passed=3；实现/回执/门修正三个提交均 pass"
+      }
+    ],
+    "reproNotes": "风险门：risk-gate.mjs 以记录包任务单 riskClass=R2、gateProfile=full 解析为 R2 全量；状态面守卫 task-entry-gate 只拦生成态，任务单/回执/归档记录不误伤；scope-mutex 在给定 rootDir 时把真实目录的无尾斜杠 scope 条目按目录覆盖。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-365 经 CLI register/promote/run-once，preflight PASS"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "索引/日志由 CLI 生成；本分支只提交实现与任务文档，四个生成态文件未提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 1.2.0 重建后 validate 投影一致"
+      },
+      {
+        "item": "framework-bundle",
+        "result": "pass",
+        "note": "2.1.0 候选 e412403，15 文件哈希一致"
+      },
+      {
+        "item": "risk-gate",
+        "result": "pass",
+        "note": "R2 全量；required contexts 14 项"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "无心理内容、无凭据、无用户标识"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet/deliveryRecord 均落文件；worklog strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 06955ce5；type implementation；finalStatus completed；提交 114b13cc 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF365-B1",
+        "impact": "远程 integrate 保护仍为 13 项旧 contexts，需在 PR 检查面出现 Risk Gate / Contracts 2.1.0 后再 apply 14 项。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF365-B2",
+        "impact": "状态面四文件仍在工作区，需在状态分支或收尾快照单独提交。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF365-B3",
+        "impact": "框架 e412403 未推送、未打 tag、未开 PR；双仓发布需按 L1-L3 分层执行。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF365-B4",
+        "impact": "旧 task/AF-* 远端分支未清理，需确认后批量删除。",
+        "owner": "orchestration",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "远程保护 contexts 切换时机",
+      "状态面独立提交批次",
+      "旧任务分支清理范围"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "R2 仍 13/13",
+        "reality": "required contexts 为 14 项（新增 Risk Gate）",
+        "action": "按 14/14 验收并同步文档",
+        "why": "风险门是新增必需检查；13 项已不足以证明 R2 全量"
+      },
+      {
+        "taskSays": "gate 命令 `node scripts/orchestration/cli.mjs test`",
+        "reality": "CLI 无 test 子命令",
+        "action": "用 pnpm exec vitest run 与 pnpm test 取证",
+        "why": "不新增与 pnpm test 混淆的同名命令"
+      },
+      {
+        "taskSays": "状态面由独立状态分支承载",
+        "reality": "已提供 state sync 与守卫，尚未自动创建 state/* 分支",
+        "action": "机制先落地，自动建状态分支留待状态同步批次",
+        "why": "自动建远端状态分支涉及额外写操作，需单独授权"
+      },
+      {
+        "taskSays": "会话状态落 state/executor-sessions.json",
+        "reality": "state/ 下文件为 tracked 目录，运行态易污染",
+        "action": "改落 transport/executor-sessions.json（仓库既有 ignore）",
+        "why": "运行态不应随任务分支入库"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "R2 全量门禁通过：lint 0/0、typecheck 0、全量测试 4739 passed / 4 skipped、编排 273 例全通过、契约包 2.1.0 15 文件哈希一致、validate 全 PASS、worklog strict PASS；状态面四文件未进入本分支；偏差表已列 14 项检查、gate 命令纠偏、状态分支待办与会话落点。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "零新增模型调用；全部为本地脚本、CI 配置与契约包同步。"
+  }
+}

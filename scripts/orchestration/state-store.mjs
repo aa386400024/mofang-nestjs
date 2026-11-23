@@ -127,6 +127,13 @@ export function validateConfig(raw) {
   if (!Number.isInteger(refreshInterval) || refreshInterval < 1000) {
     errors.push(`web.refresh.intervalMs 须为不小于 1000 的整数，实际 ${String(raw.web?.refresh?.intervalMs)}`);
   }
+  const worklogStrictBaseline = {
+    legacyPointers: Number(raw.worklogStrictBaseline?.legacyPointers ?? 0),
+    missingTaskSheets: Number(raw.worklogStrictBaseline?.missingTaskSheets ?? 0),
+  };
+  for (const [key, value] of Object.entries(worklogStrictBaseline)) {
+    if (!Number.isInteger(value) || value < 0) errors.push(`worklogStrictBaseline.${key} 须为非负整数，实际 ${String(value)}`);
+  }
   if (errors.length > 0) throw new Error(`编排配置非法：${errors.join('；')}`);
   return {
     schemaVersion: raw.schemaVersion ?? '1.0.0',
@@ -135,6 +142,7 @@ export function validateConfig(raw) {
     leaseDefaultMinutes: lease,
     allowedTaskTypes: Array.isArray(raw.allowedTaskTypes) ? raw.allowedTaskTypes : [],
     maxConcurrentTasks,
+    worklogStrictBaseline,
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
     store: { backend },
     transport: { type: transportType },

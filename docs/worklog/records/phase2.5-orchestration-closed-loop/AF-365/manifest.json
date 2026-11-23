@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-365",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-23T14:50:00+08:00",
+  "updatedAt": "2026-11-23T06:39:47.536Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/task-sheet.md",
+    "sha256": "5a3e2f8143235b4a9e811d9fdbecc9b734cc3692070a6b3b845a4a85d2b212dc",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af365-orchestration-v21-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-365-orchestration-v21-upgrade.md"
+  ],
+  "tombstone": null
+}

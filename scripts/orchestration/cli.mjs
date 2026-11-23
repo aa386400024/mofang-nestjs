@@ -75,6 +75,7 @@ import {
 } from './improvement-log.mjs';
 import {
   buildBranchName,
+  deriveSlug,
   classifyBranches,
   planCleanup,
   verifyBaseline,
@@ -100,7 +101,18 @@ import { collectOccupiedTaskIds, nextTaskId } from './task-id-occupancy.mjs';
 import { createGitTaskIdReservation, pickReservedTaskId, reservationRef } from './task-id-reservation.mjs';
 import { planReissue } from './reissue.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
-import { excludeStatePlane } from './task-entry-gate.mjs';
+import { parseTaskSheetFrontmatter } from './task-intake.mjs';
+import { buildReceiptScaffoldFromFile } from './receipt-scaffold.mjs';
+import {
+  ackSession,
+  createSession,
+  evaluateSession,
+  heartbeatSession,
+  progressSession,
+  requestCancel,
+  terminalSession,
+} from './executor-session.mjs';
+import { excludeStatePlane, GENERATED_STATE_PATHS, isGeneratedStatePath } from './task-entry-gate.mjs';
 import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
 import { ensureTaskRecordBundle, migrateWorklog, resolveTaskSheet, statsWorklog, verifyWorklog } from './worklog.mjs';
 
@@ -470,25 +482,252 @@ function cmdArchive(args) {
   console.log(`已归档：${entry.taskId} [${entry.status}]${note ? `｜${note}` : ''}`);
 }
 
+/**
+ * AF-365 · 状态面守卫。
+ *
+ * 规则：
+ *   - 状态面生成物不得与实现文件混在同一次提交（任何分支）；
+ *   - `task/*` 分支默认拒绝提交状态面，改由 `state/*` 或 integrate 上的状态提交承载；
+ *   - 显式 `--allow-state-commit` 仅给状态同步流程使用，必须记录原因。
+ */
+function cmdState(args = []) {
+  const action = args[0] ?? 'status';
+  const git = (argv) => {
+    const result = spawnSync('git', argv, { cwd: REPO_ROOT, encoding: 'utf8' });
+    return result.status === 0 ? result.stdout.trim() : '';
+  };
+  const branch = git(['branch', '--show-current']);
+  const staged = git(['diff', '--cached', '--name-only'])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const dirty = git(['diff', '--name-only', 'HEAD'])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const stateStaged = staged.filter(isGeneratedStatePath);
+  const stateDirty = dirty.filter(isGeneratedStatePath);
+  const implementationStaged = staged.filter((file) => !isGeneratedStatePath(file));
+
+  if (action === 'sync') {
+    const apply = args.includes('--apply');
+    if (!apply) {
+      console.log(`分支：${branch || '(detached)'}`);
+      console.log(`状态面路径：${GENERATED_STATE_PATHS.length} 个`);
+      console.log(`状态面未暂存：${stateDirty.length ? stateDirty.join('、') : '无'}`);
+      console.log('计划：events rebuild --apply + snapshot 刷新；加 --apply 执行（不改 journal 事件源）');
+      return { ok: true, applied: false };
+    }
+    const index = rebuildIndex({ write: true });
+    refreshSnapshotArtifacts({ force: true });
+    const afterDirty = git(['diff', '--name-only', 'HEAD'])
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter(isGeneratedStatePath);
+    console.log(
+      `[PASS] state sync 已重建：任务 ${index.tasks?.length ?? 0}、归档 ${index.archivedTasks?.length ?? 0}；状态面脏文件 ${afterDirty.length} 个`,
+    );
+    if (afterDirty.length > 0) console.log(`未暂存：${afterDirty.join('、')}`);
+    return { ok: true, applied: true };
+  }
+
+  if (action === 'guard') {
+    const allow = args.includes('--allow-state-commit');
+    const errors = [];
+    if (stateStaged.length > 0 && implementationStaged.length > 0) {
+      errors.push(`状态面与实现混提：${stateStaged.length} 个状态文件 + ${implementationStaged.length} 个实现文件`);
+    }
+    if (stateStaged.length > 0 && branch.startsWith('task/') && !allow) {
+      errors.push(`task 分支 ${branch} 拒绝提交状态面（${stateStaged.join('、')}）；请用 state/* 分支或显式 --allow-state-commit`);
+    }
+    if (errors.length > 0) {
+      for (const error of errors) console.error(`[FAIL] ${error}`);
+      process.exitCode = 1;
+      return { ok: false, errors };
+    }
+    console.log(`[PASS] state guard branch=${branch || '(detached)'} stateStaged=${stateStaged.length} implStaged=${implementationStaged.length}`);
+    return { ok: true, errors: [] };
+  }
+
+  console.log(`分支：${branch || '(detached)'}`);
+  console.log(`状态面已暂存：${stateStaged.length ? stateStaged.join('、') : '无'}`);
+  console.log(`状态面未暂存：${stateDirty.length ? stateDirty.join('、') : '无'}`);
+  console.log(`状态面路径：${GENERATED_STATE_PATHS.length} 个`);
+  return { branch, stateStaged, stateDirty };
+}
+
+/**
+ * AF-365 · 执行器会话心跳。状态落 `transport/executor-sessions.json`（已在 .gitignore 内）；
+ * reap 只把超租约会话判 lost 并置人工持单，不自动重派（reliability.md §3）。
+ */
+function cmdSession(args = []) {
+  const action = args[0] ?? 'list';
+  const file = join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'transport', 'executor-sessions.json');
+  const load = () => (existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { schemaVersion: '1.0.0', sessions: [] });
+  const save = (state) => writeJsonAtomic(file, state);
+  const now = argValue(args, '--now') ?? nowIso();
+  const sessionId = argValue(args, '--sessionId');
+  const taskId = argValue(args, '--taskId');
+  const state = load();
+  const ensure = () => {
+    if (!Array.isArray(state.sessions)) state.sessions = [];
+    return state.sessions;
+  };
+
+  if (action === 'start') {
+    if (!sessionId || !taskId) throw new Error('用法：session start --sessionId <id> --taskId AF-0xx --executor <name>');
+    const sessions = ensure();
+    if (sessions.some((item) => item.sessionId === sessionId)) throw new Error(`会话已存在：${sessionId}`);
+    const session = createSession({
+      sessionId,
+      taskId,
+      executor: argValue(args, '--executor') ?? 'unknown',
+      now,
+      leaseMinutes: Number(argValue(args, '--lease-minutes') ?? 15),
+    });
+    sessions.push(session);
+    save(state);
+    console.log(JSON.stringify(session, null, 2));
+    return session;
+  }
+
+  const target = sessionId
+    ? ensure().find((item) => item.sessionId === sessionId)
+    : ensure().find((item) => item.taskId === taskId && !['completed', 'failed', 'lost', 'canceled'].includes(item.status));
+  if (['status', 'heartbeat', 'terminal', 'ack', 'progress', 'cancel'].includes(action)) {
+    if (!target) throw new Error(`会话不存在：${sessionId ?? taskId ?? '(未指定)'}`);
+  }
+
+  if (action === 'ack') {
+    const next = ackSession(target, {
+      now,
+      leaseMinutes: argValue(args, '--lease-minutes') ? Number(argValue(args, '--lease-minutes')) : undefined,
+      note: argValue(args, '--note') ?? null,
+    });
+    Object.assign(target, next);
+    save(state);
+    console.log(JSON.stringify(target, null, 2));
+    return target;
+  }
+
+  if (action === 'progress') {
+    const rawPercent = argValue(args, '--percent');
+    const artifacts = argValue(args, '--artifact');
+    const next = progressSession(target, {
+      now,
+      progressPercent: rawPercent === undefined ? undefined : Number(rawPercent),
+      progressNote: argValue(args, '--note') ?? null,
+      artifactRefs: artifacts === undefined ? undefined : artifacts.split(',').map((item) => item.trim()).filter(Boolean),
+      evidenceRef: argValue(args, '--evidence') ?? undefined,
+      leaseMinutes: argValue(args, '--lease-minutes') ? Number(argValue(args, '--lease-minutes')) : undefined,
+    });
+    Object.assign(target, next);
+    save(state);
+    console.log(JSON.stringify(target, null, 2));
+    return target;
+  }
+
+  if (action === 'cancel') {
+    const next = requestCancel(target, { now, note: argValue(args, '--note') ?? null });
+    Object.assign(target, next);
+    save(state);
+    console.log(JSON.stringify(target, null, 2));
+    return target;
+  }
+
+  if (action === 'heartbeat') {
+    const next = heartbeatSession(target, {
+      now,
+      status: argValue(args, '--status') ?? 'active',
+      leaseMinutes: argValue(args, '--lease-minutes') ? Number(argValue(args, '--lease-minutes')) : undefined,
+      note: argValue(args, '--note') ?? null,
+    });
+    Object.assign(target, next);
+    save(state);
+    console.log(JSON.stringify(target, null, 2));
+    return target;
+  }
+
+  if (action === 'terminal') {
+    const next = terminalSession(target, { now, status: argValue(args, '--status') ?? 'completed', note: argValue(args, '--note') ?? null });
+    Object.assign(target, next);
+    save(state);
+    console.log(JSON.stringify(target, null, 2));
+    return target;
+  }
+
+  if (action === 'status') {
+    const evaluation = evaluateSession(target, { now });
+    console.log(JSON.stringify({ session: target, evaluation }, null, 2));
+    return { session: target, evaluation };
+  }
+
+  if (action === 'reap') {
+    const sessions = ensure();
+    const lost = [];
+    const runtime = loadRuntimeState();
+    for (const session of sessions) {
+      const evaluation = evaluateSession(session, { now });
+      if (evaluation.state !== 'lost') continue;
+      Object.assign(session, terminalSession(session, { now, status: 'lost', note: evaluation.reason ?? 'heartbeat expired' }));
+      lost.push({ sessionId: session.sessionId, taskId: session.taskId, reason: evaluation.reason });
+      const entry = runtime.tasks?.[session.taskId];
+      if (entry) {
+        entry.heldForHuman = true;
+        entry.heldReason = `executor-session ${session.sessionId} lost：${evaluation.reason ?? '心跳超租约'}`;
+        entry.leaseDeadline = null;
+      }
+    }
+    if (lost.length > 0) saveRuntimeState(runtime);
+    save(state);
+    console.log(JSON.stringify({ reaped: lost.length, lost }, null, 2));
+    return { reaped: lost.length, lost };
+  }
+
+  if (action === 'list') {
+    const sessions = ensure().map((session) => ({ ...session, evaluation: evaluateSession(session, { now }) }));
+    console.log(JSON.stringify({ sessions }, null, 2));
+    return { sessions };
+  }
+
+  throw new Error(`未知 session 子命令：${action}（可选 start / ack / progress / heartbeat / cancel / terminal / status / list / reap）`);
+}
+
 function cmdWorklog(args = []) {
   const action = args[0] ?? 'stats';
   const json = args.includes('--json');
   const index = loadIndex();
   if (action === 'verify') {
     const strict = args.includes('--strict');
-    const result = verifyWorklog(index);
-    const failed = !result.ok || (strict && result.warnings.length > 0);
+    const stateFree = args.includes('--state-free') || process.env.ORCH_STATE_FREE === '1';
+    const result = verifyWorklog(index, { stateFree });
+    const baseline = loadConfig().worklogStrictBaseline ?? { legacyPointers: 0, missingTaskSheets: 0 };
+    const debt = [];
+    if (strict) {
+      if (Number(result.stats.legacyPointers ?? 0) > Number(baseline.legacyPointers ?? 0)) {
+        debt.push(`legacy 指针 ${result.stats.legacyPointers} 超过基线 ${baseline.legacyPointers}`);
+      }
+      if (Number(result.stats.missingTaskSheets ?? 0) > Number(baseline.missingTaskSheets ?? 0)) {
+        debt.push(`无任务单 ${result.stats.missingTaskSheets} 超过基线 ${baseline.missingTaskSheets}`);
+      }
+    }
+    const failed = !result.ok || (strict && result.warnings.length > 0) || debt.length > 0;
     if (json) {
-      console.log(JSON.stringify({ ...result, strict, ok: !failed }, null, 2));
+      console.log(JSON.stringify({ ...result, strict, baseline, debt, ok: !failed }, null, 2));
     } else {
       console.log(
-        `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers} 无任务单=${result.stats.missingTaskSheets}`,
+        `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers}/${baseline.legacyPointers} 无任务单=${result.stats.missingTaskSheets}/${baseline.missingTaskSheets}`,
       );
       for (const warning of result.warnings) console.warn(`  ! ${warning}`);
+      if (stateFree && result.skippedOrphans.length > 0) {
+        console.log(`  - 状态面解耦：跳过孤儿记录包检查 ${result.skippedOrphans.length} 个（${result.skippedOrphans.join('、')}）；索引同步后再判`);
+      }
+      for (const item of debt) console.error(`  - ${item}`);
       for (const error of result.errors) console.error(`  - ${error}`);
     }
     if (failed) process.exitCode = 1;
-    return { ...result, strict, ok: !failed };
+    return { ...result, strict, baseline, debt, ok: !failed };
   }
   if (action === 'stats') {
     const stats = statsWorklog(index);
@@ -679,7 +918,7 @@ async function runBranch(args) {
   const task = index.tasks.find((t) => t.taskId === taskId) ?? index.archivedTasks.find((t) => t.taskId === taskId);
   if (!task) throw new Error(`任务不在索引中：${taskId}`);
 
-  const slug = argValue(args, '--slug') ?? taskId.toLowerCase();
+  const slug = argValue(args, '--slug') ?? deriveSlug(task.title, taskId);
   const name = buildBranchName(taskId, slug);
   if (!name.valid) throw new Error(`分支名校验失败：${name.errors.join('；')}`);
   const branchName = name.branchName;
@@ -1345,6 +1584,7 @@ async function cmdValidate(args) {
     console.error(`[FAIL] 框架契约不可达：${join(frameworkDir(), 'schemas', 'versions.json')}（ORCH_REQUIRE_FRAMEWORK=1）`);
     process.exit(1);
   }
+  const stateFree = args.includes('--state-free') || process.env.ORCH_STATE_FREE === '1';
   const sections = [];
 
   if (existsSync(PATHS.index)) {
@@ -1442,7 +1682,11 @@ async function cmdValidate(args) {
         errors: [...journalSchema.errors, ...integrity.errors],
       },
     ]);
-    sections.push(['索引投影一致', verifyProjection()]);
+    if (!stateFree) sections.push(['索引投影一致', verifyProjection()]);
+  }
+
+  if (stateFree) {
+    console.log('[SKIP] 索引投影一致：状态面解耦（--state-free），索引由收尾状态快照单独同步');
   }
 
   let failed = false;
@@ -1581,8 +1825,33 @@ function cmdImprovements(args) {
 /** AF-084：回执预检，在 run-once 之前暴露格式与 scope 问题。 */
 function cmdReceipt(args) {
   const sub = args[0];
+  if (sub === 'scaffold') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) throw new Error('用法：receipt scaffold --taskId AF-0xx [--apply]');
+    const index = loadIndex();
+    const task = [...(index.tasks ?? []), ...(index.archivedTasks ?? [])].find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`任务不在索引中：${taskId}`);
+    const sheet = resolveTaskSheet(task);
+    if (!sheet) throw new Error(`任务单不可解析：${taskId}`);
+    const target = join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'transport', 'receipts', `${taskId}.json`);
+    if (existsSync(target) && args.includes('--apply') && !args.includes('--force')) {
+      throw new Error(`回执已存在，拒绝覆盖：${target}（确需重建请加 --force）`);
+    }
+    const scaffold = buildReceiptScaffoldFromFile({
+      taskId,
+      taskSheetPath: sheet.path,
+      receiptId: argValue(args, '--receiptId') ?? `RC-${taskId}-1`,
+    });
+    if (!args.includes('--apply')) {
+      console.log(JSON.stringify(scaffold, null, 2));
+      return scaffold;
+    }
+    writeJsonAtomic(target, scaffold);
+    console.log(`已生成回执骨架：${target}`);
+    return scaffold;
+  }
   if (sub !== 'lint') {
-    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>]');
+    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>] 或 receipt scaffold --taskId <id> [--apply]');
     process.exit(2);
   }
   const taskId = argValue(args, '--taskId');
@@ -1591,8 +1860,16 @@ function cmdReceipt(args) {
     process.exit(2);
   }
   const index = loadIndex();
-  const task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
+  let task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
   if (!task) throw new Error(`任务不存在：${taskId}`);
+  if (!task.scope) {
+    // 归档投影只保留工件指针；回执 scope 预检需从任务单回填契约字段。
+    const sheet = resolveTaskSheet(task);
+    if (sheet) {
+      const { meta } = parseTaskSheetFrontmatter(readFileSync(sheet.path, 'utf8'));
+      task = { ...meta, ...task, scope: task.scope ?? meta.scope };
+    }
+  }
   const pathArg = argValue(args, '--path');
   const receiptFile = pathArg ? resolve(REPO_ROOT, pathArg) : join(PATHS.transportDir, 'receipts', `${taskId}.json`);
   if (!existsSync(receiptFile)) throw new Error(`回执文件不存在：${relativePath(receiptFile)}`);
@@ -1748,6 +2025,22 @@ switch (command) {
       cmdWorklog(args);
     } catch (err) {
       console.error(`worklog 操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'session':
+    try {
+      cmdSession(args);
+    } catch (err) {
+      console.error(`session 操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'state':
+    try {
+      cmdState(args);
+    } catch (err) {
+      console.error(`state 操作失败：${err.message}`);
       process.exit(2);
     }
     break;

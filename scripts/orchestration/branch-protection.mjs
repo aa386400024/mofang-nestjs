@@ -4,8 +4,9 @@ import { pathToFileURL } from 'node:url';
 import { githubRequest, unwrapGithub } from './github-api.mjs';
 
 export const INTEGRATE_REQUIRED_CONTEXTS = [
+  'Risk Gate',
   'Orchestration Gate',
-  'Contracts (framework 2.0.0)',
+  'Contracts (framework 2.1.0)',
   'Lint + Typecheck',
   'E2E',
   'Coverage Gate',

@@ -32,6 +32,21 @@ function normalizeSlug(slug) {
 const TASK_NUMBER_IN_SLUG = /af-?\d{3}/;
 
 /**
+ * 从任务标题派生合规 slug：L2 默认 `branch plan --taskId` 不再用 taskId 本身
+ * 当 slug（会被 `TASK_NUMBER_IN_SLUG` 自拒）。
+ * @param {string} title
+ * @param {string} taskId
+ * @returns {string}
+ */
+export function deriveSlug(title, taskId = '') {
+  const stripped = String(title ?? '')
+    .replace(new RegExp(String(taskId ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ')
+    .replace(/(?:AF|WP)-\d+/gi, ' ');
+  const slug = normalizeSlug(stripped).replace(TASK_NUMBER_IN_SLUG, '').replace(/^-+|-+$/g, '');
+  return slug.slice(0, 48).replace(/-+$/g, '') || 'task-work';
+}
+
+/**
  * 构造并校验任务分支名 `task/<taskId>-<slug>`。
  *
  * ⚠️ slug **不得**包含任务编号：分支名同时是 PR 验收门的任务号来源，

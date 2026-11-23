@@ -625,8 +625,8 @@ export function projectJournal(events, opts = {}) {
 
   const lastEventSeq = events.length > 0 ? Math.max(...events.map((event) => event.eventSeq)) : 0;
   return {
-    version: '1.1.0',
-    schemaRef: 'urn:agent-collaboration-framework:schema:task-state-index:1.1.0',
+    version: '1.2.0',
+    schemaRef: 'urn:agent-collaboration-framework:schema:task-state-index:1.2.0',
     note: opts.note ?? INDEX_NOTE,
     projection: {
       journalPointer: opts.journalPointer ?? JOURNAL_POINTER,

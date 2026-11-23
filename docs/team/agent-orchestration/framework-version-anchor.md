@@ -7,27 +7,21 @@
 | 项 | 值 |
 | --- | --- |
 | 框架仓 | `D:\work\Project\agent-collaboration-framework`（本地独立 git 仓，无包管理器分发） |
-| 发行 tag | `v2.0.0`（annotated tag） |
-| tag 对象 SHA | `c50718856aa752bac3d87e44b3f309b16fbcb051` |
-| tag 指向 commit | `67d329054f12ead1a1072d4edbbbfbe924ed1c79` |
-| releasedAt | `2026-11-16` |
-| 当前 `main` HEAD | `7395748f3a95d4af32f356fce30629e7ce678909`（**未发版**） |
+| 发行状态 | `v2.1.0` 已发行（annotated tag `06045fb` → commit `e6dd22d`，PR #1 rebase 合并） |
+| 候选分支 | `feat/v2.1-operational-contracts`（已合并，保留历史） |
+| 候选 commit | `e4124037b8e5da2ac92070bb13da75f921044f9d`（合并前提交） |
+| 上一发行 tag | `v2.0.0`（annotated tag object `c507188` → commit `67d3290`，releasedAt `2026-11-16`） |
 | 适配层版本范围 | `>=2.0.0 <3.0.0` |
 
-**引用规则**：说「发行版」写 tag `v2.0.0`；需要代码身份时写 commit `67d3290`；不得把 annotated tag object `c507188` 当成 commit 引用。tag 之后 `main` 的提交只在本地一致性校验中使用，不构成对下游的发行承诺。
+**引用规则**：说「2.1.0」写 annotated tag object `06045fb` → commit `e6dd22d`；仓库内契约包 `PROVENANCE.json` 指向同一 commit。`v2.0.0` 为上一正式发行。tag 对象 `06045fb` 不能当 commit 引用。
 
-## 2. tag 之后的未发版提交（2026-11-17 / 11-18）
+## 2. 2.1.0 发行内容（2026-11-23）
 
-| commit | 主题 | 影响适配层的点 |
-| --- | --- | --- |
-| `53c2b2b` | 非失败事实分类、熔断 half-open 迁移口径、receipt 可选 commits 字段 | 通道旁路 / 熔断口径 |
-| `1b1e581` | 规范正文条款锚点校验，条款漂移即失败 | conformance 条款锚点 |
-| `26d30bc` | push 到 main 也过 CHANGELOG 闸门 | 框架仓 CI，不在本仓生效 |
-| `bde9343` | 派发后释放交互控制权，回执走文件 + 定时轮询 | GUI relay 控制权边界 |
-| `b23e968` | 按任务动态轮询，不留常驻扫描 | relay 轮询策略 |
-| `7395748` | relay 回收改为事件优先与有界兜底 | relay supervisor 行为 |
+`feat/v2.1-operational-contracts` 经 PR #1 rebase 合并到 `main@e6dd22d`，包含：风险分级 `riskClass / riskRationale / gateProfile`、任务取代 `supersedes / supersededBy`、依赖转接 `dependencyResolutions`、周期时间 `timing`、执行器会话 `executor-session` 心跳，以及 INV-17～INV-21。框架侧 `conformance/run.py` 检查项 565、失败 0；单测 19 条全绿。
 
-这些提交已进入本地 `main`，但**尚未打新 tag / 发新 release**。适配层本轮只做文档锚定与行为对齐，不擅自发布框架版本；L4 冻结动作（tag / release / master / 部署）仍归 Human 批准。
+`v2.1.0` 已打 annotated tag（tag object `06045fb`，指向 `e6dd22d`）。适配层使用 `contracts/agent-collaboration-framework/2.1.0/` 固化副本消费，来源哈希见该目录 `PROVENANCE.json`。
+
+> 历史说明：`v2.0.0` 之后 `main` 上的 `53c2b2b`～`7395748` 是 v2.0.0 的补丁口径；2.1.0 候选把其中与生命周期相关的设计固化为契约，而不是逐条 cherry-pick。
 
 ## 3. 一致性校验
 
@@ -53,4 +47,4 @@ pnpm orchestration:events verify
 3. 不在本仓伪造框架 commit / tag；跨仓提交只写 `artifactRefs.others`，不写 `changedFiles.commits`。
 4. 版本锚点变更必须带证据：`git rev-parse` 输出、tag 类型、`versions.json` 摘要、`orchestration:contracts` 结果。
 
-_Last verified: 2026-11-18（tag object `c507188` → commit `67d3290`，main HEAD `7395748`）_
+_Last verified: 2026-11-23（`v2.1.0` annotated tag `06045fb` → commit `e6dd22d`；上一正式发行 `v2.0.0` → `67d3290`）_

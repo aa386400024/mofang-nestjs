@@ -1,0 +1,76 @@
+{
+  "deliveredAt": "2026-11-23T16:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-369-1",
+    "taskId": "AF-369",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "06955ce535be1b2df9bc1571738934ef3960f340",
+    "dependsOn": [
+      "AF-368"
+    ],
+    "priorTasks": [
+      "AF-368"
+    ],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-369/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af369-af368-receipt-pointer-2026-11-23.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "1ea0e81f"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af369-af368-receipt-pointer-2026-11-23.md"
+      ],
+      "modified": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/receipt-RC-AF-368-1.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs receipt lint --taskId AF-368 --path docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/receipt-RC-AF-368-1.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "瞬时",
+        "note": "[PASS] 七组字段、scope、工件与换行检查通过"
+      }
+    ],
+    "reproNotes": "只清理工件指针类型误用，AF-368 结论与提交未变。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "receipt-lint",
+        "result": "pass",
+        "note": "AF-368 回执 lint PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "changedFiles.commits 与唯一提交一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "回执指针修正后 lint PASS，归档事实不变。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}

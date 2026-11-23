@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** vendored 枚举投影原始对象（框架仓 contract-enums.json 2.0.0 副本）。 */
+/** vendored 枚举投影原始对象（框架仓 contract-enums.json 2.1.0 副本）。 */
 export const CONTRACT_ENUMS = JSON.parse(readFileSync(join(__dirname, 'contract-enums.json'), 'utf8'));
 
 /** 枚举投影版本（对齐框架 enums 轴）。 */
@@ -29,6 +29,12 @@ export const ENUMS_VERSION = CONTRACT_ENUMS.schemaVersion;
 
 /** 任务类型枚举。 */
 export const TASK_TYPES = [...CONTRACT_ENUMS.taskTypes];
+
+/** 风险分级枚举（R0 文档/零运行时；R1 普通实现；R2 核心/临床/安全/迁移）。 */
+export const RISK_CLASSES = [...(CONTRACT_ENUMS.riskClasses ?? [])];
+
+/** 执行器会话状态枚举（含 lost，用于心跳超租约）。 */
+export const EXECUTOR_SESSION_STATUSES = [...(CONTRACT_ENUMS.executorSessionStatuses ?? [])];
 
 /** 任务状态枚举（含冻结态 auth-required）。 */
 export const TASK_STATUSES = [...CONTRACT_ENUMS.taskStatuses];

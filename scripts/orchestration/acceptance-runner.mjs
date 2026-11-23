@@ -318,7 +318,7 @@ function checkResidual(task, opts) {
       );
       return { checks, manualReview: [] };
     }
-    const { covered, residual } = detectResidualFiles(deliverable, task);
+    const { covered, residual } = detectResidualFiles(deliverable, task, { rootDir: REPO_ROOT });
     if (residual.length > 0) {
       record(checks, 'V7', '文件域残留', 'fail', `回执声明集含 scope 外文件：${residual.join('；')}`);
       return { checks, manualReview: [] };
@@ -371,7 +371,7 @@ function checkResidual(task, opts) {
     );
     return { checks, manualReview: [] };
   }
-  const { covered, residual } = detectResidualFiles(deliverable, task);
+  const { covered, residual } = detectResidualFiles(deliverable, task, { rootDir: REPO_ROOT });
   if (residual.length > 0) {
     record(checks, 'V7', '文件域残留', 'fail', `scope 外变更文件（不进提交分组）：${residual.join('；')}`);
   } else {
@@ -417,7 +417,7 @@ function checkResidualByCommits(task, opts, declaredCommits, changed) {
     );
     return { checks, manualReview: [] };
   }
-  const { covered, residual } = detectResidualFiles(deliverable, task);
+  const { covered, residual } = detectResidualFiles(deliverable, task, { rootDir: REPO_ROOT });
   if (residual.length > 0) {
     record(checks, 'V7', '文件域残留', 'fail', `scope 外提交文件（已按 commit 事实比对）：${residual.join('；')}`);
   } else {

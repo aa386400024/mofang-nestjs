@@ -6,7 +6,7 @@
 
 | 文件                | `agentId` | `role`         | 说明                                       |
 | ------------------- | --------- | -------------- | ------------------------------------------ |
-| `orchestrator.json` | 主控 AI   | `orchestrator` | 拆解 / 派发 / 验收组织 / 索引回写 / 归档   |
+| `orchestrator.json` | 主控 AI   | `orchestrator` | 拆解 / 派发 / 验收组织 / 索引回写 / 归档 / 框架契约包同步 |
 | `executor.json`     | 执行 AI   | `executor`     | 按任务单实现、内循环自测、写交付记录与回执 |
 
 ## 2. 为什么没有 `human.json`
@@ -32,5 +32,6 @@
 ## 4. 维护规则
 
 - 新增角色或调整能力域时，先改卡片再改 `../README.md` §2 roleBindings，避免两处口径漂移；
+- `contracts/agent-collaboration-framework/` 归 orchestrator 资源域：契约包同步与哈希校验属主控编排职责，executor 不越域写包；
 - 卡片变更须过 `node scripts/orchestration/cli.mjs validate`（agent-card schema 校验）；
 - 不新增 `human` / `null` 角色卡片；不把项目私有凭据、路径白名单以外的信息写进卡片。

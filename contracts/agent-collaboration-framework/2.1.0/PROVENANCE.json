@@ -1,0 +1,88 @@
+{
+  "fileKind": "framework-contract-bundle-provenance",
+  "schemaVersion": "1.0.0",
+  "frameworkVersion": "2.1.0",
+  "sourceRepository": "https://github.com/aa386400024/agent-collaboration-framework.git",
+  "sourceRef": "main",
+  "sourceCommit": "e6dd22d42f4a4017efb660fe0ab1c099df6608ee",
+  "sourceTag": "v2.1.0",
+  "sourceTagObject": "06045fb92ffb0ec71e6cc6fa4b7632ca55be5d3e",
+  "bundledAt": "2026-11-23T08:10:00Z",
+  "files": [
+    {
+      "path": "schemas/agent-card.schema.json",
+      "sha256": "c29bf940e9c4a8eced71c6fb3ed55484e8081497515d22fb1065b99537171322",
+      "bytes": 3593
+    },
+    {
+      "path": "schemas/approval.schema.json",
+      "sha256": "808d417851a454e441791329e6ae84ed9fbefd255d58449486efec579b2a5a23",
+      "bytes": 3143
+    },
+    {
+      "path": "schemas/contract-enums.json",
+      "sha256": "db3aef7d3e511e7c12aec978892c991f6a6864492a45a59bbe3bf339a1de384e",
+      "bytes": 4955
+    },
+    {
+      "path": "schemas/delivery-package.schema.json",
+      "sha256": "85d498fd107a34f62da6e23cc1641b104bb534b36fee0bf2d5335b9bc3a46a00",
+      "bytes": 9475
+    },
+    {
+      "path": "schemas/escalation.schema.json",
+      "sha256": "ee9199d8395b38386130897eb8e9b0294d384be0e84aadd1e3a5c240aafa61f4",
+      "bytes": 4714
+    },
+    {
+      "path": "schemas/executor-session.schema.json",
+      "sha256": "53dbcccd4617f84b4f9b7e009991ab4bc0411dc9df780b0187e730cd0058a9d7",
+      "bytes": 3621
+    },
+    {
+      "path": "schemas/protocol-view.schema.json",
+      "sha256": "231e9436c945d6b6f0c13281eb6595ed3d8b7c385903caa2e075577aaaa3259c",
+      "bytes": 10352
+    },
+    {
+      "path": "schemas/receipt.schema.json",
+      "sha256": "db6733062828e871f45bc2509b6919ab52211afac1620b5a3b283585f31ce109",
+      "bytes": 14074
+    },
+    {
+      "path": "schemas/review-handover.schema.json",
+      "sha256": "9207edbdb88ef049a63defa883fb5a415c3861561b5b0880db21253fed2da8ac",
+      "bytes": 4452
+    },
+    {
+      "path": "schemas/state-event.schema.json",
+      "sha256": "69d830faff59868532caa92d1b3b7def88a7d842bbd1b6c84d487d0454fafd25",
+      "bytes": 4573
+    },
+    {
+      "path": "schemas/task-sheet.schema.json",
+      "sha256": "6cf883f9a2887b980704b5265396f5c3d6614e51cf13fbf0316f1c003b6e8e41",
+      "bytes": 12985
+    },
+    {
+      "path": "schemas/task-state-index.schema.json",
+      "sha256": "2ce3606ced15733925f8a0af735019e7b6ddb704d9e23efc7bc7f984b3dcc5ce",
+      "bytes": 17232
+    },
+    {
+      "path": "schemas/tool-audit-event.schema.json",
+      "sha256": "15b6daf5ed7b613143b5f63bf5eba74cfd80a5e14879cf3a5bd184b0f267a1bd",
+      "bytes": 3539
+    },
+    {
+      "path": "schemas/tool-contract.schema.json",
+      "sha256": "5686adce814c8ce3224604ba01a7a019da486223bcb95f346876da07a203a951",
+      "bytes": 6916
+    },
+    {
+      "path": "schemas/versions.json",
+      "sha256": "85122ee9dc7b1a38d8ccac3f48cda5c1792b46718903dcbce5e1a5b100cdc9ab",
+      "bytes": 3830
+    }
+  ]
+}

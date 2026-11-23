@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-367",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-23T15:55:00+08:00",
+  "updatedAt": "2026-11-23T07:50:06.851Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/task-sheet.md",
+    "sha256": "84b4ac1535fcc69caf08565d0e1368c4296d90cacf6dbb97522f312af6267cfe",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-367-ci-statefree-tests.md"
+  ],
+  "tombstone": null
+}

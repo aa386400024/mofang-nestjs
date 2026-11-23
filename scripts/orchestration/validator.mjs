@@ -27,7 +27,21 @@ export const SCHEMA_FILES = {
 };
 
 /** 契约包固化目录（框架私仓在 CI 不可跨仓读取时的可复现来源）。 */
-const VENDOR_FRAMEWORK_DIR = resolve(REPO_ROOT, 'contracts', 'agent-collaboration-framework', '2.0.0');
+function latestVendorDir() {
+  const root = resolve(REPO_ROOT, 'contracts', 'agent-collaboration-framework');
+  if (!existsSync(root)) return resolve(root, '2.0.0');
+  const versions = readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d+\.\d+\.\d+$/.test(entry.name))
+    .map((entry) => entry.name)
+    .sort((a, b) => {
+      const left = a.split('.').map(Number);
+      const right = b.split('.').map(Number);
+      for (let i = 0; i < 3; i += 1) if (left[i] !== right[i]) return left[i] - right[i];
+      return 0;
+    });
+  return resolve(root, versions.at(-1) ?? '2.0.0');
+}
+const VENDOR_FRAMEWORK_DIR = latestVendorDir();
 /** 本地兄弟仓（开发期优先，能第一时间发现框架 tag 漂移）。 */
 const SIBLING_FRAMEWORK_DIR = resolve(REPO_ROOT, '..', '..', 'agent-collaboration-framework');
 

@@ -1,0 +1,173 @@
+{
+  "deliveredAt": "2026-11-23T16:00:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-367-1",
+    "taskId": "AF-367",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "06955ce535be1b2df9bc1571738934ef3960f340",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-366"
+    ],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af367-ci-statefree-tests-2026-11-23.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "34ebca2d7cf435315aa3b98fdd28581a3a5851f3"
+      ],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/task-sheet.md"
+      ],
+      "modified": [
+        ".github/workflows/ci.yml",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 25s",
+        "note": "全量 0 error / 0 warning（含 scripts/orchestration eslint 配置）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 312,
+        "tests": 4745,
+        "machine": "同上",
+        "wallClock": "28.6s",
+        "note": "311 passed + 1 skipped（files）；4741 passed + 4 skipped（tests）"
+      },
+      {
+        "command": "ORCH_STATE_FREE=1 pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "tests": 262,
+        "machine": "同上",
+        "wallClock": "1.56s",
+        "note": "state-free 与全量两种模式均 262/262 通过"
+      },
+      {
+        "command": "pr-release status --taskId AF-365（head 34ebca2d）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "GitHub Actions / ubuntu-latest",
+        "wallClock": "约 4min",
+        "note": "verdict=pass，total=14，missing=[]，failing=[]，pending=[]；含 Risk Gate / Orchestration Gate / Contracts 2.1.0 / Unit 3 分片 / Coverage 3 分片 / Coverage Gate / E2E / Build / Security"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；未触 engine-core 纯层"
+      }
+    ],
+    "reproNotes": "PR 任务分支按设计不提交运行态索引；测试在 ORCH_STATE_FREE=1 下仅放宽状态面版本/投影断言，schema 自洽、版本漂移拦截、契约哈希仍真实执行。CI 顶层 env 按事件注入：PR=1，push=0。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-367 经 CLI register/run-once，preflight PASS"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 写；任务分支未提交索引/journal/快照"
+      },
+      {
+        "item": "state-free",
+        "result": "pass",
+        "note": "PR 放宽状态面断言，integrate 推送仍全量版本/投影校验"
+      },
+      {
+        "item": "ci-contexts",
+        "result": "pass",
+        "note": "14 项 required checks 全部通过（head 34ebca2d）"
+      },
+      {
+        "item": "framework-bundle",
+        "result": "pass",
+        "note": "Contracts (framework 2.1.0) PASS"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 06955ce5；type fix；finalStatus completed；提交 34ebca2d 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF367-B1",
+        "impact": "状态面四文件仍需在收尾状态快照单独提交并同步远程。",
+        "owner": "orchestration",
+        "status": "open"
+      },
+      {
+        "id": "AF367-B2",
+        "impact": "AF-365 durable 回执的 commits/gateResults 未覆盖后续修复提交，归档后仅在交付记录补充说明。",
+        "owner": "orchestration",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-366 独立交付",
+        "reality": "AF-366 登记 scope 缺 docs/worklog，提交门拒绝交付记录",
+        "action": "按 CLI 取消 AF-366，以 AF-367 承接并在 priorTasks 记录",
+        "why": "scope 不原地改写；用 priorTasks 承接保证审计链"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "14 项 required checks 全绿，本地三层闸门通过，状态面解耦假设在 PR 与 integrate 分流明确。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  }
+}

@@ -23,6 +23,7 @@ import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
 import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
+import { verifyWorklog } from '../worklog.mjs';
 import { PROTOCOL_CONTRACT_REF, buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
 import {
@@ -44,6 +45,9 @@ import {
   TOOL_CATEGORIES,
   ARTIFACT_KINDS,
 } from '../contract-enums.mjs';
+
+/** PR 任务分支按设计不提交运行态索引；状态面断言只在 integrate 全量校验时要求最新。 */
+const STATE_FREE = process.env.ORCH_STATE_FREE === '1';
 import { planReissue } from '../reissue.mjs';
 import { lintReceiptPayload } from '../receipt-lint.mjs';
 import { inspectTextFile, normalizeLf, normalizeTextFile } from '../text-normalize.mjs';
@@ -2507,7 +2511,9 @@ describe('适配层实例 2.0.0 合规（仓内真实工件，只读）', () => 
     const index = readJsonFile(PATHS.index);
     const res = await validateTaskIndex(index);
     assertNotFailed(res);
-    expect(index.version).toBe('1.1.0');
+    // 任务分支保留集成分支的索引基线；schemaRef 必须与自身 version 自洽。
+    expect(index.schemaRef).toContain(`task-state-index:${index.version}`);
+    if (!STATE_FREE) expect(index.version).toBe('1.2.0');
     for (const entry of index.archivedTasks) expect(entry.note).toBeUndefined();
     expect(Object.keys(index.archivedNotes ?? {}).length).toBeGreaterThan(0);
   });
@@ -2544,7 +2550,10 @@ describe('适配层实例 2.0.0 合规（仓内真实工件，只读）', () => 
   });
 
   it('契约版本对账：声明版本与框架 versions.json 一致 / 漂移被拦', () => {
-    const index = readJsonFile(PATHS.index);
+    // 任务分支不提交最新索引；契约对账用当前契约版本构造最小实例，版本漂移断言始终执行。
+    const index = STATE_FREE
+      ? { schemaRef: 'urn:agent-collaboration-framework:schema:task-state-index:1.2.0', version: '1.2.0' }
+      : readJsonFile(PATHS.index);
     const base = validateContractVersion(index, 'task-state-index');
     // 契约包已固化进仓，本地 / CI 都必须真实对账；skipped 属于硬失败。
     expect(base.skipped).toBeFalsy();
@@ -2642,6 +2651,9 @@ describe('事件溯源：日志投影 / 哈希链 / 派生', () => {
   });
 
   it('当前归档可由日志完整重建，且与索引逐字段一致', () => {
+    // 任务分支不提交运行态索引与 journal；投影一致性由 integrate 全量门与状态快照同步负责。
+    if (STATE_FREE) return;
+
     const current = loadIndex();
     const journal = loadJournal();
     expect(current.archivedTasks.length).toBeGreaterThan(0);
@@ -4112,10 +4124,11 @@ describe('AF-058 squash 全生命周期归档门', () => {
 describe('AF-056 integrate 保护与 PR 合并门', () => {
   const successfulChecks = () => INTEGRATE_REQUIRED_CONTEXTS.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
 
-  it('保护声明保留 12 项检查并新增 Orchestration Gate，管理员同样受限', () => {
+  it('保护声明保留 13 项既有检查并新增 Risk Gate / Orchestration Gate，管理员同样受限', () => {
     const payload = buildIntegrateProtection();
-    expect(payload.required_status_checks.contexts).toHaveLength(13);
-    expect(payload.required_status_checks.contexts[0]).toBe('Orchestration Gate');
+    expect(payload.required_status_checks.contexts).toHaveLength(14);
+    expect(payload.required_status_checks.contexts[0]).toBe('Risk Gate');
+    expect(payload.required_status_checks.contexts[1]).toBe('Orchestration Gate');
     expect(payload.required_status_checks.strict).toBe(true);
     expect(payload.enforce_admins).toBe(true);
     expect(payload.required_linear_history).toBe(true);
@@ -4139,22 +4152,22 @@ describe('AF-056 integrate 保护与 PR 合并门', () => {
     expect(verifyIntegrateProtection(actual).pass).toBe(false);
     actual.enforce_admins.enabled = true;
     actual.required_status_checks.contexts = actual.required_status_checks.contexts.slice(1);
-    expect(verifyIntegrateProtection(actual)).toMatchObject({ pass: false, missing: ['Orchestration Gate'] });
+    expect(verifyIntegrateProtection(actual)).toMatchObject({ pass: false, missing: ['Risk Gate'] });
   });
 
   it('PR 必需检查全部存在且成功才 pass', () => {
-    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 13, missing: [], failing: [], pending: [] });
+    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 14, missing: [], failing: [], pending: [] });
   });
 
   it('缺检查、待完成与 unknown 不放行，失败优先返回 fail', () => {
     expect(evaluateRequiredChecks([]).verdict).toBe('unknown');
-    expect(evaluateRequiredChecks(successfulChecks().slice(1))).toMatchObject({ verdict: 'pending', missing: ['Orchestration Gate'] });
+    expect(evaluateRequiredChecks(successfulChecks().slice(1))).toMatchObject({ verdict: 'pending', missing: ['Risk Gate'] });
     const pending = successfulChecks();
     pending[0].status = 'in_progress';
     pending[0].conclusion = null;
-    expect(evaluateRequiredChecks(pending)).toMatchObject({ verdict: 'pending', pending: ['Orchestration Gate'] });
+    expect(evaluateRequiredChecks(pending)).toMatchObject({ verdict: 'pending', pending: ['Risk Gate'] });
     const failed = successfulChecks();
-    failed[2].conclusion = 'failure';
+    failed[3].conclusion = 'failure';
     expect(evaluateRequiredChecks(failed)).toMatchObject({ verdict: 'fail', failing: ['Lint + Typecheck（failure）'] });
   });
 });
@@ -4354,6 +4367,22 @@ describe('AF-084 回执预检', () => {
     }
   });
 
+  it('无尾斜杠目录 scope 按真实目录覆盖，records 不误判为生成态', () => {
+    const { root, task, payload } = buildFixture();
+    try {
+      mkdirSync(join(root, 'scripts', 'orchestration'), { recursive: true });
+      writeFileSync(join(root, 'scripts', 'orchestration', 'cli.mjs'), '', 'utf8');
+      mkdirSync(join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-084'), { recursive: true });
+      writeFileSync(join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-084', 'task-sheet.md'), '# sheet\n', 'utf8');
+      const dirScope = { ...task, scope: { ...task.scope, files: ['scripts/orchestration', 'docs/worklog'] } };
+      const withRecords = structuredClone(payload);
+      withRecords.changedFiles.modified.push('docs/worklog/records/ctx/AF-084/task-sheet.md');
+      expect(lintReceiptPayload(withRecords, dirScope, { repoRoot: root })).toMatchObject({ ok: true, errors: [] });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('状态面生成物、scope 外声明、CR 换行、工件缺失均拦截', () => {
     const { root, task, payload } = buildFixture();
     try {
@@ -4406,6 +4435,30 @@ describe('AF-084 文本 LF / BOM 规范化', () => {
       const applied = normalizeTextFile(file, { apply: true });
       expect(applied.applied).toBe(true);
       expect(readFileSync(file, 'utf8')).toBe('# title\n\nbody\n');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('worklog 状态面解耦孤儿判定', () => {
+  it('stateFree 下孤儿记录包显式跳过并计数，常规 strict 仍报错', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orch-worklog-statefree-'));
+    try {
+      const bundleDir = join(root, 'docs', 'worklog', 'records', 'ctx', 'AF-999');
+      mkdirSync(bundleDir, { recursive: true });
+      writeFileSync(join(bundleDir, 'manifest.json'), JSON.stringify({ taskId: 'AF-999', receipts: [] }), 'utf8');
+      const index = { tasks: [], archivedTasks: [] };
+
+      const strict = verifyWorklog(index, { rootDir: root });
+      expect(strict.ok).toBe(false);
+      expect(strict.errors).toContain('孤儿记录包：AF-999');
+      expect(strict.skippedOrphans).toEqual([]);
+
+      const stateFree = verifyWorklog(index, { rootDir: root, stateFree: true });
+      expect(stateFree.ok).toBe(true);
+      expect(stateFree.errors).toEqual([]);
+      expect(stateFree.skippedOrphans).toEqual(['AF-999']);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

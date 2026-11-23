@@ -17,7 +17,27 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
-const BUNDLE = resolve(ROOT, 'contracts', 'agent-collaboration-framework', '2.0.0');
+const BUNDLE_ROOT = resolve(ROOT, 'contracts', 'agent-collaboration-framework');
+
+function resolveBundleVersion(argv) {
+  const index = argv.indexOf('--bundle');
+  if (index >= 0 && argv[index + 1]) return argv[index + 1];
+  if (process.env.ORCH_FRAMEWORK_BUNDLE) return process.env.ORCH_FRAMEWORK_BUNDLE;
+  const versions = readdirSync(BUNDLE_ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d+\.\d+\.\d+$/.test(entry.name))
+    .map((entry) => entry.name)
+    .sort((a, b) => {
+      const left = a.split('.').map(Number);
+      const right = b.split('.').map(Number);
+      for (let i = 0; i < 3; i += 1) if (left[i] !== right[i]) return left[i] - right[i];
+      return 0;
+    });
+  if (versions.length === 0) throw new Error(`契约包目录为空：${BUNDLE_ROOT}`);
+  return versions.at(-1);
+}
+
+const BUNDLE_VERSION = resolveBundleVersion(process.argv.slice(2));
+const BUNDLE = resolve(BUNDLE_ROOT, BUNDLE_VERSION);
 const PROVENANCE = join(BUNDLE, 'PROVENANCE.json');
 const SCHEMAS = join(BUNDLE, 'schemas');
 
