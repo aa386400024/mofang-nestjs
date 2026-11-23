@@ -347,6 +347,62 @@ export function resolveWorklogArtifact(task, ref, { rootDir = REPO_ROOT } = {}) 
   return existsSync(legacyAbs) ? legacy : ref;
 }
 
+export const LEGACY_RECORD_PACKAGES_VERSION = 'legacy-record-packages:1.0.0';
+
+export function legacyRecordPackagesPath({ rootDir = REPO_ROOT } = {}) {
+  return join(rootDir, 'docs', 'team', 'agent-orchestration', 'legacy-record-packages.json');
+}
+
+/**
+ * AF-423：继承清单读取与校验。
+ *
+ * 历史孤儿记录包（有 manifest 与交付记录、但缺 journal 事件）不能用全局
+ * `ORCH_STATE_FREE` 跳过——那会把新出现的孤儿一起放过。改为逐条登记：
+ * taskId + reason + evidence，verify 只豁免清单内的包，清单外照旧报错。
+ * @returns {{ok:boolean, entries:Array<{taskId:string,reason:string,evidence:string[]}>, errors:string[]}}
+ */
+export function loadLegacyRecordPackages({ rootDir = REPO_ROOT } = {}) {
+  const file = legacyRecordPackagesPath({ rootDir });
+  if (!existsSync(file)) return { ok: true, entries: [], errors: [] };
+  const errors = [];
+  let parsed = null;
+  try {
+    parsed = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    return { ok: false, entries: [], errors: [`继承清单非法 JSON：${error.message}`] };
+  }
+  if (parsed?.version !== LEGACY_RECORD_PACKAGES_VERSION) {
+    errors.push(`继承清单版本不符：${parsed?.version ?? 'missing'}（期望 ${LEGACY_RECORD_PACKAGES_VERSION}）`);
+  }
+  if (!Array.isArray(parsed?.packages)) {
+    errors.push('继承清单缺 packages 数组');
+    return { ok: false, entries: [], errors };
+  }
+  const entries = [];
+  const seen = new Set();
+  for (const raw of parsed.packages) {
+    const taskId = String(raw?.taskId ?? '').trim();
+    if (!/^AF-\d+$/.test(taskId)) {
+      errors.push(`继承清单 taskId 非法：${taskId || '<empty>'}`);
+      continue;
+    }
+    if (seen.has(taskId)) {
+      errors.push(`继承清单重复 taskId：${taskId}`);
+      continue;
+    }
+    seen.add(taskId);
+    const reason = String(raw?.reason ?? '').trim();
+    if (!reason) errors.push(`继承清单缺 reason：${taskId}`);
+    const evidence = Array.isArray(raw?.evidence) ? raw.evidence.map((item) => String(item)) : [];
+    if (evidence.length === 0) errors.push(`继承清单缺 evidence：${taskId}`);
+    for (const ref of evidence) {
+      if (!existsSync(resolve(rootDir, ref))) errors.push(`继承清单证据文件不存在：${taskId} → ${ref}`);
+    }
+    entries.push({ taskId, reason, evidence });
+  }
+  return { ok: errors.length === 0, entries, errors };
+}
+
 /**
  * worklog 完整性校验：索引 ↔ 记录包 ↔ 文件哈希 ↔ inbox。
  * @returns {{ok:boolean, errors:string[], stats:object, warnings:string[]}}
@@ -361,6 +417,9 @@ export function verifyWorklog(index, opts = {}) {
   const indexIds = new Set(allTasks(index).map((task) => task.taskId));
   const duplicates = duplicateTaskIds(index);
   for (const taskId of duplicates) errors.push(`重复 taskId：${taskId}`);
+  const legacy = opts.legacyPackages ?? loadLegacyRecordPackages({ rootDir });
+  for (const error of legacy.errors) errors.push(error);
+  const legacyIds = new Set(legacy.entries.map((entry) => entry.taskId));
 
   for (const task of allTasks(index)) {
     let manifest = null;
@@ -413,14 +472,22 @@ export function verifyWorklog(index, opts = {}) {
   }
 
   const skippedOrphans = [];
+  const legacyOrphans = [];
+  const bundleIds = new Set(bundles.map((bundle) => bundle.taskId));
   for (const bundle of bundles) {
     if (!indexIds.has(bundle.taskId)) {
       // 状态面解耦：任务分支不提交索引，记录包必然暂时不在索引里；
       // 只有状态面同步后的 integrate 才具备判孤儿条件。显式记录跳过，不静默。
-      if (opts.stateFree) skippedOrphans.push(bundle.taskId);
+      // AF-423：继承清单内的历史包判 legacy 并计数，清单外的孤儿照旧报错。
+      if (legacyIds.has(bundle.taskId)) legacyOrphans.push(bundle.taskId);
+      else if (opts.stateFree) skippedOrphans.push(bundle.taskId);
       else errors.push(`孤儿记录包：${bundle.taskId}`);
     }
     if (!bundle.manifest) errors.push(`记录包 manifest 非法 JSON：${bundle.taskId}`);
+  }
+  const staleLegacy = legacy.entries.map((entry) => entry.taskId).filter((taskId) => indexIds.has(taskId) || !bundleIds.has(taskId));
+  for (const taskId of staleLegacy) {
+    errors.push(`继承清单已过期：${taskId}（已进入索引或记录包不存在，请从 legacy-record-packages.json 移除）`);
   }
 
   const inboxDir = join(rootDir, 'docs', 'worklog', 'inbox');
@@ -453,8 +520,12 @@ export function verifyWorklog(index, opts = {}) {
     tombstones: missingSheets.length,
     missingDeliveryRecords: missingDeliveries.length,
     missingDeliveryRecordIds: missingDeliveries,
+    legacyRecordPackages: legacy.entries.length,
+    legacyOrphans: legacyOrphans.length,
+    legacyOrphanIds: legacyOrphans,
+    staleLegacyIds: staleLegacy,
   };
-  return { ok: errors.length === 0, errors, warnings, stats, skippedOrphans };
+  return { ok: errors.length === 0, errors, warnings, stats, skippedOrphans, legacyOrphans, staleLegacy };
 }
 
 function looksLikeTaskSheet(file, taskId) {

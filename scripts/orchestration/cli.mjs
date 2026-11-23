@@ -741,9 +741,14 @@ function cmdWorklog(args = []) {
       console.log(JSON.stringify({ ...result, strict, baseline, debt, ok: !failed }, null, 2));
     } else {
       console.log(
-        `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers}/${baseline.legacyPointers} 无任务单=${result.stats.missingTaskSheets}/${baseline.missingTaskSheets}`,
+        `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers}/${baseline.legacyPointers} 无任务单=${result.stats.missingTaskSheets}/${baseline.missingTaskSheets} 继承孤儿=${result.stats.legacyOrphans}/${result.stats.legacyRecordPackages}`,
       );
       for (const warning of result.warnings) console.warn(`  ! ${warning}`);
+      if (result.legacyOrphans.length > 0) {
+        console.log(
+          `  - 继承清单豁免 ${result.legacyOrphans.length} 个历史孤儿记录包（${result.legacyOrphans.join('、')}）；清单见 docs/team/agent-orchestration/legacy-record-packages.json`,
+        );
+      }
       if (stateFree && result.skippedOrphans.length > 0) {
         console.log(
           `  - 状态面解耦：跳过孤儿记录包检查 ${result.skippedOrphans.length} 个（${result.skippedOrphans.join('、')}）；索引同步后再判`,

@@ -1,0 +1,103 @@
+{
+  "version": "legacy-record-packages:1.0.0",
+  "updatedAt": "2026-11-24",
+  "note": "2026-11-23 框架 v2.1 迁移期产生的记录包：有 manifest 与任务单，多数有交付记录，但缺 journal 事件，因此不在事件链索引的投影内。本清单是显式继承账：verify 只豁免清单内的包并计数，清单外的孤儿仍然报错；任一包进入索引或记录包被删除后必须从本清单移除，否则 verify 报“继承清单已过期”。禁止用 ORCH_STATE_FREE 代替本清单做常规跳过。",
+  "packages": [
+    {
+      "taskId": "AF-363",
+      "reason": "v2.1 迁移期首个任务包，登记早于 journal 落盘，事件链无对应 create 事件；交付记录 af361-orchestration-v21-2026-11-23.md 已在库。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-363/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-363/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af361-orchestration-v21-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-364",
+      "reason": "编排器资源域卡扩展，与 AF-363 同批迁移，无 journal 事件；交付记录在库。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-364/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-364/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af364-orchestrator-card-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-365",
+      "reason": "v2.1 迁移执行包（与 AF-363 同标题续做），有回执 RC-AF-365-1 与交付记录，但无 journal 事件。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-365/receipt-RC-AF-365-1.json",
+        "docs/worklog/completed/phase2.5/af365-orchestration-v21-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-366",
+      "reason": "CI 编排门依赖与 PR 状态面解耦校验修复，迁移期修复包，无 journal 事件、无独立交付记录（结论并入 af365 交付记录）。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-366/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-366/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af365-orchestration-v21-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-367",
+      "reason": "CI 门禁与状态面解耦测试假设收口，有回执 RC-AF-367-1，无 journal 事件；结论并入 af365 交付记录。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-367/receipt-RC-AF-367-1.json",
+        "docs/worklog/completed/phase2.5/af365-orchestration-v21-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-368",
+      "reason": "框架 v2.1.0 发行锚点与契约包来源校准，有回执与交付记录，无 journal 事件。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-368/receipt-RC-AF-368-1.json",
+        "docs/worklog/completed/phase2.5/af368-framework-v210-anchor-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-369",
+      "reason": "AF-368 回执工件指针修正，有回执与交付记录，无 journal 事件。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-369/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-369/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-369/receipt-RC-AF-369-1.json",
+        "docs/worklog/completed/phase2.5/af369-af368-receipt-pointer-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-370",
+      "reason": "合并后状态面收口（回执哈希迁移与孤儿记录包补登），有回执与交付记录，无 journal 事件；本清单正是该任务遗留问题的长期解法。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-370/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-370/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-370/receipt-RC-AF-370-1.json",
+        "docs/worklog/completed/phase2.5/af370-state-reconcile-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-372",
+      "reason": "风险分级下 coverage 矩阵 check 名称缺失修复，有回执 RC-AF-372-1，无 journal 事件；结论并入 af371 风险分级交付记录。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-372/receipt-RC-AF-372-1.json"
+      ]
+    },
+    {
+      "taskId": "AF-376",
+      "reason": "纯状态面提交被 subject 任务号误判冲突的修复，有回执与交付记录，无 journal 事件。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/receipt-RC-AF-376-1.json",
+        "docs/worklog/completed/phase2.5/af376-state-none-subject-2026-11-23.md"
+      ]
+    }
+  ]
+}
