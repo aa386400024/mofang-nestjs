@@ -84,6 +84,18 @@ function resolveOverride(safetyRaw: string | undefined, bondRaw: string | undefi
 }
 
 /**
+ * 读取一个**必须有值**的内核种子门槛.
+ *
+ * 为什么不用 `seed.x ?? 0.35`: 那会把"内核种子漏字段"这种契约破坏静默降级成 0.35，
+ * 且 18 个 `??` 会把装配函数复杂度推过 lint 阈值.
+ * 这里缺字段 = 启动期直接炸，属于装配契约破损，必须暴露.
+ */
+function requiredSeed(value: number | undefined, key: string): number {
+  if (value === undefined) throw new Error(`内核同盟种子缺少门槛字段: ${key}`);
+  return value;
+}
+
+/**
  * 装配同盟三维端口 (11 种事件 × 2 维覆写 + 3 个门槛 = 25 个 env 键).
  *
  * 键名口径:
@@ -160,19 +172,86 @@ export function resolveAllianceConfig(config: ConfigService): AllianceConfig {
   const neutral = resolveOverride(config.get<string>('ENGINE_ALLIANCE_NEUTRAL_SAFETY'), config.get<string>('ENGINE_ALLIANCE_NEUTRAL_BOND'));
   if (neutral) deltas.neutral = neutral;
 
+  // 内核种子门槛：逐项取值，缺字段直接炸（不静默造一份适配层真相源）.
   const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
   return {
     deltas,
     thresholds: {
-      open: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_OPEN_THRESHOLD'), seed.open),
-      resistanceTrust: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD'), seed.resistanceTrust),
-      resistanceSafety: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD'), seed.resistanceSafety),
-      // S-1: 深度门槛**不接 env** (本单只打通端口), 固定透传内核种子值,
-      // 让适配层产出的端口对象形状与内核种子保持一致 (两侧同为四字段).
-      openDepth: seed.openDepth,
+      open: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_OPEN_THRESHOLD'), requiredSeed(seed.open, 'open')),
+      resistanceTrust: resolveThreshold(
+        config.get<string>('ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD'),
+        requiredSeed(seed.resistanceTrust, 'resistanceTrust'),
+      ),
+      resistanceSafety: resolveThreshold(
+        config.get<string>('ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD'),
+        requiredSeed(seed.resistanceSafety, 'resistanceSafety'),
+      ),
+      // AF-354: 深度 / 探索时机 / 核心信念激活三组门槛补齐部署通道（原先固定透传种子）.
+      openDepth: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_OPEN_DEPTH_THRESHOLD'), requiredSeed(seed.openDepth, 'openDepth')),
+      explorationMinTurn: resolveTurn(
+        config.get<string>('ENGINE_ALLIANCE_EXPLORATION_MIN_TURN'),
+        requiredSeed(seed.explorationMinTurn, 'explorationMinTurn'),
+      ),
+      coreActivationGate: resolveThreshold(
+        config.get<string>('ENGINE_ALLIANCE_CORE_ACTIVATION_GATE'),
+        requiredSeed(seed.coreActivationGate, 'coreActivationGate'),
+      ),
+      coreActivationSafetyGate: resolveThreshold(
+        config.get<string>('ENGINE_ALLIANCE_CORE_ACTIVATION_SAFETY_GATE'),
+        requiredSeed(seed.coreActivationSafetyGate, 'coreActivationSafetyGate'),
+      ),
       // AF-322: 后段策略的最早轮次可部署级调整；非法值由内核解析口回退种子值.
-      insightMinTurn: resolveTurn(config.get<string>('ENGINE_ALLIANCE_INSIGHT_MIN_TURN'), seed.insightMinTurn ?? 8),
-      planMinTurn: resolveTurn(config.get<string>('ENGINE_ALLIANCE_PLAN_MIN_TURN'), seed.planMinTurn ?? 12),
+      insightMinTurn: resolveTurn(
+        config.get<string>('ENGINE_ALLIANCE_INSIGHT_MIN_TURN'),
+        requiredSeed(seed.insightMinTurn, 'insightMinTurn'),
+      ),
+      planMinTurn: resolveTurn(config.get<string>('ENGINE_ALLIANCE_PLAN_MIN_TURN'), requiredSeed(seed.planMinTurn, 'planMinTurn')),
+      // AF-354: 意图规划器的 12 个决策阈值（缺省逐字等于改造前局部常量）.
+      highResistanceAgg: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_HIGH_RESISTANCE_AGG'),
+        requiredSeed(seed.highResistanceAgg, 'highResistanceAgg'),
+      ),
+      highVerbal: resolveThreshold(config.get<string>('ENGINE_INTENTION_HIGH_VERBAL'), requiredSeed(seed.highVerbal, 'highVerbal')),
+      negativeDominantFloor: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_NEGATIVE_DOMINANT_FLOOR'),
+        requiredSeed(seed.negativeDominantFloor, 'negativeDominantFloor'),
+      ),
+      negativeDominantMargin: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_NEGATIVE_DOMINANT_MARGIN'),
+        requiredSeed(seed.negativeDominantMargin, 'negativeDominantMargin'),
+      ),
+      dependencyHigh: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_DEPENDENCY_HIGH'),
+        requiredSeed(seed.dependencyHigh, 'dependencyHigh'),
+      ),
+      avoidanceMargin: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_AVOIDANCE_MARGIN'),
+        requiredSeed(seed.avoidanceMargin, 'avoidanceMargin'),
+      ),
+      explorationUnderstoodGate: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_EXPLORATION_UNDERSTOOD_GATE'),
+        requiredSeed(seed.explorationUnderstoodGate, 'explorationUnderstoodGate'),
+      ),
+      explorationAcceptedGate: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_EXPLORATION_ACCEPTED_GATE'),
+        requiredSeed(seed.explorationAcceptedGate, 'explorationAcceptedGate'),
+      ),
+      explorationGateRelief: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_EXPLORATION_GATE_RELIEF'),
+        requiredSeed(seed.explorationGateRelief, 'explorationGateRelief'),
+      ),
+      situationalRequestPriority: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_SITUATIONAL_REQUEST_PRIORITY'),
+        requiredSeed(seed.situationalRequestPriority, 'situationalRequestPriority'),
+      ),
+      controlPlanGate: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_CONTROL_PLAN_GATE'),
+        requiredSeed(seed.controlPlanGate, 'controlPlanGate'),
+      ),
+      reflectiveBeliefGate: resolveThreshold(
+        config.get<string>('ENGINE_INTENTION_REFLECTIVE_BELIEF_GATE'),
+        requiredSeed(seed.reflectiveBeliefGate, 'reflectiveBeliefGate'),
+      ),
     },
   };
 }

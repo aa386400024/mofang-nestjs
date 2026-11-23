@@ -30,22 +30,49 @@ function configStub(env: Readonly<Record<string, string>>): ConfigService {
   } as unknown as ConfigService;
 }
 
+/**
+ * 内核种子门槛的完整期望形状（AF-354 起 21 字段）.
+ *
+ * 用一份 helper 而不是四处重复：端口每扩一个字段，只改这里一次；
+ * 四处重复会漏（漏一处 = 该用例静默只比部分字段）.
+ */
+function seedThresholds(): Record<string, number | undefined> {
+  const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
+  return {
+    open: seed.open,
+    resistanceTrust: seed.resistanceTrust,
+    resistanceSafety: seed.resistanceSafety,
+    openDepth: seed.openDepth,
+    explorationMinTurn: seed.explorationMinTurn,
+    coreActivationGate: seed.coreActivationGate,
+    coreActivationSafetyGate: seed.coreActivationSafetyGate,
+    insightMinTurn: seed.insightMinTurn,
+    planMinTurn: seed.planMinTurn,
+    highResistanceAgg: seed.highResistanceAgg,
+    highVerbal: seed.highVerbal,
+    negativeDominantFloor: seed.negativeDominantFloor,
+    negativeDominantMargin: seed.negativeDominantMargin,
+    dependencyHigh: seed.dependencyHigh,
+    avoidanceMargin: seed.avoidanceMargin,
+    explorationUnderstoodGate: seed.explorationUnderstoodGate,
+    explorationAcceptedGate: seed.explorationAcceptedGate,
+    explorationGateRelief: seed.explorationGateRelief,
+    situationalRequestPriority: seed.situationalRequestPriority,
+    controlPlanGate: seed.controlPlanGate,
+    reflectiveBeliefGate: seed.reflectiveBeliefGate,
+  };
+}
+
 describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
-  it('没配任何 env → 装配结果与内核种子值逐字一致 (env 暴露的六字段)', () => {
+  it('没配任何 env → 装配结果与内核种子值逐字一致 (env 暴露的完整字段)', () => {
     const config = resolveAllianceConfig(configStub({}));
 
     expect(config.deltas).toEqual({});
     // AF-315 新增的 explorationMinTurn / coreActivationGate / coreActivationSafetyGate
-    // 不接 env；缺失时由内核 resolveAllianceThresholds 回落种子值.
+    // 自 AF-354 起接 env；缺失时回落内核种子值.
     // AF-322 起 insightMinTurn / planMinTurn 接 env（合法 1..20），缺省回落 8 / 12.
-    expect(config.thresholds).toEqual({
-      open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
-      resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
-      resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
-      openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
-      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
-      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
-    });
+    // AF-354 起 12 个决策阈值与 openDepth 也接 env，缺省逐字回落种子.
+    expect(config.thresholds).toEqual(seedThresholds());
   });
 
   it('配了系数覆写 → 真的按 env 生效', () => {
@@ -83,13 +110,10 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
     );
 
     expect(config.thresholds).toEqual({
+      ...seedThresholds(),
       open: 0.5,
       resistanceTrust: 0.35,
       resistanceSafety: 0.25,
-      // S-1: 深度门槛不接 env, 固定透传内核种子 0.35.
-      openDepth: 0.35,
-      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
-      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
     });
   });
 
@@ -106,14 +130,7 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
     expect(config.deltas.empathy).toBeUndefined();
     // judgment 只配了一个维度 → 只有那一项被覆写.
     expect(config.deltas.judgment).toEqual({ safety: 0.03 });
-    expect(config.thresholds).toEqual({
-      open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
-      resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
-      resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
-      openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
-      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
-      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
-    });
+    expect(config.thresholds).toEqual(seedThresholds());
   });
 
   it('门槛非法 (不在 [0,1]) → 回退内核种子值', () => {
@@ -125,14 +142,7 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
       }),
     );
 
-    expect(config.thresholds).toEqual({
-      open: DEFAULT_ALLIANCE_CONFIG.thresholds.open,
-      resistanceTrust: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceTrust,
-      resistanceSafety: DEFAULT_ALLIANCE_CONFIG.thresholds.resistanceSafety,
-      openDepth: DEFAULT_ALLIANCE_CONFIG.thresholds.openDepth,
-      insightMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.insightMinTurn,
-      planMinTurn: DEFAULT_ALLIANCE_CONFIG.thresholds.planMinTurn,
-    });
+    expect(config.thresholds).toEqual(seedThresholds());
   });
 
   it('11 种事件 × 2 维 = 22 个系数键全部可配 (逐个显式读, 漏一个断言会红)', () => {

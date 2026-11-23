@@ -153,10 +153,10 @@ const PERSONALITY_MOD_ENV_KEYS: readonly string[] = [
 ];
 
 /**
- * 咨询同盟三维的 25 个 env 键 (WP42).
+ * 咨询同盟三维的 31 个 ENGINE_ALLIANCE_* env 键 (WP42 25 个 + AF-322 2 个 + AF-354 4 个).
  *
  * 与 cap 族 / 人格族同一治本: 适配层**逐个字面量**读 → 已被 AST 抽取覆盖 (漏写一个键,
- * 断言① 立刻变红). 这里留一份清单, 是为了断言"25 个键一个不多一个不少" ——
+ * 断言① 立刻变红). 这里留一份清单, 是为了断言"键一个不多一个不少" ——
  * 少一个 = 那个系数 / 门槛永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键.
  */
 const ALLIANCE_ENV_KEYS: readonly string[] = [
@@ -188,6 +188,31 @@ const ALLIANCE_ENV_KEYS: readonly string[] = [
   // AF-322：后段策略最早轮次（合法 1..20 整数，非法回种子 8 / 12）.
   'ENGINE_ALLIANCE_INSIGHT_MIN_TURN',
   'ENGINE_ALLIANCE_PLAN_MIN_TURN',
+  // AF-354：深度 / 探索时机 / 核心信念激活门槛补齐部署通道.
+  'ENGINE_ALLIANCE_OPEN_DEPTH_THRESHOLD',
+  'ENGINE_ALLIANCE_EXPLORATION_MIN_TURN',
+  'ENGINE_ALLIANCE_CORE_ACTIVATION_GATE',
+  'ENGINE_ALLIANCE_CORE_ACTIVATION_SAFETY_GATE',
+];
+
+/**
+ * AF-354：意图规划器 12 个决策阈值（同样读在 alliance-config.ts，但不是 ALLIANCE_ 前缀）.
+ *
+ * 与同盟门槛同一治本：缺省值等于改造前局部常量，部署可覆写；非法逐项回退.
+ */
+const INTENTION_ENV_KEYS = [
+  'ENGINE_INTENTION_HIGH_RESISTANCE_AGG',
+  'ENGINE_INTENTION_HIGH_VERBAL',
+  'ENGINE_INTENTION_NEGATIVE_DOMINANT_FLOOR',
+  'ENGINE_INTENTION_NEGATIVE_DOMINANT_MARGIN',
+  'ENGINE_INTENTION_DEPENDENCY_HIGH',
+  'ENGINE_INTENTION_AVOIDANCE_MARGIN',
+  'ENGINE_INTENTION_EXPLORATION_UNDERSTOOD_GATE',
+  'ENGINE_INTENTION_EXPLORATION_ACCEPTED_GATE',
+  'ENGINE_INTENTION_EXPLORATION_GATE_RELIEF',
+  'ENGINE_INTENTION_SITUATIONAL_REQUEST_PRIORITY',
+  'ENGINE_INTENTION_CONTROL_PLAN_GATE',
+  'ENGINE_INTENTION_REFLECTIVE_BELIEF_GATE',
 ];
 
 /**
@@ -717,7 +742,7 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(kernelModKeys).toEqual([]);
   });
 
-  it('③d 27 个 ENGINE_ALLIANCE_* 键已改字面量读取, 内核树不再有同盟系数键 (WP42 · AF-322 加两口)', () => {
+  it('③d 31 个 ENGINE_ALLIANCE_* 键已改字面量读取, 内核树不再有同盟系数键 (WP42 · AF-322 +2 · AF-354 +4)', () => {
     // 同盟三维的系数与门槛与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
     const allianceConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/alliance-config.ts');
     expect(existsSync(allianceConfigFile)).toBe(true);
@@ -734,6 +759,12 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
       }
     }
     expect(kernelAllianceKeys).toEqual([]);
+  });
+
+  it('③d2 12 个 ENGINE_INTENTION_* 决策阈值已改字面量读取 (AF-354)', () => {
+    const allianceConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/alliance-config.ts');
+    const literalKeys = extractEnvKeys(allianceConfigFile).filter((key) => key.startsWith('ENGINE_INTENTION_'));
+    expect([...literalKeys].sort()).toEqual([...INTENTION_ENV_KEYS].sort());
   });
 
   it('③e 4 个 ENGINE_DECAY_* 键已改字面量读取, 内核树不再有衰减半衰期键 (WP36 · AF-322 加移情)', () => {

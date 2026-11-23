@@ -210,6 +210,7 @@ import {
   type DeltaVector,
 } from '../../engine-core/index.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { isKernelIntentionLockEnabled } from '../wiring/bdi-runtime.config.js';
 import { resolveDeltaCapConfig } from '../wiring/delta-cap.config.js';
 import { ENGINE_BDI_STATE_REPOSITORY } from '../wiring/engine.tokens.js';
 
@@ -1848,8 +1849,15 @@ export class LlmDeliberationService {
    *
    * 缺省 = **3** (工程种子值, 非临床数字). 非法值 → 回退默认 (**不抛错**).
    * ⚠️ **0 是合法值** = 关掉锁定机制 (做对照实验用) —— 与"非法值"区分开.
+   *
+   * AF-354 (2026-11-23): 内核跨轮意图锁开启时**强制返回 0** ——
+   *   两套锁（内核快照锁 / 本服务 Redis 推演锁）不同时生效。内核锁已经在真实决策链上
+   *   接管连续性，Redis 锁再推演一遍会产生"影子结论与真实意图不一致"的双重语义.
+   *   判定复用 `isKernelIntentionLockEnabled`（与内核装配同一个 env 解析口径）.
    */
   private resolveIntentionLockRounds(): number {
+    // 先判内核锁：它一开，本服务的推演锁就必须停（不读第二个 env 自行猜）.
+    if (isKernelIntentionLockEnabled(this.config)) return 0;
     const raw = (this.config.get<string>('ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS') ?? '').trim();
     if (raw.length === 0) return DEFAULT_DELIBERATION_INTENTION_LOCK_ROUNDS;
     const parsed = Number(raw);

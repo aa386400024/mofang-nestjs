@@ -102,6 +102,34 @@ import type { EngineSessionPort } from '../runtime/engine-session.port.js';
 const WORKING_MEMORY_DEFAULT_IMPORTANCE = 0.5;
 
 /**
+ * AF-354: 清除跨会话不应继承的瞬时状态.
+ *
+ * 意图锁的 `lockedAtTurn / expiresAtTurn` 与情境愿望的 `createdAtTurn / expiresAtTurn`
+ * 都以**会话内 turnIndex** 计；接续会话时 turnIndex 从 0 重起，原样继承会让上一场的锁与
+ * 情境愿望在新一场"续命"。这里只清这两类当场调节，不动底层愿望 / 信念 / 同盟 / 情绪 ——
+ * 那些是跨场稳定结构，临床语义上应保留。
+ *
+ * 零变化保证: 没有锁、也没有活跃情境愿望时**原样返回入参引用**（旧快照与 fixture 不漂）。
+ */
+function resetTransientStateForResume(snapshot: BdiSnapshot): BdiSnapshot {
+  const hasActiveSituational = snapshot.situationalDesires.some((desire) => desire.active);
+  const hasLock = snapshot.intentionLock !== undefined && snapshot.intentionLock !== null;
+  if (!hasActiveSituational && !hasLock) return snapshot;
+
+  const situationalDesires = hasActiveSituational
+    ? snapshot.situationalDesires.map((desire) => (desire.active ? { ...desire, active: false } : desire))
+    : snapshot.situationalDesires;
+
+  return {
+    ...snapshot,
+    situationalDesires,
+    // 显式写 null 而不是删字段：快照形状允许 null，planner 两者都按"无锁"处理；
+    //   写 null 让"本场确实清过锁"在落库快照里可观测.
+    ...(hasLock ? { intentionLock: null } : {}),
+  };
+}
+
+/**
  * 跨会话开场上下文的召回参数 (WP2 §5.4).
  *
  * 只取**高权重**长时记忆 —— 开场承接宁可少而准: 塞十条低权重旧话题进上下文,
@@ -646,6 +674,11 @@ export class InMemoryEngineSession implements EngineSessionPort {
    *     本方法每轮都调, 但"本场已有状态"分支会先命中 —— 只有本场**第一轮**才会走到
    *     接续分支. 第一轮算出的衰减值随本轮 delta 一起落库, 之后各轮读的是本场自己的
    *     状态 (不再衰减). 于是"衰减"是**跨场边界的一次性事件**, 不是持续时间流逝的副作用.
+   *
+   *   AF-354 (2026-11-23): 接续分支在衰减后再清**会话内瞬时状态** ——
+   *     意图锁与情境愿望的轮次字段都以"会话内 turnIndex"计, 新会话从 0 重起后原样继承
+   *     会让上一场的锁/情境愿望在新一场续命（见 resume-snapshot.ts 的说明）.
+   *     底层愿望 / 信念 / 同盟 / 情绪**不动** —— 那是跨场稳定结构, 不是当场调节.
    */
   private async loadState(runtime: EngineSessionRuntime): Promise<BdiStateRecord> {
     const current = await this.bdiStates.load(runtime.tenantId, runtime.sessionId);
@@ -660,7 +693,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
           sessionId: runtime.sessionId,
           revision: 0,
           updatedAt: this.now(),
-          snapshot: applySessionDecay(resumed.snapshot, ageMs, this.sessionDecayConfig),
+          snapshot: resetTransientStateForResume(applySessionDecay(resumed.snapshot, ageMs, this.sessionDecayConfig)),
         };
       }
     }

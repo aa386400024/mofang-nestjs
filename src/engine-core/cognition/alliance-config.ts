@@ -115,6 +115,36 @@ export interface AllianceThresholds {
    * 非法 / 非整数 → 回退 12.
    */
   readonly planMinTurn?: number;
+  /**
+   * AF-354: 意图规划器逐项决策阈值.
+   *
+   * 这些数值原先散落在 `intention-planner.ts` 的局部常量里 —— 标准与
+   * `open` / `openDepth` 同构：数值是部署级调参，判定逻辑留在内核.
+   * 缺省逐字等于改造前常量；非法（非有限 / 越界）逐项回退种子.
+   */
+  readonly highResistanceAgg?: number;
+  /** 话量阻抗阈值：达到即倾向简短回应（缺省 0.55）. */
+  readonly highVerbal?: number;
+  /** 负移情主导下限（缺省 0.30）. */
+  readonly negativeDominantFloor?: number;
+  /** 负移情相对正移情的主导边际（缺省 0.10）. */
+  readonly negativeDominantMargin?: number;
+  /** 依赖移情高位阈值（缺省 0.40）. */
+  readonly dependencyHigh?: number;
+  /** 回避痛苦压过被理解 / 被接纳的边际（缺省 0.10）. */
+  readonly avoidanceMargin?: number;
+  /** 探索门槛下调所需的「被理解」权重（缺省 0.65）. */
+  readonly explorationUnderstoodGate?: number;
+  /** 探索门槛下调所需的「被接纳」权重（缺省 0.55）. */
+  readonly explorationAcceptedGate?: number;
+  /** 双愿望达标时的探索门槛下调幅度（缺省 0.03）. */
+  readonly explorationGateRelief?: number;
+  /** 情境愿望触发 request 的优先级门槛（缺省 0.70）. */
+  readonly situationalRequestPriority?: number;
+  /** 进入 discussing_plans 的掌控愿望权重门槛（缺省 0.55）. */
+  readonly controlPlanGate?: number;
+  /** 可计入「自发信念」的最低置信度（缺省 0.60）. */
+  readonly reflectiveBeliefGate?: number;
 }
 
 /**
@@ -152,6 +182,24 @@ const DEFAULT_CORE_ACTIVATION_SAFETY_GATE = 0.75;
 /** AF-322 种子值：领悟 / 计划讨论的最早轮次（工程种子值，非临床标定）. */
 const DEFAULT_INSIGHT_MIN_TURN = 8;
 const DEFAULT_PLAN_MIN_TURN = 12;
+/**
+ * AF-354 种子值：意图规划器逐项决策阈值（工程种子值，非临床标定）.
+ *
+ * 逐字等于改造前 `intention-planner.ts` 的局部常量；抽出为端口只为可配置，
+ * 不改任何缺省判定结果.
+ */
+const DEFAULT_HIGH_RESISTANCE_AGG = 0.6;
+const DEFAULT_HIGH_VERBAL = 0.55;
+const DEFAULT_NEGATIVE_DOMINANT_FLOOR = 0.3;
+const DEFAULT_NEGATIVE_DOMINANT_MARGIN = 0.1;
+const DEFAULT_DEPENDENCY_HIGH = 0.4;
+const DEFAULT_AVOIDANCE_MARGIN = 0.1;
+const DEFAULT_EXPLORATION_UNDERSTOOD_GATE = 0.65;
+const DEFAULT_EXPLORATION_ACCEPTED_GATE = 0.55;
+const DEFAULT_EXPLORATION_GATE_RELIEF = 0.03;
+const DEFAULT_SITUATIONAL_REQUEST_PRIORITY = 0.7;
+const DEFAULT_CONTROL_PLAN_GATE = 0.55;
+const DEFAULT_REFLECTIVE_BELIEF_GATE = 0.6;
 
 /**
  * 内核种子值 (工程种子值, **非临床标定** —— 待真实对练校准).
@@ -173,6 +221,19 @@ export const DEFAULT_ALLIANCE_CONFIG: AllianceConfig = {
     coreActivationSafetyGate: DEFAULT_CORE_ACTIVATION_SAFETY_GATE,
     insightMinTurn: DEFAULT_INSIGHT_MIN_TURN,
     planMinTurn: DEFAULT_PLAN_MIN_TURN,
+    // AF-354: 决策阈值（缺省 = 改造前局部常量，逐字不变）.
+    highResistanceAgg: DEFAULT_HIGH_RESISTANCE_AGG,
+    highVerbal: DEFAULT_HIGH_VERBAL,
+    negativeDominantFloor: DEFAULT_NEGATIVE_DOMINANT_FLOOR,
+    negativeDominantMargin: DEFAULT_NEGATIVE_DOMINANT_MARGIN,
+    dependencyHigh: DEFAULT_DEPENDENCY_HIGH,
+    avoidanceMargin: DEFAULT_AVOIDANCE_MARGIN,
+    explorationUnderstoodGate: DEFAULT_EXPLORATION_UNDERSTOOD_GATE,
+    explorationAcceptedGate: DEFAULT_EXPLORATION_ACCEPTED_GATE,
+    explorationGateRelief: DEFAULT_EXPLORATION_GATE_RELIEF,
+    situationalRequestPriority: DEFAULT_SITUATIONAL_REQUEST_PRIORITY,
+    controlPlanGate: DEFAULT_CONTROL_PLAN_GATE,
+    reflectiveBeliefGate: DEFAULT_REFLECTIVE_BELIEF_GATE,
   },
 };
 
@@ -211,6 +272,18 @@ export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThre
   readonly coreActivationSafetyGate: number;
   readonly insightMinTurn: number;
   readonly planMinTurn: number;
+  readonly highResistanceAgg: number;
+  readonly highVerbal: number;
+  readonly negativeDominantFloor: number;
+  readonly negativeDominantMargin: number;
+  readonly dependencyHigh: number;
+  readonly avoidanceMargin: number;
+  readonly explorationUnderstoodGate: number;
+  readonly explorationAcceptedGate: number;
+  readonly explorationGateRelief: number;
+  readonly situationalRequestPriority: number;
+  readonly controlPlanGate: number;
+  readonly reflectiveBeliefGate: number;
 } {
   const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
   const provided = config?.thresholds;
@@ -226,6 +299,19 @@ export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThre
       coreActivationSafetyGate: DEFAULT_CORE_ACTIVATION_SAFETY_GATE,
       insightMinTurn: DEFAULT_INSIGHT_MIN_TURN,
       planMinTurn: DEFAULT_PLAN_MIN_TURN,
+      // AF-354: 决策阈值早退同样显式补齐, 防止种子形状变化时静默变 undefined.
+      highResistanceAgg: DEFAULT_HIGH_RESISTANCE_AGG,
+      highVerbal: DEFAULT_HIGH_VERBAL,
+      negativeDominantFloor: DEFAULT_NEGATIVE_DOMINANT_FLOOR,
+      negativeDominantMargin: DEFAULT_NEGATIVE_DOMINANT_MARGIN,
+      dependencyHigh: DEFAULT_DEPENDENCY_HIGH,
+      avoidanceMargin: DEFAULT_AVOIDANCE_MARGIN,
+      explorationUnderstoodGate: DEFAULT_EXPLORATION_UNDERSTOOD_GATE,
+      explorationAcceptedGate: DEFAULT_EXPLORATION_ACCEPTED_GATE,
+      explorationGateRelief: DEFAULT_EXPLORATION_GATE_RELIEF,
+      situationalRequestPriority: DEFAULT_SITUATIONAL_REQUEST_PRIORITY,
+      controlPlanGate: DEFAULT_CONTROL_PLAN_GATE,
+      reflectiveBeliefGate: DEFAULT_REFLECTIVE_BELIEF_GATE,
     };
   }
   return {
@@ -238,6 +324,18 @@ export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThre
     coreActivationSafetyGate: sanitizeThreshold(provided.coreActivationSafetyGate, DEFAULT_CORE_ACTIVATION_SAFETY_GATE),
     insightMinTurn: sanitizeTurn(provided.insightMinTurn, DEFAULT_INSIGHT_MIN_TURN),
     planMinTurn: sanitizeTurn(provided.planMinTurn, DEFAULT_PLAN_MIN_TURN),
+    highResistanceAgg: sanitizeThreshold(provided.highResistanceAgg, DEFAULT_HIGH_RESISTANCE_AGG),
+    highVerbal: sanitizeThreshold(provided.highVerbal, DEFAULT_HIGH_VERBAL),
+    negativeDominantFloor: sanitizeThreshold(provided.negativeDominantFloor, DEFAULT_NEGATIVE_DOMINANT_FLOOR),
+    negativeDominantMargin: sanitizeThreshold(provided.negativeDominantMargin, DEFAULT_NEGATIVE_DOMINANT_MARGIN),
+    dependencyHigh: sanitizeThreshold(provided.dependencyHigh, DEFAULT_DEPENDENCY_HIGH),
+    avoidanceMargin: sanitizeThreshold(provided.avoidanceMargin, DEFAULT_AVOIDANCE_MARGIN),
+    explorationUnderstoodGate: sanitizeThreshold(provided.explorationUnderstoodGate, DEFAULT_EXPLORATION_UNDERSTOOD_GATE),
+    explorationAcceptedGate: sanitizeThreshold(provided.explorationAcceptedGate, DEFAULT_EXPLORATION_ACCEPTED_GATE),
+    explorationGateRelief: sanitizeThreshold(provided.explorationGateRelief, DEFAULT_EXPLORATION_GATE_RELIEF),
+    situationalRequestPriority: sanitizeThreshold(provided.situationalRequestPriority, DEFAULT_SITUATIONAL_REQUEST_PRIORITY),
+    controlPlanGate: sanitizeThreshold(provided.controlPlanGate, DEFAULT_CONTROL_PLAN_GATE),
+    reflectiveBeliefGate: sanitizeThreshold(provided.reflectiveBeliefGate, DEFAULT_REFLECTIVE_BELIEF_GATE),
   };
 }
 
@@ -271,24 +369,29 @@ export function resolveSessionAllianceConfig(base?: AllianceConfig, override?: P
   const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
   const baseThresholds = base?.thresholds ?? seed;
   // 合并: 覆盖优先, 缺项回落单例.
-  //   `??` 同时兜住"显式传 undefined" —— 那种情况按缺项处理, 不能把单例值覆盖成 undefined.
-  const merged: AllianceThresholds = {
-    open: override.open ?? baseThresholds.open,
-    resistanceTrust: override.resistanceTrust ?? baseThresholds.resistanceTrust,
-    resistanceSafety: override.resistanceSafety ?? baseThresholds.resistanceSafety,
-    // 深度门槛同走三条回落规则 (覆盖优先 / 缺项回落单例 / 非法回落种子).
-    openDepth: override.openDepth ?? baseThresholds.openDepth,
-    explorationMinTurn: override.explorationMinTurn ?? baseThresholds.explorationMinTurn,
-    coreActivationGate: override.coreActivationGate ?? baseThresholds.coreActivationGate,
-    coreActivationSafetyGate: override.coreActivationSafetyGate ?? baseThresholds.coreActivationSafetyGate,
-    insightMinTurn: override.insightMinTurn ?? baseThresholds.insightMinTurn,
-    planMinTurn: override.planMinTurn ?? baseThresholds.planMinTurn,
-  };
+  //   剔除显式 undefined —— 那种情况按缺项处理, 不能把单例值覆盖成 undefined.
+  //   用"展开 + 剔除"而不是逐个 `??` 列出 21 个键: 键集合与接口同长, 新增字段不必再改这里.
+  const merged: AllianceThresholds = { ...baseThresholds, ...definedThresholdOverrides(override) };
   // 校验 + 非法值回落种子 —— 复用既有唯一校验口, 不新写一套.
   return {
     deltas: base?.deltas ?? {},
     thresholds: resolveAllianceThresholds({ deltas: {}, thresholds: merged }),
   };
+}
+
+/**
+ * 剔除覆盖对象里的显式 `undefined` 键.
+ *
+ * 为什么不用 `obj.x ?? base.x` 逐个列: 键集合会随端口扩展（AF-354 已加到 21 个），
+ * 逐个列既容易漏（漏了 = 该键的会话覆盖静默失效），也会把函数复杂度推过 lint 阈值.
+ */
+function definedThresholdOverrides(override: Partial<AllianceThresholds>): Partial<AllianceThresholds> {
+  const result: Partial<Record<keyof AllianceThresholds, number>> = {};
+  for (const key of Object.keys(override) as (keyof AllianceThresholds)[]) {
+    const value = override[key];
+    if (value !== undefined) result[key] = value;
+  }
+  return result;
 }
 
 /**
