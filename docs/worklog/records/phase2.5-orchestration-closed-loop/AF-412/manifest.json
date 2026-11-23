@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-412",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-24T04:10:00+08:00",
+  "updatedAt": "2026-11-23T19:44:38.658Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-412/task-sheet.md",
+    "sha256": "b81577dac5423e85c70b110aa5f0a904e9a64a7e6f09d12565a4b9f278a4ee53",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-412/receipt-RC-AF-412-1.json",
+      "sha256": "cb6df6b3426d2d75c41960a1e74b7b02509ee02c71a6c2f2e0e4ddb692406fc6",
+      "receiptId": "RC-AF-412-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af410-presence-false-positive-impact-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af412-presence-false-positive-impact-task-sheet.md"
+  ],
+  "tombstone": null
+}
