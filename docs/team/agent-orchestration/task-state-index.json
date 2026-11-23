@@ -4,129 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1605,
+    "lastEventSeq": 1607,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-360",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-23T05:18:34.703Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始 BDI 复审 hygiene 修正"
-        },
-        {
-          "at": "2026-11-23T05:18:42.315Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "BDI 复审 hygiene：审计披露、注释漂移与来源契约措辞",
-      "type": "documentation",
-      "baselineRef": "2b1b5bd6cf2cebc1026b57f774e8799e7ae50a48",
-      "dependsOn": [
-        "AF-359"
-      ],
-      "priorTasks": [
-        "AF-359",
-        "AF-358",
-        "AF-357"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3",
-        "conventions.md#2.5"
-      ],
-      "createdAt": "2026-11-23T05:18:34.243Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "bin/bdi-readiness-audit.ts",
-          "src/engine-core/cognition/state-transition.ts",
-          "src/engine-core/cognition/intention-planner.ts",
-          "src/engine-core/domain/desires.ts",
-          "src/engine-adapters/wiring/character/character-desire-mapping.ts",
-          "test/engine-core/",
-          "test/engine-adapters/",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [
-          "engine-core",
-          "engine-adapters"
-        ],
-        "interfaces": [
-          "UnderlyingDesireSeed"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec vitest run test/engine-core/af359-bdi-review-followup.spec.ts test/engine-adapters/af359-character-desire-pairing.spec.ts test/engine-adapters/af358-character-desire-provenance.spec.ts test/engine-core/boundary.spec.ts",
-          "check": "定向回归全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/bdi-readiness-audit.ts --out .tmp/af360-audit --strict",
-          "check": "阻断项 0，新增披露说明可见",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
-          "check": "记录包完整",
-          "threshold": "exit=0"
-        }
-      ],
-      "successCriteria": [
-        "审计 Markdown 明确说明缺失键按 0 计，与内核 ?? 0 同口径。",
-        "内核对 1e-9 容差与审计侧注释互相指向，降低未来漂移风险。",
-        "state-transition 函数级否定口径注释与 AF-359 实际规则一致。",
-        "character-desire-mapping 的 sourceLabels[0] 假定改成条件式；UnderlyingDesireSeed.sourceKeys 注明可能重复、按 (key,label) 对索引。",
-        "不改变任何运行时行为、阈值数值与角色权重；仅注释与审计展示层。",
-        "交付记录补记 AF-359 任务单 §2.1 期望值 0.22/0.25 与实际 0.72/0.45 的口径偏差。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "复审 hygiene 修复",
-          "path": "bin/bdi-readiness-audit.ts",
-          "kind": "code"
-        },
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-23T05:18:34.703Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -3243,6 +3124,15 @@
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-359/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af359-bdi-review-followup-2026-11-23.md",
         "reply": "docs/worklog/pending/relay-response-AF358-review-20261123-1300.md"
+      }
+    },
+    {
+      "taskId": "AF-360",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF359-review-20261123-1315.md"
       }
     }
   ],
