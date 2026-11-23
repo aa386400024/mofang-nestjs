@@ -132,6 +132,8 @@ function buildCoverage(roles: readonly RoleSeed[], avoidanceMargin: number): Rol
       missingKeys,
       weights,
       // AF-359: 与内核同一容差口径; 0.68 - 0.58 的 IEEE-754 发丝差值不再判 dominant.
+      // AF-360: 内核侧见 src/engine-core/cognition/intention-planner.ts 的
+      //   AVOIDANCE_COMPARE_EPSILON; 两处必须同步改, 否则审计与运行时漂移.
       avoidanceDominant: avoidanceDelta > avoidanceMargin + 1e-9,
       avoidanceDelta,
       mapping: mapped.entries.map((entry) => ({
@@ -250,6 +252,10 @@ function renderMarkdown(report: {
     `- 免责声明：${DISCLAIMER}`,
     '',
     '## 角色 × 内核四键覆盖（AF-357 显式映射后）',
+    '',
+    '> 口径：缺失键按 0 计，与内核 `?? 0` 同口径；`avoidanceDelta = avoid_pain - max(understood, accepted)`，',
+    '> 只有 `avoidanceDelta > avoidanceMargin + 1e-9` 才判 `avoidanceDominant`。',
+    '> 因此“— / 0.7200”表示该角色种子未映射 understood/accepted，比较基线按 0 计，不代表回避比被理解高 0.72。',
     '',
     '| 角色 | 原始键 → 内核键 | understood | accepted | avoid_pain | control | avoidanceDelta | avoidanceDominant | 未映射键 | 缺失键 |',
     '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',

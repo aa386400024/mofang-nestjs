@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-360",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T13:25:00+08:00",
+  "updatedAt": "2026-11-23T05:22:13.557Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md",
+    "sha256": "64d5bae799c2f77ee0259bdefd8e03985be371e3450cb696453dc4fe81299009",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/receipt-RC-AF-360-1.json",
+      "sha256": "8cd2493f2741ef1a7679c00691afc0748f7c58dadf5385f2e2a573b5c2d666e9",
+      "receiptId": "RC-AF-360-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af360-bdi-review-hygiene-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

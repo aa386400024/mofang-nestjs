@@ -1,0 +1,249 @@
+{
+  "deliveredAt": "2026-11-23T13:26:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-360-1",
+    "taskId": "AF-360",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "executor",
+    "baselineRef": "2b1b5bd6cf2cebc1026b57f774e8799e7ae50a48",
+    "dependsOn": ["AF-359"],
+    "priorTasks": ["AF-359", "AF-358", "AF-357"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "conventions.md#2.5"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
+      "reply": "docs/worklog/pending/archive/relay-response-AF359-review-20261123-1315.md",
+      "others": [
+        "bin/bdi-readiness-audit.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/domain/desires.ts",
+        "src/engine-adapters/wiring/character/character-desire-mapping.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["ee24cfa8a487bda514ba51817c2d7b42f59fa296"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af360-bdi-review-hygiene-2026-11-23.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-360/manifest.json"
+      ],
+      "modified": [
+        "bin/bdi-readiness-audit.ts",
+        "src/engine-adapters/wiring/character/character-desire-mapping.ts",
+        "src/engine-core/cognition/intention-planner.ts",
+        "src/engine-core/cognition/state-transition.ts",
+        "src/engine-core/domain/desires.ts",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 16s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "全量 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/af359-bdi-review-followup.spec.ts test/engine-adapters/af359-character-desire-pairing.spec.ts test/engine-adapters/af358-character-desire-provenance.spec.ts test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "tests": 28,
+        "machine": "同上",
+        "wallClock": "1.79s",
+        "note": "4 文件 / 28 例通过"
+      },
+      {
+        "command": "pnpm exec tsx bin/bdi-readiness-audit.ts --out .tmp/af360-audit --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "阻断项 0；口径说明可见；念安 0.1000/否、惊尘 0.7200/是、回避依恋 L1 0.4500/是"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS (strict)；活跃=1 归档=349 记录包=351 inbox=0"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-360 status=submitted files=12 covered=4"
+      }
+    ],
+    "reproNotes": "审计 Markdown 在角色表前说明缺失键按 0 计与内核 ?? 0 同口径；内核与审计 1e-9 注释互指；extractReflectiveStatements 规则 3 按 AF-359 否定辖域改写；orderWinnerFirst 注释改为条件式；UnderlyingDesire.sourceKeys 注明 (key,label) 对去重与可能重复 key。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-360 经 CLI register/promote/run-once"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，未手改索引或事件链"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "AF-360 submitted；事件链由 CLI 写入"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "只改 3 个授权文件注释；boundary 12/12；未新增 public export"
+      },
+      {
+        "item": "runtime-no-change",
+        "result": "pass",
+        "note": "无判定/阈值/权重/映射行为改动；定向 28 例逐字通过"
+      },
+      {
+        "item": "audit-disclosure",
+        "result": "pass",
+        "note": "缺失键按 0 计与内核 ?? 0 同口径，表格前可见"
+      },
+      {
+        "item": "comment-consistency",
+        "result": "pass",
+        "note": "否定规则、容差互指、来源条件式假定与实现一致"
+      },
+      {
+        "item": "clinical-numeric-integrity",
+        "result": "pass",
+        "note": "未改临床数值，未把审计展示当判定"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "审计/日志/报告无对话原文"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet/deliveryRecord/reply 均落文件；worklog strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 2b1b5bd6；type documentation；最终状态 completed；提交 ee24cfa8 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF360-B1",
+        "impact": "AF359-B7 需要一份可签字的 hedge 判定清单，本单不代替督导拍板。",
+        "owner": "clinical-supervision",
+        "status": "open"
+      },
+      {
+        "id": "AF360-B2",
+        "impact": "AF359-B2 仍需督导写明 insight=来访把一条觉察展开了；是否要求展开次数>=2 未定。",
+        "owner": "clinical-supervision",
+        "status": "open"
+      },
+      {
+        "id": "AF360-B3",
+        "impact": "首置映射是否强制 label 与 sourceLabels[0] 一致属展示语义决策；当前仅改注释。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF360-B4",
+        "impact": "sourceLabels 多于 sourceKeys 时按 keys 截断；若要保留多余标签需改数据契约。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF360-B5",
+        "impact": "CharacterDesireDto 只声明 key/label/baselineWeight，全局 whitelist:true 会剥掉来源字段；当前 admin 前端无愿望编辑器，风险休眠。",
+        "owner": "admin-dashboard",
+        "status": "open"
+      },
+      {
+        "id": "AF360-B6",
+        "impact": "ENGINE_BELIEF_FORMATION_ENABLED 仍缺省 false；AF-359/AF-360 只修到可开启候选，不代表批准开启。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "hedge 判定清单由督导出具",
+      "insight 是否要求展开次数 >= 2",
+      "首置映射 label 与来源首标签是否强制一致",
+      "信念生成灰度开启批次"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "B11 建议在 UnderlyingDesireSeed.sourceKeys 类型注释补约定",
+        "reality": "该声明在 character-profile.ts，不在本单 scope",
+        "action": "在 desires.ts 的 UnderlyingDesire.sourceKeys 注释写明同约定并指向 Seed；character-profile.ts 未改",
+        "why": "不越 scope 改纯层文件；注释信息等价可追溯"
+      },
+      {
+        "taskSays": "F4 建议让 label 与赢家对一致或改注释",
+        "reality": "改 label 会改变展示语义",
+        "action": "只改注释为条件式",
+        "why": "属产品/督导决策，不在文档单里改行为"
+      },
+      {
+        "taskSays": "AF-359 任务单 §2.1 写惊尘 0.22、内置回避型 0.25 不变",
+        "reality": "实际审计产物为 0.7200 / 0.4500",
+        "action": "在本单偏差表补记，交付以内核 ?? 0 实际口径为准",
+        "why": "任务单期望值口径错误；不改已归档 AF-359 记录正文"
+      },
+      {
+        "taskSays": "AF-359 复审建议无需返工开单",
+        "reality": "4 条 low 项可分步收口",
+        "action": "本单只做注释/展示层/契约措辞",
+        "why": "零运行时风险，避免与未标定临床口径混在一起"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-359 独立复审为 accepted，无 P0/P1；本单按复审 F1/F3/F4/F5 与 B11 收口注释与审计披露，F2 偏差补记；typecheck 0、lint 0/0、定向 4 文件 28 例、审计 strict 阻断 0；无运行时行为变化。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本单零新增模型调用；复审复用既有 MiniMax Code 桌面会话。"
+  }
+}
