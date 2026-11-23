@@ -259,11 +259,13 @@ function printOperationalHealth() {
   const runtime = loadRuntimeState();
   const entryOf = (id) => runtime.tasks?.[id] ?? {};
   const tasks = index.tasks ?? [];
+  const activeTaskIds = new Set(tasks.map((t) => t.taskId));
+  const activeRuntimeEntries = Object.entries(runtime.tasks ?? {}).filter(([taskId]) => activeTaskIds.has(taskId));
   const deadLetter = tasks.filter((t) => t.status === 'deadLetter').length;
   const heldForHuman = tasks.filter((t) => entryOf(t.taskId).heldForHuman === true).length;
-  const leaseExpired = Object.values(runtime.tasks ?? {}).filter((e) => e.releaseReason === 'lease-expired').length;
-  const receiptErrors = Object.entries(runtime.tasks ?? {}).filter(([, e]) => Array.isArray(e.receiptErrors) && e.receiptErrors.length > 0);
-  const receiptNoDigest = Object.values(runtime.tasks ?? {}).filter((e) => e.receiptStatus && !e.receiptDigest).length;
+  const leaseExpired = activeRuntimeEntries.filter(([, e]) => e.releaseReason === 'lease-expired').length;
+  const receiptErrors = activeRuntimeEntries.filter(([, e]) => Array.isArray(e.receiptErrors) && e.receiptErrors.length > 0);
+  const receiptNoDigest = activeRuntimeEntries.filter(([, e]) => e.receiptStatus && !e.receiptDigest).length;
   const lock = describeRunLock();
 
   console.log('=== 运行健康 ===');
