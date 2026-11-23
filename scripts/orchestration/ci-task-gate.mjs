@@ -60,6 +60,7 @@ export function evaluateCommitSnapshot({
   taskSheetPath = null,
   taskSheetSnapshot = null,
   receipts = [],
+  rootDir = null,
 }) {
   let commitTaskId = null;
   try {
@@ -108,6 +109,7 @@ export function evaluateCommitSnapshot({
     archivedTasks: currentIndex?.archivedTasks ?? [],
     headTasks: effectiveParentTasks,
     explicitTaskId: commitTaskId,
+    rootDir,
   });
   const output = {
     ...result,
@@ -608,6 +610,7 @@ export function evaluateCommitAt(sha) {
     taskSheetPath: sheet.path,
     taskSheetSnapshot,
     receipts,
+    rootDir: process.cwd(),
   });
   return { sha, subject, parent, ...result, implEntrySource };
 }

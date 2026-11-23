@@ -60,6 +60,7 @@
 | `node scripts/orchestration/verify-framework-bundle.mjs` | 0 | `[PASS]` 2.1.0，15 个文件哈希与版本一致 |
 | `node scripts/orchestration/cli.mjs validate` | 0 | 全部 PASS，含索引投影一致 |
 | `node scripts/orchestration/cli.mjs worklog verify --strict` | 0 | 见回执；legacy=133/133、无任务单=14/14 |
+| `node scripts/orchestration/ci-task-gate.mjs --base 06955ce --head HEAD` | 0 | total=2 passed=2；实现提交与回执提交均 pass |
 | `git diff --stat HEAD -- src/engine-core` | — | 空（未触纯层） |
 
 机器：Windows / PowerShell 7.6.4 / Node v22.23.2 / pnpm 9.15.0。无长驻 `nest start --watch` / `vite dev`。
