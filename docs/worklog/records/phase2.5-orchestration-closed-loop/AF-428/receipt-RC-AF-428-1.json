@@ -1,0 +1,103 @@
+{
+  "deliveredAt": "2026-11-24T07:08:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-428-1",
+    "taskId": "AF-428",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "investigation",
+    "agentRole": "orchestrator",
+    "baselineRef": "67e54372e171920fad603e667b181cfce59cb9b7",
+    "dependsOn": [],
+    "priorTasks": ["AF-427", "AF-426"],
+    "policyRefs": ["docs/team/conventions.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-428/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af428-corpus-version-drift-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/architecture/debug-corpus-kernel-version-drift-v1.0.md"]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/architecture/debug-corpus-kernel-version-drift-v1.0.md",
+        "docs/worklog/completed/phase2.5/af428-corpus-version-drift-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-428/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-428/manifest.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "即时",
+        "note": "本单交付记录落盘后 PASS"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量（带缓存）",
+        "note": "0 error；1 warning 为 pnpm node>=26 engine 提示"
+      }
+    ],
+    "reproNotes": "按单算子轮 8 维 delta 签名做键聚合计数，与内核 DELTA_TABLE 逐算子对拍；脚本与口径见 AF-427 的 af427-operator-delta-ledger.mjs --json。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-428 贯穿任务单、回执、交付记录" },
+      { "item": "state-write", "result": "pass", "note": "登记 / 提级 / 领单经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "七组字段齐全，changedFiles 全在 docs/ scope 内" },
+      { "item": "event-chain", "result": "pass", "note": "事件链只由 CLI 写入" },
+      { "item": "engine-boundary", "result": "pass", "note": "纯只读取证，未改 src/ 与 data/" },
+      { "item": "privacy", "result": "pass", "note": "只用 deltaDetail 数值，无对话原文" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "三条判据落地：逐算子签名簇与轮次有数字、给出表三使用边界、给出可执行处置建议"
+    },
+    "backlogItems": [
+      {
+        "id": "AF428-B1",
+        "impact": "语料重跑须带版本指纹（kernelRef / deltaTable 哈希），否则下一批仍是混合体。",
+        "layer": "scripts",
+        "status": "candidate"
+      },
+      {
+        "id": "AF428-B2",
+        "impact": "「非整比调制值」（如 empathy verbal −0.023077）来自哪一层未定论，只证明存在。",
+        "layer": "adapter",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "PR 归属",
+        "taskSays": "交付一页取证记录",
+        "reality": "AF-427 的 PR #212 因 AF-429 的 CI 守卫问题待修，另开 PR 会重复携带 AF-427 提交",
+        "action": "本单文档随 PR #212 合入，不新开 PR",
+        "why": "保持单一合并点，避免重复合并祖先提交"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "把一条「可能是旧版快照」的猜想做成可复核的签名分簇证据，并明确否掉了原先 AllianceConfig 覆写的主位解释；结论直接约束了 AF-427 表三的可使用边界，而不是补一句「可能不准」。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地只读统计，无上游计费。"
+  }
+}
