@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-415",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-24T04:20:00+08:00",
+  "updatedAt": "2026-11-23T20:04:22.028Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-415/task-sheet.md",
+    "sha256": "5844774f97ea2b2260d5870af34f579d72dda0f46d319782b32bb48d3beba84d",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af415-presence-precision-eval-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af415-presence-precision-eval-task-sheet.md"
+  ],
+  "tombstone": null
+}
