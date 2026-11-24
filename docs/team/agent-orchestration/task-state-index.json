@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1933,
+    "lastEventSeq": 1938,
     "rebuiltAt": null
   },
   "tasks": [
@@ -3825,6 +3825,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-450/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af450-ledger-kernelref-grouping-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-451",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-451/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af451-scripted-kernelref-2026-11-24.md",
         "reply": null
       }
     }
