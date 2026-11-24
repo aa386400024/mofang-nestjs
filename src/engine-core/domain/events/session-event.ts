@@ -16,8 +16,9 @@
  *   为什么单独拆: 规则轨把这两类都吞进 neutral, 同乘 ZERO ——
  *   前者临床应微正向、后者临床应零或负向, 两者都测不出来 (台账 I-18).
  *   ⚠️ 这两类是**状态类**而非**行为动作类** —— 与上面十种行为算子不同层.
- *   ⚠️ DELTA_TABLE 里的种子向量 = ZERO (零回归): 临床方向与幅度由标定批次
- *     经 DeltaTableConfig 覆写落地, 基础表不承担临床参数.
+ *   ⚠️ DELTA_TABLE 自 AF-322 标定起已带**非零工程种子值** (holding_present: safety +0.004 /
+ *     bond +0.002 / verbal -0.002; cold_absent: trust -0.004 / safety -0.002 / bond -0.002),
+ *     幅度是工程种子、非临床标定; 临床方向与幅度仍由标定批次经 DeltaTableConfig 覆写落地.
  */
 export type CounselorEventKind =
   | 'empathy'
@@ -31,9 +32,9 @@ export type CounselorEventKind =
   | 'boundary_cross'
   | 'sensitive_touch'
   | 'neutral'
-  /** 稳定在场的有效中性 (D-2 新增; 种子 delta = ZERO, 临床增量待标定). */
+  /** 稳定在场的有效中性 (D-2 新增; 种子 delta 非零, 见 state-transition.ts DELTA_TABLE). */
   | 'holding_present'
-  /** 实质缺席 / 敷衍 (D-2 新增; 种子 delta = ZERO, 临床增量待标定). */
+  /** 实质缺席 / 敷衍 (D-2 新增; 种子 delta 非零, 见 state-transition.ts DELTA_TABLE). */
   | 'cold_absent';
 
 /** 一条标准会话事件. */

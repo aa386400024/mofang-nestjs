@@ -1,0 +1,122 @@
+{
+  "receiptId": "RC-AF-454-1",
+  "taskId": "AF-454",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "type": "documentation",
+  "agentRole": "executor",
+  "baselineRef": "e855dbcc2f8b5a1ad59873ca5a44a3fd0857ea26",
+  "dependsOn": [],
+  "priorTasks": ["AF-453", "AF-446", "AF-322"],
+  "policyRefs": ["conventions.md#1.2"],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/task-sheet.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af454-engine-core-comment-2026-11-24.md",
+    "reply": null,
+    "others": [
+      "src/engine-core/domain/events/session-event.ts",
+      "src/engine-core/cognition/state-transition.ts",
+      "docs/worklog/completed/phase2.5/af453-engine-core-comment-2026-11-24.md"
+    ]
+  },
+  "changedFiles": {
+    "commits": ["4d68dc05"],
+    "added": ["docs/worklog/completed/phase2.5/af454-engine-core-comment-2026-11-24.md"],
+    "modified": [
+      "src/engine-core/domain/events/session-event.ts",
+      "src/engine-core/cognition/state-transition.ts"
+    ],
+    "deleted": [],
+    "deletionChecks": []
+  },
+  "gateResults": [
+    {
+      "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": 1,
+      "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4",
+      "wallClock": "1.77s",
+      "note": "12 tests / 1 file passed；注释不进 AST，边界不变量零回归"
+    },
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上（tsc -p tsconfig.json --noEmit --incremental）",
+      "wallClock": "约 60s",
+      "note": "0 error"
+    },
+    {
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上（eslint --cache，src/test/bin + scripts）",
+      "wallClock": "约 35s",
+      "note": "0 error / 0 warning；顺带复核了 AF-446 回执里登记的 debug-tts.service.ts:13-14 warning 已不存在"
+    },
+    {
+      "command": "git diff --stat HEAD~1 -- src/engine-core",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "即时",
+      "note": "只有 session-event.ts（9 +/−）与 state-transition.ts（8 +/−），逐行均为注释行，零可执行代码变化"
+    }
+  ],
+  "reproNotes": "在 D:\\work\\Project\\backend\\mofang-nestjs-af281r（分支 task/AF-454-engine-core-comment，基线 e855dbcc）依次跑：pnpm exec vitest run test/engine-core/boundary.spec.ts → pnpm typecheck → pnpm lint → git diff --stat HEAD~1 -- src/engine-core。注释前后对照见 git show 4d68dc05。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-454 贯穿任务单 / 提交 trailer / 交付记录 / 回执" },
+    { "item": "state-write", "result": "pass", "note": "状态面只经 CLI：register / reissue / promote / run-once，未手改索引" },
+    { "item": "index-schema", "result": "pass", "note": "task-state-index 由 CLI 写入，未人工编辑" },
+    { "item": "event-chain", "result": "pass", "note": "重签发链路 AF-453 canceled → AF-454 backlog 由 reissue 落事件，priorTasks 指向原任务" },
+    { "item": "engine-core-exception", "result": "pass", "note": "例外依据为大炮 2026-11-24 明确批准（仅注释），已写进任务单与交付记录" },
+    { "item": "kernel-comment-only", "result": "pass", "note": "git diff 逐行判定为注释；无新增文件、无 import 变化、无类型/常量/函数改动" },
+    { "item": "no-kernel-value-change", "result": "pass", "note": "DELTA_TABLE 数值一字未动，标定结论不变" },
+    { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全：gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict" }
+  ],
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "任务单五项成功判据逐条满足：ZERO 说法清除、维度列全、纯注释、三闸门 0 error、内核 diff 仅两文件"
+  },
+  "backlogItems": [
+    {
+      "id": "AF454-B1",
+      "impact": "任务单登记时不校验 agentRole 与 scope 的资源域匹配，只在 run-once 派发时报 scope-domain-conflict；smoke 代价是一次 reissue（AF-453 → AF-454）并产生一个 canceled 任务与归档补齐件。建议 task register 阶段就做域冲突预检，或提供 scope/agentRole 的 register 前校验。",
+      "layer": "framework",
+      "status": "candidate"
+    },
+    {
+      "id": "AF454-B2",
+      "impact": "worklog verify --strict 对 canceled 任务同样强制 artifactPath 存在，导致重签发后必须手写占位件才能提交；该文件又不在新任务 scope 内，只能走状态面豁免提交。建议 reissue 自动生成被取代任务的占位交付件并纳入新任务 scope（与 AF449-B3 同源）。",
+      "layer": "framework",
+      "status": "candidate"
+    },
+    {
+      "id": "AF454-B3",
+      "impact": "本机 PATH 的 node 为 v22.23.2，低于 repo 要求的 ≥26，每次 pnpm 都打印 engine 警告；虽不影响本次闸门，但 TS/vitest 行为可能与 CI 的 node 26 存在差异。建议固化本机 node 版本来源（如 .nvmrc / engines 校验脚本）。",
+      "layer": "adapter",
+      "status": "candidate"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [],
+  "deviationAbsent": true,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "两处过期注释已与 AF-322 标定后的 DELTA_TABLE 实际值对齐：session-event.ts 不再声称 ZERO 并写出两类种子值，state-transition.ts 改为全量非零维度且显式声明未列维度为 0。改动纯注释（10 insertions / 7 deletions，逐行可判定），boundary.spec 12 例全绿、typecheck 0 error、lint 0 error/0 warning，内核逻辑零变化。例外依据为大炮本轮明确批准，已留档。",
+  "failureReasonCode": null,
+  "cancellationReason": null,
+  "costNote": "纯本地编辑与闸门执行，无 LLM 调用、无网络、无数据写入。"
+}

@@ -361,10 +361,12 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   // 中性算子: 零 delta (不推进任何维度)
   neutral: ZERO,
   // V2026-11-12 治本 (D-2 · 事件类型拆分): 两类**在场状态**事件.
-  //   AF-322 标定: 在场状态不是干预, 幅度必须小于共情/接纳（单事件约 0.004）;
+  //   AF-322 标定: 在场状态不是干预, 主维度幅度必须小于共情/接纳（单事件约 0.004）;
   //     但它是持续累积的背景信号，20 轮稳定在场可累积 safety +0.08 / bond +0.04.
-  //     holding_present: safety +0.004 / bond +0.002 / verbal -0.002；
-  //     cold_absent:    trust -0.004 / safety -0.002 / bond -0.002.
+  //     下表是全量非零维度（与 DELTA_TABLE 逐字段对应，未列的维度种子为 0）:
+  //     holding_present: safety +0.004 / bond +0.002 / verbal -0.002 / valence +0.004 / arousal -0.002；
+  //     cold_absent:    trust -0.004 / safety -0.002 / bond -0.002 / verbal +0.004 /
+  //                     depth +0.002 / style +0.002 / valence -0.004 / negative +0.002.
   //   ⚠️ 幅度是**工程种子值, 非临床标定** —— 需督导复核“稳定陪伴”与“机械敷衍”的差值.
   holding_present: {
     trust: 0,
