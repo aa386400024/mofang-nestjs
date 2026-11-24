@@ -5,6 +5,7 @@ import {
   renderMiniMaxDelivery,
   toDoubaoAudioParams,
   toMiniMaxVoiceSetting,
+  toMiniMaxVoiceSettingValues,
 } from '../../../src/shared/voice-delivery/index.js';
 
 describe('AF-460 · voice delivery profile', () => {
@@ -53,8 +54,9 @@ describe('AF-460 · voice delivery profile', () => {
       expect(profile.speed).toBeLessThanOrEqual(1.08);
       expect(profile.volume).toBeGreaterThanOrEqual(0.88);
       expect(profile.volume).toBeLessThanOrEqual(1.06);
-      expect(profile.pitch).toBeGreaterThanOrEqual(-3);
-      expect(profile.pitch).toBeLessThanOrEqual(2);
+      expect(profile.pitch).toBeGreaterThanOrEqual(-4);
+      expect(profile.pitch).toBeLessThanOrEqual(4);
+      expect(Number.isInteger(profile.pitch)).toBe(true);
     }
   });
 
@@ -74,6 +76,25 @@ describe('AF-460 · provider 渲染器', () => {
       pitch: profile.pitch,
       emotion: 'sad',
     });
+  });
+
+  it('AF-461: MiniMax voice_setting 类型契约——pitch 整数、speed/vol 有限浮点', () => {
+    const setting = toMiniMaxVoiceSettingValues({ speed: 0.96, volume: 0.96, pitch: -0.7, emotion: 'sad' });
+    expect(setting.speed).toBeCloseTo(0.96);
+    expect(setting.vol).toBeCloseTo(0.96);
+    expect(setting.pitch).toBe(-1);
+    expect(Number.isInteger(setting.pitch)).toBe(true);
+    expect(setting.emotion).toBe('sad');
+  });
+
+  it('AF-461: MiniMax 非法数值回落并夹取，非法 emotion 不下发', () => {
+    const setting = toMiniMaxVoiceSettingValues({
+      speed: Number.NaN,
+      volume: Number.POSITIVE_INFINITY,
+      pitch: 999,
+      emotion: 'neutral',
+    });
+    expect(setting).toEqual({ speed: 1, vol: 1, pitch: 12 });
   });
 
   it('豆包 2.0 参数映射成官方相对值，且夹在范围内', () => {

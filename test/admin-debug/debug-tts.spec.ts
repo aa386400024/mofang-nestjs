@@ -77,6 +77,31 @@ describe('AF-395 调试 TTS provider 协议', () => {
     expect(out.durationMs).toBe(120);
   });
 
+  it('AF-461: MiniMax pitch 小数先取整再下发，speed/vol 保持浮点', async () => {
+    let captured: {
+      voice_setting?: { voice_id?: string; speed?: number; vol?: number; pitch?: number; emotion?: string };
+    } = {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: { body?: string }) => {
+        captured = JSON.parse(init.body ?? '{}');
+        return Response.json(
+          { data: { audio: 'ff00' }, extra_info: { audio_length: 120 }, base_resp: { status_code: 0 } },
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }),
+    );
+    await synthesizeMiniMax({ ...baseInput('你好'), speed: 0.96, volume: 0.96, pitch: -0.7 }, 'minimax-hd');
+    expect(captured.voice_setting).toMatchObject({
+      voice_id: 'Chinese (Mandarin)_Warm_Girl',
+      speed: 0.96,
+      vol: 0.96,
+      pitch: -1,
+      emotion: 'sad',
+    });
+    expect(Number.isInteger(captured.voice_setting?.pitch)).toBe(true);
+  });
+
   it('豆包走 Agent Plan 头，context_texts 只取第一条语义情绪，分片 base64 拼接', async () => {
     let capturedUrl = '';
     let capturedHeaders: Record<string, string> = {};
@@ -147,12 +172,17 @@ describe('AF-395 调试 TTS provider 协议', () => {
       trailingSilenceMs: 5200,
     };
     await synthesizeDoubao(input, 'doubao-seed-tts-2.0');
-    expect(capturedBody).toMatchObject({
-      req_params: {
-        audio_params: { speech_rate: -7, loudness_rate: -6, pitch_rate: -2 },
-        context_texts: ['请用真实来访者的口吻，不要新闻播报或播音腔。'],
-        additions: { max_length_to_filter_parenthesis: 0, silence_duration: 5200 },
-      },
+    const reqParams = (capturedBody as { req_params: { additions: unknown } }).req_params;
+    expect(reqParams).toMatchObject({
+      audio_params: { speech_rate: -7, loudness_rate: -6, pitch_rate: -2 },
+      context_texts: ['请用真实来访者的口吻，不要新闻播报或播音腔。'],
+    });
+    expect(typeof reqParams.additions).toBe('string');
+    expect(JSON.parse(reqParams.additions as string)).toEqual({
+      max_length_to_filter_parenthesis: 100,
+      disable_markdown_filter: true,
+      disable_emoji_filter: true,
+      silence_duration: 5200,
     });
   });
 });

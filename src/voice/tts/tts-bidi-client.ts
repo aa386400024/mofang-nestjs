@@ -52,7 +52,7 @@ import type { TtsEvent, TtsOptions } from './tts.types.js';
 import { toUtf8Text } from '../../shared/infra/string-utils/index.js';
 import { applyProsodyToSentence, renderMiniMaxText } from '../../shared/prosody/index.js';
 import type { ProsodyEvent } from '../../shared/prosody/index.js';
-import { toMiniMaxEmotion } from '../../shared/voice-delivery/index.js';
+import { toMiniMaxEmotion, toMiniMaxVoiceSettingValues } from '../../shared/voice-delivery/index.js';
 
 /** 客户端状态机. */
 type TtsClientState = 'idle' | 'connecting' | 'streaming' | 'closing' | 'closed';
@@ -439,16 +439,20 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
    * 发送 `task_start`.
    */
   private sendTaskStart(): void {
+    // 与调试同步合成共用同一份类型收口：pitch 必须是 integer，speed/vol 必须是有限 float。
+    const voiceSetting = toMiniMaxVoiceSettingValues({
+      speed: this.speed,
+      volume: this.volume,
+      pitch: this.pitch,
+      emotion: this.emotion,
+    });
     this.sendJson({
       event: 'task_start',
       model: this.model,
       language_boost: this.languageBoost,
       voice_setting: {
         voice_id: this.voiceId,
-        speed: this.speed,
-        vol: this.volume,
-        pitch: this.pitch,
-        ...(this.emotion === null ? {} : { emotion: this.emotion }),
+        ...voiceSetting,
       },
       audio_setting: {
         sample_rate: this.sampleRate,

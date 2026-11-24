@@ -68,25 +68,69 @@ export function toMiniMaxEmotion(emotion: DeliveryEmotion): string | null {
   return MINIMAX_EMOTIONS.has(emotion) ? emotion : null;
 }
 
+/** MiniMax voice_setting 的原始数值（可能来自档案、env 或调试页）. */
+export interface MiniMaxVoiceSettingInput {
+  readonly speed: number;
+  readonly volume: number;
+  readonly pitch: number;
+  readonly emotion?: string | null;
+}
+
+/** MiniMax 官方 voice_setting 形状. */
+export interface MiniMaxVoiceSetting {
+  readonly speed: number;
+  readonly vol: number;
+  readonly pitch: number;
+  readonly emotion?: string;
+}
+
+/**
+ * 把任意来源的数值收敛成 MiniMax 合法 `voice_setting`.
+ *
+ * 官方类型契约：`speed` float [0.5,2]、`vol` float (0,10]、`pitch` **integer**
+ * [-12,12]。TypeScript 的 `number` 不区分 int/float，所以这里必须显式取整；
+ * 调试同步合成与生产 WebSocket 共用本函数，避免两套映射再次漂移。
+ *
+ * @param input 原始数值
+ * @returns 可直接下发的 voice_setting
+ */
+export function toMiniMaxVoiceSettingValues(input: MiniMaxVoiceSettingInput): MiniMaxVoiceSetting {
+  const speed = clampFinite(input.speed, 0.5, 2, 1);
+  const vol = clampFinite(input.volume, 0.01, 10, 1);
+  const pitch = Math.round(clampFinite(input.pitch, -12, 12, 0));
+  const emotion = toMiniMaxEmotionOrNull(input.emotion);
+  return {
+    speed,
+    vol,
+    pitch,
+    ...(emotion === null ? {} : { emotion }),
+  };
+}
+
 /**
  * 交付档案 -> MiniMax `voice_setting`.
  *
  * @param profile 交付档案
  * @returns MiniMax 参数
  */
-export function toMiniMaxVoiceSetting(profile: VoiceDeliveryProfile): {
-  speed: number;
-  vol: number;
-  pitch: number;
-  emotion?: string;
-} {
-  const emotion = toMiniMaxEmotion(profile.emotion);
-  return {
+export function toMiniMaxVoiceSetting(profile: VoiceDeliveryProfile): MiniMaxVoiceSetting {
+  return toMiniMaxVoiceSettingValues({
     speed: profile.speed,
-    vol: profile.volume,
+    volume: profile.volume,
     pitch: profile.pitch,
-    ...(emotion === null ? {} : { emotion }),
-  };
+    emotion: profile.emotion,
+  });
+}
+
+/** 任意字符串 -> MiniMax 合法 emotion；非法值不下发. */
+function toMiniMaxEmotionOrNull(emotion: string | null | undefined): string | null {
+  return typeof emotion === 'string' && MINIMAX_EMOTIONS.has(emotion) ? emotion : null;
+}
+
+/** 有限数值夹取；非有限值回落到安全默认. */
+function clampFinite(value: number, min: number, max: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
 }
 
 /**

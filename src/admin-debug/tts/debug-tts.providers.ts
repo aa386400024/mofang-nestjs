@@ -3,6 +3,8 @@
 // 任何 API key 只从调用方传入，不落日志、不出现在错误消息里。
 import { randomUUID } from 'node:crypto';
 
+import { toMiniMaxVoiceSettingValues } from '../../shared/voice-delivery/index.js';
+
 /** 调试页支持的三家模型标识（前端按钮与缓存键共用）. */
 export type DebugTtsProvider = 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0';
 
@@ -56,6 +58,12 @@ const DOUBAO_EMOTION_HINT: Record<string, string> = {
 /** MiniMax 同步 T2A V2. */
 export async function synthesizeMiniMax(input: TtsSynthesisInput, provider: DebugTtsProvider): Promise<TtsSynthesisOutput> {
   const endpoint = `${trimBase(input.baseUrl)}/v1/t2a_v2`;
+  const voiceSetting = toMiniMaxVoiceSettingValues({
+    speed: input.speed,
+    volume: input.volume,
+    pitch: input.pitch,
+    emotion: input.emotion,
+  });
   const body = {
     model: input.model,
     text: input.text,
@@ -63,10 +71,7 @@ export async function synthesizeMiniMax(input: TtsSynthesisInput, provider: Debu
     language_boost: 'Chinese',
     voice_setting: {
       voice_id: input.voiceId,
-      speed: input.speed,
-      vol: input.volume,
-      pitch: input.pitch,
-      ...(input.emotion === null ? {} : { emotion: input.emotion }),
+      ...voiceSetting,
     },
     audio_setting: {
       sample_rate: input.sampleRate,
@@ -117,6 +122,15 @@ export async function synthesizeDoubao(input: TtsSynthesisInput, provider: Debug
   // AF-460: 官方只有第一条 context_texts 生效；组合指令优先，缺失时退回单句情绪提示.
   const contextText = firstNonEmpty(input.deliveryContext, emotionHint);
   const trailingSilenceMs = clamp(input.trailingSilenceMs ?? 0, 0, 30_000);
+  // 官方 req_params.additions 类型是 string（JSON 序列化后的字符串），不是对象。
+  // max_length_to_filter_parenthesis=100 表示过滤长度 ≤100 字符的括号注释；
+  // disable_*_filter=true 才表示解析并过滤 Markdown/Emoji。
+  const additions = JSON.stringify({
+    max_length_to_filter_parenthesis: 100,
+    disable_markdown_filter: true,
+    disable_emoji_filter: true,
+    ...(trailingSilenceMs > 0 ? { silence_duration: trailingSilenceMs } : {}),
+  });
   const body = {
     req_params: {
       text: input.text,
@@ -129,13 +143,7 @@ export async function synthesizeDoubao(input: TtsSynthesisInput, provider: Debug
         pitch_rate: clamp(Math.round(input.pitch), -12, 12),
       },
       ...(contextText === null ? {} : { context_texts: [contextText] }),
-      additions: {
-        // 来访者台词里的括号是副语言/动作标注，不能让 2.0 当普通括号念出来.
-        max_length_to_filter_parenthesis: 0,
-        disable_markdown_filter: false,
-        disable_emoji_filter: false,
-        ...(trailingSilenceMs > 0 ? { silence_duration: trailingSilenceMs } : {}),
-      },
+      additions,
     },
   };
   const response = await fetch(endpoint, {
