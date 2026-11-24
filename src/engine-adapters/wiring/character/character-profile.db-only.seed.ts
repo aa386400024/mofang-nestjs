@@ -3,7 +3,7 @@
 //   另外 4 个（安然 / 语桐 / 沉舟 / 惊尘）只做过基线校准、没有内容行，角色池实际只跑到 4 位。
 //
 //   本文件是 B 类（DB-only，没有来访池模板）角色的**内容种子**:
-//   - 数值与台词指纹仍从 `character-baseline-calibration.ts` 装配，不复制第二份真相；
+//   - 数值、台词指纹与语域指纹仍从既有权威表装配，不复制第二份真相；
 //   - 核心信念陈述随规格自带（B 类没有来访池模板可抽取）；
 //   - 装配走 `assembleCharacterProfileSeed`，与 A 类共享同一份字段映射。
 //
@@ -11,6 +11,7 @@
 
 import { getBaselineCalibration } from './character-baseline-calibration.js';
 import { assembleCharacterProfileSeed, type CharacterProfileSeed, type CharacterProfileSeedSpec } from './character-profile.seed.js';
+import { getVisitorSpeechRegister } from '../../../shared/speech-register/speech-register.calibration.js';
 
 /**
  * 从权威标定表装配数值 + 台词指纹（与 A 类 `baselineOf` 同口径）。
@@ -20,8 +21,12 @@ import { assembleCharacterProfileSeed, type CharacterProfileSeed, type Character
  */
 function baselineOf(
   templateId: string,
-): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond' | 'verbalVoice'> {
+): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond' | 'verbalVoice' | 'speechRegister'> {
   const row = getBaselineCalibration(templateId);
+  const speechRegister = getVisitorSpeechRegister(templateId);
+  if (speechRegister === undefined) {
+    throw new Error(`语域指纹标定缺失: ${templateId}（角色内容存在但语域未标定）`);
+  }
   return {
     trust: row.trust,
     resistance: row.resistance,
@@ -29,6 +34,7 @@ function baselineOf(
     safety: row.safety,
     bond: row.bond,
     verbalVoice: row.verbalVoice,
+    speechRegister,
   };
 }
 

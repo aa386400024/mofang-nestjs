@@ -25,7 +25,7 @@ Start-Process node -ArgumentList 'dist/app.js' -WorkingDirectory . -RedirectStan
 ## 跑会话
 
 ```powershell
-node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --roles <role1>,<role2>
+node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --roles <role1>,<role2> --task-id AF-466
 ```
 
 - `--roles` 省略时跑标定表全部角色；库里没有 `approved character_profiles` 的角色会创建失败，
@@ -49,11 +49,10 @@ node scripts/eval/visitor-register-stability/judge-sessions.mjs --run-id <id> --
 ## 报告
 
 ```powershell
-node scripts/eval/visitor-register-stability/render-report.mjs --run-id <id>
+node scripts/eval/visitor-register-stability/render-report.mjs --run-id <id> --out docs/worklog/completed/phase2.5/<report>.md
 ```
 
-只渲染聚合表与门槛，不写原始台词。报告落到
-`docs/worklog/completed/phase2.5/af465-visitor-register-stability-2026-11-24.md`。
+`--out` 缺省仍落 AF-465 原报告路径；新任务必须显式指定，避免覆盖已归档报告。
 
 ## 边界
 

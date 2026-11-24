@@ -1,5 +1,5 @@
 // V2026-11-10 WP-J (B 层 · 角色基线差异化标定 · 单测):
-//   职责: 钉死"8 个角色各自独立基线"这件事的每一条不变量 ——
+//   职责: 钉死"10 个角色各自独立基线"这件事的每一条不变量 ——
 //     ① 权威表 8 行齐全、字段齐备、templateId 不重;
 //     ② 每行的 expectedLabel 与**内核真函数** resolveEmotionLabel 的输出逐行一致
 //        (含沉舟 empty / 惊尘 hurt 两个真实函数边界);
@@ -136,9 +136,9 @@ function calibrationOf(templateId: string): CharacterBaselineCalibration {
 }
 
 describe('WP-J · 权威标定表 · 结构', () => {
-  it('① 恰好 8 行, templateId 不重, 8 个维度齐全', () => {
-    expect(CHARACTER_BASELINE_CALIBRATION).toHaveLength(8);
-    expect(BASELINE_CALIBRATION_BY_TEMPLATE_ID.size).toBe(8);
+  it('① 恰好 10 行, templateId 不重, 8 个维度齐全', () => {
+    expect(CHARACTER_BASELINE_CALIBRATION).toHaveLength(10);
+    expect(BASELINE_CALIBRATION_BY_TEMPLATE_ID.size).toBe(10);
     expect(BASELINE_DIMENSION_KEYS).toHaveLength(8);
 
     for (const row of CHARACTER_BASELINE_CALIBRATION) {
@@ -152,7 +152,7 @@ describe('WP-J · 权威标定表 · 结构', () => {
     }
   });
 
-  it('② 8 个角色都覆盖到了 (A 类 4 + B 类 4), 没有漏角色也没有多角色', () => {
+  it('② 10 个角色都覆盖到了 (A 类 6 + B 类 4), 没有漏角色也没有多角色', () => {
     const templateIds = CHARACTER_BASELINE_CALIBRATION.map((row) => row.templateId).toSorted();
 
     expect(templateIds).toEqual([
@@ -160,7 +160,9 @@ describe('WP-J · 权威标定表 · 结构', () => {
       'vpt_general_secure_l1',
       'vpt_grief_avoidance_l1',
       'vpt_intimate_avoidance_l1',
+      'vpt_parenting_projection_l1',
       'vpt_self_worth_intellectualization_l1',
+      'vpt_social_anxiety_avoidance_l1',
       'vpt_social_anxious_l1',
       'vpt_trauma_disorganized_l1',
       'vpt_workplace_intellectualization_l1',
@@ -191,13 +193,13 @@ describe('WP-J · 情绪标签 · 用内核真函数逐行核对', () => {
     expect(resolveEmotionLabel(jingchen.emotion.valence, jingchen.emotion.arousal)).toBe('hurt');
   });
 
-  it('⑥ 8 个角色的标签分布符合各自的情绪象限 (不是同一个标签刷一遍)', () => {
+  it('⑥ 10 个角色的标签分布符合各自的情绪象限 (不是同一个标签刷一遍)', () => {
     const labels = CHARACTER_BASELINE_CALIBRATION.map((row) => row.expectedLabel);
 
     expect(new Set(labels).size).toBeGreaterThan(1);
-    expect(labels.filter((label) => label === 'guarded')).toHaveLength(3);
+    expect(labels.filter((label) => label === 'guarded')).toHaveLength(4);
     expect(labels.filter((label) => label === 'sad')).toHaveLength(2);
-    expect(labels).toContain('anxious');
+    expect(labels.filter((label) => label === 'anxious')).toHaveLength(2);
     expect(labels).toContain('empty');
     expect(labels).toContain('hurt');
   });
@@ -222,7 +224,7 @@ describe('WP-J · 可区分性与无维度塌缩', () => {
     expect(collapsedPairs).toEqual([]);
   });
 
-  it('⑧ 每一维跨 8 个角色的跨度都 ≥ 0.40 (没有维度被压成常数)', () => {
+  it('⑧ 每一维跨 10 个角色的跨度都 ≥ 0.40 (没有维度被压成常数)', () => {
     for (const key of BASELINE_DIMENSION_KEYS) {
       const values = CHARACTER_BASELINE_CALIBRATION.map((row) => dimensionOf(row, key));
       // 独立复算也留浮点容差: 0.70 − 0.30 在 IEEE-754 下 = 0.39999999999999997 (真值就是 0.40).
@@ -310,7 +312,7 @@ describe('WP-J · 自检的负向用例 (故意造错 → 当场报错)', () => 
 });
 
 describe('WP-J · A 类 seed 规格的数值 = 从权威表装配 (不是抄的第二份)', () => {
-  it('⑯ 4 个 seed 规格的八个数值逐字等于权威表对应行', () => {
+  it('⑯ 6 个 seed 规格的八个数值逐字等于权威表对应行', () => {
     for (const spec of CHARACTER_PROFILE_SEED_SPECS) {
       const target = calibrationOf(spec.templateId);
       expect(spec.trust).toBe(target.trust);
@@ -349,7 +351,7 @@ describe('WP-J · A 类 seed 规格的数值 = 从权威表装配 (不是抄的�
 });
 
 describe('WP-J · 端到端: buildCharacterProfile(seed, undefined) 与权威表逐字段一致', () => {
-  it('⑲ 8 个角色的内核基线 = 权威表, 标签 = 内核真函数的输出', () => {
+  it('⑲ 10 个角色的内核基线 = 权威表, 标签 = 内核真函数的输出', () => {
     for (const target of CHARACTER_BASELINE_CALIBRATION) {
       const profile = buildCharacterProfile(toCharacterSeed(buildRow(target)), NO_PRESET);
       const baseline = profile.baseline;

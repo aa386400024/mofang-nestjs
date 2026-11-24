@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-469",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "ready",
+  "createdAt": "2026-11-24T21:10:00+08:00",
+  "updatedAt": "2026-11-24T13:11:17.136Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-469/task-sheet.md",
+    "sha256": "6b0d5e8ad0116c5db610e0fcafab95479ee4fb2233d8fa6d19a42be1ac6e5b45",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af469-executor-eval-resource-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-469-executor-eval-resource.md"
+  ],
+  "tombstone": null
+}

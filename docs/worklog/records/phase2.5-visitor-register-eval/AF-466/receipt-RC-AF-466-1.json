@@ -1,0 +1,210 @@
+{
+  "deliveredAt": "2026-11-24T21:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-466-1",
+    "taskId": "AF-466",
+    "contextId": "phase2.5-visitor-register-eval",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "28aa06c1dbfe9f35acda47fb62c18c0c25a08f01",
+    "dependsOn": [],
+    "priorTasks": ["AF-465", "AF-462"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af466-10role-register-rerun-implementation-2026-11-24.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["26b811e3a87472aca7da76cb86197afbb3cad62d"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af466-10role-register-rerun-implementation-2026-11-24.md",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/manifest.json",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md"
+      ],
+      "modified": [
+        "bin/seed-character-profiles.ts",
+        "scripts/eval/visitor-register-stability/README.md",
+        "scripts/eval/visitor-register-stability/judge-sessions.mjs",
+        "scripts/eval/visitor-register-stability/render-report.mjs",
+        "scripts/eval/visitor-register-stability/run-sessions.mjs",
+        "src/engine-adapters/wiring/character/character-baseline-calibration.ts",
+        "src/engine-adapters/wiring/character/character-profile.db-only.seed.ts",
+        "src/engine-adapters/wiring/character/character-profile.seed.ts",
+        "test/engine-adapters/af106-character-pool.spec.ts",
+        "test/engine-adapters/af357-character-desire-mapping.spec.ts",
+        "test/engine-adapters/character-baseline-calibration.spec.ts",
+        "test/engine-adapters/wp9b-db-character-resolver.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/character-baseline-calibration.spec.ts test/engine-adapters/character-baseline-seed-calibration.spec.ts test/engine-adapters/af106-character-pool.spec.ts test/engine-adapters/wp9b-db-character-resolver.spec.ts test/engine-adapters/wp51-character-seed-alliance-baseline.spec.ts test/engine-adapters/wp10a-character-expression-fields.spec.ts test/engine-adapters/af357-character-desire-mapping.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 7,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "1.67s",
+        "note": "127 tests passed；角色资产 10 角色口径全绿"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/eval/visitor-register-stability/__tests__/metrics.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "251ms",
+        "note": "11 tests passed；指标与门槛计算未改口径"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "0 error / 0 warning（eslint --cache content）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 纯层未动"
+      }
+    ],
+    "reproNotes": "seed：首次 A 类新增 2 / 未变 4，B 类更新 4，基线校准未变 4；第二次全部 unchanged。只读查询 10/10 为 approved + enabled + speech_register 非空。跑场：runId af466-2026-11-24-10roles，10 角色 × base/active × 30 轮 = 20 场 / 600 轮，失败轮 0；active 注入 10/10，base 0/10。盲评：Doubao Seed 2.1 Pro + MiniMax M3，首次 Doubao 在 vpt_social_anxious_l1 超时，改 --reuse-raw 复用已成功 raw 并延长超时到 240s 后完成，未删除或伪造评分。全量 pnpm test 为 4924 passed / 1 failed / 4 skipped，唯一失败是既有 af427-operator-delta-ledger 本地 data/debug-sessions 语料漂移（断言 34/31，实际 45/42），与本任务无调用关系；干净检出该用例按设计跳过。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-466 经 CLI register / promote / run-once；实现提交带 Task: AF-466 trailer"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "索引 / 日志 / 快照由 CLI 生成；状态面在 3bf7915c 单独提交，未与实现混提"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 1.2.0；worklog verify --strict PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "AF-466 混合 src/test + scripts/eval 原被 IM-010 拦截；AF-469 取消后以 AF-470 扩展 executor 资源域到 scripts/eval/，AF-466 才得领单"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "原始台词 / prompt / judge 原始响应只在本地 gitignored data/eval-reports/，仓库只提交聚合报告"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord / implementation record 均落文件；worklog strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 28aa06c1；type implementation；agentRole executor；finalStatus completed；提交 26b811e3 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF466-B1",
+        "impact": "noHarm 的 abstractTermRate 在 vpt_workplace_intellectualization_l1（0→0.51）与 vpt_self_worth_intellectualization_l1（0→0.15）越界；两角色 abstractTermBudget 为 0.62 / 0.58，属角色标定允许的抽象预算，但预注册门槛按绝对 +0.05 判失败。需产品/门槛决策：角色级预算还是收窄标定。",
+        "owner": "product + engine",
+        "status": "open"
+      },
+      {
+        "id": "AF466-B2",
+        "impact": "p95 延迟中位 +32.06%（门槛 ≤15%），prompt 中位仅 +12.85%。9/10 active 的 p95 高于 base，需单独做性能归因（块长度 / 流式首包 / 模型侧波动），不能靠放宽成本门解决。",
+        "owner": "performance",
+        "status": "open"
+      },
+      {
+        "id": "AF466-B3",
+        "impact": "每角色每模式只跑 1 场，重复性方差未测；方向 9/10 与稳定 10/10 的结论需第二场重复确认。",
+        "owner": "eval",
+        "status": "open"
+      },
+      {
+        "id": "AF466-B4",
+        "impact": "全量测试既有 af427-operator-delta-ledger 用例依赖本地 gitignored data/debug-sessions 语料绝对数字，语料漂移即失败；需改为从台账动态取值或显式 fixture。",
+        "owner": "orchestration",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "abstractTermRate 是否允许理智化角色角色级预算",
+      "active p95 延迟增幅的归因与优化排期",
+      "第二场重复的预算与时间窗口"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "复用 AF-465 harness 与预注册门槛；脚本或门槛如需改动，必须在开跑前完成并冻结哈希",
+        "reality": "judge-sessions 为规避 Doubao 单角色 120s 超时，新增 --reuse-raw 并把超时提到 240s；run-sessions 新增 --task-id，render 新增 --out",
+        "action": "只改参数化与超时，不改 30 轮脚本、脚本哈希、抽样轮、指标与门槛；开跑前 node --check 全过",
+        "why": "不改就会重复付费盲评并在同一角色反复超时，已成功 raw 不应丢弃"
+      },
+      {
+        "taskSays": "agentRole=executor，scope 含 scripts/eval/",
+        "reality": "executor 资源域不含 scripts/eval/，run-once 判 scope-domain-conflict",
+        "action": "先以 AF-470 把 executor 资源域最小扩到 scripts/eval/，再领 AF-466；未绕过 IM-010",
+        "why": "评测 harness 实现属 executor 的真实工作类型，AF-465 已重复遇到"
+      },
+      {
+        "taskSays": "任务 gate 只列角色资产 7 spec / 指标 spec / typecheck / lint",
+        "reality": "另外跑了全量 pnpm test，结果 4924 passed / 1 failed / 4 skipped",
+        "action": "如实记录失败，不用“除本地语料外全绿”替代退出码；失败属既有 AF-427 债",
+        "why": "全量测试是交付前闸门，但任务 gate 未要求；失败与本任务无调用关系"
+      },
+      {
+        "taskSays": "按预注册门槛判机制是否稳定",
+        "reality": "noHarm 与 cost 两项失败，gatePass=false",
+        "action": "结论写 direction_consistent_but_limited，不称机制稳定；两处未过门作为产品 / 性能 backlog 登记",
+        "why": "方向、刻板、稳定、BDI 护栏通过，但非方向性门槛未过，不能用“注入成功”冒充“机制稳定”"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "任务单 9 条 successCriteria 全部满足：10/10 approved+enabled+speech_register 非空、两个缺口角色进入 A 类 seed、B 类按 templateId 装配、标定表 10 行通过自检、seed 两次幂等、20 场 600 轮 0 失败、注入 10/10 vs 0/10、报告覆盖方向/刻板/稳定/不回归/护栏/成本并写清与 AF-465 差异。机制结论按预注册门槛为 direction_consistent_but_limited（gatePass=false），已在报告与回执显式登记，不冒充稳定。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "20 场 × 30 轮共 600 次渲染调用 + 10 角色 × 2 评委共 20 次盲评调用；超时后复用已完成 raw，无重复付费全量盲评。"
+  }
+}

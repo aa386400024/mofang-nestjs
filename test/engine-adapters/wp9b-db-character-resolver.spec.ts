@@ -11,7 +11,7 @@
 //     B.7 preset 叠加生效 (同角色不同难度/防御 → 不同 resistance); 越界 preset 被 clamp
 //   另附 (口径护栏):
 //     C. 映射公式只有一份: DB 路径与内置种子路径产出逐字一致; 叠加系数符合任务单 §4
-//     D. 内容基线自检: 首批 4 个 slug 与来访池内容对齐 (coreBeliefs 逐字取自 script)
+//     D. 内容基线自检: 首批 slug 与来访池内容对齐 (coreBeliefs 逐字取自 script, AF-466 起 6 个)
 //
 //   全 mock: 仓储用内存 stub, 内核用真实 InMemoryEngineSession (内存实现, 不连 DB),
 //             不起容器、不发网络、不连上游.
@@ -64,12 +64,14 @@ const CLOCK = 1_700_000_000_000;
  */
 const NEUTRAL_TEXT = '我们开始吧。';
 
-/** 首批 4 个 slug (任务单 §6 拍板). */
+/** 首批 4 个 slug (任务单 §6 拍板) + AF-466 补齐的阿禾 / 小舟. */
 const EXPECTED_TEMPLATE_IDS = [
   'vpt_intimate_avoidance_l1',
   'vpt_self_worth_intellectualization_l1',
   'vpt_workplace_intellectualization_l1',
   'vpt_grief_avoidance_l1',
+  'vpt_parenting_projection_l1',
+  'vpt_social_anxiety_avoidance_l1',
 ] as const;
 
 /**
@@ -607,7 +609,7 @@ describe('WP9-B · MySQL 角色解析器 (DB 数据源)', () => {
   });
 
   describe('D. 首批内容基线与来访池对齐', () => {
-    it('恰好 4 个 slug, 且全部来自已存在的公共模板', () => {
+    it('恰好 6 个 slug, 且全部来自已存在的公共模板', () => {
       expect(SEEDS.map((seed) => seed.templateId)).toEqual([...EXPECTED_TEMPLATE_IDS]);
       const visitorIds = new Set(VISITOR_POOL_TEMPLATE_SEEDS.map((seed) => seed.id));
       for (const seed of SEEDS) {
