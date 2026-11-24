@@ -12,10 +12,10 @@ import { describe, expect, it } from 'vitest';
 import { createGitRemoteLock, describeRemoteRunLock, REMOTE_LOCK_REF } from '../remote-lock.mjs';
 
 function createFakeRemote({ held = null, lsRemoteFails = false } = {}) {
-  const state = { refSha: null, commits: new Map(), lsRemoteFails };
+  const state = { refSha: null, commits: new Map(), lsRemoteFails, revParseCalls: 0, mktreeInputs: [] };
   if (held) {
     state.refSha = 'seed';
-    state.commits.set('seed', { message: JSON.stringify(held) });
+    state.commits.set('seed', { message: JSON.stringify(held), tree: 'seed-tree' });
   }
   const runGit = (args, opts = {}) => {
     const fail = () => {
@@ -32,16 +32,23 @@ function createFakeRemote({ held = null, lsRemoteFails = false } = {}) {
       const commit = state.commits.get(state.refSha);
       return commit ? commit.message : null;
     }
-    if (cmd === 'rev-parse') return 'tree-sha';
+    if (cmd === 'rev-parse') {
+      state.revParseCalls += 1;
+      return 'tree-sha';
+    }
+    if (cmd === 'mktree') {
+      state.mktreeInputs.push(opts.input);
+      return 'empty-tree';
+    }
     if (cmd === 'cat-file') {
       const commit = state.commits.get(String(rest[rest.length - 1]));
       if (!commit) return fail();
-      return `tree tree-sha\nauthor fake <fake@example.com>\n\n${commit.message}`;
+      return `tree ${commit.tree ?? 'tree-sha'}\nauthor fake <fake@example.com>\n\n${commit.message}`;
     }
     if (cmd === 'commit-tree') {
       const message = rest[rest.indexOf('-m') + 1];
       const sha = `c${state.commits.size + 1}`;
-      state.commits.set(sha, { message });
+      state.commits.set(sha, { message, tree: rest[0] });
       return sha;
     }
     if (cmd === 'push') {
@@ -71,6 +78,17 @@ describe('remote-lock', () => {
     const holder = JSON.parse(state.commits.get(state.refSha).message);
     expect(holder.token).toBe('tok-local');
     expect(holder.actor).toBe('run-once');
+  });
+
+  it('锁 commit 用空 tree，不再读取 HEAD 整树', () => {
+    const { state, runGit } = createFakeRemote();
+    const lock = createGitRemoteLock({ runGit, now: () => T0 });
+    const result = lock.acquire({ token: 'tok-local' });
+    expect(result.acquired).toBe(true);
+    const commit = state.commits.get(state.refSha);
+    expect(commit.tree).toBe('empty-tree');
+    expect(state.revParseCalls).toBe(0);
+    expect(state.mktreeInputs).toEqual(['']);
   });
 
   it('他人持新鲜锁时抢不到，并返回持有者事实', () => {

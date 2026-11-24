@@ -23,8 +23,8 @@ afterEach(() => {
 /** 有状态的假 git：维护 refs 与 commit message，模拟 push 的非快进语义。 */
 function fakeGit({ refs = {}, objects = {} } = {}) {
   let seq = 0;
-  const state = { refs, objects };
-  const runGit = (args) => {
+  const state = { refs, objects, revParseCalls: 0, mktreeInputs: [] };
+  const runGit = (args, opts = {}) => {
     if (args[0] === 'ls-remote') {
       if (args[1] === '--heads') {
         const prefix = args[3].replace(/\*$/, '');
@@ -36,16 +36,23 @@ function fakeGit({ refs = {}, objects = {} } = {}) {
       const sha = state.refs[args[2]];
       return sha ? `${sha}\t${args[2]}` : '';
     }
-    if (args[0] === 'rev-parse') return 'tree-1';
+    if (args[0] === 'rev-parse') {
+      state.revParseCalls += 1;
+      return 'tree-1';
+    }
+    if (args[0] === 'mktree') {
+      state.mktreeInputs.push(opts.input);
+      return 'empty-tree';
+    }
     if (args[0] === 'commit-tree') {
       seq += 1;
       const sha = `c${seq}`;
-      state.objects[sha] = args[3];
+      state.objects[sha] = { message: args[args.indexOf('-m') + 1], tree: args[1] };
       return sha;
     }
     if (args[0] === 'cat-file') {
-      const message = state.objects[args[2]];
-      return message ? `tree tree-1\n\n${message}` : null;
+      const object = state.objects[args[2]];
+      return object ? `tree ${object.tree}\n\n${object.message}` : null;
     }
     if (args[0] === 'fetch') return '';
     if (args[0] === 'push') {
@@ -93,6 +100,17 @@ describe('task-id-reservation', () => {
     expect(second.holder.taskId).toBe('AF-300');
   });
 
+  it('占号 commit 用空 tree，不再读取 HEAD 整树', () => {
+    const { runGit, state } = fakeGit();
+    const reservation = createGitTaskIdReservation({ rootDir: root, runGit });
+    const result = reservation.reserve('AF-390');
+    expect(result.reserved).toBe(true);
+    const sha = state.refs[reservationRef('AF-390')];
+    expect(state.objects[sha].tree).toBe('empty-tree');
+    expect(state.revParseCalls).toBe(0);
+    expect(state.mktreeInputs).toEqual(['']);
+  });
+
   it('释放只删合法 payload；ref 不存在视为已释放', () => {
     const { runGit, state } = fakeGit();
     const reservation = createGitTaskIdReservation({ rootDir: root, runGit });
@@ -103,7 +121,7 @@ describe('task-id-reservation', () => {
 
     const other = fakeGit({
       refs: { [reservationRef('AF-312')]: 'x' },
-      objects: { x: JSON.stringify({ taskId: 'AF-999' }) },
+      objects: { x: { message: JSON.stringify({ taskId: 'AF-999' }), tree: 'tree-1' } },
     });
     const res2 = createGitTaskIdReservation({ rootDir: root, runGit: other.runGit });
     expect(res2.release('AF-312')).toBe(false);

@@ -37,11 +37,15 @@ const LOCAL_CACHE_REF = 'refs/orchestration-lock/run-once';
 export const DEFAULT_REMOTE_STALE_MS = 45 * 60 * 1000;
 
 function defaultRunGit(args, opts = {}) {
+  const hasInput = opts.input !== undefined;
   try {
     return execFileSync('git', args, {
       cwd: opts.cwd,
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      // `mktree` 从 stdin 读树条目；需要喂空输入时必须把 stdin 接成 pipe，
+      // 否则子进程读到的是继承来的终端/黑洞，命令会挂住。
+      stdio: [hasInput ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+      ...(hasInput ? { input: opts.input } : {}),
     }).trim();
   } catch (error) {
     if (opts.allowFailure) return null;
@@ -166,7 +170,10 @@ export function createGitRemoteLock(opts = {}) {
       acquiredAt: payload.acquiredAt ?? new Date(nowFn()).toISOString(),
       baseSha: payload.baseSha ?? null,
     };
-    const tree = call(['rev-parse', 'HEAD^{tree}']);
+    // 锁 payload 只在 commit message 里，tree 内容没有语义。
+    // 早期用 HEAD^{tree} 建 root commit，push 锁 ref 时会把整棵工作树对象一起打包，
+    // repo 一大就长时间挂起；改成空 tree 后 push 只带一个 commit。
+    const tree = call(['mktree'], { input: '' });
     const commitSha = call(['commit-tree', tree, '-m', JSON.stringify(body)]);
     const pushed = call(['push', '--quiet', remote, `${commitSha}:${ref}`], { allowFailure: true });
     if (pushed === null) {
