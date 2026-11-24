@@ -54,6 +54,17 @@ node scripts/eval/visitor-register-stability/render-report.mjs --run-id <id> --o
 
 `--out` 缺省仍落 AF-465 原报告路径；新任务必须显式指定，避免覆盖已归档报告。
 
+## 延迟归因
+
+```powershell
+node scripts/eval/visitor-register-stability/analyze-latency.mjs --run-id <id> --compare-run-id <baseline-id>
+```
+
+- 只读 `sessions/*.json`、`manifest.json`，不发起模型调用、不落原文。
+- 输出 `latency-attribution.json`（同 run 目录）与终端摘要：p50/p95、TTFT、post-TTFT、
+  prompt/completion token、轮次分层、尾部集中度、回归系数、p95 bootstrap、跨 run base 对照。
+- `--compare-run-id` 可选，只用于同脚本、base 无块的跨 run 绝对 p95 波动参照，不替代同期对照。
+
 ## 边界
 
 - 这是 AI 代理盲评，不是真人语言学/督导师验收；`status=ai_proxy_candidate`。
