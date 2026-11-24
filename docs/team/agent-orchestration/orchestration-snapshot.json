@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T03:09:25.680Z",
+  "generatedAt": "2026-11-24T05:29:48.586Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2017,6 +2017,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-356",
+      "recordedAt": "2026-11-24T05:08:51.077Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-459",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-459-voice-prosody-pipeline"
+      ]
+    },
+    {
+      "auditId": "AUD-355",
+      "recordedAt": "2026-11-24T05:08:42.500Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-459",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-459",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-459.json"
+      ]
+    },
+    {
+      "auditId": "AUD-354",
+      "recordedAt": "2026-11-24T05:08:34.279Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-459",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-353",
       "recordedAt": "2026-11-24T03:07:18.385Z",
       "actorRef": "orchestrator",
@@ -2207,67 +2254,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-341",
-      "recordedAt": "2026-11-24T01:24:33.874Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-452",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-452-supersede-close"
-      ]
-    },
-    {
-      "auditId": "AUD-340",
-      "recordedAt": "2026-11-24T01:23:56.673Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-438",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-339",
-      "recordedAt": "2026-11-24T01:23:51.260Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-452",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-452",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-452.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 353,
+    "total": 356,
     "byResult": {
-      "allowed": 353,
+      "allowed": 356,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 352,
+      "TOOL-QUEUE-SCHEDULER": 355,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 353
+      "orchestrator": 356
     }
   },
   "protocolView": {
@@ -9825,6 +9825,24 @@
             "ref": "docs/worklog/completed/phase2.5/af458-minimax-lane-worktree-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-459",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-voice-prosody/AF-459/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af459-voice-prosody-pipeline-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -9849,5 +9867,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 428
+  "archivedCount": 429
 }

@@ -15,6 +15,7 @@
 
 import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
 import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
+import type { ProsodyEvent } from '../shared/prosody/index.js';
 
 /**
  * 客户端 → 服务端消息.
@@ -212,8 +213,22 @@ export type VoiceServerMessage =
        */
       readonly finishReason?: string;
     }
-  /** 一句开始 (seq 本轮内从 1 递增). */
-  | { readonly type: 'sentence_start'; readonly seq: number; readonly text: string }
+  /**
+   * 一句开始 (seq 本轮内从 1 递增).
+   *
+   * AF-459（均为可选，老客户端不识别即忽略）：
+   *   - `speechText`：这一句的**语义韵律形态**（含 `[pause:0.4]` 这类可读标记），
+   *     用于气泡"语音形态"切换；展示正文仍是 `text`，不含任何标签。
+   *   - `prosody`：本句落下的韵律事件表（filler / pause / trailoff + 位置 + 时长）。
+   *     缺省 = 本场未启用韵律，帧与改前逐字一致。
+   */
+  | {
+      readonly type: 'sentence_start';
+      readonly seq: number;
+      readonly text: string;
+      readonly speechText?: string;
+      readonly prosody?: readonly ProsodyEvent[];
+    }
   /** 一句完整 mp3 (可独立播放) —— 前端排队播. */
   | { readonly type: 'tts_audio'; readonly seq: number; readonly text: string; readonly mime: string; readonly audio_base64: string }
   /** 一句结束. */

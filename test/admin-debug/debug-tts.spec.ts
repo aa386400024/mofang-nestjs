@@ -170,7 +170,8 @@ describe('AF-395 缓存闭环', () => {
     expect(calls).toBe(1);
   });
 
-  it('旧版 MiniMax 音色回退到 2.8 可用音色，calm 映射为 neutral', async () => {
+  // AF-459: 官方 emotion 枚举没有 neutral（会报 2013），calm 必须原样透传，不能映射成 neutral.
+  it('旧版 MiniMax 音色回退到 2.8 可用音色，calm 原样透传', async () => {
     let captured: { voice_setting?: { voice_id?: string; emotion?: string } } = {};
     vi.stubGlobal(
       'fetch',
@@ -215,7 +216,7 @@ describe('AF-395 缓存闭环', () => {
     await service.render('auto_practice', 'p1', 1, 'minimax-turbo');
     expect(captured.voice_setting).toMatchObject({
       voice_id: 'Chinese (Mandarin)_Warm_Girl',
-      emotion: 'neutral',
+      emotion: 'calm',
     });
   });
 });

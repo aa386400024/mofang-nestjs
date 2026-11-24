@@ -1,0 +1,228 @@
+{
+  "deliveredAt": "2026-11-24T05:26:30.031Z",
+  "payload": {
+    "receiptId": "RC-AF-459-1",
+    "taskId": "AF-459",
+    "contextId": "phase2.5-voice-prosody",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "38639a3d24240bb6c139de9d2a9497ff9ea7cf5c",
+    "dependsOn": [],
+    "priorTasks": ["AF-327", "AF-328", "AF-329", "AF-331", "AF-342", "AF-395"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#5.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-voice-prosody/AF-459/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af459-voice-prosody-pipeline-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/runbooks/voice-prosody-pipeline.md"]
+    },
+    "changedFiles": {
+      "commits": ["5cfb59906253b4920bf8ad0969787430d78afc3b"],
+      "added": [
+        "src/shared/prosody/prosody.types.ts",
+        "src/shared/prosody/prosody-plan.ts",
+        "src/shared/prosody/prosody-inject.ts",
+        "src/shared/prosody/prosody-text.ts",
+        "src/shared/prosody/index.ts",
+        "test/shared/prosody/prosody-plan.spec.ts",
+        "test/shared/prosody/prosody-inject.spec.ts",
+        "test/shared/prosody/prosody-text.spec.ts",
+        "docs/runbooks/voice-prosody-pipeline.md",
+        "docs/worklog/completed/phase2.5/af459-voice-prosody-pipeline-2026-11-24.md"
+      ],
+      "modified": [
+        ".env.example",
+        "admin-dashboard/src/api/client.ts",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "src/admin-debug/tts/debug-tts.controller.ts",
+        "src/admin-debug/tts/debug-tts.service.ts",
+        "src/config/envs/default.ts",
+        "src/voice/tts/tts-bidi-client.ts",
+        "src/voice/tts/tts.types.ts",
+        "src/voice/voice.service.ts",
+        "src/voice/voice.types.ts",
+        "test/admin-debug/debug-tts.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm vitest run test/shared/prosody test/voice test/admin-debug",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 31,
+        "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "5.57s",
+        "note": "30 passed / 1 skipped（31 文件），502 passed / 4 skipped（506 用例）；其中新增 prosody 3 文件 22 例全绿"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 327,
+        "machine": "同上",
+        "wallClock": "27.49s",
+        "note": "326 passed / 1 skipped（327 文件），4880 passed / 4 skipped（4884 用例）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量 约 8s",
+        "note": "tsc --noEmit --incremental 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中，秒级",
+        "note": "eslint --cache（src/test/bin + scripts 两段）0 error 0 warning"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出：engine-core 纯层零改动"
+      },
+      {
+        "command": "admin-dashboard: pnpm type-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 6s",
+        "note": "vue-tsc --build 0 error"
+      },
+      {
+        "command": "admin-dashboard: pnpm build-only",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.70s",
+        "note": "vite build 成功，AutoPractice 产物 96.49 kB"
+      }
+    ],
+    "reproNotes": "核心链路：shared/prosody 纯函数建计划 → VoiceService 每轮建清洗器并只下发清洗后文本 → tts-bidi-client 按句 applyProsodyToSentence + renderMiniMaxText → 上游 MiniMax 收 <#x#>；前端 sentence_start 只多可选 speechText/prosody。调试页 POST /admin/api/debug/tts/inspect 只读预览（不合成不计费），render 返回 display/speech/tts/sentences。回退：MINIMAX_TTS_PROSODY_MODE=off。现场校准流程见 docs/runbooks/voice-prosody-pipeline.md §10–§12。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-459 贯穿任务单 / 分支 / 交付记录 / 回执" },
+      { "item": "state-write", "result": "pass", "note": "状态面只经 CLI（register / promote / run-once）；未手改索引与事件链" },
+      { "item": "index-schema", "result": "pass", "note": "任务单 frontmatter 字段与 artifacts.kind 枚举（report / document）合法" },
+      { "item": "event-chain", "result": "pass", "note": "登记与提级事件由 CLI 生成，未手写 journal" },
+      { "item": "engine-core-untouched", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" },
+      { "item": "frame-backward-compat", "result": "pass", "note": "sentence_start 仅新增可选字段，text 语义不变，老客户端忽略即兼容" },
+      { "item": "three-layer-text-isolation", "result": "pass", "note": "气泡只拿 displayText；TTS 只拿厂商渲染文本；speechText 仅调试可见" },
+      { "item": "rollback-switch", "result": "pass", "note": "off 时计划归零、可选帧字段不下发、TTS 文本逐字还原" },
+      { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "七条成功判据逐条满足：纯函数模块、三层文本分离、MiniMax 标记合法、帧兼容、调试页预览与切换、calm 枚举修复、全量闸门与 engine-core 零改动"
+    },
+    "backlogItems": [
+      {
+        "id": "AF459-B1",
+        "impact": "句首思考静默（300–700ms）未实现：需客户端插静默或服务端延迟首句，属跨端改动；当前只有句内停顿与句首思考垫。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF459-B2",
+        "impact": "voice_setting.emotion 仍未按轮下发；WP39 解除条件是真机听感校准，未完成前不得声称关闭。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF459-B3",
+        "impact": "Flutter 客户端尚无语音形态切换；WS 字段已向后兼容，UI 需独立仓排期。",
+        "layer": "frontend",
+        "status": "candidate"
+      },
+      {
+        "id": "AF459-B4",
+        "impact": "豆包链路 ttsText 仍是纯文本，只提供语义形态预览，未落地豆包侧停顿标记。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF459-B5",
+        "impact": "未做真机听感 A/B（active vs off）；上线前需按 runbook §12 做现场校准并记录主观结论。",
+        "layer": "verification",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "停顿位置合法性",
+        "taskSays": "两侧必须是可发音文本",
+        "reality": "允许标点贴边，但要求左右 4 字符内存在可发音字符",
+        "action": "改 canPlacePause 为向前/向后扫描，拒绝首尾与相邻停顿",
+        "why": "注入点固定在次级标点之后；按字面严格判定会把所有注入的停顿丢弃"
+      },
+      {
+        "item": "概率配额",
+        "taskSays": "任务单未写具体数字",
+        "reality": "medium 45/35/20；light 45/35/0",
+        "action": "首版 55/50/20 合计超 100 后修正为互斥号段",
+        "why": "号段超出 100 会让 trailoff 永远取不到，单测在闸门阶段已暴露"
+      },
+      {
+        "item": "debug-tts 既有测试",
+        "taskSays": "沿用原断言 calm→neutral",
+        "reality": "改为 calm 原样透传",
+        "action": "同步修正 debug-tts.spec 的断言与用例标题",
+        "why": "官方枚举无 neutral（会报 2013），原断言锁的是 bug"
+      },
+      {
+        "item": "流式清洗 trim",
+        "taskSays": "未写",
+        "reality": "去掉逐 chunk trim，只压缩连续空格",
+        "action": "stripProsodyMarkers 不再 trim",
+        "why": "避免吃掉英文单词之间属于正文的空格"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "shared/prosody 纯函数层、语音链路句级注入、调试页语音形态预览三层已闭环；定向 502 例与全量 4880 例单测、typecheck、lint、管理端 type-check/build 全绿，engine-core 零改动；回退开关与 WP39/WP40 未解除条件均已写明，未越过任务单非目标。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本地单测与构建，无 LLM/TTS 调用；inspect 端点只读预览不触发合成，零上游费用。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

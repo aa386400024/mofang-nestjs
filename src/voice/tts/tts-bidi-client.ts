@@ -50,9 +50,23 @@ import type { TtsBidiClientEvent, TtsBidiServerEvent } from './tts-protocol.type
 import { splitSentences } from './tts-sentence-splitter.js';
 import type { TtsEvent, TtsOptions } from './tts.types.js';
 import { toUtf8Text } from '../../shared/infra/string-utils/index.js';
+import { applyProsodyToSentence, renderMiniMaxText } from '../../shared/prosody/index.js';
+import type { ProsodyEvent } from '../../shared/prosody/index.js';
 
 /** 客户端状态机. */
 type TtsClientState = 'idle' | 'connecting' | 'streaming' | 'closing' | 'closed';
+
+/**
+ * 一条已下发给上游的句子（AF-459）.
+ *
+ * `display` 给字幕/气泡，`speech` 是真正喂给 TTS 的文本（可能带 `<#x#>`），
+ * `events` 是本句落下的韵律事件。三者必须一起排队，否则字幕会和音频错位。
+ */
+interface PendingSentence {
+  readonly display: string;
+  readonly speech: string;
+  readonly events: readonly ProsodyEvent[];
+}
 
 /** 简易 deferred (连接握手阶段等上游事件用). */
 interface Deferred {
@@ -109,19 +123,27 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
 
   // ── 业务状态 ──
   private readonly events = new AsyncEventQueue<TtsEvent>();
-  /** 已下发但尚未被上游消费的句子文本 (按序, 用于给音频配字幕). */
-  private readonly pendingSentences: string[] = [];
+  /** 已下发但尚未被上游消费的句子（按序，用于给音频配字幕 + 语音形态）. */
+  private readonly pendingSentences: PendingSentence[] = [];
   /** 未成句的文本尾巴. */
   private residualText = '';
   /** 当前句的音频分片. */
   private audioChunks: Buffer[] = [];
-  /** 当前句的文本 (上游给了字幕就用上游的, 否则用我们切出来的). */
+  /** 当前句的展示文本（上游给了字幕就用上游的，否则用我们切出来的）. */
   private currentText = '';
+  /** 当前句的语音形态文本与事件（AF-459）. */
+  private currentSpeechText = '';
+  private currentEvents: readonly ProsodyEvent[] = [];
   private currentSeq = 0;
   private charCount = 0;
   private usageCharacters = 0;
-  /** 最近一次下发的句子 (2205 队列溢出时重发它). */
-  private lastSentSentence: string | null = null;
+  /** 本轮内句序号（韵律确定性计划的输入之一）. */
+  private sentenceIndex = 0;
+  /** 本轮已注入的韵律事件数与上次事件句号. */
+  private prosodyEventCount = 0;
+  private lastProsodySentenceIndex = -1;
+  /** 最近一次下发的句子（2205 队列溢出时重发它）. */
+  private lastSentSentence: PendingSentence | null = null;
   private queueOverflowRetries = 0;
 
   private readonly onClosed: (() => void) | undefined;
@@ -303,13 +325,45 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
   /**
    * 下发一句文本.
    *
-   * @param sentence 完整句
+   * AF-459: 先把韵律计划落到这一句上 —— 展示文本原样，TTS 文本按厂商渲染。
+   * 两者一起入队，`sentence_start` 才能同时给出字幕与"语音形态"。
+   *
+   * @param sentence 完整句（已清洗过语义标记）
    */
   private sendSentence(sentence: string): void {
     if (sentence.length === 0) return;
-    this.pendingSentences.push(sentence);
-    this.lastSentSentence = sentence;
-    this.sendJson({ event: 'task_continue', text: sentence });
+    const entry = this.decorateSentence(sentence);
+    this.pendingSentences.push(entry);
+    this.lastSentSentence = entry;
+    this.sendJson({ event: 'task_continue', text: entry.speech });
+  }
+
+  /**
+   * 把一句话套上本轮韵律计划.
+   *
+   * @param sentence 展示文本
+   * @returns 入队条目
+   */
+  private decorateSentence(sentence: string): PendingSentence {
+    const plan = this.opts.prosody;
+    if (plan === undefined || plan.level === 'off') {
+      return { display: sentence, speech: sentence, events: [] };
+    }
+    const applied = applyProsodyToSentence(sentence, plan, {
+      sentenceIndex: this.sentenceIndex,
+      appliedEvents: this.prosodyEventCount,
+      lastEventSentenceIndex: this.lastProsodySentenceIndex,
+    });
+    this.sentenceIndex += 1;
+    if (applied.events.length > 0) {
+      this.prosodyEventCount += 1;
+      this.lastProsodySentenceIndex = this.sentenceIndex - 1;
+    }
+    return {
+      display: applied.displayText,
+      speech: renderMiniMaxText(applied.speechText),
+      events: applied.events,
+    };
   }
 
   /**
@@ -453,9 +507,18 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
    */
   private handleSentenceStart(): void {
     this.currentSeq += 1;
-    this.currentText = this.pendingSentences.shift() ?? '';
+    const entry = this.pendingSentences.shift();
+    this.currentText = entry?.display ?? '';
+    this.currentSpeechText = entry?.speech ?? '';
+    this.currentEvents = entry?.events ?? [];
     this.audioChunks = [];
-    this.events.push({ type: 'sentence_start', seq: this.currentSeq, text: this.currentText });
+    this.events.push({
+      type: 'sentence_start',
+      seq: this.currentSeq,
+      text: this.currentText,
+      ...(this.currentSpeechText === this.currentText ? {} : { speechText: this.currentSpeechText }),
+      ...(this.currentEvents.length === 0 ? {} : { events: this.currentEvents }),
+    });
   }
 
   /**
@@ -489,6 +552,8 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     const audio = this.audioChunks.length > 0 ? Buffer.concat(this.audioChunks) : Buffer.alloc(0);
     this.audioChunks = [];
     this.currentText = '';
+    this.currentSpeechText = '';
+    this.currentEvents = [];
 
     if (audio.length === 0) {
       // 上游只给了句边界没给音频: 不伪造空音频帧, 只放行句子边界
@@ -547,7 +612,10 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     this.logger.warn(`[queue_overflow_retry] attempt=${this.queueOverflowRetries} delay_ms=${delayMs}`);
     setTimeout(() => {
       if (this.state !== 'streaming') return;
-      this.sendSentence(sentence);
+      // 重发同一条已渲染好的句子 —— 不能再走一遍韵律计划，
+      // 否则同句会换到下一个句序号，停顿位置与上次不同（用户会听见"变了"）。
+      this.pendingSentences.push(sentence);
+      this.sendJson({ event: 'task_continue', text: sentence.speech });
     }, delayMs);
     return true;
   }

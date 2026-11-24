@@ -85,6 +85,8 @@ import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor.js
 import type { RunReportInput } from '../agent/supervisor/supervisor.types.js';
 import { VisitorService } from '../agent/visitor/visitor.service.js';
 import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types.js';
+import { buildProsodyPlan, ProsodyStreamSanitizer } from '../shared/prosody/index.js';
+import type { ProsodyTurnPlan } from '../shared/prosody/index.js';
 
 type SendFn = (msg: VoiceServerMessage) => void;
 
@@ -220,6 +222,14 @@ export class VoiceService {
   /** TTS 模型 (env MINIMAX_TTS_MODEL). */
   private readonly ttsModel: string;
   /**
+   * AF-459: 语音韵律总开关 (env MINIMAX_TTS_PROSODY_MODE, 默认 active).
+   *
+   * off = 完全不注入，下发文本与改前逐字一致；现场听感不对时改 env 即可回退，
+   * 不需要回滚代码（这与"灰度期不换变量"的口径一致：只多一个可回退的开关，
+   * 不改任何既有阈值）。
+   */
+  private readonly prosodyEnabled: boolean;
+  /**
    * V2026-10-29 治本 (WP8-B · 灰度): 新引擎是否接管语音链路 (env ENGINE_VOICE_ENABLED).
    *
    * 缺省 false —— 灰度开关默认关, 旧链路 100% 原样, 可一键回退.
@@ -294,6 +304,7 @@ export class VoiceService {
   ) {
     this.ttsVoiceId = config.get<string>('minimax.ttsVoiceId') ?? '';
     this.ttsModel = config.get<string>('minimax.ttsModel') ?? 'speech-2.8-turbo';
+    this.prosodyEnabled = (config.get<string>('minimax.ttsProsodyMode') ?? 'active') !== 'off';
     this.engineEnabled = readBooleanFlag(config.get<string>('ENGINE_VOICE_ENABLED'));
     this.grayscaleSessions = parseSessionWhitelist(config.get<string>('ENGINE_STREAM_GRAYSCALE_SESSIONS'));
     // V2026-11-03 (WP23): 两个兜底参数 —— env 缺失 / 非法 / 非正数 → 回退缺省值.
@@ -1003,7 +1014,7 @@ export class VoiceService {
     }
 
     // 1. 启动 TTS (仅 voice 模式; text 模式完全不碰 TTS —— 不建连接、不占配额)
-    const tts = await this.beginTtsTurn(state, send, myGeneration);
+    const tts = await this.beginTtsTurn(state, send, myGeneration, turnIndex);
     if (!tts) {
       state.status = 'idle';
       return;
@@ -1127,6 +1138,7 @@ export class VoiceService {
     state: VoiceSessionState,
     send: SendFn,
     myGeneration: number,
+    turnIndex: number,
   ): Promise<{ ttsHandle: TtsSessionHandle | null; ttsPump: Promise<void> | null } | null> {
     // V2026-11-03 治本 (WP23 §1.5): 断连中 → **压根不调 TTS provider**.
     //   没人听的音频就是白烧 MiniMax 的 TTS 配额. 但这一轮**照跑** LLM ——
@@ -1137,7 +1149,8 @@ export class VoiceService {
       this.logger.log(`[user_text] socket 已断开, 本轮跳过 TTS 合成 session=${state.meta.sessionId}`);
       return { ttsHandle: null, ttsPump: null };
     }
-    const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send) : null;
+    const prosody = this.buildTurnProsody(state, turnIndex);
+    const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send, prosody) : null;
     if (state.meta.mode === 'voice' && !ttsHandle) {
       // TTS 起不来 (音色没配 / 上游握手失败) → 本轮不出声, 直接收尾.
       return null;
@@ -1148,6 +1161,26 @@ export class VoiceService {
     // 事件泵与 LLM 流**并发** —— "边生成边出声"的关键
     const ttsPump = ttsHandle ? this.pumpTtsEvents(ttsHandle, myGeneration, state, send) : null;
     return { ttsHandle, ttsPump };
+  }
+
+  /**
+   * 构建本轮韵律计划 (AF-459).
+   *
+   * 依据只有会话元数据（风格 + 难度 + 轮次），不看 LLM 输出——
+   * "这一轮该不该顿"在开口前就定下来，模型改不了预算。
+   *
+   * @param state 会话状态
+   * @param turnIndex 本场第几轮
+   * @returns 本轮计划
+   */
+  private buildTurnProsody(state: VoiceSessionState, turnIndex: number): ProsodyTurnPlan {
+    return buildProsodyPlan({
+      enabled: this.prosodyEnabled,
+      sessionId: state.meta.sessionId,
+      turnIndex,
+      style: state.meta.preset.style,
+      difficulty: state.meta.preset.difficulty,
+    });
   }
 
   /**
@@ -1536,7 +1569,7 @@ export class VoiceService {
    * 启动 TTS session — voice 模式才走.
    * @returns 成功返 handle, 失败返 null (已发 error 给 client, 调用方负责把 state 标回 idle)
    */
-  private async startTtsSession(state: VoiceSessionState, send: SendFn): Promise<TtsSessionHandle | null> {
+  private async startTtsSession(state: VoiceSessionState, send: SendFn, prosody: ProsodyTurnPlan): Promise<TtsSessionHandle | null> {
     // 治本: 音色没配就是**配置错误** —— 绝不能拿未核实的占位音色 (mandarin_female_001) 顶替,
     // 那会合成出"能播但不像人"的音频, 排查成本远高于现在就失败.
     const voiceId = this.resolveSessionVoice(state.meta);
@@ -1557,6 +1590,8 @@ export class VoiceService {
       //   不传 voiceId 时行为与改前**完全一致** (还是那条 env 音色).
       voice: voiceId,
       model: this.ttsModel,
+      // AF-459: 韵律计划随会话下发；level=off 时客户端行为与改前逐字一致.
+      prosody,
     };
     try {
       return await this.tts.startSession(ttsOptions);
@@ -1632,7 +1667,14 @@ export class VoiceService {
   private forwardTtsEvent(event: TtsEvent, send: SendFn): void {
     switch (event.type) {
       case 'sentence_start':
-        send({ type: 'sentence_start', seq: event.seq, text: event.text });
+        send({
+          type: 'sentence_start',
+          seq: event.seq,
+          text: event.text,
+          // AF-459: 只在启用韵律时下发（未启用 = 老帧逐字不变）.
+          ...(event.speechText === undefined ? {} : { speechText: event.speechText }),
+          ...(event.events === undefined ? {} : { prosody: event.events }),
+        });
         return;
       case 'sentence_audio':
         send({
@@ -1680,6 +1722,9 @@ export class VoiceService {
     ttsHandle: TtsSessionHandle | null,
     collected: string[],
   ): Promise<LlmTurnOutcome> {
+    // AF-459: 逐 chunk 清洗语义标记（标签可能被拆在两个 chunk 里，所以要流式清洗）.
+    //   display 与 TTS 都拿清洗后的文本：气泡不会出现方括号，TTS 不会把标签念出来.
+    const sanitizer = new ProsodyStreamSanitizer();
     for await (const chunk of llmStream) {
       if (state.currentGeneration !== myGeneration) {
         // 已被新 user_text 打断
@@ -1687,11 +1732,14 @@ export class VoiceService {
         return 'eof';
       }
       switch (chunk.type) {
-        case 'content':
-          collected.push(chunk.content);
-          send({ type: 'llm_text', text: chunk.content });
-          ttsHandle?.sendText(chunk.content);
+        case 'content': {
+          const clean = sanitizer.feed(chunk.content);
+          if (clean.length === 0) break;
+          collected.push(clean);
+          send({ type: 'llm_text', text: clean });
+          ttsHandle?.sendText(clean);
           break;
+        }
         case 'error':
           this.logger.warn(`[user_text] LLM error: ${chunk.error.code}`);
           send({ type: 'error', error: { code: chunk.error.code, message: chunk.error.message, retryable: chunk.error.retryable } });
@@ -1700,7 +1748,14 @@ export class VoiceService {
           //   旧链路没有轮次语义, 回落等于让同一句话在两条链路上各跑一遍 (状态双写).
           //   它是协议信号: 客户端拿到后应当换一个轮次号走新一轮.
           return chunk.error.code === TURN_INCOMPLETE_CODE ? 'turn_incomplete' : 'error';
-        case 'done':
+        case 'done': {
+          // 收尾前把清洗器缓冲的尾巴放出来（未闭合的标签残片在这里被丢弃）.
+          const tail = sanitizer.flush();
+          if (tail.length > 0) {
+            collected.push(tail);
+            send({ type: 'llm_text', text: tail });
+            ttsHandle?.sendText(tail);
+          }
           // V2026-10-29 治本 (WP9-C): 带 usage —— 端上/E2E 验收要看思考 token 与
           //   输出长度 (老客户端不认识这个可选字段, 直接忽略).
           // V2026-11-03 治本 (WP23): 带 `turnIndex` —— 客户端断线重连时要报
@@ -1722,7 +1777,15 @@ export class VoiceService {
           ttsHandle?.finish();
           // WP16: 重放 (幂等复用) **不是新的一轮** —— 逐字稿不能再落第二条.
           return chunk.replayed ? 'replayed' : 'done';
+        }
       }
+    }
+    // 流自然结束但没 done chunk：仍要把清洗器尾巴发给 TTS（收尾由 closeTtsTurn 补 finish）.
+    const tail = sanitizer.flush();
+    if (tail.length > 0) {
+      collected.push(tail);
+      send({ type: 'llm_text', text: tail });
+      ttsHandle?.sendText(tail);
     }
     return 'eof';
   }

@@ -19,12 +19,33 @@ import {
   type TtsSynthesisInput,
   type TtsSynthesisOutput,
 } from './debug-tts.providers.js';
+import { applyProsodyToSentence, buildProsodyPlan, renderMiniMaxText } from '../../shared/prosody/index.js';
+import type { ProsodyEvent } from '../../shared/prosody/index.js';
+import { splitSentences } from '../../voice/tts/tts-sentence-splitter.js';
 
 /** 调试 TTS 来源. */
 export type DebugTtsSource = 'auto_practice' | 'debug_session';
 
-/** 生成结果（前端只拿音频与可追溯元信息）. */
-export interface DebugTtsRenderResult {
+/** 单句的语音形态（调试页"语音形态"切换用）. */
+export interface DebugTtsSpeechSentence {
+  readonly index: number;
+  readonly displayText: string;
+  readonly speechText: string;
+  readonly events: readonly ProsodyEvent[];
+}
+
+/** 语音形态预览：语义形态 + 厂商形态 + 逐句事件. */
+export interface DebugTtsSpeechPreview {
+  readonly displayText: string;
+  /** 语义形态（可读标记，气泡展示这一份）. */
+  readonly speechText: string;
+  /** 该 provider 实际合成用的文本（MiniMax 带 `<#x#>`；豆包为纯文本）. */
+  readonly ttsText: string;
+  readonly sentences: readonly DebugTtsSpeechSentence[];
+}
+
+/** 生成结果基础字段（不含语音形态，缓存命中时由调用方合并）. */
+export interface DebugTtsRenderBase {
   readonly provider: DebugTtsProvider;
   readonly voiceId: string;
   readonly format: 'mp3';
@@ -35,6 +56,9 @@ export interface DebugTtsRenderResult {
   readonly textChars: number;
   readonly requestHash: string;
 }
+
+/** 生成结果（音频 + 语音形态）. */
+export interface DebugTtsRenderResult extends DebugTtsSpeechPreview, DebugTtsRenderBase {}
 
 /** 单轮解析结果. */
 interface ResolvedTurnText {
@@ -72,11 +96,12 @@ export class DebugTtsService {
     const resolved = await this.resolveTurnText(source, sourceId, turnIndex);
     if (resolved.displayText.length === 0) throw new BadRequestException('该轮没有可合成的文本');
     if (resolved.displayText.length > 1000) throw new BadRequestException('单轮文本超过 1000 字符，调试 TTS 不做拆分合成');
-    const providerConfig = this.providerConfig(provider, resolved);
-    const requestHash = hashRequest(provider, providerConfig.voiceId, resolved, providerConfig.input);
+    const preview = buildSpeechPreview(resolved.displayText, sourceId, turnIndex, provider);
+    const providerConfig = this.providerConfig(provider, resolved, preview);
+    const requestHash = hashRequest(provider, providerConfig.voiceId, resolved, preview, providerConfig.input);
     const cached = await this.findCached(source, sourceId, turnIndex, provider, requestHash);
     if (cached !== null) {
-      return toResult(cached, true);
+      return { ...toResult(cached, true), ...preview };
     }
     const output = await this.synthesize(provider, providerConfig.input);
     const row = this.renderRepo.create({
@@ -100,12 +125,13 @@ export class DebugTtsService {
       // 并发双击：唯一键冲突后重读缓存，避免重复计费.
       if (isDuplicateKey(error)) {
         const raced = await this.findCached(source, sourceId, turnIndex, provider, requestHash);
-        if (raced !== null) return toResult(raced, true);
+        if (raced !== null) return { ...toResult(raced, true), ...preview };
       }
       throw error;
     }
     this.logger.log(`[debug_tts] provider=${provider} chars=${resolved.displayText.length} bytes=${output.audio.length} cached=false`);
     return {
+      ...preview,
       provider,
       voiceId: providerConfig.voiceId,
       format: output.format,
@@ -116,6 +142,24 @@ export class DebugTtsService {
       textChars: resolved.displayText.length,
       requestHash,
     };
+  }
+
+  /**
+   * 只读预览语音形态（AF-459）——不调上游、不计费.
+   *
+   * 用途：气泡"语音形态"切换点开时先拿到逐句标记与事件；
+   * 用户点了某个模型之后再走 render 合成。
+   *
+   * @param source 来源
+   * @param sourceId 会话 id
+   * @param turnIndex 轮次
+   * @param provider 目标模型（决定 ttsText 的厂商形态）
+   * @returns 语音形态预览
+   */
+  async inspect(source: DebugTtsSource, sourceId: string, turnIndex: number, provider: DebugTtsProvider): Promise<DebugTtsSpeechPreview> {
+    const resolved = await this.resolveTurnText(source, sourceId, turnIndex);
+    if (resolved.displayText.length === 0) throw new BadRequestException('该轮没有可展示的文本');
+    return buildSpeechPreview(resolved.displayText, sourceId, turnIndex, provider);
   }
 
   /** 查历史生成；只有请求指纹一致才算命中，文本/参数变了不冒充旧音频. */
@@ -169,8 +213,14 @@ export class DebugTtsService {
   }
 
   /** provider 的模型 / 音色 / 参数 / 凭证. */
-  private providerConfig(provider: DebugTtsProvider, resolved: ResolvedTurnText): { voiceId: string; input: TtsSynthesisInput } {
-    return provider === 'doubao-seed-tts-2.0' ? this.doubaoProviderConfig(resolved) : this.minimaxProviderConfig(provider, resolved);
+  private providerConfig(
+    provider: DebugTtsProvider,
+    resolved: ResolvedTurnText,
+    preview: DebugTtsSpeechPreview,
+  ): { voiceId: string; input: TtsSynthesisInput } {
+    return provider === 'doubao-seed-tts-2.0'
+      ? this.doubaoProviderConfig(resolved)
+      : this.minimaxProviderConfig(provider, resolved, preview);
   }
 
   /** 豆包 Agent Plan 配置. */
@@ -199,7 +249,11 @@ export class DebugTtsService {
   }
 
   /** MiniMax 2.8 系列配置. */
-  private minimaxProviderConfig(provider: DebugTtsProvider, resolved: ResolvedTurnText): { voiceId: string; input: TtsSynthesisInput } {
+  private minimaxProviderConfig(
+    provider: DebugTtsProvider,
+    resolved: ResolvedTurnText,
+    preview: DebugTtsSpeechPreview,
+  ): { voiceId: string; input: TtsSynthesisInput } {
     const apiKey = this.config.get<string>('MINIMAX_API_KEY')?.trim() ?? '';
     if (apiKey.length === 0) throw new ServiceUnavailableException('MiniMax API key 未配置');
     const voiceId = normalizeMiniMaxVoiceId(
@@ -212,7 +266,8 @@ export class DebugTtsService {
     return {
       voiceId,
       input: {
-        text: resolved.ttsText,
+        // AF-459: 喂厂商形态（带 <#x#> 停顿），不是展示正文.
+        text: preview.ttsText,
         voiceId,
         emotion: mapMiniMaxEmotion(resolved.emotion),
         model: provider === 'minimax-hd' ? 'speech-2.8-hd' : 'speech-2.8-turbo',
@@ -240,7 +295,7 @@ export class DebugTtsService {
 }
 
 /** 组装最终返回值. */
-function toResult(row: AdminDebugTtsRenderEntity, cached: boolean): DebugTtsRenderResult {
+function toResult(row: AdminDebugTtsRenderEntity, cached: boolean): DebugTtsRenderBase {
   return {
     provider: row.provider as DebugTtsProvider,
     voiceId: row.voiceId,
@@ -255,8 +310,14 @@ function toResult(row: AdminDebugTtsRenderEntity, cached: boolean): DebugTtsRend
 }
 
 /** 请求指纹：provider + 音色 + 文本 + 情绪 + 模型/参数. */
-function hashRequest(provider: DebugTtsProvider, voiceId: string, resolved: ResolvedTurnText, input: TtsSynthesisInput): string {
-  const spoken = provider === 'doubao-seed-tts-2.0' ? resolved.displayText : resolved.ttsText;
+function hashRequest(
+  provider: DebugTtsProvider,
+  voiceId: string,
+  resolved: ResolvedTurnText,
+  preview: DebugTtsSpeechPreview,
+  input: TtsSynthesisInput,
+): string {
+  const spoken = provider === 'doubao-seed-tts-2.0' ? preview.displayText : preview.ttsText;
   return createHash('sha256')
     .update(
       JSON.stringify({
@@ -272,6 +333,38 @@ function hashRequest(provider: DebugTtsProvider, voiceId: string, resolved: Reso
       }),
     )
     .digest('hex');
+}
+
+/**
+ * 生成语音形态预览（AF-459）.
+ *
+ * 确定性：seed = 会话 id + 轮次，所以同一轮反复点开看到的停顿位置一致；
+ * 只有 provider 改变时 `ttsText` 才变（MiniMax 有 `<#x#>`，豆包仍是纯文本）。
+ *
+ * @param displayText 该轮展示正文
+ * @param sessionId 会话 id
+ * @param turnIndex 轮次
+ * @param provider 目标模型
+ * @returns 预览
+ */
+function buildSpeechPreview(displayText: string, sessionId: string, turnIndex: number, provider: DebugTtsProvider): DebugTtsSpeechPreview {
+  const plan = buildProsodyPlan({ enabled: true, sessionId, turnIndex });
+  const split = splitSentences(displayText, 100).sentences;
+  const rawSentences = split.length > 0 ? split : [displayText];
+  let appliedEvents = 0;
+  let lastEventSentenceIndex = -1;
+  const sentences = rawSentences.map((text, index) => {
+    const applied = applyProsodyToSentence(text, plan, { sentenceIndex: index, appliedEvents, lastEventSentenceIndex });
+    if (applied.events.length > 0) {
+      appliedEvents += 1;
+      lastEventSentenceIndex = index;
+    }
+    return { index, displayText: applied.displayText, speechText: applied.speechText, events: applied.events };
+  });
+  const speechText = sentences.map((sentence) => sentence.speechText).join('');
+  // 豆包这条链路只吃纯文本（不认 `<#x#>`）；它的语音形态仅供对照，不伪造厂商标记.
+  const ttsText = provider === 'doubao-seed-tts-2.0' ? displayText : renderMiniMaxText(speechText);
+  return { displayText, speechText, ttsText, sentences };
 }
 
 /** 取第一个非空字符串；用于 env 的空串兜底，避免 `||` 触发宽松判断. */
@@ -295,9 +388,12 @@ function normalizeMiniMaxVoiceId(value: string): string {
 /** 语义情绪 -> MiniMax 2.8 `voice_setting.emotion` 封闭枚举；不支持的返回 null. */
 function mapMiniMaxEmotion(emotion: string | null): string | null {
   if (emotion === null) return null;
-  const supported = new Set(['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'neutral']);
+  // 官方合法枚举：happy / sad / angry / fearful / disgusted / surprised / calm
+  // （fluent / whisper 仅 2.6 系列；neutral 不是合法值，历史映射会报 2013）。
+  const supported = new Set(['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'calm']);
   if (supported.has(emotion)) return emotion;
-  if (emotion === 'calm') return 'neutral';
+  // 旧语义 JSON 里可能存了 neutral（历史调试数据），按官方的中性值 calm 处理.
+  if (emotion === 'neutral') return 'calm';
   return null;
 }
 

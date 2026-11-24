@@ -8,6 +8,11 @@
 //     - 不用 Observable<TtsEvent>: 与仓库其它流 (LlmStream) 风格不一致, AsyncIterable 更 idiomatic
 //     - 不用回调 (onAudio / onError): 回调地狱, 改为 AsyncIterable
 //     - 不把 base64 编码放进 TTS 层: 字节 → 文本编码是**传输层**的事, 由 WS 帧层做
+//
+// AF-459: 句级事件新增可选的 `speechText` / `events`（语义韵律形态 + 事件表）.
+//   缺省 = 未启用韵律 (字段不下发), 与改前逐字一致.
+
+import type { ProsodyEvent, ProsodyTurnPlan } from '../../shared/prosody/index.js';
 
 /** TTS bidi 启动选项. tenantId / userId / sessionId 必传. */
 export interface TtsOptions {
@@ -29,6 +34,14 @@ export interface TtsOptions {
   readonly emotion?: string;
   /** 模型; 不传 = env `MINIMAX_TTS_MODEL` (默认 speech-2.8-turbo). */
   readonly model?: string;
+  /**
+   * AF-459: 本轮韵律计划.
+   *
+   * 缺省 = 不注入, 下发文本与改前逐字一致 (老客户端/回退开关零影响).
+   * 计划由 `shared/prosody` 的纯函数产出, 客户端只负责按句落地;
+   * 厂商渲染也关在这里 (MiniMax 的 `<#x#>` 不会漏到 speechText).
+   */
+  readonly prosody?: ProsodyTurnPlan;
 }
 
 /** TTS 用量, 写 billing (V0.x logger, V1.x 写 DB). */
@@ -48,8 +61,19 @@ export interface TtsError {
 
 /** TTS 句级事件 union. */
 export type TtsEvent =
-  /** 一句开始 (seq 从 1 起, 本轮内递增). */
-  | { readonly type: 'sentence_start'; readonly seq: number; readonly text: string }
+  /**
+   * 一句开始 (seq 从 1 起, 本轮内递增).
+   *
+   * AF-459: `speechText` = 语义形态 (与展示正文分离), `events` = 这一句落下的韵律事件.
+   * 两者都可选: 未启用韵律时不下发, 老调用方零影响.
+   */
+  | {
+      readonly type: 'sentence_start';
+      readonly seq: number;
+      readonly text: string;
+      readonly speechText?: string;
+      readonly events?: readonly ProsodyEvent[];
+    }
   /** 一句合成完成 — data 是**该句完整 mp3**, 可独立播放. */
   | { readonly type: 'sentence_audio'; readonly seq: number; readonly text: string; readonly mime: string; readonly data: Buffer }
   /** 一句结束. */
