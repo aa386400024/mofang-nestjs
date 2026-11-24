@@ -97,6 +97,21 @@ export const VISITOR_PERSONA_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严
     "duration": "持续时长",
     "sleepAppetite": "睡眠与食欲状况",
     "selfReportedRisk": "low" | "medium" | "high" | "concealed"
+  },
+  "speech": {
+    "version": "speech-register-v1",
+    "roleKey": "本个案稳定标识",
+    "identity": { "ageBand": "年龄档", "occupation": "职业", "educationBand": "basic|vocational|undergraduate|postgraduate", "livingStatus": "居住状态", "regionMacro": "north|east|south|central|northeast|west|unknown" },
+    "socialContext": ["社会处境, 1-4 项"],
+    "dialectStrength": 0-1,
+    "vocabulary": { "abstractTermBudget": 0-1, "jargonBudget": 0-1, "concreteAnchorDensity": 0-1 },
+    "syntax": { "averageSentenceLength": 4-40, "fragmentTolerance": 0-1, "connectiveUse": 0-1 },
+    "stance": { "directness": "direct|indirect|guarded", "politeness": "plain|polite|deferential", "disclosure": "open|selective|guarded" },
+    "anchors": ["生活锚点 3-5 条"],
+    "signatureLexicon": ["口头禅 2-4 条"],
+    "avoidLexicon": ["不会说的词 2-4 条"],
+    "sampleLines": ["符合语域的原话 1-2 条"],
+    "antiSampleLines": ["不像这个角色的话 1 条"]
   }
 }
 

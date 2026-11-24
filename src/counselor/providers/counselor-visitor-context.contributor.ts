@@ -41,6 +41,7 @@ import {
   type VisitorContextContributor,
   type VisitorContextRequest,
 } from '../../agent/visitor/visitor-context.js';
+import { parseSpeechRegisterColumn, selectSpeechRegister } from '../../shared/speech-register/index.js';
 import type { VoiceSkillCode } from '../../shared/types/voice-skill.types.js';
 import { VoiceSessionRegistry } from '../../voice/voice-session-registry.js';
 import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types.js';
@@ -191,6 +192,8 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
         })
       : null;
 
+    const speechSelection = selectSpeechRegister(full?.speech ?? null, full?.sourceTemplateId ?? full?.id ?? 'long_term', process.env);
+
     const content = buildVisitorPersonaBehaviorBlock({
       shallow: ctx.persona,
       difficulty: ctx.difficulty,
@@ -216,6 +219,8 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
       identity: toVisitorIdentity(ctx.persona),
       // 替换掉 agent 的通用人格画像 —— 两套画像并存会让模型无所适从
       replacesPersona: true,
+      // AF-462: 长程人设的语域; off/audit 或未标定不注入.
+      ...(speechSelection.register ? { speechRegister: speechSelection.register } : {}),
     };
   }
 
@@ -283,6 +288,7 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
     const difficulty = toTrainingDifficulty(preset.difficulty);
     const script = template.script;
     const age = parseAgeRangeLowerBound(template.ageRange) ?? script.basics.age;
+    const speechSelection = selectSpeechRegister(parseSpeechRegisterColumn(script.speech), templateId, process.env);
 
     // 浅层人设: 表层字段来自模板表层, 临场参数来自握手 (难度 / 风格 / 情绪 / 防御)
     const shallow: SessionPersonaContext = {
@@ -309,7 +315,8 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
     });
 
     this.logger.log(
-      `[template_context] template=${templateId} difficulty=${difficulty} style=${shallow.visitorStyle} skill=${skillCode ?? '<none>'}`,
+      `[template_context] template=${templateId} difficulty=${difficulty} style=${shallow.visitorStyle} ` +
+        `skill=${skillCode ?? '<none>'} register=${speechSelection.register ? 'active' : (speechSelection.reason ?? 'none')}`,
     );
 
     return {
@@ -318,6 +325,8 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
       identity: toVisitorIdentity(shallow),
       // 替换掉 agent 的通用人格画像 —— 公共人物与内置 persona 完全是两个人
       replacesPersona: true,
+      // AF-462: 语域指纹只在 active + 试点命中时注入; off/audit 不改变 prompt.
+      ...(speechSelection.register ? { speechRegister: speechSelection.register } : {}),
     };
   }
 }

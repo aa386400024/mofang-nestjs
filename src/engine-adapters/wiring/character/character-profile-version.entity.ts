@@ -34,6 +34,7 @@ import type {
 } from './character-profile.entity.js';
 import type { CharacterVersionChangeType } from './character-version.js';
 import type { AttachmentStyle, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /**
  * 角色某一版的**完整内容快照** (冻结形状).
@@ -60,6 +61,7 @@ export interface CharacterProfileSnapshot {
   readonly narrativeStyle: CharacterNarrativeStyle;
   readonly expressionTone: CharacterExpressionTone;
   readonly verbalVoice: string | null;
+  readonly speechRegister: SpeechRegister | null;
   readonly coreBeliefs: CoreBelief[];
   readonly underlyingDesires: UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: string[];

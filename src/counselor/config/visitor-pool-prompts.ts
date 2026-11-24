@@ -138,6 +138,27 @@ export const VISITOR_POOL_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严格
       "duration": "持续时长",
       "sleepAppetite": "睡眠与食欲状况",
       "selfReportedRisk": "low" | "medium"
+    },
+    "speech": {
+      "version": "speech-register-v1",
+      "roleKey": "与 card 模板 id 一致",
+      "identity": {
+        "ageBand": "18-24" | "25-34" | "35-44" | "45-54" | "55+",
+        "occupation": "职业 (与 basics.occupation 一致)",
+        "educationBand": "basic" | "vocational" | "undergraduate" | "postgraduate",
+        "livingStatus": "独居" | "与家人同住" | "合租" | "与伴侣同住",
+        "regionMacro": "north" | "east" | "south" | "central" | "northeast" | "west" | "unknown"
+      },
+      "socialContext": ["urban_salaried" | "shift_work" | "service_sector" | "student" | "part_time" | "caregiver" | "small_town" | "rural_migrant" | "retired" | "unemployed"],
+      "dialectStrength": 0-1 的小数 (只影响词汇, 不写口音),
+      "vocabulary": { "abstractTermBudget": 0-1, "jargonBudget": 0-1, "concreteAnchorDensity": 0-1 },
+      "syntax": { "averageSentenceLength": 4-40 的整数, "fragmentTolerance": 0-1, "connectiveUse": 0-1 },
+      "stance": { "directness": "direct" | "indirect" | "guarded", "politeness": "plain" | "polite" | "deferential", "disclosure": "open" | "selective" | "guarded" },
+      "anchors": ["生活里反复出现的事, 3-5 条, 每条 ≤ 40 字"],
+      "signatureLexicon": ["口头禅/常用词, 2-4 条, 每条 ≤ 40 字"],
+      "avoidLexicon": ["这个角色不会说的词 (术语/书面语/助手腔), 2-4 条"],
+      "sampleLines": ["符合该语域的一句原话, 1-2 条, 每条 ≤ 120 字"],
+      "antiSampleLines": ["明显不像该角色的一句话, 1 条, ≤ 120 字"]
     }
   }
 }
@@ -147,6 +168,8 @@ export const VISITOR_POOL_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严格
 - socialMap 3-5 条, 必须包含 parent (至少 1 条)
 - 数组字段至少 1 个元素 (不要输出空数组)
 - card.ageRange 形如 "28-35" (两个整数, 小的在前); script.basics.age 落在该区间内
+- speech 是**怎么说**不是**说什么**: 不得写"文化水平低/农村人/底层/外地人/素质低"等评价标签;
+  教育只体现抽象词与术语的舒适区, 地域只体现个别生活词, 不写口音/方言拼读
 - card.codename 必须是现实里常见、普通、不出挑的中性称呼: 1-3 字 (可叠字, 可单字), 不带姓、不用法律式全名、不用 '先生/女士/老师' 等称谓、不用 '来访者 · X' 这类系统视角标签; 名字**不象征也不剧透性格** (不要按防御类型/阻抗强度/难度去"配"名字, 名字与人物设定解耦), 且不用性格评价字 (强/倔/傲/烈 等)
 - L1 的 emotionBaselineDefault 建议 0.25-0.45, defenseLevelDefault 建议 0.15-0.35
 - 所有文本用中文, 不要用占位符 (如 "示例"、"xxx"、"待补充")`;

@@ -114,6 +114,7 @@ import { mapRoleDesiresToCore } from './character-desire-mapping.js';
 import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity.js';
 import { CharacterProfileEntity } from './character-profile.entity.js';
 import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import { getVisitorSpeechRegister, validateSpeechRegister, type SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /**
  * 公共模板的内容来源 (最小结构).
@@ -219,6 +220,12 @@ export interface CharacterProfileSeedSpec {
    * 将来"只有数值没有台词"的角色也能存在, 不用为此改类型.
    */
   readonly verbalVoice?: string;
+  /**
+   * 语域指纹 (AF-462) —— 渲染层结构化资产, 不进内核决策.
+   *
+   * **缺省 = 未标定** (INSERT 走 NULL / UPDATE 整列不碰).
+   */
+  readonly speechRegister?: SpeechRegister;
 }
 
 /**
@@ -239,8 +246,16 @@ export interface CharacterProfileSeedSpec {
  */
 function baselineOf(
   templateId: string,
-): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond' | 'verbalVoice'> {
+): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond' | 'verbalVoice' | 'speechRegister'> {
   const row = getBaselineCalibration(templateId);
+  const speechRegister = getVisitorSpeechRegister(templateId);
+  if (speechRegister === undefined) {
+    throw new Error(`语域指纹标定缺失: ${templateId}（角色内容存在但语域未标定）`);
+  }
+  const speechIssue = validateSpeechRegister(speechRegister);
+  if (speechIssue !== null) {
+    throw new Error(`语域指纹自检失败: ${templateId}：${speechIssue}`);
+  }
   return {
     trust: row.trust,
     resistance: row.resistance,
@@ -249,6 +264,8 @@ function baselineOf(
     bond: row.bond,
     // WP-J P2: 台词指纹同源装配 —— 8 条文案全仓只有标定表这一份 (A/B 两类都从这里取).
     verbalVoice: row.verbalVoice,
+    // AF-462: 语域指纹同源装配 —— 公共模板 script.speech 与角色资产共用同一份代码真相.
+    speechRegister,
   };
 }
 
@@ -431,6 +448,8 @@ export interface CharacterProfileSeed {
    * 存量行里运营改过的文案也不会被 seed 冲掉.
    */
   readonly verbalVoice?: string;
+  /** 语域指纹 (AF-462; 缺省 = 不表态 → INSERT NULL / UPDATE 整列不碰). */
+  readonly speechRegister?: SpeechRegister;
 }
 
 /**
@@ -589,6 +608,8 @@ export function assembleCharacterProfileSeed(spec: CharacterProfileSeedSpec, sta
     ...(spec.expressionTone === undefined ? {} : { expressionTone: spec.expressionTone }),
     // WP-J P2: 台词指纹 —— 同样只在规格表态时带上 (A 类四个角色由 baselineOf 装配, 都有值).
     ...(spec.verbalVoice === undefined ? {} : { verbalVoice: spec.verbalVoice }),
+    // AF-462: 语域指纹 —— 同上, 只在规格表态时带上.
+    ...(spec.speechRegister === undefined ? {} : { speechRegister: spec.speechRegister }),
   };
 }
 
@@ -809,6 +830,8 @@ function toEntityPayload(seed: CharacterProfileSeed): {
   readonly expressionTone?: CharacterExpressionTone;
   /** 台词指纹 (WP-J P2; 缺省 = 不出现 → INSERT 走 DEFAULT NULL / UPDATE 整列不碰). */
   readonly verbalVoice?: string;
+  /** 语域指纹 (AF-462; 缺省 = 不出现 → INSERT 走 NULL / UPDATE 整列不碰). */
+  readonly speechRegister?: SpeechRegister;
 } {
   return {
     templateId: seed.templateId,
@@ -838,6 +861,8 @@ function toEntityPayload(seed: CharacterProfileSeed): {
     ...(seed.expressionTone === undefined ? {} : { expressionTone: seed.expressionTone }),
     // WP-J P2: 台词指纹 —— 口径同表达风格三列: 种子没给 → 整列不出现 (不冲掉运营改过的文案).
     ...(seed.verbalVoice === undefined ? {} : { verbalVoice: seed.verbalVoice }),
+    // AF-462: 语域指纹 —— 口径同上.
+    ...(seed.speechRegister === undefined ? {} : { speechRegister: seed.speechRegister }),
   };
 }
 
@@ -890,6 +915,8 @@ function hasOptionalColumnDrift(row: CharacterProfileEntity, payload: ReturnType
   if (payload.expressionTone !== undefined && row.expressionTone !== payload.expressionTone) return true;
   // WP-J P2: 台词指纹 —— 同样只在种子给了值时才算漂移.
   if (payload.verbalVoice !== undefined && row.verbalVoice !== payload.verbalVoice) return true;
+  // AF-462: 语域指纹 JSON —— 规范化序列化比较, 键顺序变化不算漂移.
+  if (payload.speechRegister !== undefined && canonicalJson(row.speechRegister) !== canonicalJson(payload.speechRegister)) return true;
   // WP51: 同盟三维基线两列 —— 同样只在种子给了值时才算漂移.
   if (payload.baselineSafety !== undefined && row.baselineSafety !== payload.baselineSafety) return true;
   if (payload.baselineBond !== undefined && row.baselineBond !== payload.baselineBond) return true;

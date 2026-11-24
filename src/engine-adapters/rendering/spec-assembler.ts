@@ -107,6 +107,9 @@ export interface SpecAssemblyInput {
   readonly narrativeStyle?: AdaptiveRenderSpec['narrativeStyle'];
   readonly expressionTone?: AdaptiveRenderSpec['expressionTone'];
   readonly verbalVoice?: AdaptiveRenderSpec['verbalVoice'];
+  /** 语域指纹 (AF-462): 缺省 = 不传 = 规格不带该字段 (零回归). */
+  readonly speechRegister?: AdaptiveRenderSpec['speechRegister'];
+  readonly speechRegisterAudit?: AdaptiveRenderSpec['speechRegisterAudit'];
   /**
    * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
    *
@@ -168,9 +171,37 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
     ...(input.narrativeStyle === undefined ? {} : { narrativeStyle: input.narrativeStyle }),
     ...(input.expressionTone === undefined ? {} : { expressionTone: input.expressionTone }),
     ...(input.verbalVoice === undefined ? {} : { verbalVoice: input.verbalVoice }),
+    // AF-462: 语域指纹（缺省 = 规格不带这个键 → prompt 与改前逐字一致）.
+    ...speechRegisterFields(input),
     // AF-187: 场景契约（缺省 = 不带这个键 → 规格与之前逐字一致）.
-    ...(input.encounter === undefined ? {} : { encounter: input.encounter }),
+    ...encounterField(input),
   };
+}
+
+/**
+ * 语域两字段的条件展开 (AF-462).
+ *
+ * 抽出来只因 `buildRenderSpec` 已贴着复杂度上限: 每条条件展开都记一次分支,
+ * 写在主函数里会把它顶过 20.
+ *
+ * @param input 组装入参
+ * @returns 只有传了才出现的键
+ */
+function speechRegisterFields(input: SpecAssemblyInput): Partial<AdaptiveRenderSpec> {
+  return {
+    ...(input.speechRegister === undefined ? {} : { speechRegister: input.speechRegister }),
+    ...(input.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: input.speechRegisterAudit }),
+  };
+}
+
+/**
+ * 场景字段的条件展开 (AF-187).
+ *
+ * @param input 组装入参
+ * @returns 只有传了才出现的键
+ */
+function encounterField(input: SpecAssemblyInput): Partial<AdaptiveRenderSpec> {
+  return input.encounter === undefined ? {} : { encounter: input.encounter };
 }
 
 /**

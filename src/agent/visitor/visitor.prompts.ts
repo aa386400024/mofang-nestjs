@@ -28,6 +28,7 @@
 import type { VisitorContextBlock } from './visitor-context.js';
 import type { VisitorSessionMemory } from './visitor.types.js';
 import { SEED_V5_VISITOR_CONSTRAINTS, type VisitorPromptVariant } from '../../shared/realism/visitor-prompt-variants.js';
+import { renderSpeechRegisterBlock } from '../../shared/speech-register/index.js';
 import type { Persona, PersonaDifficulty, PersonaEmotionBaseline } from '../persona/domain/entities/persona.entity.js';
 
 /** 难度对应行为模式 (互斥). */
@@ -181,6 +182,7 @@ export function renderSystemPrompt(
   const behavior = DIFFICULTY_BEHAVIOR[difficulty];
   const tagFreq = DIFFICULTY_TAG_FREQ[difficulty];
   const identity = blocks.find((b) => b.identity)?.identity;
+  const speechRegister = blocks.find((b) => b.speechRegister)?.speechRegister;
   const replacesPersona = blocks.some((b) => b.replacesPersona === true);
 
   const lines: string[] = [
@@ -200,6 +202,10 @@ export function renderSystemPrompt(
       `- 性格: ${persona.personality}`,
       `- 背景: ${persona.background}`,
     );
+  }
+
+  if (speechRegister) {
+    lines.push('', '## 你说话的样子', '', renderSpeechRegisterBlock(speechRegister));
   }
 
   lines.push(

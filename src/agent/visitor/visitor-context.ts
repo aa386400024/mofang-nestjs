@@ -28,6 +28,7 @@
 
 import { Injectable } from '@nestjs/common';
 
+import type { SpeechRegister } from '../../shared/speech-register/index.js';
 import type { PersonaDifficulty } from '../persona/domain/entities/persona.entity.js';
 
 /**
@@ -56,6 +57,13 @@ export interface VisitorContextBlock {
     readonly age: number;
     readonly occupation: string;
   };
+  /**
+   * 语域指纹 (AF-462): 可选; 缺省 = 旧链路不渲染 (零回归).
+   *
+   * 由 counselor 贡献者从公共模板 script.speech 取出并经过灰度选择;
+   * agent 只负责渲染, 不认识业务表.
+   */
+  readonly speechRegister?: SpeechRegister;
   /**
    * true = 本块**替换**掉通用的「人格画像」段 (而不是追加在后面).
    *

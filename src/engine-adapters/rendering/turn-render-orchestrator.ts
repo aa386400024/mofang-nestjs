@@ -139,6 +139,7 @@ import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.inte
 import { buildEncounterVisitorBlock, resolveEncounter, type EncounterInput } from '../../shared/encounter/encounter-scene.js';
 import { buildVisitorRealismPromptBlock, type VisitorRealismProfile } from '../../shared/realism/index.js';
 import { SEED_V5_VISITOR_CONSTRAINTS, type VisitorPromptVariant } from '../../shared/realism/visitor-prompt-variants.js';
+import { renderSpeechRegisterBlock } from '../../shared/speech-register/index.js';
 import type { ModelClassifierContextPort } from '../cognition/model-event-classifier.js';
 import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
 import type { DeliberationScenarioType } from '../deliberation/deliberation-mode.config.js';
@@ -212,6 +213,14 @@ export interface TurnSessionContext {
   readonly expressionTone?: RenderSpec['expressionTone'];
   /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用. */
   readonly verbalVoice?: string;
+  /**
+   * 语域指纹 (AF-462): 角色社会语域, 整个会话不变.
+   *
+   * 缺省 = 灰度未命中 / 角色未标定 = 渲染层不消费 = prompt 逐字不变 (零回归).
+   */
+  readonly speechRegister?: AdaptiveRenderSpec['speechRegister'];
+  /** 语域配置审计摘要 (AF-462): audit 模式下只进 trace, 不注入 prompt. */
+  readonly speechRegisterAudit?: AdaptiveRenderSpec['speechRegisterAudit'];
   /**
    * 依恋风格 (WP-J P1d): 渲染层的**依恋行为指引**开关.
    *
@@ -1211,6 +1220,8 @@ export class TurnRenderOrchestrator {
       ...(context?.narrativeStyle === undefined ? {} : { narrativeStyle: context.narrativeStyle }),
       ...(context?.expressionTone === undefined ? {} : { expressionTone: context.expressionTone }),
       ...(context?.verbalVoice === undefined ? {} : { verbalVoice: context.verbalVoice }),
+      // AF-462: 语域指纹透传（缺省 = 规格不带该字段 → 渲染层不消费）.
+      ...speechRegisterSessionFields(context),
       // WP-J P1d: 依恋风格透传 —— 不传则 spec 里没有该字段, 渲染层不渲染行为指引 (零回归).
       ...(context?.attachmentStyle === undefined ? {} : { attachmentStyle: context.attachmentStyle }),
       // AF-187: 场景契约透传 —— 没登记则不传, spec 里没有该字段, prompt 逐字不变.
@@ -1547,9 +1558,8 @@ export class TurnRenderOrchestrator {
    */
   private resolveContext(handleId: string): TurnSessionContext | undefined {
     return this.deps.resolveSession?.(handleId) ?? this.deps.sessionContext;
-  }
+  } /** 取句柄的最近对话序列. */
 
-  /** 取句柄的最近对话序列. */
   private historyOf(handleId: string): readonly RenderContextTurn[] {
     return this.histories.get(handleId) ?? [];
   }
@@ -1612,6 +1622,42 @@ const EMOTION_LABEL: Readonly<Record<EmotionLabel, string>> = {
  * @param spec 渲染规格
  * @returns 消息序列
  */
+/**
+ * 语域两字段的条件透传 (AF-462).
+ *
+ * 抽成独立函数：`assemble()` 的复杂度已经贴着上限，两个条件展开写在方法里会顶过 20。
+ *
+ * @param context 会话归属
+ * @returns 只在登记了语域时出现的键
+ */
+function speechRegisterSessionFields(context: TurnSessionContext | undefined): Partial<SpecAssemblyInput> {
+  return {
+    ...(context?.speechRegister === undefined ? {} : { speechRegister: context.speechRegister }),
+    ...(context?.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: context.speechRegisterAudit }),
+  };
+}
+
+/**
+ * 语域块在 system prompt 中的行 (AF-462).
+ *
+ * 没登记 → 空数组 → 主函数零新增分支; 登记了 → 空行 + 渲染块.
+ *
+ * @param spec 渲染规格
+ * @returns 要追加的行
+ */
+function speechRegisterPromptLines(spec: AdaptiveRenderSpec): readonly string[] {
+  const register = spec.speechRegister;
+  if (register === undefined) return [];
+  return [
+    '',
+    renderSpeechRegisterBlock(register, {
+      emotion: { label: spec.emotion.label, valence: spec.emotion.valence, arousal: spec.emotion.arousal },
+      resistance: { verbal: spec.resistance.verbal, depth: spec.resistance.depth, style: spec.resistance.style },
+      riskLevel: spec.riskSignal?.level ?? 'none',
+    }),
+  ];
+}
+
 export function buildVisitorMessages(spec: AdaptiveRenderSpec, promptVariant: VisitorPromptVariant = 'shared'): ChatMessage[] {
   logPromptCharacterFragment(spec);
   return [
@@ -2212,6 +2258,7 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: Visit
   if (spec.verbalVoice) {
     lines.push(`你说话的味道：${spec.verbalVoice}`);
   }
+  lines.push(...speechRegisterPromptLines(spec));
 
   // WP-J: 依恋行为指引 —— anxious 的求证/讨好通道 (纯渲染层, 不动内核策略).
   appendAttachmentBehavior(lines, spec);
@@ -2287,9 +2334,13 @@ function appendVisitorPromptVariant(lines: string[], promptVariant: VisitorPromp
 function logPromptCharacterFragment(spec: AdaptiveRenderSpec): void {
   if (process.env.NODE_ENV === 'production') return;
   const beliefs = spec.coreBeliefs.map((belief) => belief.statement).join('；');
+  const audit = spec.speechRegisterAudit;
+  const registerAudit =
+    audit === undefined ? '' : ` registerLen=${audit.renderedLength} registerWarnings=${audit.warnings.join(',') || '-'}`;
   console.log(
     `[TurnRenderOrchestrator] render prompt 角色片段: codename=${spec.characterLabel ?? '<中性基线>'} ` +
       `attachment=${spec.attachmentStyle ?? '-'} risk=${spec.riskSignal?.level ?? 'none'} ` +
+      `register=${spec.speechRegister ? 'active' : 'off'}${registerAudit} ` +
       `coreBeliefs(前100字)=${beliefs.slice(0, 100)}`,
   );
 }

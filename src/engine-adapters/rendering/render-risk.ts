@@ -24,6 +24,7 @@
 
 import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core/index.js';
 import type { EncounterInput } from '../../shared/encounter/encounter-scene.js';
+import type { SpeechRegister, SpeechRegisterAuditSummary } from '../../shared/speech-register/index.js';
 
 /**
  * 渲染路由用的风险等级 (适配层口径).
@@ -62,6 +63,14 @@ export interface AdaptiveRenderSpec extends RenderSpec {
   readonly characterLabel?: string;
   /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
   readonly verbalVoice?: string;
+  /**
+   * 语域指纹 (AF-462): 角色社会语域, 只影响"怎么说", 不进内核决策.
+   *
+   * 缺省 = 灰度未命中 / 角色未标定 → prompt 逐字不变 (零回归).
+   */
+  readonly speechRegister?: SpeechRegister;
+  /** 语域配置审计摘要 (AF-462): audit 模式下只观测、不注入. */
+  readonly speechRegisterAudit?: SpeechRegisterAuditSummary;
   /**
    * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
    *

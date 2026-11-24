@@ -102,6 +102,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 import type { AttachmentStyle, CharacterProfile, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /**
  * 角色审核状态 (字符串联合, 非 enum —— 它是纯数据判别式, 不需要运行时值).
@@ -286,6 +287,16 @@ export class CharacterProfileEntity {
    */
   @Column({ type: 'varchar', length: 500, name: 'verbal_voice', nullable: true })
   verbalVoice!: string | null;
+
+  /**
+   * 语域指纹 (AF-462): 结构化 JSON, 描述"这个人会怎么说话".
+   *
+   * NULL = 未标定 = 不渲染 (零回归). 它是渲染层增强, 不进内核决策.
+   * 与 verbal_voice 的区别: verbal_voice 是自由文本台词指纹; 本列是可校验、
+   * 可版本化、可灰度的社会语域资产.
+   */
+  @Column({ type: 'json', name: 'speech_register', nullable: true })
+  speechRegister!: SpeechRegister | null;
 
   /** 核心信念 (第一人称, 永久不可变): `[{theme, statement, activationTags[]}]`. */
   @Column({ type: 'json', name: 'core_beliefs' })

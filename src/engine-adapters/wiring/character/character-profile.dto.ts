@@ -33,6 +33,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -46,6 +47,7 @@ import type { CharacterProfileSnapshot } from './character-profile-version.entit
 import type { CharacterAuditStatus } from './character-profile.entity.js';
 import type { CharacterVersionBump, CharacterVersionChangeType } from './character-version.js';
 import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /** 允许的依恋风格 (与内核 AttachmentStyle 同一取值域). */
 export const CHARACTER_ATTACHMENT_STYLES: readonly AttachmentStyle[] = ['secure', 'avoidant', 'anxious', 'disorganized'];
@@ -255,6 +257,14 @@ export class CreateCharacterProfileDto {
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
+
+  @ApiPropertyOptional({
+    description: '语域指纹 (AF-462, 可空); 结构由 shared/speech-register 校验, 非法值运行时忽略',
+    type: Object,
+  })
+  @IsOptional()
+  @IsObject()
+  speechRegister?: SpeechRegister;
 }
 
 /**
@@ -330,6 +340,9 @@ export class CharacterProfileAdminDto {
 
   @ApiProperty({ description: '是否上架' })
   enabled!: boolean;
+
+  @ApiProperty({ description: '语域指纹 (AF-462, 未标定为 null)', type: Object, nullable: true })
+  speechRegister!: SpeechRegister | null;
 
   @ApiProperty({ description: '内容版本号 (内容变更即递增)' })
   version!: number;
