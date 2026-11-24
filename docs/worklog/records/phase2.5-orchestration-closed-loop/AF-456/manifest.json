@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-456",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T11:00:00+08:00",
+  "updatedAt": "2026-11-24T03:00:59.825Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-456/task-sheet.md",
+    "sha256": "3af6706c282bab59dd8596b2b8681874cbb217d7b2487db7f72cb7fd924057de",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-456/receipt-RC-AF-456-1.json",
+      "sha256": "1b4111fd9a5248b5fc5b976b25c7dbfe56f04c25eb0a8516a6331436fdc51ae5",
+      "receiptId": "RC-AF-456-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af456-improvement-intake-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-456-improvement-intake-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}
