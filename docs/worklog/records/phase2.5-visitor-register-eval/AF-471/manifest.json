@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-471",
+  "contextId": "phase2.5-visitor-register-eval",
+  "status": "backlog",
+  "createdAt": "2026-11-24T22:00:00+08:00",
+  "updatedAt": "2026-11-24T13:53:27.406Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-471/task-sheet.md",
+    "sha256": "78e3cfc6bfa6e903d15aa50b63b06a91e97723dc820ff9c03a0078ec8f74eed8",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af471-register-latency-attribution-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af471-register-latency-attribution-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}
