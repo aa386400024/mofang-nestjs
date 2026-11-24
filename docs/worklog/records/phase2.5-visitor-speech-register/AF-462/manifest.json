@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-462",
   "contextId": "phase2.5-visitor-speech-register",
-  "status": "backlog",
+  "status": "ready",
   "createdAt": "2026-11-24T16:30:25+08:00",
-  "updatedAt": "2026-11-24T08:31:30.067Z",
+  "updatedAt": "2026-11-24T09:17:22.196Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-visitor-speech-register/AF-462/task-sheet.md",
     "sha256": "98038e16c3e3088d5583854593371c9f5befbf1a46f3b9fb5ef615279c88b7be",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-visitor-speech-register/AF-462/receipt-RC-AF-462-1.json",
+      "sha256": "21da48d753c8db27fdf34eda8887415b7f59d24b915a0181d9eb971f18c5cbe8",
+      "receiptId": "RC-AF-462-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af462-visitor-speech-register-2026-11-24.md",
   "legacyPaths": [
     "docs/worklog/pending/AF-462-visitor-speech-register-2026-11-24.md"
