@@ -15,8 +15,18 @@
 /** 韵律强度档. */
 export type ProsodyLevel = 'off' | 'light' | 'medium';
 
-/** 一条韵律事件的类型. */
-export type ProsodyEventKind = 'filler' | 'pause' | 'trailoff';
+/**
+ * 一条韵律事件的类型.
+ *
+ * - filler    思考垫（「嗯，」），只在本轮第 0 句句首
+ * - pause     句内短停顿（0.1–1.0s）
+ * - trailoff  句末拖音（「。」→「……」）
+ * - thinking  带时长的思考段（「嗯……」+ 1.5–3.0s），与 filler 分开计量
+ * - silence   长沉默（1.0–10.0s），只在句末，按临床配额出现
+ * - breath    呼吸声（MiniMax `(breath)`；豆包不支持，渲染器会丢弃）
+ * - sigh      叹气声（MiniMax `(sighs)`；豆包不支持，渲染器会丢弃）
+ */
+export type ProsodyEventKind = 'filler' | 'pause' | 'trailoff' | 'thinking' | 'silence' | 'breath' | 'sigh';
 
 /** 事件落在句子的哪个位置. */
 export type ProsodyEventAnchor = 'sentence_start' | 'sentence_mid' | 'sentence_end';
@@ -24,15 +34,16 @@ export type ProsodyEventAnchor = 'sentence_start' | 'sentence_mid' | 'sentence_e
 /**
  * 一条已落到具体位置的事件.
  *
- * `text` 与 `durationMs` 按 kind 二选一：filler 带文本，pause 带时长，
- * trailoff 用文本 `……` 表示（它本身是标点改写，不是时长）。
+ * `text` 与 `durationMs` 按 kind 二选一：filler/thinking/breath/sigh 带文本，
+ * pause/silence 带时长，trailoff 用文本 `……` 表示（它本身是标点改写，不是时长）。
+ * thinking 既有文本也有时长；预览与渲染器都可同时使用。
  */
 export interface ProsodyEvent {
   readonly kind: ProsodyEventKind;
   readonly anchor: ProsodyEventAnchor;
-  /** filler 的口语填充词 / trailoff 的省略号文本. */
+  /** filler/thinking 的口语填充词 / trailoff 的省略号文本 / 副语言标签名. */
   readonly text?: string;
-  /** pause 时长（毫秒）. */
+  /** pause/silence/thinking 时长（毫秒）. */
   readonly durationMs?: number;
 }
 
@@ -44,6 +55,22 @@ export interface ProsodyTurnLimits {
   readonly filler: boolean;
   readonly pause: boolean;
   readonly trailoff: boolean;
+  /** AF-460: 思考段开关（「嗯……」+ 1.5–3.0s）；缺省 false = 与 AF-459 逐字一致. */
+  readonly thinking?: boolean;
+  /** AF-460: 长沉默开关（3–10s）；缺省 false. */
+  readonly longSilence?: boolean;
+  /** AF-460: 副语言（breath/sigh）开关；缺省 false. */
+  readonly paralinguistic?: boolean;
+  /** 本轮最多几个思考段；缺省 0. */
+  readonly maxThinkingBeats?: number;
+  /** 本轮最多几个长沉默；缺省 0. */
+  readonly maxLongSilences?: number;
+  /** 本轮最多几个副语言事件；缺省 0. */
+  readonly maxParalinguistic?: number;
+  /** 思考段时长范围（毫秒）；缺省 [1200, 2200]. */
+  readonly thinkingPauseMs?: readonly [number, number];
+  /** 长沉默时长范围（毫秒）；缺省 [3000, 6000]. */
+  readonly longSilenceMs?: readonly [number, number];
 }
 
 /** 一轮的韵律计划（确定性：同 seed + 同句序号 = 同结果）. */
@@ -76,6 +103,12 @@ export interface ProsodyApplyContext {
   readonly appliedEvents: number;
   /** 上一次事件落在第几句；-1 = 还没有. */
   readonly lastEventSentenceIndex: number;
+  /** AF-460: 本轮已用的思考段数量；缺省 0. */
+  readonly appliedThinkingBeats?: number;
+  /** AF-460: 本轮已用的长沉默数量；缺省 0. */
+  readonly appliedLongSilences?: number;
+  /** AF-460: 本轮已用的副语言数量；缺省 0. */
+  readonly appliedParalinguistic?: number;
 }
 
 /** 单句注入结果. */

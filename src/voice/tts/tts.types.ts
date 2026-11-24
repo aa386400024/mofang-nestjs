@@ -13,6 +13,7 @@
 //   缺省 = 未启用韵律 (字段不下发), 与改前逐字一致.
 
 import type { ProsodyEvent, ProsodyTurnPlan } from '../../shared/prosody/index.js';
+import type { VoiceDeliveryProfile } from '../../shared/voice-delivery/index.js';
 
 /** TTS bidi 启动选项. tenantId / userId / sessionId 必传. */
 export interface TtsOptions {
@@ -42,6 +43,13 @@ export interface TtsOptions {
    * 厂商渲染也关在这里 (MiniMax 的 `<#x#>` 不会漏到 speechText).
    */
   readonly prosody?: ProsodyTurnPlan;
+  /**
+   * AF-460: 本轮语音交付档案（情绪/语速/音量/音调）.
+   *
+   * 缺省 = 沿用 env 参数与 opts.emotion，行为与 AF-459 逐字一致。
+   * 传入后由 bidi client 覆盖 voice_setting，并驱动 emotion 下发。
+   */
+  readonly delivery?: VoiceDeliveryProfile;
 }
 
 /** TTS 用量, 写 billing (V0.x logger, V1.x 写 DB). */

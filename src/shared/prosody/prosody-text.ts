@@ -32,9 +32,6 @@ const MINIMAX_VOICE_MARKERS = new Set([
   'sneezes',
 ]);
 
-/** 停顿标记（语义形态）. */
-const PAUSE_MARKER = /\[pause:(\d+(?:\.\d+)?)\]/g;
-
 /** 任意方括号标签（防御性清洗：不认识的也不当正文念）. */
 const ANY_BRACKET_TAG = /\[[^\]]{0,40}\]/g;
 
@@ -47,9 +44,18 @@ const MAX_HOLD_CHARS = 32;
 /** 单个可发音字符（汉字/字母/数字/常见标点之外的非空白）. */
 const SPEAKABLE = /[\p{L}\p{N}]/u;
 
-/** 停顿可插的时长边界（秒）. */
-const PAUSE_MIN_SEC = 0.1;
-const PAUSE_MAX_SEC = 1;
+/** 不同类型停顿的时长边界（秒）与渲染标签. */
+const PAUSE_LIMITS = {
+  pause: { min: 0.1, max: 1, kind: 'pause' },
+  beat: { min: 0.5, max: 3, kind: 'beat' },
+  silence: { min: 1, max: 10, kind: 'silence' },
+} as const;
+
+/** 副语言 -> MiniMax 白名单标签. */
+const MINIMAX_PARALINGUISTIC: Readonly<Partial<Record<string, string>>> = {
+  breath: 'breath',
+  sigh: 'sighs',
+};
 
 /**
  * 清洗正文：剥掉所有语义/厂商标记与已知语气词.
@@ -59,12 +65,14 @@ const PAUSE_MAX_SEC = 1;
  */
 export function stripProsodyMarkers(text: string): string {
   let out = text.replaceAll(VENDOR_PAUSE, '');
-  out = out.replaceAll(PAUSE_MARKER, '');
   out = out.replaceAll(ANY_BRACKET_TAG, '');
   out = out.replaceAll(/\(([a-z][a-z-]{1,20})\)/g, (whole, word: string) => (MINIMAX_VOICE_MARKERS.has(word) ? '' : whole));
   // 不做 trim：流式场景下 chunk 边界的空格是正文的一部分（英文单词会被拼掉）.
   return out.replaceAll(/[ \t]{2,}/g, ' ');
 }
+
+/** 可参与渲染的语义标记（停顿三类 + 副语言两类）. */
+const RENDER_MARKER = /\[(pause|beat|silence):(\d+(?:\.\d+)?)\]|\[(breath|sigh)\]/g;
 
 /**
  * 把语义形态渲染成 MiniMax 文本形态.
@@ -72,21 +80,64 @@ export function stripProsodyMarkers(text: string): string {
  * 合法性检查（官方要求"停顿必须夹在两个可发音文本之间，不能连用"）：
  *   · 左侧必须以可发音字符结尾，右侧必须以可发音字符开头，否则丢掉这条停顿
  *   · 与上一条停顿相邻（`#><#`）时丢掉后一条
- *   · 时长夹到 [0.1, 1] 秒，两位小数
+ *   · pause 夹到 [0.1, 1] 秒，beat 夹到 [0.5, 3] 秒，silence 夹到 [1, 10] 秒
+ *   · 副语言只在句首或句末标点之后落地
  *
  * @param speechText 语义形态文本
  * @returns MiniMax 可直接合成的文本
  */
 export function renderMiniMaxText(speechText: string): string {
-  const parts = speechText.split(PAUSE_MARKER);
-  // split 带捕获组时：偶数位是正文，奇数位是时长
-  let out = parts[0] ?? '';
-  for (let index = 1; index < parts.length; index += 2) {
-    const rawSeconds = Number(parts[index]);
-    const right = parts[index + 1] ?? '';
-    out += canPlacePause(out, right, rawSeconds) ? `<#${formatPauseSeconds(rawSeconds)}#>${right}` : right;
+  RENDER_MARKER.lastIndex = 0;
+  let out = '';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = RENDER_MARKER.exec(speechText)) !== null) {
+    out += speechText.slice(lastIndex, match.index);
+    const right = speechText.slice(RENDER_MARKER.lastIndex);
+    if (match[1] !== undefined && match[2] !== undefined) {
+      const kind = match[1] as keyof typeof PAUSE_LIMITS;
+      const seconds = Number(match[2]);
+      if (canPlacePause(out, right, seconds)) {
+        out += `<#${formatPauseSeconds(kind, seconds)}#>`;
+      }
+    } else if (match[3] !== undefined) {
+      const marker = MINIMAX_PARALINGUISTIC[match[3]];
+      if (marker !== undefined && isSentenceStart(out)) {
+        out += `(${marker})`;
+      }
+    }
+    lastIndex = RENDER_MARKER.lastIndex;
   }
-  return out;
+  out += speechText.slice(lastIndex);
+  return dropInlineParalinguistic(out);
+}
+
+/**
+ * 丢掉句子中间的 `(breath)/(sighs)`，只保留句首或句末标点后的副语言.
+ *
+ * 官方允许副语言标签，但把它塞在词中间会变成"我（吸气）有点累"这种朗读腔，
+ * 听感比不加更假。生成端本来只产句首，这里再兜一层，防止外部文本带进来.
+ *
+ * @param text 已渲染文本
+ * @returns 清洗后文本
+ */
+function dropInlineParalinguistic(text: string): string {
+  return text.replaceAll(/\((?:breath|sighs)\)/g, (marker, offset: number) => {
+    const left = text.slice(0, offset);
+    const right = text.slice(offset + marker.length);
+    return isSentenceStart(left) || /^\s*$/.test(right) ? marker : '';
+  });
+}
+
+/**
+ * 副语言是否在合法位置（句首或句末标点之后）.
+ *
+ * @param left 已输出的左半段
+ * @returns true = 可以落
+ */
+function isSentenceStart(left: string): boolean {
+  if (left.length === 0) return true;
+  return /[。！？!?]\s*$/.test(left) || /^\s*$/.test(left);
 }
 
 /**
@@ -128,11 +179,13 @@ function findSpeakable(text: string, direction: -1 | 1): string {
 /**
  * 归一化停顿时长.
  *
+ * @param kind 停顿类型
  * @param seconds 原始秒数
- * @returns 0.1–1 之间、最多两位小数的字符串
+ * @returns 各类型边界内、最多两位小数的字符串
  */
-function formatPauseSeconds(seconds: number): string {
-  const clamped = Math.min(PAUSE_MAX_SEC, Math.max(PAUSE_MIN_SEC, seconds));
+function formatPauseSeconds(kind: keyof typeof PAUSE_LIMITS, seconds: number): string {
+  const limit = PAUSE_LIMITS[kind];
+  const clamped = Math.min(limit.max, Math.max(limit.min, seconds));
   return String(Number(clamped.toFixed(2)));
 }
 

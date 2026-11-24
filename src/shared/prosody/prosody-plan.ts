@@ -13,8 +13,38 @@ import type { ProsodyLevel, ProsodyPlanInput, ProsodyTurnLimits, ProsodyTurnPlan
 
 /** 强度档 → 配额. */
 const LEVEL_LIMITS: Readonly<Record<Exclude<ProsodyLevel, 'off'>, ProsodyTurnLimits>> = {
-  light: { maxEventsPerTurn: 2, minSentenceGap: 1, filler: true, pause: true, trailoff: false },
-  medium: { maxEventsPerTurn: 3, minSentenceGap: 1, filler: true, pause: true, trailoff: true },
+  light: {
+    maxEventsPerTurn: 2,
+    minSentenceGap: 1,
+    filler: true,
+    pause: true,
+    trailoff: false,
+    // AF-460: light 只保留一次很短的思考段，不给长沉默/副语言，避免"随便聊两句也像在演".
+    thinking: true,
+    longSilence: false,
+    paralinguistic: false,
+    maxThinkingBeats: 1,
+    maxLongSilences: 0,
+    maxParalinguistic: 0,
+    thinkingPauseMs: [800, 1500],
+    longSilenceMs: [0, 0],
+  },
+  medium: {
+    maxEventsPerTurn: 3,
+    minSentenceGap: 1,
+    filler: true,
+    pause: true,
+    trailoff: true,
+    // AF-460: 阻抗/回避才允许思考段、长沉默与低频呼吸，且每轮有硬上限.
+    thinking: true,
+    longSilence: true,
+    paralinguistic: true,
+    maxThinkingBeats: 2,
+    maxLongSilences: 1,
+    maxParalinguistic: 2,
+    thinkingPauseMs: [1500, 2800],
+    longSilenceMs: [3500, 7000],
+  },
 };
 
 /** 默认（无风格信息）按 light，宁可少一点也不要"每句都顿". */
@@ -59,5 +89,9 @@ export function buildProsodyPlan(input: ProsodyPlanInput): ProsodyTurnPlan {
   if (input.difficulty === 'L3' && level === 'light') {
     level = 'medium';
   }
-  return { level, seed, style: input.style ?? 'unknown', limits: LEVEL_LIMITS[level] };
+  const base = LEVEL_LIMITS[level];
+  // AF-460: L3 的沉默可以更长（5–9s），但仍受每轮 1 次 + 句间隔约束；
+  //   普通 medium 保持 3.5–7s，避免把"阻抗"演成"断线".
+  const limits = input.difficulty === 'L3' && level === 'medium' ? { ...base, longSilenceMs: [5000, 9000] as const } : base;
+  return { level, seed, style: input.style ?? 'unknown', limits };
 }

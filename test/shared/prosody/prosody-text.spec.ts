@@ -38,6 +38,25 @@ describe('AF-459 · prosody text', () => {
       const text = '我不知道，可能就是这样。';
       expect(renderMiniMaxText(text)).toBe(text);
     });
+
+    it('AF-460: 思考段 beat → 0.5–3s 停顿', () => {
+      expect(renderMiniMaxText('我[beat:1.8]最近')).toBe('我<#1.8#>最近');
+      expect(renderMiniMaxText('我[beat:9]最近')).toBe('我<#3#>最近');
+      expect(renderMiniMaxText('我[beat:0.1]最近')).toBe('我<#0.5#>最近');
+    });
+
+    it('AF-460: 长沉默 silence → 1–10s（句末仍会被官方规则丢弃）', () => {
+      expect(renderMiniMaxText('我不知道。[silence:5.2]可能吧。')).toBe('我不知道。<#5.2#>可能吧。');
+      expect(renderMiniMaxText('我不知道。[silence:20]可能吧。')).toBe('我不知道。<#10#>可能吧。');
+      // 句末/句首停顿无法落地，长度信息由 voice-delivery 的队列延迟承接.
+      expect(renderMiniMaxText('我不知道。[silence:5.2]')).toBe('我不知道。');
+    });
+
+    it('AF-460: 副语言只在句首/句末落地，不塞进句子中间', () => {
+      expect(renderMiniMaxText('(breath)我有点累。')).toBe('(breath)我有点累。');
+      expect(renderMiniMaxText('我有点累。(sigh)')).toBe('我有点累。(sigh)');
+      expect(renderMiniMaxText('我(breath)有点累。')).toBe('我有点累。');
+    });
   });
 
   describe('ProsodyStreamSanitizer', () => {

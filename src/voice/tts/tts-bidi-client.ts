@@ -52,20 +52,23 @@ import type { TtsEvent, TtsOptions } from './tts.types.js';
 import { toUtf8Text } from '../../shared/infra/string-utils/index.js';
 import { applyProsodyToSentence, renderMiniMaxText } from '../../shared/prosody/index.js';
 import type { ProsodyEvent } from '../../shared/prosody/index.js';
+import { toMiniMaxEmotion } from '../../shared/voice-delivery/index.js';
 
 /** 客户端状态机. */
 type TtsClientState = 'idle' | 'connecting' | 'streaming' | 'closing' | 'closed';
 
 /**
- * 一条已下发给上游的句子（AF-459）.
+ * 一条已下发给上游的句子（AF-459 / AF-460）.
  *
  * `display` 给字幕/气泡，`speech` 是真正喂给 TTS 的文本（可能带 `<#x#>`），
- * `events` 是本句落下的韵律事件。三者必须一起排队，否则字幕会和音频错位。
+ * `events` 是本句落下的韵律事件，`silenceAfterMs` 是本句后的长沉默（下一句下发前等待）.
+ * 四者必须一起排队，否则字幕会和音频错位。
  */
 interface PendingSentence {
   readonly display: string;
   readonly speech: string;
   readonly events: readonly ProsodyEvent[];
+  readonly silenceAfterMs: number;
 }
 
 /** 简易 deferred (连接握手阶段等上游事件用). */
@@ -93,6 +96,24 @@ function createDeferred(): Deferred {
 /** 打断后等待上游 task_canceled 的宽限期 (超时则强制断开). */
 const CANCEL_GRACE_MS = 2000;
 
+/** 读一个数值配置；类型不对/非有限数回退缺省. */
+function envNumber(config: ConfigService, key: string, fallback: number): number {
+  const value = config.get<number>(key);
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+/** 交付档案优先，其次 env，最后缺省. */
+function pickNumber(value: number | undefined, config: ConfigService, key: string, fallback: number): number {
+  return value ?? envNumber(config, key, fallback);
+}
+
+/** 音色优先级：会话覆盖（非空串） > env. */
+function resolveVoiceId(config: ConfigService, sessionVoice: string | undefined): string {
+  const session = sessionVoice?.trim() ?? '';
+  if (session.length > 0) return session;
+  return config.get<string>('minimax.ttsVoiceId')?.trim() ?? '';
+}
+
 export class TtsBidiClient implements AsyncIterable<TtsEvent> {
   private readonly logger: Logger;
   /** 本次会话选项 (日志与上游 session_id 用). */
@@ -107,6 +128,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
   private readonly speed: number;
   private readonly volume: number;
   private readonly pitch: number;
+  private readonly emotion: string | null;
   private readonly sampleRate: number;
   private readonly bitrate: number;
   private readonly connectTimeoutMs: number;
@@ -142,6 +164,14 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
   /** 本轮已注入的韵律事件数与上次事件句号. */
   private prosodyEventCount = 0;
   private lastProsodySentenceIndex = -1;
+  private thinkingBeatCount = 0;
+  private longSilenceCount = 0;
+  private paralinguisticCount = 0;
+  /** 待下发的句子队列（长沉默会让下一句在计时结束后才发） . */
+  private readonly sendQueue: PendingSentence[] = [];
+  private sendTimer: NodeJS.Timeout | null = null;
+  private finishQueued = false;
+  private flushQueued = false;
   /** 最近一次下发的句子（2205 队列溢出时重发它）. */
   private lastSentSentence: PendingSentence | null = null;
   private queueOverflowRetries = 0;
@@ -162,26 +192,20 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     this.apiKey = config.getOrThrow<string>('minimax.apiKey');
     // V2026-10-26 治本 (spec §任务 3 — 音色优先级放开为"可选覆盖, 缺省仍是 env"):
     //   会话级覆盖 (opts.voice, 来自握手 voiceId) > env `MINIMAX_TTS_VOICE_ID`.
-    //   老实现**只读 env**, 把 `opts.voice` 这个字段晾在类型里当摆设 —— 业务层传什么都不生效.
-    //   现在按优先级链取值, 且两者都空时仍然 fail-fast (见 connect()).
-    //
-    //   这里**不用 `||`**: 空串在 `||` 下会回退, 在 `??` 下不会 —— 而我们要的正是
-    //   "空串 = 没配 = 回退到 env". 所以先把两边的空串归一成空串, 再用三元挑优先级
-    //   (@typescript-eslint/prefer-nullish-coalescing 会把 `||` 判成不安全, 但那正是
-    //   本行需要的语义, 不能直接换成 `??`).
-    const sessionVoice = opts.voice?.trim() ?? '';
-    const envVoice = config.get<string>('minimax.ttsVoiceId')?.trim() ?? '';
-    this.voiceId = sessionVoice.length > 0 ? sessionVoice : envVoice;
+    //   两者都空时仍然 fail-fast (见 connect()).
+    this.voiceId = resolveVoiceId(config, opts.voice);
     this.model = this.resolveModel(opts.model ?? config.get<string>('minimax.ttsModel'));
     this.languageBoost = config.get<string>('minimax.ttsLanguageBoost') ?? 'Chinese';
-    this.speed = config.get<number>('minimax.ttsSpeed') ?? 1;
-    this.volume = config.get<number>('minimax.ttsVolume') ?? 1;
-    this.pitch = config.get<number>('minimax.ttsPitch') ?? 0;
-    this.sampleRate = this.resolveSampleRate(config.get<number>('minimax.ttsSampleRate') ?? 32_000);
-    this.bitrate = this.resolveBitrate(config.get<number>('minimax.ttsBitrate') ?? 128_000);
-    this.connectTimeoutMs = config.get<number>('minimax.ttsTimeoutMs') ?? 30_000;
-    this.keepaliveMs = config.get<number>('minimax.ttsKeepaliveMs') ?? 30_000;
-    this.maxSentenceChars = config.get<number>('minimax.ttsMaxSentenceChars') ?? 100;
+    // AF-460: 交付档案优先；缺省回退 env，行为与 AF-459 逐字一致.
+    this.speed = pickNumber(opts.delivery?.speed, config, 'minimax.ttsSpeed', 1);
+    this.volume = pickNumber(opts.delivery?.volume, config, 'minimax.ttsVolume', 1);
+    this.pitch = pickNumber(opts.delivery?.pitch, config, 'minimax.ttsPitch', 0);
+    this.emotion = opts.delivery === undefined ? (opts.emotion ?? null) : toMiniMaxEmotion(opts.delivery.emotion);
+    this.sampleRate = this.resolveSampleRate(envNumber(config, 'minimax.ttsSampleRate', 32_000));
+    this.bitrate = this.resolveBitrate(envNumber(config, 'minimax.ttsBitrate', 128_000));
+    this.connectTimeoutMs = envNumber(config, 'minimax.ttsTimeoutMs', 30_000);
+    this.keepaliveMs = envNumber(config, 'minimax.ttsKeepaliveMs', 30_000);
+    this.maxSentenceChars = envNumber(config, 'minimax.ttsMaxSentenceChars', 100);
   }
 
   /**
@@ -271,7 +295,9 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
       this.sendSentence(residual);
     }
     this.logger.log(`[finish] chars=${this.charCount}`);
-    this.sendJson({ event: 'task_finish' });
+    // 长沉默可能在队列里等待：task_finish 必须等最后一句真正发出去后再发.
+    this.finishQueued = true;
+    this.drainSendQueue();
   }
 
   /**
@@ -287,7 +313,9 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
       this.sendSentence(residual);
     }
     // 注意: flush 后**不关连接** —— 它的用途就是"同一轮里催出没标点的尾句, 接着还能继续喂文本"
-    this.sendJson({ event: 'task_flush' });
+    // 长沉默队列未清空时，task_flush 也排在最后，避免把未下发的句子切掉.
+    this.flushQueued = true;
+    this.drainSendQueue();
   }
 
   /**
@@ -301,6 +329,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
       return;
     }
     this.logger.log('[cancel]');
+    this.clearSendQueue();
     this.sendJson({ event: 'task_cancel' });
     // 上游不响应 task_canceled 时也要断开, 否则连接会一直挂在池里
     this.scheduleCloseAfter(CANCEL_GRACE_MS);
@@ -334,8 +363,39 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     if (sentence.length === 0) return;
     const entry = this.decorateSentence(sentence);
     this.pendingSentences.push(entry);
-    this.lastSentSentence = entry;
-    this.sendJson({ event: 'task_continue', text: entry.speech });
+    this.sendQueue.push(entry);
+    this.drainSendQueue();
+  }
+
+  /**
+   * 按队列逐句下发；若上一句带长沉默，等计时结束再发下一句.
+   *
+   * 这不是"不合成"，而是"不把下一句提前合成完"——客户端听到上一句结束后
+   * 自然进入静默，服务端随后才推下一句音频，形成真实的长停顿，不给上游伪造标签.
+   */
+  private drainSendQueue(): void {
+    if (this.sendTimer !== null) return;
+    while (this.sendQueue.length > 0) {
+      const entry = this.sendQueue.shift();
+      if (entry === undefined) break;
+      this.lastSentSentence = entry;
+      this.sendJson({ event: 'task_continue', text: entry.speech });
+      if (entry.silenceAfterMs > 0) {
+        this.sendTimer = setTimeout(() => {
+          this.sendTimer = null;
+          this.drainSendQueue();
+        }, entry.silenceAfterMs);
+        this.sendTimer.unref?.();
+        return;
+      }
+    }
+    if (this.finishQueued) {
+      this.finishQueued = false;
+      this.sendJson({ event: 'task_finish' });
+    } else if (this.flushQueued) {
+      this.flushQueued = false;
+      this.sendJson({ event: 'task_flush' });
+    }
   }
 
   /**
@@ -347,22 +407,31 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
   private decorateSentence(sentence: string): PendingSentence {
     const plan = this.opts.prosody;
     if (plan === undefined || plan.level === 'off') {
-      return { display: sentence, speech: sentence, events: [] };
+      return { display: sentence, speech: sentence, events: [], silenceAfterMs: 0 };
     }
     const applied = applyProsodyToSentence(sentence, plan, {
       sentenceIndex: this.sentenceIndex,
       appliedEvents: this.prosodyEventCount,
       lastEventSentenceIndex: this.lastProsodySentenceIndex,
+      appliedThinkingBeats: this.thinkingBeatCount,
+      appliedLongSilences: this.longSilenceCount,
+      appliedParalinguistic: this.paralinguisticCount,
     });
     this.sentenceIndex += 1;
     if (applied.events.length > 0) {
       this.prosodyEventCount += 1;
       this.lastProsodySentenceIndex = this.sentenceIndex - 1;
+      for (const event of applied.events) {
+        if (event.kind === 'thinking') this.thinkingBeatCount += 1;
+        if (event.kind === 'silence') this.longSilenceCount += 1;
+        if (event.kind === 'breath' || event.kind === 'sigh') this.paralinguisticCount += 1;
+      }
     }
     return {
       display: applied.displayText,
       speech: renderMiniMaxText(applied.speechText),
       events: applied.events,
+      silenceAfterMs: sumSilenceMs(applied.events),
     };
   }
 
@@ -379,6 +448,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
         speed: this.speed,
         vol: this.volume,
         pitch: this.pitch,
+        ...(this.emotion === null ? {} : { emotion: this.emotion }),
       },
       audio_setting: {
         sample_rate: this.sampleRate,
@@ -671,6 +741,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
    */
   private terminate(): void {
     this.clearTimers();
+    this.clearSendQueue();
     const socket = this.socket;
     this.socket = null;
     this.state = 'closed';
@@ -723,6 +794,21 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     if (this.keepaliveTimer) {
       clearInterval(this.keepaliveTimer);
       this.keepaliveTimer = null;
+    }
+    if (this.sendTimer) {
+      clearTimeout(this.sendTimer);
+      this.sendTimer = null;
+    }
+  }
+
+  /** 清空待发队列（打断/关闭时用，防止计时结束后继续推旧音频）. */
+  private clearSendQueue(): void {
+    this.sendQueue.length = 0;
+    this.finishQueued = false;
+    this.flushQueued = false;
+    if (this.sendTimer) {
+      clearTimeout(this.sendTimer);
+      this.sendTimer = null;
     }
   }
 
@@ -788,4 +874,13 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     this.logger.warn(`[bitrate_invalid] ${raw} → 128000`);
     return 128_000;
   }
+}
+
+/** 本句事件里的长沉默总时长（毫秒）. */
+function sumSilenceMs(events: readonly ProsodyEvent[]): number {
+  let total = 0;
+  for (const event of events) {
+    if (event.kind === 'silence' && typeof event.durationMs === 'number') total += event.durationMs;
+  }
+  return total;
 }

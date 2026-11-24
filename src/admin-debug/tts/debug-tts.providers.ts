@@ -18,6 +18,10 @@ export interface TtsSynthesisInput {
   readonly sampleRate: number;
   readonly apiKey: string;
   readonly baseUrl: string;
+  /** AF-460: 豆包 2.0 `context_texts`（一条组合风格指令，只第一条生效）. */
+  readonly deliveryContext?: string;
+  /** AF-460: 文本末尾静默（豆包 `additions.silence_duration` 只支持末尾 0–30000ms）. */
+  readonly trailingSilenceMs?: number;
 }
 
 /** 单次合成结果. */
@@ -110,6 +114,9 @@ export async function synthesizeMiniMax(input: TtsSynthesisInput, provider: Debu
 export async function synthesizeDoubao(input: TtsSynthesisInput, provider: DebugTtsProvider): Promise<TtsSynthesisOutput> {
   const endpoint = trimBase(input.baseUrl);
   const emotionHint = input.emotion === null ? null : (DOUBAO_EMOTION_HINT[input.emotion] ?? null);
+  // AF-460: 官方只有第一条 context_texts 生效；组合指令优先，缺失时退回单句情绪提示.
+  const contextText = firstNonEmpty(input.deliveryContext, emotionHint);
+  const trailingSilenceMs = clamp(input.trailingSilenceMs ?? 0, 0, 30_000);
   const body = {
     req_params: {
       text: input.text,
@@ -117,11 +124,18 @@ export async function synthesizeDoubao(input: TtsSynthesisInput, provider: Debug
       audio_params: {
         format: 'mp3',
         sample_rate: input.sampleRate,
-        speech_rate: 0,
-        loudness_rate: 0,
-        pitch_rate: 0,
+        speech_rate: clamp(Math.round((input.speed - 1) * 100), -50, 100),
+        loudness_rate: clamp(Math.round((input.volume - 1) * 100), -50, 100),
+        pitch_rate: clamp(Math.round(input.pitch), -12, 12),
       },
-      ...(emotionHint === null ? {} : { context_texts: [emotionHint] }),
+      ...(contextText === null ? {} : { context_texts: [contextText] }),
+      additions: {
+        // 来访者台词里的括号是副语言/动作标注，不能让 2.0 当普通括号念出来.
+        max_length_to_filter_parenthesis: 0,
+        disable_markdown_filter: false,
+        disable_emoji_filter: false,
+        ...(trailingSilenceMs > 0 ? { silence_duration: trailingSilenceMs } : {}),
+      },
     },
   };
   const response = await fetch(endpoint, {
@@ -172,6 +186,21 @@ function trimBase(value: string): string {
   let out = value;
   while (out.endsWith('/')) out = out.slice(0, -1);
   return out;
+}
+
+/** 取第一个非空字符串（不触发 `||` 的宽松判断）. */
+function firstNonEmpty(...values: (string | null | undefined)[]): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed !== undefined && trimmed.length > 0) return trimmed;
+  }
+  return null;
+}
+
+/** 数值夹取. */
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
 }
 
 /** MiniMax `data.audio` 可能是 hex；兼容个别环境返回 base64. */

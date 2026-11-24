@@ -16,8 +16,11 @@ import type { ProsodyApplyContext, ProsodyEvent, ProsodySentenceResult, ProsodyT
 /** 思考垫用词（按风格固定的三条，够用且都可自然念出）. */
 const FILLERS = ['嗯，', '呃，', '那个，'] as const;
 
+/** AF-460: 思考段用词（带省略号，后面跟一个真实的长停顿）. */
+const THINKING_FILLERS = ['嗯……', '呃……', '那个……', '怎么说呢……'] as const;
+
 /** 已以填充词开头的句子不再加（防重复）. */
-const FILLER_PREFIX = /^(?:嗯|呃|唉|那个|就是)/;
+const FILLER_PREFIX = /^(?:嗯|呃|唉|那个|就是|怎么说呢)/;
 
 /** 句内可断点（与 TTS 切句的次级标点一致）. */
 const SOFT_BREAKS = new Set(['，', '、', '：', ',', ';', ':']);
@@ -34,19 +37,19 @@ const PAUSE_CANDIDATES: Readonly<Record<'light' | 'medium', readonly number[]>> 
   medium: [400, 450, 500, 550],
 };
 
-/** 各强度下"第 0 句加思考垫"的概率（百分比）.
- *
- * 三个概率必须**互斥**（filler + pause + trailoff ≤ 100），否则后段号段永远取不到.
- * 当前口径：light 45/35/0（合计 80，保留 20 的静默余量）；
- *           medium 45/35/20（合计 100）.
- */
-const FILLER_CHANCE: Readonly<Record<'light' | 'medium', number>> = { light: 45, medium: 45 };
-
-/** 各强度下"可断句加停顿"的概率（百分比）. */
-const PAUSE_CHANCE: Readonly<Record<'light' | 'medium', number>> = { light: 35, medium: 35 };
-
 /** 各强度下"句末拖音"的概率（百分比）；light 不开启. */
 const TRAILOFF_CHANCE: Readonly<Record<'light' | 'medium', number>> = { light: 0, medium: 20 };
+
+/** AF-460: 思考段概率（只在本轮第 0 句；light 更克制）. */
+const THINKING_CHANCE: Readonly<Record<'light' | 'medium', number>> = { light: 9, medium: 18 };
+
+/** AF-460: 长沉默概率（第 2 句起；只有 medium 开，且每轮最多一次）. */
+const LONG_SILENCE_CHANCE: Readonly<Record<'light' | 'medium', number>> = { light: 0, medium: 16 };
+/** 副语言低频，只在 medium 开；句首呼吸/叹气，避免每句都喘. */
+const PARALINGUISTIC_CHANCE: Readonly<Record<'light' | 'medium', number>> = { light: 0, medium: 7 };
+
+/** AF-460: 句末长沉默的最低句长（太短只会像断线）. */
+const LONG_SILENCE_MIN_CHARS = 8;
 
 /**
  * FNV-1a 32 位哈希（短字符串足够均匀，且实现稳定跨平台）.
@@ -118,6 +121,86 @@ function fillerOf(plan: ProsodyTurnPlan): string {
 }
 
 /**
+ * 生成思考段用词（确定性）.
+ *
+ * @param plan 本轮计划
+ * @returns 思考段文本
+ */
+function thinkingFillerOf(plan: ProsodyTurnPlan): string {
+  return THINKING_FILLERS[hash32(`${plan.seed}:thinking`) % THINKING_FILLERS.length];
+}
+
+/**
+ * 在一个闭区间里按时长哈希取值.
+ *
+ * @param range 毫秒范围
+ * @param seed 计划 seed
+ * @param salt 额外区分
+ * @returns 毫秒
+ */
+function durationInRange(range: readonly [number, number], seed: string, salt: string): number {
+  const [min, max] = range;
+  if (max <= min) return Math.max(0, min);
+  return min + (hash32(`${seed}:${salt}`) % (max - min + 1));
+}
+
+/**
+ * 生成思考段结果（句首「嗯……」+ 1.5–3.0s 停顿）.
+ *
+ * @param sentence 原句
+ * @param plan 本轮计划
+ * @param sentenceIndex 句序号
+ * @returns 结果
+ */
+function thinkingResult(sentence: string, plan: ProsodyTurnPlan, sentenceIndex: number): ProsodySentenceResult {
+  const text = thinkingFillerOf(plan);
+  const range = plan.limits.thinkingPauseMs ?? [1200, 2200];
+  const durationMs = durationInRange(range, plan.seed, `thinking:${sentenceIndex}`);
+  const seconds = String(Number((durationMs / 1000).toFixed(2)));
+  return {
+    displayText: sentence,
+    speechText: `${text}[beat:${seconds}]${sentence}`,
+    events: [{ kind: 'thinking', anchor: 'sentence_start', text, durationMs }],
+  };
+}
+
+/**
+ * 生成长沉默结果（句末 `[silence:x]`）.
+ *
+ * @param sentence 原句
+ * @param plan 本轮计划
+ * @param sentenceIndex 句序号
+ * @returns 结果
+ */
+function silenceResult(sentence: string, plan: ProsodyTurnPlan, sentenceIndex: number): ProsodySentenceResult {
+  const range = plan.limits.longSilenceMs ?? [3000, 6000];
+  const durationMs = durationInRange(range, plan.seed, `silence:${sentenceIndex}`);
+  const seconds = String(Number((durationMs / 1000).toFixed(2)));
+  return {
+    displayText: sentence,
+    speechText: `${sentence}[silence:${seconds}]`,
+    events: [{ kind: 'silence', anchor: 'sentence_end', durationMs }],
+  };
+}
+
+/**
+ * 生成副语言结果（句首呼吸/叹气）.
+ *
+ * @param sentence 原句
+ * @param plan 本轮计划
+ * @param sentenceIndex 句序号
+ * @returns 结果
+ */
+function paralinguisticResult(sentence: string, plan: ProsodyTurnPlan, sentenceIndex: number): ProsodySentenceResult {
+  const kind = hash32(`${plan.seed}:para:${sentenceIndex}`) % 2 === 0 ? 'breath' : 'sigh';
+  return {
+    displayText: sentence,
+    speechText: `[${kind}]${sentence}`,
+    events: [{ kind, anchor: 'sentence_start', text: kind }],
+  };
+}
+
+/**
  * 本轮配额是否已用尽（事件数上限 / 句间隔）.
  *
  * @param plan 本轮计划
@@ -170,6 +253,12 @@ function trailoffResult(
   return { displayText: sentence, speechText: `${sentence.slice(0, -1)}……`, events: [event] };
 }
 
+/** 单个阶段的结果：命中就返回；未命中返回下一个候选偏移. */
+interface ProsodyStage {
+  readonly result: ProsodySentenceResult | null;
+  readonly nextOffset: number;
+}
+
 /**
  * 把计划落到一句话上.
  *
@@ -184,22 +273,141 @@ export function applyProsodyToSentence(sentence: string, plan: ProsodyTurnPlan, 
 
   const level = plan.level === 'medium' ? 'medium' : 'light';
   const roll = bucket(plan.seed, `s${context.sentenceIndex}`);
+  const firstSentence = context.sentenceIndex === 0;
+  let offset = 0;
 
-  // 1) 第 0 句的思考垫
-  const fillerChance = plan.limits.filler ? FILLER_CHANCE[level] : 0;
-  if (context.sentenceIndex === 0 && roll < fillerChance && !FILLER_PREFIX.test(sentence)) {
+  const thinking = thinkingStage(sentence, plan, context, level, roll, firstSentence, offset);
+  if (thinking.result !== null) return thinking.result;
+  offset = thinking.nextOffset;
+
+  const filler = fillerStage(sentence, plan, level, roll, firstSentence, offset);
+  if (filler.result !== null) return filler.result;
+  offset = filler.nextOffset;
+
+  const longSilence = longSilenceStage(sentence, plan, context, level, roll, firstSentence, offset);
+  if (longSilence.result !== null) return longSilence.result;
+  offset = longSilence.nextOffset;
+
+  const pause = pauseStage(sentence, plan, context, roll, offset);
+  if (pause.result !== null) return pause.result;
+  offset = pause.nextOffset;
+
+  const paralinguistic = paralinguisticStage(sentence, plan, context, level, roll, offset);
+  if (paralinguistic.result !== null) return paralinguistic.result;
+  offset = paralinguistic.nextOffset;
+
+  return trailoffStage(sentence, plan, context, level, roll, offset) ?? untouched;
+}
+
+/** 阶段 1：第 0 句的思考段（带真实时长，优先级高于旧 filler）. */
+function thinkingStage(
+  sentence: string,
+  plan: ProsodyTurnPlan,
+  context: ProsodyApplyContext,
+  level: 'light' | 'medium',
+  roll: number,
+  firstSentence: boolean,
+  offset: number,
+): ProsodyStage {
+  if (!firstSentence || plan.limits.thinking !== true) return { result: null, nextOffset: offset };
+  const maxThinking = plan.limits.maxThinkingBeats ?? 0;
+  const usedThinking = context.appliedThinkingBeats ?? 0;
+  const chance = THINKING_CHANCE[level];
+  if (usedThinking < maxThinking && roll < chance && !FILLER_PREFIX.test(sentence)) {
+    return { result: thinkingResult(sentence, plan, context.sentenceIndex), nextOffset: offset };
+  }
+  return { result: null, nextOffset: offset + chance };
+}
+
+/** 阶段 2：第 0 句的旧思考垫（不带走时长）. */
+function fillerStage(
+  sentence: string,
+  plan: ProsodyTurnPlan,
+  level: 'light' | 'medium',
+  roll: number,
+  firstSentence: boolean,
+  offset: number,
+): ProsodyStage {
+  const chance = fillerChanceOf(plan, level);
+  if (firstSentence && chance > 0 && roll >= offset && roll < offset + chance && !FILLER_PREFIX.test(sentence)) {
     const text = fillerOf(plan);
-    return { displayText: sentence, speechText: `${text}${sentence}`, events: [{ kind: 'filler', anchor: 'sentence_start', text }] };
+    return {
+      result: { displayText: sentence, speechText: `${text}${sentence}`, events: [{ kind: 'filler', anchor: 'sentence_start', text }] },
+      nextOffset: offset,
+    };
   }
+  return { result: null, nextOffset: firstSentence ? offset + chance : offset };
+}
 
-  // 2) 句内停顿（号段紧跟思考垫，互不重叠）
-  const pauseChance = plan.limits.pause ? PAUSE_CHANCE[level] : 0;
-  const pauseOffset = fillerChance;
-  if (pauseChance > 0 && roll >= pauseOffset && roll < pauseOffset + pauseChance) {
-    return pauseResult(sentence, plan, context.sentenceIndex) ?? untouched;
+/** 旧思考垫的命中概率（medium 略低，因为已有真实思考段）. */
+function fillerChanceOf(plan: ProsodyTurnPlan, level: 'light' | 'medium'): number {
+  if (plan.limits.filler !== true) return 0;
+  return level === 'medium' ? 33 : 39;
+}
+
+/** 阶段 3：第 2 句起的长沉默（句末，每轮最多一次）. */
+function longSilenceStage(
+  sentence: string,
+  plan: ProsodyTurnPlan,
+  context: ProsodyApplyContext,
+  level: 'light' | 'medium',
+  roll: number,
+  firstSentence: boolean,
+  offset: number,
+): ProsodyStage {
+  if (firstSentence || plan.limits.longSilence !== true) return { result: null, nextOffset: offset };
+  const maxLong = plan.limits.maxLongSilences ?? 0;
+  const usedLong = context.appliedLongSilences ?? 0;
+  const chance = LONG_SILENCE_CHANCE[level];
+  const hit =
+    usedLong < maxLong &&
+    chance > 0 &&
+    roll >= offset &&
+    roll < offset + chance &&
+    sentence.length >= LONG_SILENCE_MIN_CHARS &&
+    /[。！？]$/.test(sentence);
+  if (hit) return { result: silenceResult(sentence, plan, context.sentenceIndex), nextOffset: offset };
+  return { result: null, nextOffset: offset + chance };
+}
+
+/** 阶段 4：句内停顿（保留 AF-459 的合法位置约束）. */
+function pauseStage(sentence: string, plan: ProsodyTurnPlan, context: ProsodyApplyContext, roll: number, offset: number): ProsodyStage {
+  const chance = plan.limits.pause === true ? 30 : 0;
+  const hit = chance > 0 && roll >= offset && roll < offset + chance;
+  if (!hit) return { result: null, nextOffset: offset + chance };
+  // 命中概率但找不到合法停顿位置时，按 AF-459 口径**到此为止**，不再叠副语言/拖音.
+  const result = pauseResult(sentence, plan, context.sentenceIndex) ?? { displayText: sentence, speechText: sentence, events: [] };
+  return { result, nextOffset: offset + chance };
+}
+
+/** 阶段 5：副语言（呼吸/叹气），只在 medium，低频，句首. */
+function paralinguisticStage(
+  sentence: string,
+  plan: ProsodyTurnPlan,
+  context: ProsodyApplyContext,
+  level: 'light' | 'medium',
+  roll: number,
+  offset: number,
+): ProsodyStage {
+  if (plan.limits.paralinguistic !== true) return { result: null, nextOffset: offset };
+  const maxPara = plan.limits.maxParalinguistic ?? 0;
+  const usedPara = context.appliedParalinguistic ?? 0;
+  const chance = PARALINGUISTIC_CHANCE[level];
+  if (usedPara < maxPara && chance > 0 && roll >= offset && roll < offset + chance) {
+    return { result: paralinguisticResult(sentence, plan, context.sentenceIndex), nextOffset: offset };
   }
+  return { result: null, nextOffset: offset + chance };
+}
 
-  // 3) 句末拖音
-  const trailoffChance = plan.limits.trailoff ? TRAILOFF_CHANCE[level] : 0;
-  return trailoffResult(sentence, roll, pauseOffset + pauseChance, trailoffChance, context.sentenceIndex) ?? untouched;
+/** 阶段 6：句末拖音（第 2 句起、只改句号）. */
+function trailoffStage(
+  sentence: string,
+  plan: ProsodyTurnPlan,
+  context: ProsodyApplyContext,
+  level: 'light' | 'medium',
+  roll: number,
+  offset: number,
+): ProsodySentenceResult | null {
+  const chance = plan.limits.trailoff === true ? TRAILOFF_CHANCE[level] : 0;
+  return trailoffResult(sentence, roll, offset, chance, context.sentenceIndex);
 }

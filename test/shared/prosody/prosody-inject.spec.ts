@@ -95,3 +95,56 @@ describe('AF-459 · prosody inject', () => {
     }
   });
 });
+
+describe('AF-460 · 思考段 / 长沉默 / 副语言', () => {
+  /** 在多个 seed 上收集某类事件（确定性哈希下覆盖到目标事件）. */
+  function collectKind(kind: string, sentence: string, sentenceIndex: number): ProsodySentenceResult[] {
+    const out: ProsodySentenceResult[] = [];
+    for (let index = 0; index < 120; index += 1) {
+      const plan = buildProsodyPlan({ enabled: true, sessionId: `af460-${index}`, turnIndex: 2, style: 'avoidant' });
+      out.push(applyProsodyToSentence(sentence, plan, { sentenceIndex, appliedEvents: 0, lastEventSentenceIndex: -1 }));
+    }
+    return out.filter((result) => result.events[0]?.kind === kind);
+  }
+
+  const sentence = '我最近，工作压力挺大的，晚上也睡不好。';
+
+  it('思考段只在本轮第 0 句，且带口头语与 [beat:]', () => {
+    const early = collectKind('thinking', sentence, 0);
+    expect(early.length).toBeGreaterThan(0);
+    for (const result of early) {
+      expect(result.speechText).toMatch(/^(嗯……|呃……|那个……|怎么说呢……).*\[beat:\d+(?:\.\d+)?\]/);
+      expect(result.displayText).toBe(sentence);
+    }
+    expect(collectKind('thinking', sentence, 1)).toHaveLength(0);
+  });
+
+  it('长沉默从第 2 句起、时长在 medium 区间、只挂在句末', () => {
+    const later = collectKind('silence', sentence, 2);
+    expect(later.length).toBeGreaterThan(0);
+    for (const result of later) {
+      expect(result.speechText).toMatch(/\[silence:\d+(?:\.\d+)?\]$/);
+      const ms = result.events[0]?.durationMs ?? 0;
+      expect(ms).toBeGreaterThanOrEqual(3500);
+      expect(ms).toBeLessThanOrEqual(7000);
+      expect(result.displayText).toBe(sentence);
+    }
+    expect(collectKind('silence', sentence, 0)).toHaveLength(0);
+  });
+
+  it('副语言只在 medium 句首，且不污染展示正文', () => {
+    const results = collectKind('breath', sentence, 1).concat(collectKind('sigh', sentence, 1));
+    expect(results.length).toBeGreaterThan(0);
+    for (const result of results) {
+      expect(result.speechText).toMatch(/^\[(breath|sigh)\]/);
+      expect(result.displayText).toBe(sentence);
+    }
+  });
+
+  it('light 档不打开长沉默/副语言', () => {
+    const plan = buildProsodyPlan({ enabled: true, sessionId: 'light', turnIndex: 2, style: 'cooperative' });
+    expect(plan.limits.longSilence).not.toBe(true);
+    expect(plan.limits.paralinguistic).not.toBe(true);
+    expect(plan.limits.longSilenceMs).toEqual([0, 0]);
+  });
+});
