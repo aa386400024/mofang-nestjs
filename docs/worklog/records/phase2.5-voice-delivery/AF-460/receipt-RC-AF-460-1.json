@@ -1,0 +1,246 @@
+{
+  "deliveredAt": "2026-11-24T06:49:30.000Z",
+  "payload": {
+    "receiptId": "RC-AF-460-1",
+    "taskId": "AF-460",
+    "contextId": "phase2.5-voice-delivery",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "b93563394e12be1d8a182b3c242ba72dacd465eb",
+    "dependsOn": [],
+    "priorTasks": ["AF-459"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#5.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-voice-delivery/AF-460/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af460-voice-delivery-layer-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/runbooks/voice-prosody-pipeline.md"]
+    },
+    "changedFiles": {
+      "commits": ["ccccff23584bf61d0a2e129780cae5b89764e9d5"],
+      "added": [
+        "src/shared/voice-delivery/voice-delivery.types.ts",
+        "src/shared/voice-delivery/voice-delivery.profile.ts",
+        "src/shared/voice-delivery/voice-delivery.render.ts",
+        "src/shared/voice-delivery/index.ts",
+        "test/shared/voice-delivery/voice-delivery.spec.ts",
+        "docs/worklog/completed/phase2.5/af460-voice-delivery-layer-2026-11-24.md",
+        "docs/worklog/records/phase2.5-voice-delivery/AF-460/manifest.json",
+        "docs/worklog/records/phase2.5-voice-delivery/AF-460/task-sheet.md"
+      ],
+      "modified": [
+        ".env.example",
+        "admin-dashboard/src/api/client.ts",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "docs/runbooks/voice-prosody-pipeline.md",
+        "src/admin-debug/tts/debug-tts.controller.ts",
+        "src/admin-debug/tts/debug-tts.dto.ts",
+        "src/admin-debug/tts/debug-tts.providers.ts",
+        "src/admin-debug/tts/debug-tts.service.ts",
+        "src/shared/prosody/prosody-inject.ts",
+        "src/shared/prosody/prosody-plan.ts",
+        "src/shared/prosody/prosody-text.ts",
+        "src/shared/prosody/prosody.types.ts",
+        "src/voice/tts/tts-bidi-client.ts",
+        "src/voice/tts/tts.types.ts",
+        "src/voice/voice.service.ts",
+        "test/admin-debug/debug-tts.spec.ts",
+        "test/shared/prosody/prosody-inject.spec.ts",
+        "test/shared/prosody/prosody-text.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm vitest run test/shared/prosody test/shared/voice-delivery test/voice test/admin-debug",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 32,
+        "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "5.75s",
+        "note": "31 passed / 1 skipped（32 文件），520 passed / 4 skipped（524 用例）"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 328,
+        "machine": "同上",
+        "wallClock": "28.22s",
+        "note": "327 passed / 1 skipped（328 文件），4898 passed / 4 skipped（4902 用例）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量约 8s",
+        "note": "tsc --noEmit --incremental 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中，秒级",
+        "note": "eslint --cache（src/test/bin + scripts 两段）0 error 0 warning"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出：engine-core 纯层零改动"
+      },
+      {
+        "command": "admin-dashboard: pnpm type-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 6s",
+        "note": "vue-tsc --build 0 error"
+      },
+      {
+        "command": "admin-dashboard: pnpm build-only",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "2.51s",
+        "note": "vite build 成功，AutoPractice 产物 100.28 kB"
+      }
+    ],
+    "reproNotes": "生产：VoiceService.buildTurnDelivery → TtsOptions.delivery → tts-bidi-client 用 profile 参数（speed/vol/pitch/emotion）并排队下发；句末长沉默以 silenceAfterMs 延迟下一句，cancel 清队列。调试：POST /admin/api/debug/tts/inspect 只读返回 provider/model/voiceId/delivery/capabilities/逐句 speechText/ttsText/事件/计划与实际静默；render 用同一共享渲染器并返回同结构预览。回退：MINIMAX_TTS_PROSODY_MODE=off 时计划归零；把 buildTurnDelivery 返回 undefined 可退回 AF-459 前的纯 env 参数行为。现场校准与未落地项见 runbook §11–§12。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-460 贯穿任务单 / 分支 / 交付记录 / 回执 / commit trailer" },
+      { "item": "state-write", "result": "pass", "note": "状态面只经 CLI（register / promote / run-once / branch create）；未手改索引与事件链" },
+      { "item": "index-schema", "result": "pass", "note": "任务单 frontmatter 与 artifacts.kind 枚举合法" },
+      { "item": "event-chain", "result": "pass", "note": "登记、提级、领单事件由 CLI 生成，未手写 journal" },
+      { "item": "engine-core-untouched", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" },
+      { "item": "three-layer-text-isolation", "result": "pass", "note": "气泡 displayText / 调试 speechText / TTS ttsText 三层分离，ttsText 只由共享渲染器产出" },
+      { "item": "provider-capability-honesty", "result": "pass", "note": "豆包 2.0 不支持的能力只在 notes/警告中说明，不塞非法标签" },
+      { "item": "frame-backward-compat", "result": "pass", "note": "WS 未新增必填字段；老客户端忽略可选字段即兼容" },
+      { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单八条成功判据逐条满足：厂商无关 profile、四层节奏、MiniMax/豆包参数映射、三模型预览（含 model/voiceId）、voiceId 缓存隔离、生产下发队列、定向/全量闸门、engine-core 零改动"
+    },
+    "backlogItems": [
+      {
+        "id": "AF460-B1",
+        "impact": "未做真机 A/B 听感校准；语速/音量/音调是保守初值，需按 runbook §12 用真实来访者画像复听后微调。",
+        "layer": "verification",
+        "status": "candidate"
+      },
+      {
+        "id": "AF460-B2",
+        "impact": "调试页尚无自定义音色输入控件；voiceId 已贯通 API/缓存/生产握手，UI 留到自定义音色任务。",
+        "layer": "frontend",
+        "status": "candidate"
+      },
+      {
+        "id": "AF460-B3",
+        "impact": "豆包 3.0 文本内插笑声/叹息仍不可用；Agent Plan 当前套餐只有 2.0，需套餐升级后加渲染器。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF460-B4",
+        "impact": "豆包 2.0 无句内长停顿；生产 voice 仍只走 MiniMax，豆包仅调试对比。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF460-B5",
+        "impact": "历史轮预览是确定性模拟，不是历史真实发送快照；真实请求快照只对新合成写入 usage_json。",
+        "layer": "verification",
+        "status": "candidate"
+      },
+      {
+        "id": "AF460-B6",
+        "impact": "句首思考静默（turn lead-in）仍未做；当前思考段是「口头语 + 句内停顿」，不是开口前静默。",
+        "layer": "adapter",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "MiniMax 句末长沉默",
+        "taskSays": "longSilence 映射为 <#1–10#>",
+        "reality": "官方丢弃句末停顿标记，调试同步合成不含该静默",
+        "action": "生产改为下发队列延迟下一句；预览 appliedSilenceMs 只统计真正落进 ttsText 的标记并给警告",
+        "why": "不能把「计划有」说成「音频有」"
+      },
+      {
+        "item": "豆包情绪参数",
+        "taskSays": "可用 emotion/emotion_scale",
+        "reality": "Agent Plan 2.0 当前链路无逐字情绪参数",
+        "action": "情绪/强度写进 context_texts，能力声明标 emotionParameter=false",
+        "why": "避免下发非法字段导致 2013 或静默失败"
+      },
+      {
+        "item": "长沉默概率与时长",
+        "taskSays": "甚至 5–10 秒",
+        "reality": "普通 medium 3.5–7s、L3 5–9s；概率 16%，每轮最多一次",
+        "action": "按风格/难度动态取区间，避免每轮都像掉线",
+        "why": "临床可信需要低频长沉默，不是固定 10 秒"
+      },
+      {
+        "item": "MiniMax 默认音色优先级",
+        "taskSays": "沿用原逻辑",
+        "reality": "调试默认音色改为 DEFAULT_VOICE 优先，再回 VOICE_ID",
+        "action": "抽 resolveVoiceId 统一 render/inspect",
+        "why": "与 .env.example 注释一致：调试页兜底音色优先，未配才用生产音色"
+      },
+      {
+        "item": "自定义音色",
+        "taskSays": "后续自定义音色",
+        "reality": "后端 voiceId 已贯通；前端无输入控件",
+        "action": "后端扩展位先落地，UI 登记 AF460-B2",
+        "why": "避免为一个未来 UI 把本单拖成前端任务"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "交付档案、三家能力声明、生产下发队列、调试页逐句审计已闭环；定向 520 例、全量 4898 例、类型、lint、管理端 type-check/build 全绿，engine-core 零改动。播音腔通过「慢一点、低一点、收一点 + 真实来访者口吻指令」压低；真机听感、豆包 3.0 与自定义音色 UI 未落地，均已写入遗留项，不声称关闭。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本地单测与构建，无 LLM/TTS 调用；inspect 端点只读预览不触发合成，零上游费用。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
