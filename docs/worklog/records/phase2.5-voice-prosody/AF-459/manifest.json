@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-459",
+  "contextId": "phase2.5-voice-prosody",
+  "status": "backlog",
+  "createdAt": "2026-11-24T11:40:00+08:00",
+  "updatedAt": "2026-11-24T05:08:29.826Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-voice-prosody/AF-459/task-sheet.md",
+    "sha256": "4d7f754d4fc5e43e54c7d0ab7d921f2f0ef2a1aa62991a205b901f82f81131b7",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af459-voice-prosody-pipeline-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af459-voice-prosody-pipeline-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}

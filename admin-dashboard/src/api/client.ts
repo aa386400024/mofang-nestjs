@@ -14,6 +14,22 @@ import type {
 const BASE = '/admin/api'
 const CRED_KEY = 'admin_basic_auth'
 
+/** AF-459: 调试页三个 TTS 模型（与后端 DEBUG_TTS_PROVIDERS 同值）. */
+export type DebugTtsProvider = 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
+
+/** AF-459: 单句语音形态（后端 DebugTtsSpeechSentence 的投影）. */
+export interface DebugTtsSpeechSentence {
+  index: number
+  displayText: string
+  speechText: string
+  events: Array<{
+    kind: 'filler' | 'pause' | 'trailoff'
+    anchor: 'sentence_start' | 'sentence_mid' | 'sentence_end'
+    text?: string
+    durationMs?: number
+  }>
+}
+
 // ─── Auth 凭据 ───
 export function getAuthHeader(): string | null {
   const raw = sessionStorage.getItem(CRED_KEY)
@@ -129,9 +145,9 @@ export const api = {
       source: 'auto_practice' | 'debug_session'
       sessionId: string
       turnIndex: number
-      provider: 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
+      provider: DebugTtsProvider
     }): Promise<{
-      provider: 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
+      provider: DebugTtsProvider
       voiceId: string
       format: 'mp3'
       sampleRate: number
@@ -140,8 +156,28 @@ export const api = {
       cached: boolean
       textChars: number
       requestHash: string
+      displayText: string
+      speechText: string
+      ttsText: string
+      sentences: DebugTtsSpeechSentence[]
     }> => {
       return post('/debug/tts/render', body)
+    },
+    /**
+     * AF-459: 语音形态预览（只读，不合成不计费）。气泡“语音形态”切换用它。
+     */
+    ttsInspect: async (body: {
+      source: 'auto_practice' | 'debug_session'
+      sessionId: string
+      turnIndex: number
+      provider: DebugTtsProvider
+    }): Promise<{
+      displayText: string
+      speechText: string
+      ttsText: string
+      sentences: DebugTtsSpeechSentence[]
+    }> => {
+      return post('/debug/tts/inspect', body)
     },
     deltaAudit: async (sessionId: string): Promise<{ sessionId: string; turns: Array<{
       turnIndex: number

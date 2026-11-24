@@ -3,7 +3,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 
 import { DebugTtsRenderDto } from './debug-tts.dto.js';
-import { DebugTtsService, type DebugTtsRenderResult } from './debug-tts.service.js';
+import { DebugTtsService, type DebugTtsRenderResult, type DebugTtsSpeechPreview } from './debug-tts.service.js';
 import { AdminRoleGuard } from '../guards/admin-role.guard.js';
 
 @Controller('admin/api/debug/tts')
@@ -15,5 +15,16 @@ export class DebugTtsController {
   @Post('render')
   async render(@Body() dto: DebugTtsRenderDto): Promise<DebugTtsRenderResult> {
     return this.tts.render(dto.source, dto.sessionId, dto.turnIndex, dto.provider);
+  }
+
+  /**
+   * AF-459: 只读预览语音形态（不合成、不计费）.
+   *
+   * 气泡"语音形态"切换点开时调它：拿到逐句语义标记与事件表，
+   * 用户点具体模型后再调 render 出音频。
+   */
+  @Post('inspect')
+  async inspect(@Body() dto: DebugTtsRenderDto): Promise<DebugTtsSpeechPreview> {
+    return this.tts.inspect(dto.source, dto.sessionId, dto.turnIndex, dto.provider);
   }
 }

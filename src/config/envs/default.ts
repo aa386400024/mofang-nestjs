@@ -181,6 +181,10 @@ export const config = {
     ttsKeepaliveMs: Number(process.env.MINIMAX_TTS_KEEPALIVE_MS ?? 30_000),
     // V2026-10-23 治本: 单句最大字符数 (超长句强制切, 兼作上游 2204 的本地防线)
     ttsMaxSentenceChars: Number(process.env.MINIMAX_TTS_MAX_SENTENCE_CHARS ?? 100),
+    // AF-459: 语音韵律总开关 (active | off).
+    //   active = 按来访者风格/难度确定性注入停顿与思考垫；off = 完全不注入，行为与改前逐字一致。
+    //   现场听感不对时改 env 即可回退，不依赖回滚代码。
+    ttsProsodyMode: (process.env['MINIMAX_TTS_PROSODY_MODE'] ?? 'active').trim(),
     // ASR (Phase 1.3 客户端直连, 这里存服务端 proxy / token 签发用)
     asrTokenSecret: process.env.MINIMAX_ASR_TOKEN_SECRET,
     asrTokenTtlSec: Number(process.env.MINIMAX_ASR_TOKEN_TTL_SEC ?? 300), // 5min
