@@ -25,6 +25,7 @@ import path from 'node:path';
 
 import { RuleBasedClassifier, aggregateTurnDelta } from '../../../src/engine-core/index.js';
 import type { CounselorEventKind } from '../../../src/engine-core/index.js';
+import { KERNEL_REF } from '../../../src/engine-adapters/observability/kernel-fingerprint.js';
 
 /** 剧本轮：咨询师台词 + 来访回应（来访文本只入档，不参与规则分类）。 */
 interface ScriptedTurn {
@@ -314,6 +315,8 @@ export function generateScriptedCorpus(options: GenerateOptions) {
       updatedAt: now,
       status: 'completed',
       turnCount: scenario.turns.length,
+      // AF-451：把落盘时的内核 delta 表指纹写进会话，让合成语料也能按内核版本追溯（表四分桶依据）
+      kernelRef: KERNEL_REF,
       synthetic: true,
       generationMethod: 'rule-track-scripted-replay',
       scriptedScenario: scenario.slug,
