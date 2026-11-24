@@ -4,7 +4,7 @@
   "contextId": "phase2.5-visitor-register-eval",
   "status": "completed",
   "createdAt": "2026-11-24T18:10:00+08:00",
-  "updatedAt": "2026-11-24T11:40:00.000Z",
+  "updatedAt": "2026-11-24T11:40:00Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-465/task-sheet.md",
     "sha256": "9f5a15301e2e89a0fcdd9878040983907a2b554b88c2cda29b8734d94c45b448",
@@ -19,7 +19,7 @@
     {
       "receiptId": "RC-AF-465-2",
       "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-465/receipt-RC-AF-465-2.json",
-      "sha256": "5401ac5d8b9f686781e76367b6b8a7cef709d5ddcd33f5725df840a0c7fa9d0c"
+      "sha256": "ee2a501586652680bed05d30dac37e7913bd4c8411b44e753ea32f138a40ce73"
     }
   ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af465-visitor-register-stability-2026-11-24.md",
