@@ -1958,7 +1958,7 @@ function parseSessionWhitelist(raw: string | undefined): ReadonlySet<string> {
 }
 
 /** 组装 `llm_done` 的 usage (AF-478 抽出, 降主链路复杂度). */
-function buildLlmDoneUsage(usage: LlmUsage) {
+function buildLlmDoneUsage(usage: LlmUsage & { cachedTokens?: number }) {
   return {
     promptTokens: usage.promptTokens,
     completionTokens: usage.completionTokens,
