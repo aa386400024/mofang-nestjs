@@ -158,6 +158,8 @@ export class CharacterProfileAdminService {
       // 缺省 draft: 内部新建的角色也要显式过审才进引擎 (跟"未审核不可用"同口径).
       auditStatus: input.auditStatus ?? 'draft',
       enabled: input.enabled ?? true,
+      // AF-462: 语域指纹可空; 缺省 = 未标定 = 不渲染 (零回归).
+      speechRegister: input.speechRegister ?? null,
       version: 1,
       // WP38: semver 初值 1.0.0 (缺省三列也是 1/0/0 —— 这里显式写, 不靠 DB DEFAULT 兜底).
       versionMajor: 1,
@@ -378,6 +380,7 @@ function toAdminDto(row: CharacterProfileEntity): CharacterProfileAdminDto {
     sensitiveTopics: row.sensitiveTopics,
     auditStatus: row.auditStatus,
     enabled: row.enabled,
+    speechRegister: row.speechRegister,
     version: row.version,
     versionMajor: row.versionMajor,
     versionMinor: row.versionMinor,
@@ -419,6 +422,7 @@ function applyContentUpdates(row: CharacterProfileEntity, input: UpdateCharacter
   if (input.sensitiveTopics !== undefined) row.sensitiveTopics = input.sensitiveTopics;
   if (input.auditStatus !== undefined) row.auditStatus = input.auditStatus;
   if (input.enabled !== undefined) row.enabled = input.enabled;
+  if (input.speechRegister !== undefined) row.speechRegister = input.speechRegister;
 }
 
 /**
@@ -468,6 +472,7 @@ function toSnapshot(row: CharacterProfileEntity): CharacterProfileSnapshot {
     narrativeStyle: row.narrativeStyle,
     expressionTone: row.expressionTone,
     verbalVoice: row.verbalVoice,
+    speechRegister: row.speechRegister,
     coreBeliefs: row.coreBeliefs,
     underlyingDesires: row.underlyingDesires,
     forbiddenBehaviors: row.forbiddenBehaviors,

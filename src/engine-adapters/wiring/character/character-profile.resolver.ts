@@ -32,6 +32,7 @@
 //     3. test/engine-adapters/wp9a-open-profile.spec.ts 覆盖 openSession 注入与中性回退
 
 import type { CharacterProfile } from '../../../engine-core/index.js';
+import type { SpeechRegister, SpeechRegisterAuditSummary } from '../../../shared/speech-register/index.js';
 
 /**
  * 临场参数 (握手已解析) —— 影响本场基线的**叠加项**.
@@ -78,6 +79,14 @@ export interface ResolvedCharacter {
   readonly displayName: string;
   /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
   readonly verbalVoice?: string;
+  /**
+   * 语域指纹 (AF-462): 结构化角色资产, 仅在 active 且命中试点时注入.
+   *
+   * 缺省 = 不注入 = prompt 逐字不变 (零回归).
+   */
+  readonly speechRegister?: SpeechRegister;
+  /** 语域配置审计摘要: audit / active 模式都有; 只含计数, 不含台词原文. */
+  readonly speechRegisterAudit?: SpeechRegisterAuditSummary;
 }
 
 /**

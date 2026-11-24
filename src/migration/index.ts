@@ -244,4 +244,12 @@ export { AddPracticeSessionModelColumns1714900000050 } from './1714900000050-Add
 // AF-395 (2026-11-24 · 调试页三模型 TTS 历史缓存):
 export { CreateAdminDebugTtsRenders1714900000051 } from './1714900000051-CreateAdminDebugTtsRenders.js';
 
+// AF-462 (2026-11-24 · 来访者语域指纹):
+//   character_profiles 加 speech_register JSON NULL; 内容走幂等 seed.
+export { AddCharacterProfileSpeechRegister1714900000052 } from './1714900000052-AddCharacterProfileSpeechRegister.js';
+
+// AF-462:
+//   visitor_full_personas 加 speech JSON NULL; 长程人设的语域指纹, 缺省不渲染.
+export { AddVisitorFullPersonaSpeech1714900000053 } from './1714900000053-AddVisitorFullPersonaSpeech.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

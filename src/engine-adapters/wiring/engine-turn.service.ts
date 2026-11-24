@@ -159,6 +159,14 @@ export interface EngineTurnOpenOptions {
    */
   readonly verbalVoice?: TurnSessionContext['verbalVoice'];
   /**
+   * 语域指纹 (AF-462): 渲染层 prompt 的「你说话的样子」块.
+   *
+   * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+   */
+  readonly speechRegister?: TurnSessionContext['speechRegister'];
+  /** 语域配置审计摘要 (AF-462): audit 模式只观测, 不注入. */
+  readonly speechRegisterAudit?: TurnSessionContext['speechRegisterAudit'];
+  /**
    * 学员账号 id (V2026-11-05 WP64).
    *
    * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
@@ -325,6 +333,9 @@ export class EngineTurnService {
       ...(options?.attachmentStyle === undefined ? {} : { attachmentStyle: options.attachmentStyle }),
       // WP-J P2: 台词指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.verbalVoice === undefined ? {} : { verbalVoice: options.verbalVoice }),
+      // AF-462: 语域指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
+      ...(options?.speechRegister === undefined ? {} : { speechRegister: options.speechRegister }),
+      ...(options?.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: options.speechRegisterAudit }),
       // AF-187: 接触方式登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.encounter === undefined ? {} : { encounter: options.encounter }),
     };

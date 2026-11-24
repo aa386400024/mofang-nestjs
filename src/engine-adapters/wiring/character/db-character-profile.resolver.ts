@@ -59,6 +59,7 @@ import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } f
 import { mapRoleDesiresToCore } from './character-desire-mapping.js';
 import { CharacterProfileEntity } from './character-profile.entity.js';
 import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver.js';
+import { selectSpeechRegister, parseSpeechRegisterColumn } from '../../../shared/speech-register/index.js';
 
 /**
  * 角色行 → WP9-A 种子形状 (纯映射).
@@ -150,6 +151,7 @@ export class DbCharacterProfileResolver implements CharacterProfileResolver {
       return null;
     }
 
+    const speechSelection = selectSpeechRegister(parseSpeechRegisterColumn(row.speechRegister), templateId, process.env);
     return {
       // 复用 WP9-A 的唯一一份映射 (临场 preset 的叠加规则与内置种子完全一致).
       characterProfile: buildCharacterProfile(toCharacterSeed(row), request.preset),
@@ -157,6 +159,8 @@ export class DbCharacterProfileResolver implements CharacterProfileResolver {
       seed: stableSeedFromKey(templateId),
       displayName: row.displayName,
       ...(row.verbalVoice ? { verbalVoice: row.verbalVoice } : {}),
+      ...(speechSelection.register ? { speechRegister: speechSelection.register } : {}),
+      ...(speechSelection.audit ? { speechRegisterAudit: speechSelection.audit } : {}),
     };
   }
 

@@ -36,6 +36,7 @@
 //   时间戳: 2026-10-23
 import { isAcceptableCodename, isInCodenameBank } from './visitor-pool-codename.js';
 import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from './visitor-pool.config.js';
+import { getVisitorSpeechRegister, validateSpeechRegister } from '../../shared/speech-register/index.js';
 import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types.js';
 import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
 import { VisitorPoolDefenseType, VisitorPoolIssueDomain } from '../enums/visitor-pool.enum.js';
@@ -98,7 +99,7 @@ export interface VisitorPoolTemplateSeed {
 // 首批 6 个官方人物 (spec §6 对照表)
 // ════════════════════════════════════════════════════════════════════════════
 
-export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
+const BASE_VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
   {
     id: 'vpt_intimate_avoidance_l1',
     codename: '晚晴',
@@ -749,6 +750,17 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
   },
 ];
 
+/**
+ * 公共模板种子 = 内容基线 + 语域指纹 (AF-462).
+ *
+ * 语域来自 `shared/speech-register` 的唯一标定表; 这里只做装配, 不另写一份文案.
+ * 未来新增模板若还没标定 → 不注入 `speech`, 旧链路逐字不变.
+ */
+export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = BASE_VISITOR_POOL_TEMPLATE_SEEDS.map((seed) => {
+  const speech = getVisitorSpeechRegister(seed.id);
+  return speech === undefined ? seed : { ...seed, script: { ...seed.script, speech } };
+});
+
 // ════════════════════════════════════════════════════════════════════════════
 // 基线自检
 // ════════════════════════════════════════════════════════════════════════════
@@ -919,6 +931,10 @@ function checkSeedCodename(seed: VisitorPoolTemplateSeed, state: SeedScanState):
  */
 function checkSeedScript(seed: VisitorPoolTemplateSeed): string | null {
   const script = seed.script;
+  if (script.speech !== undefined) {
+    const speechIssue = validateSpeechRegister(script.speech);
+    if (speechIssue !== null) return `模板 ${seed.id} 的语域指纹不合法: ${speechIssue}`;
+  }
   if (script.developmentalTimeline.length !== 5) {
     return `模板 ${seed.id} 的成长时间线必须是 5 段`;
   }

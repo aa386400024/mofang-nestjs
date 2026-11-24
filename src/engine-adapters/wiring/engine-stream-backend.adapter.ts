@@ -447,6 +447,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
       ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
       ...(character?.verbalVoice ? { verbalVoice: character.verbalVoice } : {}),
+      // AF-462: 语域指纹 —— 只在 active + 试点命中时 resolver 才会返回, off/audit 不带.
+      ...speechRegisterOpenOptions(character),
       // WP-J P1d: 依恋风格 —— 语音链路的开场登记点 (自动对练/调试面板走 debug-session 那条).
       //   不登记则渲染层拿不到 attachmentStyle, anxious 行为指引永远不渲染.
       ...attachmentStyleOption(profile),
@@ -1752,6 +1754,24 @@ function attachmentStyleOption(profile: CharacterProfile | undefined): {
 } {
   const style = profile?.attachmentStyle;
   return style === undefined ? {} : { attachmentStyle: style };
+}
+
+/**
+ * 语域指纹的条件开场参数 (AF-462).
+ *
+ * 为什么抽成独立函数：`openKernelSession` 的复杂度贴着上限，两个条件展开写在方法里会顶过 20。
+ *
+ * @param character 本场角色 (无 = 中性基线)
+ * @returns 只在 resolver 选中语域时出现的键
+ */
+function speechRegisterOpenOptions(character: ResolvedCharacter | null): {
+  readonly speechRegister?: NonNullable<ResolvedCharacter['speechRegister']>;
+  readonly speechRegisterAudit?: NonNullable<ResolvedCharacter['speechRegisterAudit']>;
+} {
+  return {
+    ...(character?.speechRegister ? { speechRegister: character.speechRegister } : {}),
+    ...(character?.speechRegisterAudit ? { speechRegisterAudit: character.speechRegisterAudit } : {}),
+  };
 }
 
 /**

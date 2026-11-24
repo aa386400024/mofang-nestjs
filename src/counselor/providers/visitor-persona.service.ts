@@ -30,6 +30,7 @@ import { IsNull, Repository } from 'typeorm';
 
 import { CounselorUiPreferenceService } from './counselor-ui-preference.service.js';
 import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { parseSpeechRegister } from '../../shared/speech-register/index.js';
 import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
 import {
   buildPersonaGenerationUserPrompt,
@@ -136,7 +137,22 @@ export function validateFullPersona(raw: unknown): VisitorFullPersonaScript | nu
   if (presentingIssue === null) {
     return null;
   }
-  return { basics, developmentalTimeline, innerWorkingModel, socialMap, coping, therapyExpectation, presentingIssue };
+  // AF-462: 语域指纹可选; 出现即必须通过共享 schema (缺省 = 未标定, 旧行为)
+  const speechRaw = obj['speech'];
+  const speech = speechRaw === undefined ? undefined : parseSpeechRegister(speechRaw);
+  if (speechRaw !== undefined && speech === null) {
+    return null;
+  }
+  return {
+    basics,
+    developmentalTimeline,
+    innerWorkingModel,
+    socialMap,
+    coping,
+    therapyExpectation,
+    presentingIssue,
+    ...(speech === null || speech === undefined ? {} : { speech }),
+  };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -451,6 +467,8 @@ export class VisitorPersonaService {
       coping: result.data.coping,
       therapyExpectation: result.data.therapyExpectation,
       presentingIssue: result.data.presentingIssue,
+      // AF-462: 生成端可产出语域; 缺省写 NULL, 旧链路不渲染.
+      speech: result.data.speech ?? null,
       trustLevel: 0.2,
     });
     const saved = await this.personaRepo.save(entity);

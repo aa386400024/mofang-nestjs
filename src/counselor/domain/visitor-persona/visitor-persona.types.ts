@@ -24,6 +24,8 @@
 //     3. godViewEnabled=false 时 GET 全量接口 → 400 (拒绝上帝视角)
 //   时间戳: 2026-10-21
 
+import type { SpeechRegister } from '../../../shared/speech-register/index.js';
+
 // ════════════════════════════════════════════════════════════════════════════
 // 1. 基础信息
 // ════════════════════════════════════════════════════════════════════════════
@@ -178,6 +180,13 @@ export interface VisitorFullPersonaScript {
   coping: VisitorPersonaCoping;
   therapyExpectation: VisitorPersonaTherapyExpectation;
   presentingIssue: VisitorPersonaPresentingIssue;
+  /**
+   * 语域指纹 (AF-462): 可选结构化块; 缺省 = 未标定 = 旧链路不渲染 (零回归).
+   *
+   * 与 7 大块并列而不塞进 basics: basics 是"他是谁", speech 是"他怎么说";
+   * 混在一起会让内容生成模型把社会语域当成身份标签来写.
+   */
+  speech?: SpeechRegister;
 }
 
 // ════════════════════════════════════════════════════════════════════════════

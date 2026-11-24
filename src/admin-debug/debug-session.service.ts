@@ -529,6 +529,9 @@ export class DebugSessionService {
         // WP-J P2: 台词指纹登记 —— 与依恋风格同一条开场路径.
         //   缺了这一步, 渲染层拿不到「你说话的味道」, 库里的文案等于白落.
         ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
+        // AF-462: 语域指纹登记 —— 与台词指纹同一条开场路径.
+        ...(resolved.speechRegister === undefined ? {} : { speechRegister: resolved.speechRegister }),
+        ...(resolved.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: resolved.speechRegisterAudit }),
         // 场景类型登记 —— 条件展开 (缺省 = 不登记 = 审议侧不施加场景红线).
         ...(scenarioType === undefined ? {} : { scenarioType }),
         // AF-187: 接触方式登记 —— 条件展开 (缺省 = 不登记 = prompt 逐字不变).
@@ -764,6 +767,9 @@ export class DebugSessionService {
             : { attachmentStyle: resolved.characterProfile.attachmentStyle }),
           // WP-J P2: 台词指纹登记 (恢复路径与新建路径同口径).
           ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
+          // AF-462: 语域指纹登记 —— 与台词指纹同一条开场路径.
+          ...(resolved.speechRegister === undefined ? {} : { speechRegister: resolved.speechRegister }),
+          ...(resolved.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: resolved.speechRegisterAudit }),
           // 场景类型登记 (恢复路径与新建路径同口径) —— 从落盘记录读:
           //   旧记录没有这个字段 → full_simulation (不施加考核红线, 与恢复前逐字一致).
           scenarioType: record.scenarioType ?? 'full_simulation',

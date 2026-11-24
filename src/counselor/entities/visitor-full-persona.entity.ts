@@ -24,6 +24,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+import type { SpeechRegister } from '../../shared/speech-register/index.js';
 import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config.js';
 import type {
   VisitorPersonaBasics,
@@ -135,6 +136,12 @@ export class VisitorFullPersona {
   // ─── 7. 当前主诉 ───
   @Column({ type: 'json', name: 'presenting_issue' })
   presentingIssue!: VisitorPersonaPresentingIssue;
+
+  /**
+   * 语域指纹 (AF-462): 可空; 旧人设 / 未标定 = NULL → 旧链路不渲染 (零回归).
+   */
+  @Column({ type: 'json', nullable: true })
+  speech!: SpeechRegister | null;
 
   /**
    * 当前咨访信任度 0-1 (信息暴露节奏的驱动值, v1.2 §4.1).

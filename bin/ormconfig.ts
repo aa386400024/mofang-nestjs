@@ -287,6 +287,8 @@ import { AddEncounterAndCrisisOutcome1714900000048 } from '../src/migration/1714
 import { CreateAdminDebugSessions1714900000049 } from '../src/migration/1714900000049-CreateAdminDebugSessions.js';
 import { AddPracticeSessionModelColumns1714900000050 } from '../src/migration/1714900000050-AddPracticeSessionModelColumns.js';
 import { CreateAdminDebugTtsRenders1714900000051 } from '../src/migration/1714900000051-CreateAdminDebugTtsRenders.js';
+import { AddCharacterProfileSpeechRegister1714900000052 } from '../src/migration/1714900000052-AddCharacterProfileSpeechRegister.js';
+import { AddVisitorFullPersonaSpeech1714900000053 } from '../src/migration/1714900000053-AddVisitorFullPersonaSpeech.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -486,6 +488,10 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-22 AF-314 (自动对练场次模型可观测) — 三列, 历史行保持 NULL.
       AddPracticeSessionModelColumns1714900000050,
       CreateAdminDebugTtsRenders1714900000051,
+      // V2026-11-24 AF-462 (来访者语域指纹) — character_profiles 加可空 JSON 列 speech_register:
+      //   与 verbal_voice 同段; 内容走幂等 seed, 不进 migration.
+      AddCharacterProfileSpeechRegister1714900000052,
+      AddVisitorFullPersonaSpeech1714900000053,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

@@ -55,6 +55,8 @@ export function buildCharacterProfileRow(overrides: Partial<CharacterProfileEnti
     expressionTone: 'restrained',
     // WP-J P2: 台词指纹可空 —— NULL = 不渲染.
     verbalVoice: null,
+    // AF-462: 语域指纹可空 —— NULL = 未标定 / 灰度未命中.
+    speechRegister: null,
     coreBeliefs: [],
     underlyingDesires: [],
     forbiddenBehaviors: [],
