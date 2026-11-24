@@ -88,8 +88,8 @@
 ### 3.2 闸门
 
 - 定向：`pnpm exec vitest run test/shared/speech-register test/engine-adapters test/agent test/counselor test/auto-practice test/admin-debug`
-  - **205 passed | 1 skipped (206 files)，2932 passed | 4 skipped (2936 tests)**
-  - 新增 rating spec 后单跑 **3 passed**。
+  - **206 passed | 1 skipped (207 files)，2935 passed | 4 skipped (2939 tests)**
+  - 含新增 rating spec **3 passed**。
 - `pnpm lint`：**0 error**。
 - `pnpm typecheck`：**0 error**。
 - `git diff --stat HEAD -- src/engine-core`：**空**。
