@@ -98,8 +98,15 @@ export type DeliberationDim = (typeof DELIBERATION_DIMS)[number];
  *   **在场状态**事件 (`holding_present` / `cold_absent`) —— 本组**刻意不加**它们:
  *   · 规则轨**词表不扩** → 规则侧**产不出**这两个标签 (本组是「规则算子也会打」的标签);
  *   · 模型轨走 shadow 旁路 → 影子对比口径不变 (两侧都是规则轨口径);
- *   · 两类的 delta 种子是 ZERO, 没有"规则可覆盖的 delta"可对齐;
+ *   · 两类**有真实非零 delta 种子** (AF-322 标定后内核 `state-transition.ts` 的 `DELTA_TABLE` 实录):
+ *     `holding_present` = safety +0.004 / bond +0.002 / valence +0.004 / verbal -0.002 / arousal -0.002;
+ *     `cold_absent` = trust -0.004 / valence -0.004 / verbal +0.004 / safety -0.002 / bond -0.002
+ *     / depth +0.002 / style +0.002 / negative +0.002 (其余维度 0);
+ *     ⚠️ 幅度是**工程种子值, 非临床标定** —— 标定批次要调幅度走 `ENGINE_DELTA_HOLDING_PRESENT`
+ *     / `ENGINE_DELTA_COLD_ABSENT` 覆写 (AF-419 补的通道), 不改基础表.
  *   → 纳入本组 = 把模型独有标签误算成规则可覆盖 (任务单 §6 T6).
+ *     ⚠️ **依据是"规则侧产不出这两个标签" (词表覆盖), 不是"delta 是零"** ——
+ *     "零 delta" 那条论据已被 AF-322 推翻, 但**暂不纳入**的结论不变.
  *   是否纳入**留标定批次评估**.
  *
  * ⚠️ 另一处**刻意的补齐** (相对任务单原文):
