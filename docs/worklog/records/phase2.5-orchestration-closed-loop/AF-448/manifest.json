@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-448",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-24T09:40:00+08:00",
+  "updatedAt": "2026-11-24T00:38:45.365Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-448/task-sheet.md",
+    "sha256": "c6eeaaffb5303e3571078885788eb2da2efea18885cf29561cb2e37124a2b4ab",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af448-scripted-corpus-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af448-scripted-corpus-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}

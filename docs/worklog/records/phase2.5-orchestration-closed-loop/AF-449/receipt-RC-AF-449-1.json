@@ -1,0 +1,164 @@
+{
+  "deliveredAt": "2026-11-24T10:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-449-1",
+    "taskId": "AF-449",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "df537e60cbc150fedfd84bfc3554c496f923419b",
+    "dependsOn": [],
+    "priorTasks": ["AF-448", "AF-447", "AF-427"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-449/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af449-scripted-corpus-2026-11-24.md",
+      "reply": null,
+      "others": [
+        "scripts/ops/quality/af448-scripted-corpus.ts",
+        "docs/worklog/completed/phase2.5/af447-scripted-corpus-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af448-scripted-corpus-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-447/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-448/task-sheet.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "scripts/ops/quality/af448-scripted-corpus.ts",
+        "docs/worklog/completed/phase2.5/af449-scripted-corpus-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af448-scripted-corpus-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af447-scripted-corpus-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-449/task-sheet.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx scripts/ops/quality/af448-scripted-corpus.ts --dry-run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4",
+        "wallClock": "约 4s",
+        "note": "场景=6 / 咨询师轮=34；命中 {\"acceptance\":3,\"affirmation\":12,\"normalization\":11,\"boundary_cross\":8,\"neutral\":2}；三类零语料算子全命中；dry-run 未写盘"
+      },
+      {
+        "command": "pnpm exec tsx scripts/ops/quality/af448-scripted-corpus.ts --apply",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 4s",
+        "note": "6 个会话文件写入 data/debug-sessions/（4328–5379 字节）；git status data/debug-sessions 无输出，确认 gitignore 生效"
+      },
+      {
+        "command": "node scripts/ops/quality/af427-operator-delta-ledger.mjs --dir data/debug-sessions",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "表三（13 场 debug 会话）：normalization 11 轮（单算子 10 / 多算子 1，100.0%）、affirmation 12 轮（11 / 1，100.0%）、boundary_cross 8 轮（8 / 0，100.0%）；此前三类均为 0"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上（tsc -p tsconfig.json --noEmit --incremental）",
+        "wallClock": "约 55s",
+        "note": "0 error，exit=0，无输出即通过"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空 —— 内核零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "PASS：AF-447 / AF-448 / AF-449 三个记录包的 artifactPath 全部存在，不再报「交付记录缺文件」"
+      }
+    ],
+    "reproNotes": "在 D:\\work\\Project\\backend\\mofang-nestjs-af281r（分支 task/AF-449-scripted-corpus，基线 df537e6）依次跑：pnpm exec tsx scripts/ops/quality/af448-scripted-corpus.ts --dry-run → --apply → node scripts/ops/quality/af427-operator-delta-ledger.mjs --dir data/debug-sessions；记录包自检跑 node scripts/orchestration/cli.mjs worklog verify --strict。剧本与词表对齐读 SCRIPTED_SCENARIOS 与 src/engine-core/domain/events/event-lexicon.ts。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-449 贯穿任务单 / 回执 / 交付记录；两次重签发链路（AF-447 → AF-448 → AF-449）在 priorTasks 与三份记录里如实可查" },
+      { "item": "rule-track-only", "result": "pass", "note": "脚本只调用 RuleBasedClassifier({semantics:'v2'}) 与 aggregateTurnDelta，未伪造 holding_present / cold_absent" },
+      { "item": "synthetic-marking", "result": "pass", "note": "每个会话文件带 synthetic / generationMethod / scriptedScenario / scriptedSummary / 隐私 note" },
+      { "item": "privacy", "result": "pass", "note": "控制台只输出计数与文件名，未打印逐字稿原文" },
+      { "item": "no-kernel-touch", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" },
+      { "item": "no-corpus-commit", "result": "pass", "note": "data/debug-sessions/ gitignored，合成语料未入库" },
+      { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全：gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单三项目标（落库实现、落库 AF-447 归档补齐件、写本单交付记录）全部达成；实现内容与 AF-448 一致，未扩范围"
+    },
+    "backlogItems": [
+      {
+        "id": "AF449-B1",
+        "impact": "holding_present / cold_absent 两类模型轨跨轮事件仍零语料；规则轨不产出这两个标签，需真跑 LLM 的评测批次才能补。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF449-B2",
+        "impact": "af427-operator-delta-ledger.mjs 未按 kernelRef / synthetic 分桶，合成语料与真实语料混在同一张表三；承接单 AF-438 挂 dependsOn: [AF-437] 永不满足，需重签发后实现分桶。",
+        "layer": "adapter",
+        "status": "candidate"
+      },
+      {
+        "id": "AF449-B3",
+        "impact": "任务单模板把 baselineRef 标注「可空」，与 task promote 的强制基线校验冲突，且重签发任务的归档补齐件不在新任务 scope 内，导致二次重签发。建议：①模板注明 baselineRef 必填；②reissue/CLI 自动把被重签发任务的 artifactPath 继承进新任务 scope；③worklog verify 对被 supersede 任务的 artifact 采用归档补齐件豁免或自动生成占位。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务编号",
+        "taskSays": "AF-447（首版）→ AF-448（二版）",
+        "reality": "最终落库在 AF-449（第三次），AF-447 / AF-448 均为 canceled 并归档",
+        "action": "两次 task reissue --apply --archive-old",
+        "why": "①baselineRef 留空不可原地修补；②AF-448 scope 不含 AF-447 归档补齐件，receipt lint 与 preflight 均判越界"
+      },
+      {
+        "item": "闸门清单",
+        "taskSays": "dry-run + pnpm typecheck",
+        "reality": "额外跑 --apply 落盘、台帐复核与 worklog verify --strict",
+        "action": "三项额外证据写入 gateResults",
+        "why": "只跑 dry-run 无法证明合成语料进入台帐读表口径，也证明不了记录包闭环"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三类零语料算子在台帐表三从 0 轮变为 normalization 11 / affirmation 12 / boundary_cross 8 轮，实测/系数比均 100.0%，幅度未被 cap 吞掉；合成语料带五组标记且落 gitignored 目录不入库；内核零 diff、typecheck 0 error、worklog verify PASS。任务编号经两次重签发是其唯一偏差，scope 与目标三单未变。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯本地脚本执行，无 LLM 调用与网络开销；6 个合成会话约 29KB 落 gitignore 目录。"
+  }
+}
