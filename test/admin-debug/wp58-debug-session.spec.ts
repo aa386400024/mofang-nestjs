@@ -52,6 +52,7 @@ import {
   type EngineSessionPort,
   type MemoryStore,
 } from '../../src/engine-core/index.js';
+import { getVisitorSpeechRegister } from '../../src/shared/speech-register/speech-register.calibration.js';
 import { UserModule } from '../../src/user/index.js';
 
 // TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
@@ -258,7 +259,13 @@ class StubCharacterResolver {
   async resolve(request: { readonly templateId?: string }): Promise<ResolvedCharacter | null> {
     this.calls.push({ templateId: request.templateId });
     if (!request.templateId || !this.known.has(request.templateId)) return null;
-    return { characterProfile: makeCharacterProfile(), seed: 42, displayName: '亲密回避型 L1' };
+    const speechRegister = getVisitorSpeechRegister(request.templateId);
+    return {
+      characterProfile: makeCharacterProfile(),
+      seed: 42,
+      displayName: '亲密回避型 L1',
+      ...(speechRegister === undefined ? {} : { speechRegister }),
+    };
   }
 }
 
@@ -496,6 +503,27 @@ describe('WP58 · 引擎调试面板', () => {
       expect(engine.opened[0]?.sessionId).toBe(created.sessionId);
       expect(engine.opened[0]?.tenantId).toBe(DEBUG_CHAT_TENANT_ID);
       expect(engine.opened[0]?.visitorId).toBe('debug-admin');
+    });
+
+    it('registerMode=off → 不向内核登记语域；active → 登记', async () => {
+      const { service, engine } = buildService();
+
+      await service.createSession(KNOWN_SLUG, undefined, undefined, 'off');
+      const offOptions = engine.opened[0]?.options as { readonly speechRegister?: unknown };
+      expect(offOptions.speechRegister).toBeUndefined();
+
+      await service.createSession(KNOWN_SLUG, undefined, undefined, 'active');
+      const activeOptions = engine.opened[1]?.options as { readonly speechRegister?: unknown };
+      expect(activeOptions.speechRegister).toBeDefined();
+    });
+
+    it('registerMode 非法 → 400，且不开会话', async () => {
+      const { service, engine } = buildService();
+      await expect(service.createSession(KNOWN_SLUG, undefined, undefined, 'bogus' as never)).rejects.toMatchObject({
+        code: BizCode.InvalidParameter,
+        message: 'registerMode 只能是 off 或 active',
+      });
+      expect(engine.opened).toHaveLength(0);
     });
 
     it('角色不存在 → 400 (角色不存在), 且不开会话', async () => {

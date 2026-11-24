@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { COUNSELOR_SCRIPT, COUNSELOR_SCRIPT_HASH, TURN_COUNT } from './counselor-script.mjs';
 import { summarizeSession } from './metrics.mjs';
+import { pairedTurnOrder } from './paired-order.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../../..');
@@ -23,9 +24,13 @@ const audit = await import(pathToFileURL(path.join(ROOT, 'dist', 'shared', 'spee
 const calibration = await import(pathToFileURL(path.join(ROOT, 'dist', 'shared', 'speech-register', 'speech-register.calibration.js')));
 
 function parseArgs(argv) {
-  const options = { runId: '', roles: '', turns: TURN_COUNT, taskId: 'AF-465' };
+  const options = { runId: '', roles: '', turns: TURN_COUNT, taskId: 'AF-465', paired: false, port: BASE_PORT };
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
+    if (key === '--paired') {
+      options.paired = true;
+      continue;
+    }
     const value = argv[index + 1];
     if (key === '--run-id') {
       options.runId = value;
@@ -38,6 +43,9 @@ function parseArgs(argv) {
       index += 1;
     } else if (key === '--task-id') {
       options.taskId = value;
+      index += 1;
+    } else if (key === '--port') {
+      options.port = Number(value);
       index += 1;
     }
   }
@@ -121,11 +129,11 @@ async function fetchJson(url, options = {}, attempt = 0) {
   return body;
 }
 
-async function createSession(port, roleKey) {
+async function createSession(port, roleKey, registerMode) {
   return fetchJson(`http://127.0.0.1:${port}/admin/api/debug/session`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ characterSlug: roleKey }),
+    body: JSON.stringify({ characterSlug: roleKey, ...(registerMode === undefined ? {} : { registerMode }) }),
   });
 }
 
@@ -135,6 +143,26 @@ async function runTurn(port, sessionId, text) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ counselorText: text }),
   });
+}
+
+/** 把一轮响应摊成落盘 row（单进程与双进程路径共用同一口径）。 */
+function buildTurnRow(turnIndex, counselorText, response, wallMs) {
+  const trace = response?.trace ?? {};
+  return {
+    turnIndex: turnIndex + 1,
+    counselorText,
+    reply: String(response?.reply ?? ''),
+    promptFull: String(trace.renderSpec?.promptFull ?? ''),
+    bdiSnapshot: trace.bdiSnapshot ?? null,
+    delta: trace.delta ?? null,
+    eventTags: trace.eventTags ?? [],
+    crisis: trace.crisis ?? null,
+    intention: trace.intention ?? null,
+    llmUsage: trace.llmUsage ?? null,
+    degraded: trace.degraded === true,
+    ts: trace.ts ?? null,
+    wallMs,
+  };
 }
 
 async function closeSession(port, sessionId) {
@@ -178,8 +206,12 @@ async function main() {
   if (missing.length > 0) throw new Error(`未知角色: ${missing.join(', ')}`);
   if (turns.length !== TURN_COUNT) throw new Error(`本任务按 30 轮预注册，不能改轮数为 ${turns.length}`);
 
-  await health(BASE_PORT);
-  await health(ACTIVE_PORT);
+  if (options.paired) {
+    await health(options.port);
+  } else {
+    await health(BASE_PORT);
+    await health(ACTIVE_PORT);
+  }
 
   const manifest = {
     runId,
@@ -190,7 +222,8 @@ async function main() {
     turnCount: turns.length,
     roles,
     modes: ['base', 'active'],
-    ports: { base: BASE_PORT, active: ACTIVE_PORT },
+    paired: options.paired,
+    ports: options.paired ? { paired: options.port } : { base: BASE_PORT, active: ACTIVE_PORT },
     model: {
       renderProvider: env.values.ENGINE_RENDER_PRIMARY_PROVIDER ?? '',
       renderModel: env.values.MINIMAX_LLM_MODEL ?? '',
@@ -210,6 +243,119 @@ async function main() {
   }
   manifest.order = order;
   await writeJson(path.join(runDir, 'manifest.json'), manifest);
+
+  if (options.paired) {
+    // AF-475: 同一进程逐轮配对 —— base/active 两场会话在同一端口、同一进程内，
+    // 每个 turn 紧邻执行并翻转先后顺序，抵消整场串行与双进程差异。
+    const port = options.port;
+    for (const item of order) {
+      const register = calibration.getVisitorSpeechRegister(item.role);
+      if (!register) throw new Error(`角色 ${item.role} 缺少语域标定`);
+      const roleDir = path.join(sessionsDir, item.role);
+      await mkdir(roleDir, { recursive: true });
+      metrics.roles[item.role] = {};
+
+      const sessions = {
+        base: await createSession(port, item.role, 'off'),
+        active: await createSession(port, item.role, 'active'),
+      };
+      const startedAt = new Date().toISOString();
+      const runs = {
+        base: { rows: [], failed: false },
+        active: { rows: [], failed: false },
+      };
+
+      for (let turnIndex = 0; turnIndex < turns.length; turnIndex += 1) {
+        const counselorText = turns[turnIndex];
+        // 奇偶轮翻转先后，避免固定“base 先发”带来的一致偏置。
+        const modes = pairedTurnOrder(turnIndex);
+        for (const mode of modes) {
+          const started = Date.now();
+          try {
+            const response = await runTurn(port, sessions[mode].sessionId, counselorText);
+            runs[mode].rows.push(buildTurnRow(turnIndex, counselorText, response, Date.now() - started));
+          } catch (error) {
+            runs[mode].failed = true;
+            runs[mode].rows.push({
+              turnIndex: turnIndex + 1,
+              counselorText,
+              error: error instanceof Error ? error.message : String(error),
+              wallMs: Date.now() - started,
+            });
+            break;
+          }
+          await writeJson(path.join(roleDir, `${mode}.json`), {
+            roleKey: item.role,
+            mode,
+            port,
+            registerMode: mode === 'active' ? 'active' : 'off',
+            sessionId: sessions[mode].sessionId,
+            startedAt,
+            scriptHash: COUNSELOR_SCRIPT_HASH,
+            rows: runs[mode].rows,
+            complete: false,
+          });
+        }
+        if (runs.base.failed || runs.active.failed) break;
+        process.stdout.write(`[${options.taskId}] ${item.role} paired ${turnIndex + 1}/${turns.length}\r`);
+      }
+
+      const endedAt = new Date().toISOString();
+      let failure = null;
+      for (const mode of ['base', 'active']) {
+        const run = runs[mode];
+        const record = {
+          roleKey: item.role,
+          mode,
+          port,
+          registerMode: mode === 'active' ? 'active' : 'off',
+          sessionId: sessions[mode].sessionId,
+          startedAt,
+          endedAt,
+          scriptHash: COUNSELOR_SCRIPT_HASH,
+          rows: run.rows,
+          complete: !run.failed && run.rows.length === turns.length,
+        };
+        await writeJson(path.join(roleDir, `${mode}.json`), record);
+        await closeSession(port, sessions[mode].sessionId);
+        if (run.failed) {
+          failure = `${item.role}/${mode} 存在失败轮；已落盘 ${path.relative(ROOT, path.join(roleDir, `${mode}.json`))}`;
+          continue;
+        }
+        const summary = summarizeSession(run.rows, register, audit.measureSpeechRegisterFit, audit.aggregateSpeechRegisterMetrics);
+        const last10 = summarizeSession(
+          run.rows.slice(-10),
+          register,
+          audit.measureSpeechRegisterFit,
+          audit.aggregateSpeechRegisterMetrics,
+        );
+        const first10 = summarizeSession(
+          run.rows.slice(0, 10),
+          register,
+          audit.measureSpeechRegisterFit,
+          audit.aggregateSpeechRegisterMetrics,
+        );
+        metrics.roles[item.role][mode] = {
+          sessionId: sessions[mode].sessionId,
+          startedAt,
+          endedAt,
+          registerMode: mode === 'active' ? 'active' : 'off',
+          summary,
+          first10: first10.metrics,
+          last10: last10.metrics,
+        };
+      }
+      metrics.generatedAt = new Date().toISOString();
+      await writeJson(path.join(runDir, 'metrics.json'), metrics);
+      process.stdout.write('\n');
+      if (failure) throw new Error(failure);
+    }
+
+    manifest.finishedAt = new Date().toISOString();
+    await writeJson(path.join(runDir, 'manifest.json'), manifest);
+    process.stdout.write(`\n[${options.taskId}] paired 完成 ${roles.length * 2} 场 → ${path.relative(ROOT, runDir)}\n`);
+    return;
+  }
 
   for (const item of order) {
     const register = calibration.getVisitorSpeechRegister(item.role);

@@ -491,6 +491,8 @@ export class DebugSessionService {
    *
    * @param characterSlug 角色代号 (从 `GET /admin/api/characters` 拿)
    * @param scenarioType 场景类型 (可选; 缺省 = 不登记 = 审议侧不施加场景红线)
+   * @param encounter 接触方式 (可选; 缺省 = 不登记)
+   * @param registerMode 语域注入模式 (可选; `off` 不注入, `active` 按资产注入, 缺省保持既有行为)
    * @returns 调试会话信息
    * @throws BizException 开关关闭 (403) / 角色代号为空 (400) / 角色不存在 (400)
    */
@@ -498,6 +500,7 @@ export class DebugSessionService {
     characterSlug: string | undefined,
     scenarioType?: DeliberationScenarioType,
     encounter?: EncounterInput,
+    registerMode?: 'off' | 'active',
   ): Promise<DebugSessionCreated> {
     this.assertEnabled();
     const slug = (characterSlug ?? '').trim();
@@ -509,6 +512,9 @@ export class DebugSessionService {
       throw new BizException(BizCode.InvalidParameter, '角色不存在');
     }
 
+    if (registerMode !== undefined && registerMode !== 'off' && registerMode !== 'active') {
+      throw new BizException(BizCode.InvalidParameter, 'registerMode 只能是 off 或 active');
+    }
     const debugSessionId = `${DEBUG_CHAT_SESSION_ID_PREFIX}${nanoid()}`;
     const opened = this.engine.open(
       {
@@ -530,8 +536,11 @@ export class DebugSessionService {
         //   缺了这一步, 渲染层拿不到「你说话的味道」, 库里的文案等于白落.
         ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
         // AF-462: 语域指纹登记 —— 与台词指纹同一条开场路径.
-        ...(resolved.speechRegister === undefined ? {} : { speechRegister: resolved.speechRegister }),
-        ...(resolved.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: resolved.speechRegisterAudit }),
+        // AF-475: 调试接口可按会话关掉；off 臂不传，active 臂传，缺省保持既有行为.
+        ...(registerMode === 'off' || resolved.speechRegister === undefined ? {} : { speechRegister: resolved.speechRegister }),
+        ...(registerMode === 'off' || resolved.speechRegisterAudit === undefined
+          ? {}
+          : { speechRegisterAudit: resolved.speechRegisterAudit }),
         // 场景类型登记 —— 条件展开 (缺省 = 不登记 = 审议侧不施加场景红线).
         ...(scenarioType === undefined ? {} : { scenarioType }),
         // AF-187: 接触方式登记 —— 条件展开 (缺省 = 不登记 = prompt 逐字不变).
