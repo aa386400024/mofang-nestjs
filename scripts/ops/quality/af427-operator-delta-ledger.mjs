@@ -5,6 +5,10 @@
 //   红线：不打印任何对话原文；不改内核 delta 表 / cap 配置 / env / 分类器 / prompt；不写数据文件。
 //   用法：node scripts/ops/quality/af427-operator-delta-ledger.mjs --dir data/debug-sessions
 //         node scripts/ops/quality/af427-operator-delta-ledger.mjs --json
+//
+//   AF-450 起：语料按 `synthetic` 标记与 `kernelRef` 版本指纹分组。
+//     · 表三只统计真实用户会话（`scope=real`），合成剧本语料单列副表；
+//     · 新增 kernelRef 分布表，让「哪一版内核产出的语料」可见（缺指纹归 none 桶）。
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -190,22 +194,50 @@ export function operatorCapUsage(table) {
   return usage;
 }
 
+/** 语料 scope：real 只算真实会话、synthetic 只算合成会话、all 不过滤。 */
+export const CORPUS_SCOPES = Object.freeze(['real', 'synthetic', 'all']);
+
+/** 会话是否被标记为合成（剧本 / 回放语料）。 */
+function isSyntheticSession(raw) {
+  return raw?.synthetic === true;
+}
+
+/** 列出语料目录里的会话文件（只认 debug_ 前缀）。 */
+function listSessionFiles(dir) {
+  if (!fs.existsSync(dir)) {
+    throw new Error(`语料目录不存在 ${dir}`);
+  }
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.startsWith('debug_') && name.endsWith('.json'))
+    .sort();
+}
+
 /**
  * 扫语料，统计每个算子的命中轮次与实现 delta 均值。
  *
- * @param {{ dir?: string }} [options]
- * @returns {{ sessions: number, turns: number, byOperator: Record<string, object>, uncovered: string[] }}
+ * @param {{ dir?: string, scope?: 'real'|'synthetic'|'all' }} [options]
+ * @returns {{ sessions: number, turns: number, byOperator: Record<string, object>, uncovered: string[], scope: string, realSessions: number, syntheticSessions: number }}
  */
 export function loadOperatorCorpusStats(options = {}) {
   const dir = options.dir ?? 'data/debug-sessions';
+  const scope = options.scope ?? 'all';
+  if (!CORPUS_SCOPES.includes(scope)) {
+    throw new Error(`loadOperatorCorpusStats: 未知 scope ${scope}（支持 ${CORPUS_SCOPES.join(' / ')}）`);
+  }
   if (!fs.existsSync(dir)) {
     throw new Error(`loadOperatorCorpusStats: 目录不存在 ${dir}`);
   }
 
-  const files = fs
-    .readdirSync(dir)
-    .filter((name) => name.startsWith('debug_') && name.endsWith('.json'))
-    .sort();
+  const files = listSessionFiles(dir);
+  // 目录内全量分布（不受 scope 影响），用于说明本次统计口径覆盖了多少真实 / 合成会话
+  let realSessions = 0;
+  let syntheticSessions = 0;
+  for (const file of files) {
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+    if (isSyntheticSession(raw)) syntheticSessions += 1;
+    else realSessions += 1;
+  }
 
   const byOperator = Object.fromEntries(
     OPERATOR_ORDER.map((kind) => [
@@ -223,8 +255,13 @@ export function loadOperatorCorpusStats(options = {}) {
   );
 
   let turns = 0;
+  let sessions = 0;
   for (const file of files) {
     const raw = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+    const synthetic = isSyntheticSession(raw);
+    if (scope === 'real' && synthetic) continue;
+    if (scope === 'synthetic' && !synthetic) continue;
+    sessions += 1;
     for (const trace of raw.traces ?? []) {
       turns += 1;
       const events = trace.deltaDetail?.events ?? [];
@@ -265,7 +302,45 @@ export function loadOperatorCorpusStats(options = {}) {
 
   const uncovered = OPERATOR_ORDER.filter((kind) => byOperator[kind].turns === 0);
 
-  return { sessions: files.length, turns, byOperator, uncovered };
+  return {
+    sessions,
+    turns,
+    byOperator,
+    uncovered,
+    scope,
+    realSessions,
+    syntheticSessions,
+    /** 目录内会话文件总数（含被 scope 过滤掉的部分）。 */
+    totalFiles: files.length,
+  };
+}
+
+/**
+ * 按 `kernelRef`（内核版本指纹）分组统计语料分布。
+ *
+ * 缺指纹的会话（AF-442 之前的历史语料）归入 `none` 桶，不做猜测填充。
+ *
+ * @param {{ dir?: string }} [options]
+ * @returns {{ byKernelRef: Record<string, {sessions: number, turns: number, syntheticSessions: number}>, totalSessions: number }}
+ */
+export function loadCorpusStatsByKernelRef(options = {}) {
+  const dir = options.dir ?? 'data/debug-sessions';
+  const files = listSessionFiles(dir);
+  const groups = new Map();
+
+  for (const file of files) {
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+    const kernelRef = typeof raw?.kernelRef === 'string' && raw.kernelRef.trim() ? raw.kernelRef.trim() : 'none';
+    const bucket = groups.get(kernelRef) ?? { sessions: 0, turns: 0, syntheticSessions: 0 };
+    bucket.sessions += 1;
+    bucket.turns += (raw.traces ?? []).length;
+    if (isSyntheticSession(raw)) bucket.syntheticSessions += 1;
+    groups.set(kernelRef, bucket);
+  }
+
+  const byKernelRef = Object.fromEntries([...groups.entries()].sort((a, b) => b[1].sessions - a[1].sessions || a[0].localeCompare(b[0])));
+
+  return { byKernelRef, totalSessions: files.length };
 }
 
 /**
@@ -276,20 +351,27 @@ export function loadOperatorCorpusStats(options = {}) {
  */
 export function buildLedger(options = {}) {
   const rootDir = options.rootDir ?? '.';
+  const dir = path.join(rootDir, options.dir ?? 'data/debug-sessions');
   const sourcePath = path.join(rootDir, DELTA_TABLE_SOURCE);
   const sourceText = fs.readFileSync(sourcePath, 'utf8');
   const table = parseDeltaTable(sourceText);
   const usage = operatorCapUsage(table);
-  const corpus = loadOperatorCorpusStats({ dir: path.join(rootDir, options.dir ?? 'data/debug-sessions') });
+  // 表三主表只统计真实会话；合成剧本语料单列，避免把「剧本喂出来的 100%」混进真实幅度口径
+  const corpus = loadOperatorCorpusStats({ dir, scope: 'real' });
+  const syntheticCorpus = loadOperatorCorpusStats({ dir, scope: 'synthetic' });
+  const kernelRefDistribution = loadCorpusStatsByKernelRef({ dir });
 
   return {
     generatedFor: 'AF-427',
+    updatedBy: 'AF-450',
     source: DELTA_TABLE_SOURCE,
     operators: OPERATOR_ORDER,
     dims: DELTA_DIMS,
     table,
     usage,
     corpus,
+    syntheticCorpus,
+    kernelRefDistribution,
   };
 }
 
@@ -320,7 +402,9 @@ export function renderLedgerMarkdown(ledger) {
   }
   lines.push('');
 
-  lines.push('### 表三 · 语料覆盖（13 场 debug 会话）');
+  lines.push(`### 表三 · 语料覆盖（${ledger.corpus.sessions} 场真实 debug 会话）`);
+  lines.push('');
+  lines.push('口径：只统计 `synthetic !== true` 的真实会话；剧本 / 回放语料见下方「表三附」。');
   lines.push('');
   lines.push('| 算子 | 命中轮次 | 单算子轮 | 多算子同轮 | 实现幅度绝对值和（8 维，单算子轮） | 实测/系数比 |');
   lines.push('| --- | --- | --- | --- | --- | --- |');
@@ -335,6 +419,47 @@ export function renderLedgerMarkdown(ledger) {
   }
   lines.push('');
   lines.push(`会话数=${ledger.corpus.sessions}，轮次=${ledger.corpus.turns}，零语料算子=${ledger.corpus.uncovered.join(', ') || '无'}`);
+  lines.push('');
+
+  const syntheticCorpus = ledger.syntheticCorpus;
+  if (syntheticCorpus && syntheticCorpus.sessions > 0) {
+    lines.push(`### 表三附 · 合成语料覆盖（${syntheticCorpus.sessions} 场剧本对话，不计入表三口径）`);
+    lines.push('');
+    lines.push('口径：`synthetic === true` 的剧本 / 回放语料，只用于验证算子幅度是否生效、是否被 cap 吞掉，不得作为真实用户行为证据。');
+    lines.push('');
+    lines.push('| 算子 | 命中轮次 | 单算子轮 | 多算子同轮 | 实现幅度绝对值和（8 维，单算子轮） | 实测/系数比 |');
+    lines.push('| --- | --- | --- | --- | --- | --- |');
+    for (const kind of ledger.operators) {
+      const entry = syntheticCorpus.byOperator[kind];
+      const absSum = REALIZED_DIMS.reduce((sum, dim) => sum + entry.realizedSingleMean[dim], 0);
+      const coefSum = REALIZED_DIMS.reduce((sum, dim) => sum + Math.abs(ledger.table[kind][dim] ?? 0), 0);
+      const ratio = coefSum === 0 ? null : absSum / coefSum;
+      lines.push(
+        `| ${kind} | ${entry.turns} | ${entry.singleEventTurns} | ${entry.multiEventTurns} | ${entry.singleEventTurns ? absSum.toFixed(4) : '-'} | ${entry.singleEventTurns && ratio !== null ? `${(ratio * 100).toFixed(1)}%` : '-'} |`,
+      );
+    }
+    lines.push('');
+    lines.push(
+      `合成会话数=${syntheticCorpus.sessions}，轮次=${syntheticCorpus.turns}，合成零语料算子=${syntheticCorpus.uncovered.join(', ') || '无'}`,
+    );
+    lines.push('');
+  }
+
+  const distribution = ledger.kernelRefDistribution;
+  if (distribution) {
+    lines.push('### 表四 · 语料 kernelRef 分布（内核函数指纹版本）');
+    lines.push('');
+    lines.push('口径：`kernelRef` 是会话落盘时的内核 delta 表指纹（AF-442 起写入）；`none` 为无指纹的历史语料。');
+    lines.push('');
+    lines.push('| kernelRef | 会话数 | 轮次 | 其中合成会话 |');
+    lines.push('| --- | --- | --- | --- |');
+    for (const [kernelRef, bucket] of Object.entries(distribution.byKernelRef)) {
+      lines.push(`| ${kernelRef} | ${bucket.sessions} | ${bucket.turns} | ${bucket.syntheticSessions} |`);
+    }
+    lines.push('');
+    lines.push(`语料总数=${distribution.totalSessions}，指纹版本数=${Object.keys(distribution.byKernelRef).length}`);
+  }
+
   return lines.join('\n');
 }
 
