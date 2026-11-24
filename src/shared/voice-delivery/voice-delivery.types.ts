@@ -27,7 +27,7 @@ export interface VoiceDeliveryProfile {
   readonly speed: number;
   /** 音量（1 = 原音量；建议 0.9–1.05）. */
   readonly volume: number;
-  /** 音调（半音；建议 -4–4）. */
+  /** 音调（整数半音；建议 -4–4，MiniMax/豆包都要求整数）. */
   readonly pitch: number;
   readonly style: DeliveryStyle;
   readonly difficulty: DeliveryDifficulty;

@@ -9,6 +9,7 @@ export {
   toDoubaoAudioParams,
   toMiniMaxEmotion,
   toMiniMaxVoiceSetting,
+  toMiniMaxVoiceSettingValues,
 } from './voice-delivery.render.js';
 export type {
   DeliveryDifficulty,
@@ -17,4 +18,9 @@ export type {
   VoiceDeliveryInput,
   VoiceDeliveryProfile,
 } from './voice-delivery.types.js';
-export type { VoiceDeliveryRenderResult, VoiceDeliveryRendererCapabilities } from './voice-delivery.render.js';
+export type {
+  MiniMaxVoiceSetting,
+  MiniMaxVoiceSettingInput,
+  VoiceDeliveryRenderResult,
+  VoiceDeliveryRendererCapabilities,
+} from './voice-delivery.render.js';

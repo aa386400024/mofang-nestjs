@@ -198,7 +198,9 @@ export function buildVoiceDeliveryProfile(input: VoiceDeliveryInput): VoiceDeliv
 
   let pitch = STYLE_PITCH[style] + pitchOfEmotion(emotion);
   if (difficulty === 'L3') pitch -= 1;
-  pitch = round2(clamp(pitch, -3, 2));
+  // 三家 provider 的 pitch 都是整数半音（MiniMax ±12、豆包 ±12）；在源头量化，
+  // 调试预览展示的就是实际下发值，避免“预览 -0.7、请求 -1”的漂移。
+  pitch = Math.round(clamp(pitch, -4, 4));
 
   const partial = { emotion, style, difficulty };
   return {
@@ -215,7 +217,7 @@ export function buildVoiceDeliveryProfile(input: VoiceDeliveryInput): VoiceDeliv
     contextText: contextTextOf(partial),
     notes: [
       `情绪=${emotion} 强度=${intensity}`,
-      `语速=${speed.toFixed(2)} 音量=${volume.toFixed(2)} 音调=${pitch.toFixed(2)}`,
+      `语速=${speed.toFixed(2)} 音量=${volume.toFixed(2)} 音调=${pitch}`,
       `风格=${style} 难度=${difficulty}`,
     ],
   };

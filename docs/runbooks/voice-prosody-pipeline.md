@@ -103,17 +103,19 @@ admin-dashboard/               来访者气泡"语"按钮 + 语音形态面板
 
 `VoiceDeliveryProfile` 是唯一真相源，字段与映射如下：
 
-| 字段               | 来源                                       | MiniMax                       | 豆包 2.0                                   |
-| ------------------ | ------------------------------------------ | ----------------------------- | ------------------------------------------ |
-| `emotion`          | semantic JSON / 情绪基线                   | `voice_setting.emotion`       | 只进 `context_texts`（2.0 无逐字情绪参数） |
-| `emotionIntensity` | 唤醒 + 效价                                | 影响语速/音量/音调的细微项    | 写进风格指令                               |
-| `speed`            | 风格 + 情绪 + 话量基线 + 难度（0.85–1.08） | `voice_setting.speed`         | `audio_params.speech_rate`（-50–100）      |
-| `volume`           | 防御水平（0.9–1.05）                       | `voice_setting.vol`           | `audio_params.loudness_rate`（-50–100）    |
-| `pitch`            | 情绪效价（-4–4 半音）                      | `voice_setting.pitch`         | `audio_params.pitch_rate`（-12–12）        |
-| `contextText`      | 风格 + 难度 + 情绪强度                     | 不适用                        | `context_texts[0]`（只第一条生效、不计费） |
-| `voiceId`（可选）  | 调试页 / 生产握手覆盖                      | 覆盖 `voice_setting.voice_id` | 覆盖 `speaker`                             |
+| 字段               | 来源                                       | MiniMax                              | 豆包 2.0                                   |
+| ------------------ | ------------------------------------------ | ------------------------------------ | ------------------------------------------ |
+| `emotion`          | semantic JSON / 情绪基线                   | `voice_setting.emotion`              | 只进 `context_texts`（2.0 无逐字情绪参数） |
+| `emotionIntensity` | 唤醒 + 效价                                | 影响语速/音量/音调的细微项           | 写进风格指令                               |
+| `speed`            | 风格 + 情绪 + 话量基线 + 难度（0.85–1.08） | `voice_setting.speed`                | `audio_params.speech_rate`（-50–100）      |
+| `volume`           | 防御水平（0.9–1.05）                       | `voice_setting.vol`                  | `audio_params.loudness_rate`（-50–100）    |
+| `pitch`            | 情绪效价（整数半音 -4–4）                  | `voice_setting.pitch`（integer ±12） | `audio_params.pitch_rate`（±12）           |
+| `contextText`      | 风格 + 难度 + 情绪强度                     | 不适用                               | `context_texts[0]`（只第一条生效、不计费） |
+| `voiceId`（可选）  | 调试页 / 生产握手覆盖                      | 覆盖 `voice_setting.voice_id`        | 覆盖 `speaker`                             |
 
-豆包额外开启 `additions.max_length_to_filter_parenthesis`、`disable_markdown_filter`、`disable_emoji_filter`，并在文本末尾用 `silence_duration`（0–30000ms）承接句末长沉默；句内长沉默豆包 2.0 没有对应能力，预览会明确标"未落地"。
+豆包 `voice_setting` 之外的 `req_params.additions` **必须是 JSON 序列化后的字符串**，不是对象；`max_length_to_filter_parenthesis=100` 表示过滤长度 ≤100 字符的括号注释，`disable_markdown_filter=true` / `disable_emoji_filter=true` 才表示解析并过滤对应语法，`silence_duration`（0–30000ms）只承接文本末尾长沉默；句内长沉默豆包 2.0 没有对应能力，预览会明确标"未落地"。
+
+**参数类型契约（AF-461）**：MiniMax `speed`/`vol` 是 float，`pitch` 必须是 integer；TypeScript 的 `number` 不区分 int/float，所以 `toMiniMaxVoiceSettingValues()` 统一做有限性检查、范围夹取与 pitch 取整，调试同步合成与生产 WebSocket 共用这一份函数。交付档案在 `buildVoiceDeliveryProfile()` 里就把 pitch 量化为整数，保证预览值与实际下发值一致。
 
 **播音腔抑制**：`contextText` 固定写明"真实来访者口吻，不要新闻播报或播音腔"，同时把语速压到 0.85–1.08、音调限制在 ±4 半音；不靠提高音量或加情绪词来"演"。
 
