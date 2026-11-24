@@ -65,7 +65,7 @@ function main() {
     const active = role.metrics.active;
     const b = role.blind.base;
     const a = role.blind.active;
-    return `| \`${role.roleKey}\` | ${role.direction} | ${role.preferenceVotes.active}/${role.preferenceVotes.base}/${role.preferenceVotes.tie} | ${fmt(b.register_fit.mean)} → ${fmt(a.register_fit.mean)} (${fmt(a.register_fit.mean - b.register_fit.mean, 1)}) | ${fmt(a.stereotype_risk.mean)} | ${fmt(a.cross_turn_stability.mean)} | ${fmt(a.concreteness.mean)} | ${pct(base.metrics.signatureHitRate)} → ${pct(active.metrics.signatureHitRate)} | ${fmt(base.metrics.anchorDensity)} → ${fmt(active.metrics.anchorDensity)} | ${fmt(base.prompt.averageChars, 0)} → ${fmt(active.prompt.averageChars, 0)} | ${role.guardrail.bdiMismatchTurns} |`;
+    return `| \`${role.roleKey}\` | ${role.direction} | ${role.preferenceVotes.active}/${role.preferenceVotes.base}/${role.preferenceVotes.tie} | ${fmt(b.register_fit.mean)} → ${fmt(a.register_fit.mean)} (${fmt(a.register_fit.mean - b.register_fit.mean, 1)}) | ${fmt(a.stereotype_risk.mean)} | ${fmt(a.cross_turn_stability.mean)} | ${fmt(a.concreteness.mean)} | ${pct(base.metrics.signatureHitRate)} → ${pct(active.metrics.signatureHitRate)} | ${fmt(base.metrics.anchorDensity)} → ${fmt(active.metrics.anchorDensity)} | ${fmt(base.prompt.averageChars, 0)} → ${fmt(active.prompt.averageChars, 0)} | ${fmt(base.latency.p95Ms, 0)} → ${fmt(active.latency.p95Ms, 0)} (${pct((active.latency.p95Ms / base.latency.p95Ms - 1) * 100)}) | ${pct(base.usage.cacheHitRate)} → ${pct(active.usage.cacheHitRate)} | ${role.guardrail.bdiMismatchTurns} |`;
   });
 
   const injected = analysis.roles.filter((role) => role.metrics.active.prompt.registerTurnCount === role.metrics.active.turns);
@@ -79,6 +79,23 @@ function main() {
       : fitDeltas.length % 2 === 1
         ? fitDeltas[(fitDeltas.length - 1) / 2]
         : (fitDeltas[fitDeltas.length / 2 - 1] + fitDeltas[fitDeltas.length / 2]) / 2;
+
+  // AF-478: 缓存命中率只做观测 —— 上游没报的角色不参与中位, 全部没报时显式说明.
+  const cachePairs = analysis.roles
+    .map((role) => ({
+      base: role.metrics.base.usage?.cacheHitRate,
+      active: role.metrics.active.usage?.cacheHitRate,
+    }))
+    .filter((pair) => typeof pair.base === 'number' && typeof pair.active === 'number');
+  const medianOf = (values) => {
+    if (values.length === 0) return 0;
+    const sorted = [...values].sort((left, right) => left - right);
+    return sorted.length % 2 === 1 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+  };
+  const cacheLine =
+    cachePairs.length === 0
+      ? '- 缓存命中：上游未上报 `cachedTokens`，本轮无法区分“缓存命中”与“真的多算”。'
+      : `- 缓存命中：base 中位 ${pct(medianOf(cachePairs.map((pair) => pair.base)))}，active 中位 ${pct(medianOf(cachePairs.map((pair) => pair.active)))}（${cachePairs.length}/${analysis.roles.length} 角色可用）。`;
 
   const lines = [
     `# ${analysis.taskId ?? 'AF-465'} 来访者语域指纹机制稳定性评测（AI 盲评）`,
@@ -113,8 +130,8 @@ function main() {
     '',
     '## 逐角色',
     '',
-    '| 角色 | 方向 | active/base/tie | 语域贴合 base→active (Δ) | 刻板安全 | 跨轮稳定 | 具体度 | 标志词命中 base→active | 锚点密度 base→active | prompt 字符 base→active | BDI 不一致轮 |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| 角色 | 方向 | active/base/tie | 语域贴合 base→active (Δ) | 刻板安全 | 跨轮稳定 | 具体度 | 标志词命中 base→active | 锚点密度 base→active | prompt 字符 base→active | p95 ms base→active (Δ%) | 缓存命中率 base→active | BDI 不一致轮 |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ...roleRows,
     '',
     '## 摘要',
@@ -124,6 +141,7 @@ function main() {
     `- 跨轮稳定：${analysis.gates.stability.stabilitySafe}/${manifest.roles.length} 个角色 active 的 \`cross_turn_stability\` 均值 ≥ 4；后 10 轮标志词命中达标 ${analysis.gates.stability.driftSafe}/${manifest.roles.length}。`,
     `- 护栏：BDI 不一致 ${analysis.gates.bdiGuardrail.bdiMismatchTurns} 轮；crisis 与事件分类按场记录在 \`analysis.json\`。`,
     `- 成本：prompt 字符中位 ${pct(analysis.gates.cost.promptOverheadPct)}；p95 延迟中位 ${pct(analysis.gates.cost.latencyOverheadPct)}。`,
+    cacheLine,
     '',
     '## 限制',
     '',

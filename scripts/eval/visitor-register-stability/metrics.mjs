@@ -97,6 +97,10 @@ export function summarizeSession(rows, register, measureSpeechRegisterFit, aggre
   const latencies = rows.map((row) => Number(row.wallMs ?? 0)).filter((value) => value > 0);
   const promptTokens = rows.reduce((sum, row) => sum + Number(row.llmUsage?.promptTokens ?? 0), 0);
   const completionTokens = rows.reduce((sum, row) => sum + Number(row.llmUsage?.completionTokens ?? 0), 0);
+  const cachedRows = rows.filter((row) => typeof row.llmUsage?.cachedTokens === 'number' && Number.isFinite(row.llmUsage.cachedTokens));
+  const cachedTokens = cachedRows.reduce((sum, row) => sum + Number(row.llmUsage.cachedTokens), 0);
+  const cachedTokensAvailable = cachedRows.length > 0;
+  const cacheHitRate = promptTokens === 0 ? 0 : round(cachedTokens / promptTokens, 4);
   return {
     turns: rows.length,
     prompt: {
@@ -115,7 +119,14 @@ export function summarizeSession(rows, register, measureSpeechRegisterFit, aggre
       medianMs: round(median(latencies), 1),
       p95Ms: round(percentile(latencies, 0.95), 1),
     },
-    usage: { promptTokens, completionTokens },
+    usage: {
+      promptTokens,
+      completionTokens,
+      // AF-478: null = 本场所有轮次都没报缓存命中 (不可得), 不是 0.
+      cachedTokens: cachedTokensAvailable ? cachedTokens : null,
+      cacheHitRate: cachedTokensAvailable ? cacheHitRate : null,
+      cachedTokensAvailable,
+    },
     crisisDetected: rows.filter((row) => row.crisis?.detected === true).length,
     degraded: rows.filter((row) => row.degraded === true).length,
   };

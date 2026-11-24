@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-478",
+  "contextId": "phase2.5-visitor-register-eval",
+  "status": "submitted",
+  "createdAt": "2026-11-25T09:30:00+08:00",
+  "updatedAt": "2026-11-24T23:32:12.124Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/task-sheet.md",
+    "sha256": "0517ddd6c2191d7574cac68dbbfee1716d52365c8956b9fa3ff9dbd94022cfd9",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-1.json",
+      "sha256": "bc1d6ffc5dd0b92fbb1d3ee517589a854fd4a8ec9966e27d0862ae6614a87e4a",
+      "receiptId": "RC-AF-478-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-2.json",
+      "sha256": "4c98f5ec91e5294a250a7dab584964fc2b43885aacbd1df57810b142ba91df46",
+      "receiptId": "RC-AF-478-2"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af478-register-cache-observability-and-paired-rerun-implementation-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-register-cache-observability-task-2026-11-25-v2.md"
+  ],
+  "tombstone": null
+}

@@ -331,6 +331,8 @@ export interface TurnRenderResult {
       readonly promptTokens?: number;
       /** 思考 token 数 (推理模型专用; V2026-10-29 WP9-C 增, 供探针核对思考量). */
       readonly reasoningTokens?: number;
+      /** 命中前缀缓存的输入 token 数 (AF-478; 缺省 = 上游没报). */
+      readonly cachedTokens?: number;
     };
     /**
      * 本轮实际使用的模型名 (WP24 · 成本日志要按模型归集).
@@ -496,6 +498,8 @@ interface NormalizedRender {
     readonly promptTokens?: number;
     /** 思考 token (缺省 = 上游没报). */
     readonly reasoningTokens?: number;
+    /** 命中前缀缓存的输入 token (缺省 = 上游没报). AF-478. */
+    readonly cachedTokens?: number;
   };
   /** 本轮实际使用的模型名 (缺省 = 上游没报 / 降级). */
   readonly model?: string;
@@ -1272,6 +1276,8 @@ export class TurnRenderOrchestrator {
           totalTokens: result.usage.totalTokens,
           // WP24: 上游报了输入侧用量就带上去 (流式路径走不到这里, 那时也没有).
           ...(result.usage.promptTokens === undefined ? {} : { promptTokens: result.usage.promptTokens }),
+          // AF-478: 聚合路径的缓存命中量同源透出 (内核契约不含, 适配层结构扩展).
+          ...cachedUsageField(result.usage),
         },
         ...(result.model ? { model: result.model } : {}),
         // V2026-10-30 治本 (WP19-R · 留痕): 聚合路径只有内核契约里的那几项 ——
@@ -1325,6 +1331,7 @@ export class TurnRenderOrchestrator {
           totalTokens: outcome.usage.totalTokens,
           ...(outcome.usage.promptTokens === undefined ? {} : { promptTokens: outcome.usage.promptTokens }),
           ...(outcome.usage.reasoningTokens === undefined ? {} : { reasoningTokens: outcome.usage.reasoningTokens }),
+          ...cachedUsageField(outcome.usage),
         },
         ...(outcome.model ? { model: outcome.model } : {}),
         // V2026-10-30 治本 (WP19-R · 留痕): 流式路径能拿到真值 (真值只在适配器里).
@@ -2369,4 +2376,15 @@ function warn(message: string): void {
  */
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * 读出适配层扩展的缓存命中量 (AF-478).
+ *
+ * 内核 `RenderResult.usage` 不含该字段; 聚合/流式两个来源以同构扩展携带,
+ * 这里按 unknown 结构读取, 缺省 = 上游没报.
+ */
+function cachedUsageField(usage: unknown): { readonly cachedTokens?: number } {
+  const raw = (usage as { readonly cachedTokens?: unknown } | undefined)?.cachedTokens;
+  return typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 ? { cachedTokens: raw } : {};
 }

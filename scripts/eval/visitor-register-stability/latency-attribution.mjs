@@ -200,6 +200,11 @@ export function summarizeMode(turns) {
   const post = describeDistribution(turns.map((turn) => turn.postMs));
   const promptTokens = describeDistribution(turns.map((turn) => turn.promptTokens));
   const completionTokens = describeDistribution(turns.map((turn) => turn.completionTokens));
+  const cachedValues = turns.map((turn) => turn.cachedTokens).filter((value) => typeof value === 'number');
+  const cachedAvailable = cachedValues.length > 0;
+  const cachedTotal = cachedValues.reduce((sum, value) => sum + value, 0);
+  const promptTotal = turns.reduce((sum, turn) => sum + turn.promptTokens, 0);
+  const cacheHitRate = cachedAvailable && promptTotal > 0 ? round(cachedTotal / promptTotal, 4) : null;
   const blockChars = turns.map((turn) => turn.block.chars).filter((value) => value > 0);
   const blockPositions = turns.map((turn) => turn.block.position).filter((value) => value !== null);
   return {
@@ -209,6 +214,12 @@ export function summarizeMode(turns) {
     post,
     promptTokens,
     completionTokens,
+    cache: {
+      available: cachedAvailable,
+      totalCachedTokens: cachedAvailable ? cachedTotal : null,
+      hitRate: cacheHitRate,
+      turnsReported: cachedValues.length,
+    },
     promptChars: round(mean(turns.map((turn) => turn.promptChars)), 1),
     postPerCompletionToken: round(mean(turns.map((turn) => turn.postMs / Math.max(1, turn.completionTokens))), 1),
     blockChars: blockChars.length === 0 ? 0 : round(median(blockChars), 0),

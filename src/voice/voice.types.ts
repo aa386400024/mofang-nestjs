@@ -198,6 +198,8 @@ export type VoiceServerMessage =
         readonly totalTokens?: number;
         /** 思考 token 数 (推理模型专用). */
         readonly reasoningTokens?: number;
+        /** 命中前缀缓存的输入 token 数 (上游报了就带; 缺省 = 不可得). AF-478. */
+        readonly cachedTokens?: number;
       };
       /** 本场第几轮 (从 1 起; 缺省 = 后端没给轮次号). */
       readonly turnIndex?: number;

@@ -112,6 +112,12 @@ export interface StreamRenderOutcome {
      * 两者混在一起就看不出"输出被截断"还是"思考吃光了预算".
      */
     readonly reasoningTokens?: number;
+    /**
+     * 命中前缀缓存的输入 token 数 (上游报了就带; 缺省 = 不可得).
+     *
+     * AF-478: 只做观测, 不改变 `promptTokens` 的输入总量语义. 缺省 ≠ 0.
+     */
+    readonly cachedTokens?: number;
   };
   /** 是否走过备用路径 (切过备 / 走过降级). */
   readonly fallbackUsed: boolean;
