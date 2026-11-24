@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-24T06:52:20.843Z",
+  "generatedAt": "2026-11-24T07:54:33.253Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2018,6 +2018,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-362",
+      "recordedAt": "2026-11-24T07:46:52.210Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-461",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-461-tts-provider-type-contract"
+      ]
+    },
+    {
+      "auditId": "AUD-361",
+      "recordedAt": "2026-11-24T07:46:43.615Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-461",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-461",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-461.json"
+      ]
+    },
+    {
+      "auditId": "AUD-360",
+      "recordedAt": "2026-11-24T07:46:35.182Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-461",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-359",
       "recordedAt": "2026-11-24T06:13:44.587Z",
       "actorRef": "orchestrator",
@@ -2206,67 +2253,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-347",
-      "recordedAt": "2026-11-24T02:39:50.649Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-455",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-455",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-455.json"
-      ]
-    },
-    {
-      "auditId": "AUD-346",
-      "recordedAt": "2026-11-24T02:39:39.120Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-455",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-345",
-      "recordedAt": "2026-11-24T02:28:44.660Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-454",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-454-engine-core-comment"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 359,
+    "total": 362,
     "byResult": {
-      "allowed": 359,
+      "allowed": 362,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 358,
+      "TOOL-QUEUE-SCHEDULER": 361,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 359
+      "orchestrator": 362
     }
   },
   "protocolView": {
@@ -9860,6 +9860,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af460-voice-delivery-layer-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-461",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-voice-delivery/AF-461/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af461-tts-provider-type-contract-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -9884,5 +9902,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 430
+  "archivedCount": 431
 };
