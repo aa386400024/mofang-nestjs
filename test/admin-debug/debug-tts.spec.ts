@@ -118,6 +118,133 @@ describe('AF-395 调试 TTS provider 协议', () => {
     expect(out.audio.equals(Buffer.from([1, 2, 3]))).toBe(true);
     expect(out.usage).toEqual({ text_words: 2 });
   });
+
+  it('AF-460: 豆包 2.0 真实映射语速/音量/音调，组合风格指令优先，末尾静默可用', async () => {
+    let capturedBody: unknown;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: { body?: string }) => {
+        capturedBody = JSON.parse(init.body ?? '{}');
+        return Response.json(
+          { code: 20_000_000, data: Buffer.from([1]).toString('base64') },
+          {
+            status: 200,
+            headers: { 'content-type': 'text/plain' },
+          },
+        );
+      }),
+    );
+    const input = {
+      ...baseInput('你好'),
+      voiceId: 'zh_female_vv_uranus_bigtts',
+      model: 'doubao-seed-tts-2.0',
+      speed: 0.93,
+      volume: 0.94,
+      pitch: -2,
+      apiKey: 'ark-key',
+      baseUrl: 'https://openspeech.bytedance.com/api/v3/plan/tts/unidirectional',
+      deliveryContext: '请用真实来访者的口吻，不要新闻播报或播音腔。',
+      trailingSilenceMs: 5200,
+    };
+    await synthesizeDoubao(input, 'doubao-seed-tts-2.0');
+    expect(capturedBody).toMatchObject({
+      req_params: {
+        audio_params: { speech_rate: -7, loudness_rate: -6, pitch_rate: -2 },
+        context_texts: ['请用真实来访者的口吻，不要新闻播报或播音腔。'],
+        additions: { max_length_to_filter_parenthesis: 0, silence_duration: 5200 },
+      },
+    });
+  });
+});
+
+describe('AF-460 语音形态预览', () => {
+  it('inspect 带出交付参数、逐句厂商形态与能力声明，不触发上游', async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        calls += 1;
+        return Response.json({ data: { audio: 'ff' }, base_resp: { status_code: 0 } }, { status: 200 });
+      }),
+    );
+    const turnRepo = {
+      findOne: async () =>
+        ({
+          practiceSessionId: 'p1',
+          turnIndex: 1,
+          visitorDisplayText: '其实我最近一直睡不好。白天也提不起劲，做什么都没意思。',
+          visitorTtsText: '其实我最近一直睡不好。白天也提不起劲，做什么都没意思。',
+          visitorSemanticJson: JSON.stringify({ emotion: 'sad' }),
+        }) as PracticeTurn,
+    } as unknown as Repository<PracticeTurn>;
+    const practiceRepo = {
+      findOne: async () => ({ id: 'p1', characterSlug: 'vpt_grief_avoidance_l1' }) as PracticeSession,
+    } as unknown as Repository<PracticeSession>;
+    const dataSource = {
+      getRepository: (entity: unknown) => (entity === PracticeTurn ? turnRepo : practiceRepo),
+    } as unknown as import('typeorm').DataSource;
+    const renderRepo = { findOne: async () => null } as unknown as Repository<AdminDebugTtsRenderEntity>;
+    const service = new DebugTtsService(renderRepo, dataSource, {} as DebugSessionService, configStub());
+    const preview = await service.inspect('auto_practice', 'p1', 1, 'doubao-seed-tts-2.0');
+    expect(preview.provider).toBe('doubao-seed-tts-2.0');
+    expect(preview.model).toBe('doubao-seed-tts-2.0');
+    expect(preview.voiceId).toBe('zh_female_vv_uranus_bigtts');
+    expect(preview.delivery.emotion).toBe('sad');
+    expect(preview.delivery.speed).toBeLessThan(1);
+    expect(preview.delivery.contextText).toContain('不要新闻播报或播音腔');
+    expect(preview.capabilities.longSilence).toBe(false);
+    expect(preview.sentences.length).toBeGreaterThan(1);
+    expect(preview.sentences.every((s) => s.ttsText.length > 0)).toBe(true);
+    expect(preview.estimatedDurationMs).toBeGreaterThan(0);
+    expect(calls).toBe(0);
+  });
+
+  it('voiceId 覆盖进缓存键，不串用别的音色音频', async () => {
+    const rows: AdminDebugTtsRenderEntity[] = [];
+    const renderRepo = {
+      create: (x: AdminDebugTtsRenderEntity) => x,
+      insert: async (x: AdminDebugTtsRenderEntity) => {
+        rows.push(x);
+      },
+      findOne: async ({ where }: { where: Partial<AdminDebugTtsRenderEntity> }) =>
+        rows.find((row) => Object.entries(where).every(([k, v]) => (row as unknown as Record<string, unknown>)[k] === v)) ?? null,
+    } as unknown as Repository<AdminDebugTtsRenderEntity>;
+    const turnRepo = {
+      findOne: async () =>
+        ({
+          practiceSessionId: 'p1',
+          turnIndex: 1,
+          visitorDisplayText: '我有点累',
+          visitorTtsText: '我有点累',
+          visitorSemanticJson: JSON.stringify({ emotion: 'calm' }),
+        }) as PracticeTurn,
+    } as unknown as Repository<PracticeTurn>;
+    const practiceRepo = {
+      findOne: async () => ({ id: 'p1', characterSlug: 'vpt_grief_avoidance_l1' }) as PracticeSession,
+    } as unknown as Repository<PracticeSession>;
+    const dataSource = {
+      getRepository: (entity: unknown) => (entity === PracticeTurn ? turnRepo : practiceRepo),
+    } as unknown as import('typeorm').DataSource;
+    let calls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        calls += 1;
+        return Response.json({ data: { audio: 'ff' }, base_resp: { status_code: 0 } }, { status: 200 });
+      }),
+    );
+    const service = new DebugTtsService(renderRepo, dataSource, {} as DebugSessionService, configStub());
+    const first = await service.render('auto_practice', 'p1', 1, 'minimax-hd', 'voice-a');
+    const same = await service.render('auto_practice', 'p1', 1, 'minimax-hd', 'voice-a');
+    const other = await service.render('auto_practice', 'p1', 1, 'minimax-hd', 'voice-b');
+    expect(first.cached).toBe(false);
+    expect(first.model).toBe('speech-2.8-hd');
+    expect(first.voiceId).toBe('voice-a');
+    expect(same.cached).toBe(true);
+    expect(other.cached).toBe(false);
+    expect(other.voiceId).toBe('voice-b');
+    expect(calls).toBe(2);
+  });
 });
 
 describe('AF-395 缓存闭环', () => {

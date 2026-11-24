@@ -87,8 +87,22 @@ import { VisitorService } from '../agent/visitor/visitor.service.js';
 import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types.js';
 import { buildProsodyPlan, ProsodyStreamSanitizer } from '../shared/prosody/index.js';
 import type { ProsodyTurnPlan } from '../shared/prosody/index.js';
+import { buildVoiceDeliveryProfile } from '../shared/voice-delivery/index.js';
+import type { VoiceDeliveryProfile } from '../shared/voice-delivery/index.js';
 
 type SendFn = (msg: VoiceServerMessage) => void;
+
+/**
+ * 情绪基线 → 交付档案情绪（保守映射，等角色画像接入后替换数据源）.
+ *
+ * @param baseline 内在空洞感 0–1
+ * @returns sad / fearful / calm
+ */
+function emotionOfBaseline(baseline: number): 'sad' | 'fearful' | 'calm' {
+  if (baseline >= 0.7) return 'sad';
+  if (baseline >= 0.5) return 'fearful';
+  return 'calm';
+}
 
 /**
  * 读一个**正数**配置 (V2026-11-03, WP23).
@@ -1150,7 +1164,8 @@ export class VoiceService {
       return { ttsHandle: null, ttsPump: null };
     }
     const prosody = this.buildTurnProsody(state, turnIndex);
-    const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send, prosody) : null;
+    const delivery = this.buildTurnDelivery(state, turnIndex);
+    const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send, prosody, delivery) : null;
     if (state.meta.mode === 'voice' && !ttsHandle) {
       // TTS 起不来 (音色没配 / 上游握手失败) → 本轮不出声, 直接收尾.
       return null;
@@ -1180,6 +1195,34 @@ export class VoiceService {
       turnIndex,
       style: state.meta.preset.style,
       difficulty: state.meta.preset.difficulty,
+    });
+  }
+
+  /**
+   * 构建本轮语音交付档案 (AF-460).
+   *
+   * 情绪基线越低（空洞感越重）越接近哀伤/恐惧；防御越高越压低音量、放慢语速。
+   * 没有角色画像的丰富维度时用会话可得的两个参数（emotionBaseline/defenseLevel）
+   * 做保守映射，等画像接入后再替换数据源，不改变交付层契约。
+   *
+   * @param state 会话状态
+   * @param turnIndex 本场第几轮
+   * @returns 本轮交付档案
+   */
+  private buildTurnDelivery(state: VoiceSessionState, turnIndex: number): VoiceDeliveryProfile {
+    const baseline = state.meta.preset.emotionBaseline;
+    const defense = state.meta.preset.defenseLevel;
+    const emotion = emotionOfBaseline(baseline);
+    return buildVoiceDeliveryProfile({
+      sessionId: state.meta.sessionId,
+      turnIndex,
+      emotion,
+      style: state.meta.preset.style,
+      difficulty: state.meta.preset.difficulty,
+      // 空洞感重 = 效价更负；唤醒随基线略升，但不给到激动区间（来访者不是主播）.
+      valence: -baseline,
+      arousal: 0.3 + baseline * 0.25,
+      speechVolumeBaseline: Math.max(0.25, 0.7 - defense * 0.35),
     });
   }
 
@@ -1569,7 +1612,12 @@ export class VoiceService {
    * 启动 TTS session — voice 模式才走.
    * @returns 成功返 handle, 失败返 null (已发 error 给 client, 调用方负责把 state 标回 idle)
    */
-  private async startTtsSession(state: VoiceSessionState, send: SendFn, prosody: ProsodyTurnPlan): Promise<TtsSessionHandle | null> {
+  private async startTtsSession(
+    state: VoiceSessionState,
+    send: SendFn,
+    prosody: ProsodyTurnPlan,
+    delivery: VoiceDeliveryProfile,
+  ): Promise<TtsSessionHandle | null> {
     // 治本: 音色没配就是**配置错误** —— 绝不能拿未核实的占位音色 (mandarin_female_001) 顶替,
     // 那会合成出"能播但不像人"的音频, 排查成本远高于现在就失败.
     const voiceId = this.resolveSessionVoice(state.meta);
@@ -1592,6 +1640,8 @@ export class VoiceService {
       model: this.ttsModel,
       // AF-459: 韵律计划随会话下发；level=off 时客户端行为与改前逐字一致.
       prosody,
+      // AF-460: 交付档案（情绪/语速/音量/音调）随会话下发.
+      delivery,
     };
     try {
       return await this.tts.startSession(ttsOptions);

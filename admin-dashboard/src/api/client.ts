@@ -17,17 +17,61 @@ const CRED_KEY = 'admin_basic_auth'
 /** AF-459: 调试页三个 TTS 模型（与后端 DEBUG_TTS_PROVIDERS 同值）. */
 export type DebugTtsProvider = 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
 
-/** AF-459: 单句语音形态（后端 DebugTtsSpeechSentence 的投影）. */
+/** AF-460: 交付档案（与后端 VoiceDeliveryProfile 同形）. */
+export interface DebugTtsDeliveryProfile {
+  version: 'af460-v1'
+  emotion: 'calm' | 'sad' | 'fearful' | 'angry' | 'happy' | 'surprised' | 'disgusted'
+  emotionIntensity: number
+  speed: number
+  volume: number
+  pitch: number
+  style: 'cooperative' | 'mixed' | 'defensive' | 'resistant' | 'avoidant' | 'unknown'
+  difficulty: 'L1' | 'L2' | 'L3' | 'unknown'
+  turnIndex: number
+  seed: string
+  contextText: string
+  notes: string[]
+}
+
+/** AF-460: provider 能力声明（决定预览里哪些标记只是“计划”而非会进音频）. */
+export interface DebugTtsCapabilities {
+  pauseMarkers: boolean
+  longSilence: boolean
+  paralinguistic: boolean
+  emotionParameter: boolean
+  styleContext: boolean
+  maxLongSilenceMs: number
+}
+
+/** AF-460: 单句语音形态（后端 DebugTtsSpeechSentence 的投影）. */
 export interface DebugTtsSpeechSentence {
   index: number
   displayText: string
   speechText: string
+  ttsText: string
   events: Array<{
-    kind: 'filler' | 'pause' | 'trailoff'
+    kind: 'filler' | 'pause' | 'trailoff' | 'thinking' | 'silence' | 'breath' | 'sigh'
     anchor: 'sentence_start' | 'sentence_mid' | 'sentence_end'
     text?: string
     durationMs?: number
   }>
+  silenceMs: number
+}
+
+/** AF-460: 语音形态预览（后端 DebugTtsSpeechPreview 的投影）. */
+export interface DebugTtsSpeechPreview {
+  provider: DebugTtsProvider
+  model: string
+  voiceId: string
+  displayText: string
+  speechText: string
+  ttsText: string
+  sentences: DebugTtsSpeechSentence[]
+  delivery: DebugTtsDeliveryProfile
+  capabilities: DebugTtsCapabilities
+  plannedSilenceMs: number
+  appliedSilenceMs: number
+  estimatedDurationMs: number
 }
 
 // ─── Auth 凭据 ───
@@ -146,37 +190,31 @@ export const api = {
       sessionId: string
       turnIndex: number
       provider: DebugTtsProvider
-    }): Promise<{
-      provider: DebugTtsProvider
-      voiceId: string
-      format: 'mp3'
-      sampleRate: number
-      durationMs: number | null
-      audioBase64: string
-      cached: boolean
-      textChars: number
-      requestHash: string
-      displayText: string
-      speechText: string
-      ttsText: string
-      sentences: DebugTtsSpeechSentence[]
-    }> => {
+      voiceId?: string
+    }): Promise<
+      DebugTtsSpeechPreview & {
+        voiceId: string
+        format: 'mp3'
+        sampleRate: number
+        durationMs: number | null
+        audioBase64: string
+        cached: boolean
+        textChars: number
+        requestHash: string
+      }
+    > => {
       return post('/debug/tts/render', body)
     },
     /**
-     * AF-459: 语音形态预览（只读，不合成不计费）。气泡“语音形态”切换用它。
+     * AF-460: 语音形态预览（只读，不合成不计费）。气泡“语音形态”切换用它。
      */
     ttsInspect: async (body: {
       source: 'auto_practice' | 'debug_session'
       sessionId: string
       turnIndex: number
       provider: DebugTtsProvider
-    }): Promise<{
-      displayText: string
-      speechText: string
-      ttsText: string
-      sentences: DebugTtsSpeechSentence[]
-    }> => {
+      voiceId?: string
+    }): Promise<DebugTtsSpeechPreview> => {
       return post('/debug/tts/inspect', body)
     },
     deltaAudit: async (sessionId: string): Promise<{ sessionId: string; turns: Array<{

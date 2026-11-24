@@ -14,7 +14,7 @@ export class DebugTtsController {
   /** 生成或读取该轮该模型的历史音频. */
   @Post('render')
   async render(@Body() dto: DebugTtsRenderDto): Promise<DebugTtsRenderResult> {
-    return this.tts.render(dto.source, dto.sessionId, dto.turnIndex, dto.provider);
+    return this.tts.render(dto.source, dto.sessionId, dto.turnIndex, dto.provider, dto.voiceId);
   }
 
   /**
@@ -25,6 +25,6 @@ export class DebugTtsController {
    */
   @Post('inspect')
   async inspect(@Body() dto: DebugTtsRenderDto): Promise<DebugTtsSpeechPreview> {
-    return this.tts.inspect(dto.source, dto.sessionId, dto.turnIndex, dto.provider);
+    return this.tts.inspect(dto.source, dto.sessionId, dto.turnIndex, dto.provider, dto.voiceId);
   }
 }

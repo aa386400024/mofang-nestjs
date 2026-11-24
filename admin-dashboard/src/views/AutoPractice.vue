@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { NSelect, NInputNumber, NButton, NEmpty, NTag, NProgress, NModal, NCheckbox, NSpace, NStatistic, NDivider, NBadge, useMessage } from 'naive-ui'
 import { io, type Socket } from 'socket.io-client'
 import { api } from '@/api/client'
+import type { DebugTtsProvider, DebugTtsSpeechPreview, DebugTtsSpeechSentence } from '@/api/client'
 import type { CharacterBaseline, CounselorMode, PracticeSession, BatchProgress, ApTurn, ApSessionEnd, ApSessionStart, TurnTrace } from '@/api/types'
 import DebugTracePanel, { type BdiSnapshotPoint } from '@/components/DebugTracePanel.vue'
 
@@ -47,7 +48,6 @@ const manualDebugSessionId = ref<string | null>(null)
 const debugSessions = ref<Array<{ id: string; title: string; characterSlug: string; updatedAt: string; turnCount: number; status: string; active: boolean }>>([])
 
 // AF-395: 调试页三模型 TTS 的前端内存缓存与播放状态.
-type DebugTtsProvider = 'minimax-hd' | 'minimax-turbo' | 'doubao-seed-tts-2.0'
 interface TtsUiState {
   status: 'loading' | 'ready' | 'error'
   audioUrl?: string
@@ -531,7 +531,7 @@ async function playDebugTts(turnIndex: number | undefined, provider: DebugTtsPro
       ...speechStates.value,
       [speech]: {
         status: 'ready',
-        preview: { displayText: res.displayText, speechText: res.speechText, ttsText: res.ttsText, sentences: res.sentences },
+        preview: res,
         open: previous?.open === true,
       },
     }
@@ -548,27 +548,11 @@ async function playDebugTts(turnIndex: number | undefined, provider: DebugTtsPro
   }
 }
 
-// ─── AF-459: 语音形态切换（气泡里对照"这句话 TTS 实际怎么念"） ───
-interface SpeechSentence {
-  index: number
-  displayText: string
-  speechText: string
-  events: Array<{
-    kind: 'filler' | 'pause' | 'trailoff'
-    anchor: 'sentence_start' | 'sentence_mid' | 'sentence_end'
-    text?: string
-    durationMs?: number
-  }>
-}
-interface SpeechPreview {
-  displayText: string
-  speechText: string
-  ttsText: string
-  sentences: SpeechSentence[]
-}
+// ─── AF-459/460: 语音形态切换（气泡里对照"这句话 TTS 实际怎么念"） ───
 interface SpeechUiState {
   status: 'loading' | 'ready' | 'error'
-  preview?: SpeechPreview
+  preview?: DebugTtsSpeechPreview
+  provider?: DebugTtsProvider
   error?: string
   open: boolean
 }
@@ -577,6 +561,11 @@ const speechStates = ref<Record<string, SpeechUiState>>({})
 function speechKey(turnIndex: number | undefined): string {
   const ctx = ttsSessionContext()
   return `${ctx?.source ?? 'none'}:${ctx?.sessionId ?? 'none'}:${turnIndex ?? 0}:speech`
+}
+
+/** 当前轮已加载的预览（模板里少写几层可选链）. */
+function speechPreview(turnIndex: number | undefined): DebugTtsSpeechPreview | undefined {
+  return speechStates.value[speechKey(turnIndex)]?.preview
 }
 
 /**
@@ -596,21 +585,86 @@ async function toggleSpeech(turnIndex: number | undefined): Promise<void> {
   }
   if (existing?.status === 'loading') return
   speechStates.value = { ...speechStates.value, [key]: { status: 'loading', open: true } }
+  await loadSpeechPreview(turnIndex, existing?.provider ?? 'minimax-turbo')
+}
+
+/**
+ * 切换同一个面板的 provider：只重算该家渲染形态，不合成.
+ *
+ * @param turnIndex 轮次
+ * @param provider 目标模型
+ */
+async function switchSpeechProvider(turnIndex: number | undefined, provider: DebugTtsProvider): Promise<void> {
+  if (turnIndex === undefined) return
+  await loadSpeechPreview(turnIndex, provider)
+}
+
+/** 拉取指定 provider 的只读预览并写回状态. */
+async function loadSpeechPreview(turnIndex: number, provider: DebugTtsProvider): Promise<void> {
+  const ctx = ttsSessionContext()
+  if (ctx === null) return
+  const key = speechKey(turnIndex)
+  const previous = speechStates.value[key]
+  speechStates.value = { ...speechStates.value, [key]: { status: 'loading', provider, open: true } }
   try {
-    const preview = await api.debugSession.ttsInspect({ ...ctx, turnIndex, provider: 'minimax-turbo' })
-    speechStates.value = { ...speechStates.value, [key]: { status: 'ready', preview, open: true } }
+    const preview = await api.debugSession.ttsInspect({ ...ctx, turnIndex, provider })
+    speechStates.value = { ...speechStates.value, [key]: { status: 'ready', preview, provider, open: previous?.open !== false } }
   } catch (error) {
     const reason = error instanceof Error ? error.message : '读取语音形态失败'
-    speechStates.value = { ...speechStates.value, [key]: { status: 'error', error: reason, open: true } }
+    speechStates.value = { ...speechStates.value, [key]: { status: 'error', provider, error: reason, open: true } }
     message.error(reason)
   }
 }
 
 /** 事件 → 中文标签（只描述现象，不做临床判断）. */
-function speechEventLabel(event: SpeechSentence['events'][number]): string {
-  if (event.kind === 'pause') return `停顿 ${((event.durationMs ?? 0) / 1000).toFixed(1)}s`
+function speechEventLabel(event: DebugTtsSpeechSentence['events'][number]): string {
+  if (event.kind === 'pause') return `句内停顿 ${((event.durationMs ?? 0) / 1000).toFixed(1)}s`
+  if (event.kind === 'thinking') return `思考段「${event.text ?? '嗯……'}」+ ${((event.durationMs ?? 0) / 1000).toFixed(1)}s`
+  if (event.kind === 'silence') return `长沉默 ${((event.durationMs ?? 0) / 1000).toFixed(1)}s`
+  if (event.kind === 'breath') return '呼吸声'
+  if (event.kind === 'sigh') return '叹息'
   if (event.kind === 'filler') return `思考垫「${event.text ?? ''}」`
   return '句末拖音'
+}
+
+/** 毫秒 → 可读秒数（一位小数）. */
+function seconds(ms: number): string {
+  return (ms / 1000).toFixed(1)
+}
+
+/** 预览里的 provider 中文名. */
+function providerLabel(provider: DebugTtsProvider): string {
+  return TTS_PROVIDERS.find(p => p.id === provider)?.label ?? provider
+}
+
+/** 情绪 → 中文（调试页只做展示，不解释临床含义）. */
+function emotionLabel(emotion: DebugTtsSpeechPreview['delivery']['emotion'] | undefined): string {
+  const labels: Record<DebugTtsSpeechPreview['delivery']['emotion'], string> = {
+    calm: '平静',
+    sad: '低落',
+    fearful: '不安',
+    angry: '压抑愤怒',
+    happy: '轻快',
+    surprised: '惊讶',
+    disgusted: '厌恶',
+  }
+  return emotion === undefined ? '—' : labels[emotion]
+}
+
+/** 该 provider 对当前计划的能力缺口（空数组 = 全部能落地）. */
+function capabilityWarnings(preview: DebugTtsSpeechPreview | undefined): string[] {
+  if (preview === undefined) return []
+  const out: string[] = []
+  if (!preview.capabilities.pauseMarkers) out.push('不支持文本内停顿标记，句内停顿退化为标点 + 语速')
+  if (!preview.capabilities.longSilence && preview.plannedSilenceMs > 0) {
+    out.push(`计划里有 ${seconds(preview.plannedSilenceMs)}s 长沉默，该模型不会进入音频（需要服务端静默段）`)
+  }
+  if (preview.capabilities.longSilence && preview.plannedSilenceMs > preview.appliedSilenceMs) {
+    out.push('句末长沉默由流式链路的延迟下发实现；调试页单次合成不会包含这段静默')
+  }
+  if (!preview.capabilities.paralinguistic) out.push('不支持 (breath)/(sighs)，副语言已丢弃')
+  if (!preview.capabilities.emotionParameter) out.push('不支持独立 emotion 参数，情绪只走自然语言指令')
+  return out
 }
 
 // ─── 手动调试模式：发送一轮 ───
@@ -1569,27 +1623,71 @@ onUnmounted(() => {
                 </button>
               </div>
 
-              <!-- AF-459: 语音形态面板（只读对照，不播放） -->
+              <!-- AF-459/460: 语音形态面板（只读对照，不播放） -->
               <div
                 v-if="msg.role === 'visitor' && msg.turnIndex !== undefined && speechStates[speechKey(msg.turnIndex)]?.open"
                 class="mt-1 w-full rounded-lg border border-accent/25 bg-accent/5 px-2.5 py-2 text-[11px] text-text-secondary"
               >
-                <div class="flex items-center justify-between mb-1">
-                  <span class="font-medium text-accent">语音形态（语义标记）</span>
-                  <span class="text-muted">正文不显示标签，这里对照 TTS 实际听到的节奏</span>
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="font-medium text-accent">语音形态 · 计划 vs 实际</span>
+                  <span class="text-muted">历史轮为模拟预览，不代表当时真的发过这些标记</span>
                 </div>
+
+                <!-- 三家模型切换：只改变渲染器与能力声明，不触发合成 -->
+                <div class="flex flex-wrap gap-1 mb-1.5">
+                  <button
+                    v-for="p in TTS_PROVIDERS"
+                    :key="p.id"
+                    class="px-1.5 py-0.5 rounded-md border text-[9px] transition-colors"
+                    :class="speechStates[speechKey(msg.turnIndex)]?.provider === p.id
+                      ? 'border-accent text-accent bg-accent/20'
+                      : 'border-border/60 text-muted hover:text-accent hover:border-accent/50'"
+                    :title="p.title"
+                    @click.stop="switchSpeechProvider(msg.turnIndex, p.id)"
+                  >
+                    {{ p.label }}
+                  </button>
+                </div>
+
                 <div v-if="speechStates[speechKey(msg.turnIndex)]?.status === 'loading'" class="text-muted">读取中…</div>
                 <div v-else-if="speechStates[speechKey(msg.turnIndex)]?.status === 'error'" class="text-red-400">
                   {{ speechStates[speechKey(msg.turnIndex)]?.error }}
                 </div>
                 <template v-else-if="speechStates[speechKey(msg.turnIndex)]?.preview">
+                  <!-- 这一轮真正下发给该模型的参数 -->
+                  <div class="rounded-md bg-bg-elevated/60 px-2 py-1.5 mb-1.5 leading-relaxed">
+                    <div class="flex flex-wrap gap-x-2 gap-y-0.5">
+                      <span>模型 <b>{{ providerLabel(speechPreview(msg.turnIndex)?.provider ?? 'minimax-turbo') }}</b> <span class="text-muted">({{ speechPreview(msg.turnIndex)?.model }})</span></span>
+                      <span>音色 <b>{{ speechPreview(msg.turnIndex)?.voiceId || '默认' }}</b></span>
+                      <span>情绪 <b>{{ emotionLabel(speechPreview(msg.turnIndex)?.delivery.emotion) }}</b> · 强度 {{ speechPreview(msg.turnIndex)?.delivery.emotionIntensity }}/5</span>
+                      <span>语速 <b>{{ (speechPreview(msg.turnIndex)?.delivery.speed ?? 1).toFixed(2) }}</b></span>
+                      <span>音量 <b>{{ (speechPreview(msg.turnIndex)?.delivery.volume ?? 1).toFixed(2) }}</b></span>
+                      <span>音调 <b>{{ (speechPreview(msg.turnIndex)?.delivery.pitch ?? 0).toFixed(1) }}</b></span>
+                      <span>风格 {{ speechPreview(msg.turnIndex)?.delivery.style }}</span>
+                      <span>难度 {{ speechPreview(msg.turnIndex)?.delivery.difficulty }}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2 mt-0.5 text-muted">
+                      <span>预计 <b class="text-text-secondary">{{ seconds(speechPreview(msg.turnIndex)?.estimatedDurationMs ?? 0) }}s</b></span>
+                      <span>计划静默 <b class="text-text-secondary">{{ seconds(speechPreview(msg.turnIndex)?.plannedSilenceMs ?? 0) }}s</b></span>
+                      <span>实际静默 <b class="text-text-secondary">{{ seconds(speechPreview(msg.turnIndex)?.appliedSilenceMs ?? 0) }}s</b></span>
+                    </div>
+                    <div
+                      v-for="(warning, wi) in capabilityWarnings(speechPreview(msg.turnIndex))"
+                      :key="wi"
+                      class="text-amber-400 mt-0.5"
+                    >
+                      ⚠ {{ warning }}
+                    </div>
+                  </div>
+
                   <div
-                    v-for="s in speechStates[speechKey(msg.turnIndex)]?.preview?.sentences ?? []"
+                    v-for="s in speechPreview(msg.turnIndex)?.sentences ?? []"
                     :key="s.index"
                     class="mb-1.5 last:mb-0"
                   >
                     <div class="whitespace-pre-wrap leading-relaxed">{{ s.speechText }}</div>
-                    <div v-if="s.events.length > 0" class="flex flex-wrap gap-1 mt-0.5">
+                    <div class="text-[9px] text-muted mt-0.5">实际送 TTS：<span class="text-text-secondary">{{ s.ttsText }}</span></div>
+                    <div v-if="s.events.length > 0 || s.silenceMs > 0" class="flex flex-wrap gap-1 mt-0.5">
                       <span
                         v-for="(e, ei) in s.events"
                         :key="ei"
@@ -1597,10 +1695,15 @@ onUnmounted(() => {
                       >
                         {{ speechEventLabel(e) }}
                       </span>
+                      <span v-if="s.silenceMs > 0" class="inline-flex items-center rounded-full bg-amber-400/15 text-amber-400 px-1.5 py-0.5 text-[9px]">
+                        本句静默 {{ seconds(s.silenceMs) }}s
+                      </span>
                     </div>
                   </div>
+
                   <div class="mt-1.5 pt-1.5 border-t border-accent/15 text-muted">
-                    厂商合成文本：<span class="text-text-secondary">{{ speechStates[speechKey(msg.turnIndex)]?.preview?.ttsText }}</span>
+                    <div>厂商合成文本：<span class="text-text-secondary">{{ speechPreview(msg.turnIndex)?.ttsText }}</span></div>
+                    <div class="mt-0.5">风格指令：<span class="text-text-secondary">{{ speechPreview(msg.turnIndex)?.delivery.contextText }}</span></div>
                   </div>
                 </template>
               </div>

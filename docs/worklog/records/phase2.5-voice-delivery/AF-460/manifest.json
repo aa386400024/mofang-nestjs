@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-460",
+  "contextId": "phase2.5-voice-delivery",
+  "status": "backlog",
+  "createdAt": "2026-11-24T14:20:00+08:00",
+  "updatedAt": "2026-11-24T06:13:28.111Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-voice-delivery/AF-460/task-sheet.md",
+    "sha256": "ebd136bdc518472349dadd9f477a87605cf74bf41038825015c1a41a19bcbe04",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af460-voice-delivery-layer-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af460-voice-delivery-layer-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}
