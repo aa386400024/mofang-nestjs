@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-24T11:25:02.239Z",
+  "generatedAt": "2026-11-24T13:14:36.709Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 0,
-    "submitted": 0,
+    "ready": 1,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,67 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-466",
+      "contextId": "phase2.5-visitor-register-eval",
+      "type": "implementation",
+      "title": "补齐 10 个标定角色的语域资产并重跑机制稳定性评测",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-466",
+        "contextId": "phase2.5-visitor-register-eval",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-24T13:14:36.618Z",
+        "leaseDeadline": "2026-11-24T13:44:36.615Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-466.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-24T13:14:36.618Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-466.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-470",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "扩展 executor 资源域覆盖 scripts/eval/",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-470/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af470-executor-eval-resource-2026-11-24.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1891,6 +1951,7 @@ window.ORCH_SNAPSHOT = {
         "src/",
         "bin/",
         "test/",
+        "scripts/eval/",
         "admin-dashboard/",
         "docker/",
         "docs/runbooks/",
@@ -2017,6 +2078,70 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-378",
+      "recordedAt": "2026-11-24T13:14:28.502Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-469",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-377",
+      "recordedAt": "2026-11-24T13:11:22.798Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-469",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-469",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-469.json"
+      ]
+    },
+    {
+      "auditId": "AUD-376",
+      "recordedAt": "2026-11-24T11:53:09.741Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-466",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-466-register-assets"
+      ]
+    },
+    {
+      "auditId": "AUD-375",
+      "recordedAt": "2026-11-24T11:52:43.679Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-466",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-374",
       "recordedAt": "2026-11-24T10:08:42.760Z",
@@ -2187,89 +2312,74 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-462.json"
       ]
-    },
-    {
-      "auditId": "AUD-363",
-      "recordedAt": "2026-11-24T08:31:34.669Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-462",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-362",
-      "recordedAt": "2026-11-24T07:46:52.210Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-461",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-461-tts-provider-type-contract"
-      ]
-    },
-    {
-      "auditId": "AUD-361",
-      "recordedAt": "2026-11-24T07:46:43.615Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-461",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-461",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-461.json"
-      ]
-    },
-    {
-      "auditId": "AUD-360",
-      "recordedAt": "2026-11-24T07:46:35.182Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-461",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 374,
+    "total": 378,
     "byResult": {
-      "allowed": 374,
+      "allowed": 378,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 373,
+      "TOOL-QUEUE-SCHEDULER": 377,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 374
+      "orchestrator": 378
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-466",
+        "title": "补齐 10 个标定角色的语域资产并重跑机制稳定性评测",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-visitor-register-eval",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-470",
+        "title": "扩展 executor 资源域覆盖 scripts/eval/",
+        "type": "implementation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-470/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af470-executor-eval-resource-2026-11-24.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -9912,6 +10022,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af465-visitor-register-stability-2026-11-24.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-469",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-469/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af469-executor-eval-resource-2026-11-24.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -9926,9 +10054,33 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-466",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md"
+      },
+      {
+        "taskId": "AF-466",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md"
+      },
+      {
+        "taskId": "AF-470",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-470/task-sheet.md"
+      },
+      {
+        "taskId": "AF-470",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af470-executor-eval-resource-2026-11-24.md"
+      }
+    ],
+    "groupId": "phase2.5-visitor-register-eval",
+    "groupIds": [
+      "phase2.5-visitor-register-eval",
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -9936,5 +10088,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 433
+  "archivedCount": 434
 };
