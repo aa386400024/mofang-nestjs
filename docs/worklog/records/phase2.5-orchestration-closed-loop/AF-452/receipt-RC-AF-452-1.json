@@ -1,0 +1,120 @@
+{
+  "deliveredAt": "2026-11-24T09:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-452-1",
+    "taskId": "AF-452",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "ecfcde196416623412cd4eb8758f3e8912fc9452",
+    "dependsOn": [],
+    "priorTasks": ["AF-451", "AF-450", "AF-438"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-452/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af452-close-af438-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/worklog/completed/phase2.5/af438-kernelref-grouping-2026-11-24.md"]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/completed/phase2.5/af452-close-af438-2026-11-24.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-452/task-sheet.md"
+      ],
+      "modified": ["docs/worklog/completed/phase2.5/af438-kernelref-grouping-2026-11-24.md"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs task cancel --taskId AF-438 --reason '已被 AF-450 / AF-451 取代，不做二次实现'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4",
+        "wallClock": "约 2s",
+        "note": "AF-438 status=canceled，cancelReason 入库；记录包原样保留"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs status",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "AF-438 不再出现在任务列表；AF-452 归档后活跃任务归零"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "PASS：AF-438 artifactPath 已存在，不再报「交付记录缺文件」"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "PASS：事件日志 schema 校验通过，哈希链与索引投影一致"
+      }
+    ],
+    "reproNotes": "在 D:\\work\\Project\\backend\\mofang-nestjs-af281r 依次跑 node scripts/orchestration/cli.mjs status、worklog verify --strict、events verify；AF-438 的取消理由与时间可从 task-state-index.json 与 state/journal.jsonl 查回。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "state-only", "result": "pass", "note": "未改任何脚本 / 代码 / 台账；只做任务状态闭合与文档补齐" },
+      { "item": "audit-preserved", "result": "pass", "note": "AF-438 记录包未删除未改写，取消理由保留在事件链" },
+      { "item": "no-duplicate-implementation", "result": "pass", "note": "目标已由 AF-450 / AF-451 实现，AF-438 不做二次落地，避免双链重复" },
+      { "item": "artifact-path", "result": "pass", "note": "af438-kernelref-grouping-2026-11-24.md 存在且内容与事实一致（原占位文件里的「另起新单」已更正）" },
+      { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全：gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单三项目标（AF-438 闭合为 canceled、补齐 artifactPath、写本单交付记录）全部达成"
+    },
+    "backlogItems": [
+      {
+        "id": "AF452-B1",
+        "impact": "dependsOn 指向已 failed / canceled 任务时，整条任务链永久阻塞且无自动失效机制（AF-438 就因此长期挂在 backlog）。建议框架侧在依赖终态为 failed / canceled 时自动转 input-required 或提示重签发；与 AF449-B3 的 scope 继承缺口同源。",
+        "layer": "framework",
+        "status": "candidate"
+      },
+      {
+        "id": "AF452-B2",
+        "impact": "本轮多份回执的候选改进（AF446-B1/B2、AF449-B1~B3、AF450-B1~B3、AF451-B1~B3）仍只在 backlogItems 里，未进 improvement-log.json；入库需要一次带状态面写入权限的任务。",
+        "layer": "framework",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "占位记录内容",
+        "taskSays": "补齐 AF-438 记录包声明的交付记录路径",
+        "reality": "该文件已存在（早前写的「依赖未满足、另起新单承接」占位），内容与事实不符",
+        "action": "改写同一 artifactPath 的内容为「已被取代」说明",
+        "why": "留着「另起新单承接」会让人以为分组工作还没做，与 AF-450 / AF-451 的既成事实矛盾"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-438 经 CLI 闭合为 canceled（理由=已被 AF-450 / AF-451 取代），记录包与审计链原样保留，其 artifactPath 内容更正为与事实一致的「已被取代」说明；status 活跃任务归零，worklog verify --strict 与 events verify 均 PASS，未改任何代码或台账。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "纯状态面与文档操作，无脚本执行与网络开销。"
+  }
+}
