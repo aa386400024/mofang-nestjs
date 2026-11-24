@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-475",
+  "contextId": "phase2.5-visitor-register-eval",
+  "status": "submitted",
+  "createdAt": "2026-11-24T23:20:00+08:00",
+  "updatedAt": "2026-11-24T15:25:00.000Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-475/task-sheet.md",
+    "sha256": "73b79ce203db919b08055ab3ee21c65b5721203d6216ae2f55ac33d74c0f4aac",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-475/receipt-RC-AF-475-1.json",
+      "sha256": "bc59bd6de5510aa4568c850a307f35d3e87b1269b70b2251e6a9fc4f7487cd9e",
+      "receiptId": "RC-AF-475-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-475/receipt-RC-AF-475-2.json",
+      "sha256": "8d0fd669f72b3daaf85cc4682845c6024f420c24cb418836bc8a12099fac546c",
+      "receiptId": "RC-AF-475-2"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af475-register-cost-paired-measurement-implementation-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-475-register-paired-latency-measurement-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}
