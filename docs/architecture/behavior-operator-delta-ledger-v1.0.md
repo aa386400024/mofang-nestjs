@@ -107,6 +107,7 @@
 node scripts/ops/quality/af427-operator-delta-ledger.mjs
 node scripts/ops/quality/af427-operator-delta-ledger.mjs --json
 pnpm exec vitest run scripts/orchestration/__tests__/af427-operator-delta-ledger.spec.mjs
+pnpm exec vitest run scripts/orchestration/__tests__/af450-ledger-segmentation.spec.mjs
 ```
 
 维护纪律：
@@ -114,3 +115,17 @@ pnpm exec vitest run scripts/orchestration/__tests__/af427-operator-delta-ledger
 1. 内核 `DELTA_TABLE` 改名、改成非字面量（例如拆成多个对象或从别处取值）时，解析器会直接抛错——那是必须更新解析器的信号，不是可以绕过的问题。
 2. 语料目录换了位置、或 `deltaDetail.events` 字段结构变了，表三会静默变空；`--json` 里 `corpus.sessions=0` 即为信号。
 3. **新增算子必须同时改 `OPERATOR_ORDER` 与 `DELTA_DIMS`，否则解析器报「出现未经登记的算子」。** 这条是刻意设的：台账不允许对内核偷偷多出来的算子保持沉默。
+
+## 七、语料分组口径（AF-450 起）
+
+表三的数字是**真实用户会话**口径。语料目录里混入 `synthetic: true` 的剧本 / 回放语料后，口径拆成四张表，混算即视为统计错误：
+
+| 段落                  | 数据来源                        | 用途                                  | 禁止用法                             |
+| --------------------- | ------------------------------- | ------------------------------------- | ------------------------------------ |
+| 表三 · 语料覆盖       | `synthetic !== true`            | 真实语料下的算子命中与幅度            | 不得用合成语料替换或补齐这里的数字   |
+| 表三附 · 合成语料覆盖 | `synthetic === true`            | 验证算子幅度是否生效、是否被 cap 吞掉 | 不得作为真实用户行为证据或临床结论   |
+| 表四 · kernelRef 分布 | 会话 `kernelRef`，缺失归 `none` | 看清「哪一版内核产出的语料」          | 不得把 `none` 桶当成某一版内核的语料 |
+
+- `synthetic: true` 的判定只看会话字段，不看文件名——文件名是约定，字段才是事实源。
+- `kernelRef` 是落盘时的内核 delta 表指纹（AF-442 起写入）；无指纹的历史语料归 `none`，不做猜测填充。
+- 一个算子在表三里 0 命中、在表三附里有命中时，结论是「幅度可用合成语料验证，真实语料仍缺」，不是「已覆盖」。
