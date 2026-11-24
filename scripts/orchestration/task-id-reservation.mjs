@@ -29,11 +29,14 @@ export function reservationRef(taskId) {
 }
 
 function defaultRunGit(args, opts = {}) {
+  const hasInput = opts.input !== undefined;
   try {
     return execFileSync('git', args, {
       cwd: opts.cwd,
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      // 占号 commit 也改成空 tree；`mktree` 从 stdin 读，空输入时要用 pipe。
+      stdio: [hasInput ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+      ...(hasInput ? { input: opts.input } : {}),
     }).trim();
   } catch (error) {
     if (opts.allowFailure) return null;
@@ -144,7 +147,8 @@ export function createGitTaskIdReservation(opts = {}) {
       reservedAt: payload.reservedAt ?? new Date(nowFn()).toISOString(),
       baseSha: payload.baseSha ?? null,
     };
-    const tree = call(['rev-parse', 'HEAD^{tree}']);
+    // 与远端锁同源修复：payload 在 message 里，tree 用空树，避免 push 带上 HEAD 整棵树。
+    const tree = call(['mktree'], { input: '' });
     const commitSha = call(['commit-tree', tree, '-m', JSON.stringify(body)]);
     const pushed = call(['push', '--quiet', remote, `${commitSha}:${reservationRef(taskId)}`], { allowFailure: true });
     if (pushed === null) {

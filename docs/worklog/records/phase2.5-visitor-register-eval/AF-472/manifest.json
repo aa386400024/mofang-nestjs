@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-472",
+  "contextId": "phase2.5-visitor-register-eval",
+  "status": "backlog",
+  "createdAt": "2026-11-24T22:35:00+08:00",
+  "updatedAt": "2026-11-24T14:48:35.176Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-472/task-sheet.md",
+    "sha256": "f7d8a1f49899bd8e001df7a658e952cd3ee33d38d8021ed684e529559b91e70e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af472-register-cost-measurement-and-lock-fix-implementation-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-472-register-cost-measurement-and-lock-fix-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}

@@ -1,0 +1,196 @@
+{
+  "deliveredAt": "2026-11-24T23:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-474-1",
+    "taskId": "AF-474",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "9445fb32403671a9eb89a815e91cf522d8cf29ba",
+    "dependsOn": [],
+    "priorTasks": ["AF-471"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-474/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af474-remote-lock-empty-tree-implementation-2026-11-24.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["7aded92a"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af472-register-cost-measurement-and-lock-fix-implementation-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af473-remote-lock-empty-tree-implementation-2026-11-24.md",
+        "docs/worklog/completed/phase2.5/af474-remote-lock-empty-tree-implementation-2026-11-24.md"
+      ],
+      "modified": [
+        "scripts/orchestration/remote-lock.mjs",
+        "scripts/orchestration/task-id-reservation.mjs",
+        "scripts/orchestration/__tests__/remote-lock.spec.mjs",
+        "scripts/orchestration/__tests__/task-id-reservation.spec.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/remote-lock.spec.mjs scripts/orchestration/__tests__/task-id-reservation.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 310ms",
+        "note": "16 tests passed；新增空 tree / 未调用 rev-parse 断言"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "0 error；scripts/**/*.mjs 走独立 eslint 配置"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未动"
+      },
+      {
+        "command": "node -e \"execFileSync('git',['mktree'],{input:''})\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "返回空 tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904，cat-file -t 为 tree"
+      },
+      {
+        "command": "实时 createGitRemoteLock().acquire() + release()",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "4567ms",
+        "note": "acquired=true，sha=4c579817594ddd7bf72007dd880dc353febf689f，release=true；远端 ref 已删除"
+      }
+    ],
+    "reproNotes": "单测覆盖两处 commit-tree：remote-lock 与 task-id-reservation。真实远端抢锁命令与结果见交付记录 §3.3；AF-471 同一路径曾挂起，本轮 4.6 秒完成。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-474 经 CLI register / promote / run-once；实现提交带 Task: AF-474 trailer"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，后续单独提交，不与实现混提"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 由 CLI 维护；Husky worklog verify --strict PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=orchestrator；改动限定 scripts/orchestration/ 与 docs/worklog/ 对应路径"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "只处理锁 payload 与 git 对象，无心理内容、无原文"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord / 两条取消记录均落文件；worklog strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 9445fb32；type fix；agentRole orchestrator；提交 7aded92a 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF471-B1",
+        "impact": "已关闭：远端锁与任务取号 commit 改空 tree，push 不再携带 HEAD 整棵树；实时抢锁 4.6 秒完成。",
+        "owner": "orchestration",
+        "status": "done"
+      },
+      {
+        "id": "AF474-B1",
+        "impact": "旧实现 vs 新实现的 push 对象数量对比未做；旧路径会挂起，避免重复阻塞。以空树语义与实时抢锁为证据。",
+        "owner": "orchestration",
+        "status": "accepted"
+      },
+      {
+        "id": "AF475",
+        "impact": "语域成本评测的单进程逐轮配对测量修复另登 AF-475，不在本任务混提。",
+        "owner": "eval",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "远端网络抖动下 push 的稳定耗时区间",
+      "AF-475 单进程配对重跑后，p95 真实开销是否仍超过 15%"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "remote-lock.mjs 的抢锁 commit 改为空 tree root commit",
+        "reality": "已实现；实测返回空 tree 并完成真实抢锁/释放",
+        "action": "remote-lock.mjs 使用 git mktree 空 stdin",
+        "why": "避免 HEAD 整树对象被打包"
+      },
+      {
+        "taskSays": "task-id-reservation.mjs 的占号 commit 同步改用空 tree",
+        "reality": "已实现并补单测",
+        "action": "task-id-reservation.mjs 使用同一空树方式",
+        "why": "同源缺陷，不修会在取号时复现"
+      },
+      {
+        "taskSays": "单测 fake git 覆盖 mktree，并断言 commit 使用空 tree、未调用 rev-parse",
+        "reality": "两个 spec 均增加用例；task-id 旧 fixture 的 object 形状同步改为 {message, tree}",
+        "action": "更新 remote-lock.spec.mjs 与 task-id-reservation.spec.mjs",
+        "why": "fixture 不更新会导致释放判定用例误判"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "任务单 5 条 successCriteria 全部满足：两处 commit 改空 tree、payload 保持 message、ref 与阈值不变、fake 覆盖并断言、无旁路。16 条单测、lint、typecheck、engine-core 空 diff 全绿；真实远端抢锁 4.6 秒完成并释放。未做旧实现对象数量对比已在偏差表说明。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地 git 与一次远端锁 push/delete。"
+  }
+}

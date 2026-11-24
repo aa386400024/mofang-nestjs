@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-473",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-24T22:52:00+08:00",
+  "updatedAt": "2026-11-24T14:49:42.150Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-473/task-sheet.md",
+    "sha256": "73a741a0bcb1cfd814332d8bef9674f2057df96f3a7348d7352329d23b1c2e23",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af473-remote-lock-empty-tree-implementation-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-473-remote-lock-empty-tree-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}
