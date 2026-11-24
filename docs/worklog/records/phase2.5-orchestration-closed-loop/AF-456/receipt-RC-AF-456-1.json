@@ -1,0 +1,109 @@
+{
+  "receiptId": "RC-AF-456-1",
+  "taskId": "AF-456",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "type": "documentation",
+  "agentRole": "orchestrator",
+  "baselineRef": "d3e85a47865a6d2f8cdbee95497fd91b3b6e4fcc",
+  "dependsOn": [],
+  "priorTasks": ["AF-455", "AF-454", "AF-452", "AF-451", "AF-450", "AF-449", "AF-446"],
+  "policyRefs": ["conventions.md#1.2"],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-456/task-sheet.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af456-improvement-intake-2026-11-24.md",
+    "reply": null,
+    "others": ["docs/team/agent-orchestration/improvement-log.json"]
+  },
+  "changedFiles": {
+    "commits": [],
+    "added": ["docs/worklog/completed/phase2.5/af456-improvement-intake-2026-11-24.md"],
+    "modified": [],
+    "deleted": [],
+    "deletionChecks": []
+  },
+  "gateResults": [
+    {
+      "command": "node scripts/orchestration/cli.mjs improvements --summary",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4 / node v22.23.2",
+      "wallClock": "约 1s",
+      "note": "候选=29 排队=1 实现中=0 已完成=51 不采纳=3；活跃=30 / 总=84（入库前 73）"
+    },
+    {
+      "command": "git diff --stat HEAD -- src/",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "即时",
+      "note": "空输出：零代码改动"
+    },
+    {
+      "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/inbox/AF-456-improvement-intake-task-2026-11-24.md",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "约 6s",
+      "note": "任务单元 PASS；整体 exit=1 仅因既有无关失败 [FAIL] 回执 AF-384.json"
+    },
+    {
+      "command": "node -e \"const l=require('./docs/team/agent-orchestration/improvement-log.json'); console.log(l.improvements.length)\"",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "即时",
+      "note": "结构校验：顶层键仍为 schemaVersion/note/updatedAt/improvements，条目 84 条，IM-074~IM-084 连续无重复"
+    }
+  ],
+  "reproNotes": "在仓库根执行 node scripts/orchestration/cli.mjs improvements --summary；条目明细见 docs/team/agent-orchestration/improvement-log.json 尾部 IM-074~IM-084；取舍理由见交付记录第三节表格。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-456 贯穿任务单 / 交付记录 / 回执" },
+    { "item": "state-write", "result": "pass", "note": "台账只经 CLI improvements --add 写入，未手改 improvement-log.json" },
+    { "item": "enum-closure", "result": "pass", "note": "11 条新增的 source/type/layer/status 全部落在封闭枚举内" },
+    { "item": "id-continuity", "result": "pass", "note": "IM-074~IM-084 连续、无重复，未复用历史编号" },
+    { "item": "evidence-traceable", "result": "pass", "note": "每条 evidence 指向已提交的交付记录路径，未用 gitignored transport 回执充当证据" },
+    { "item": "no-code-change", "result": "pass", "note": "git diff HEAD -- src/ 为空" },
+    { "item": "history-untouched", "result": "pass", "note": "既有 73 条的状态与 history 未改动" },
+    { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全" }
+  ],
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "五条成功判据逐条满足：有效候选全部入库、已关闭项不入库并给理由、重复项合并、summary 解析通过、src 零改动"
+  },
+  "backlogItems": [
+    {
+      "id": "AF456-B1",
+      "impact": "台账已积累 29 条 candidate，长期没有 queued/accepted 的取舍机制，候选池只增不减会稀释治理价值。",
+      "layer": "framework",
+      "status": "candidate"
+    },
+    {
+      "id": "AF456-B2",
+      "impact": "条目结构只有单个 relatedTaskId，合并项无法表达多来源任务号，只能把来源写进 evidence 文本，机器不可读。",
+      "layer": "framework",
+      "status": "candidate"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [],
+  "deviationAbsent": true,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "AF-446~AF-455 期间积压在回执 backlogItems 里的候选改进已按「有效入库、已关闭不入库、重复合并」三条口径处理完：新增 IM-074~IM-084 共 11 条，台账从 73 增至 84，结构与枚举未被破坏；5 组已失效或重复候选的处置理由逐条写在交付记录里，可回溯。台账全程只经 CLI 写入，无代码改动。",
+  "failureReasonCode": null,
+  "cancellationReason": null,
+  "costNote": "纯本地 CLI 写入与文档整理，无 LLM 调用、无网络请求。"
+}
