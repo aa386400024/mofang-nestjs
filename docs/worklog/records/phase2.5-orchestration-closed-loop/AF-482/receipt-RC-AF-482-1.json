@@ -1,0 +1,147 @@
+{
+  "deliveredAt": "2026-11-25T01:32:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-482-1",
+    "taskId": "AF-482",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "221475aab79d9e2c06aa1a9844bf4402c879018d",
+    "dependsOn": ["AF-478"],
+    "priorTasks": ["AF-478", "AF-479", "AF-480"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-482/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af482-af427-corpus-debt-2026-11-25.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["1b26ae3f"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af482-af427-corpus-debt-2026-11-25.md"
+      ],
+      "modified": [
+        "scripts/orchestration/__tests__/af427-operator-delta-ledger.spec.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/af427-operator-delta-ledger.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 2s",
+        "note": "9 passed；含真实语料 ④ 两条，empathy 行与解析统计逐格一致"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 336,
+        "machine": "同上，含 data/debug-sessions 真实语料",
+        "wallClock": "约 29s",
+        "note": "335 passed / 1 skipped files；4949 passed / 4 skipped tests；0 failed；语料未移走"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35s",
+        "note": "0 error，含 scripts 目录"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 28s",
+        "note": "0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未改"
+      }
+    ],
+    "reproNotes": "测试从 ledger.corpus.byOperator 与 ledger.table 计算期望，再与 renderLedgerMarkdown 的表三行逐格比对；语料缺失用 it.skipIf 显式跳过。全量 pnpm test 在含 data/debug-sessions 时 0 failed，不再需要临时移目录。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-482 经 CLI register / promote / run-once；提交带 Task: AF-482"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 写；提交不含状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "index 由 CLI 维护；worklog strict PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=orchestrator；只改 scripts/orchestration 测试与 docs/worklog"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "测试只读本地语料计数，不把台词原文写进仓库或日志"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord 均落文件"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baseline 221475aa；提交 1b26ae3f 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "测试总数与原文件一致",
+        "reality": "原 ④ 一条拆成结构检查与语料驱动渲染检查两条，总测试数 9 而非 8",
+        "action": "全量数字改为 4949 passed，并在交付记录说明拆分理由",
+        "why": "保留结构断言与数字断言两件事，避免一条用例既查结构又查数字导致失败原因不清"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-482 5 条 successCriteria 全部满足：移除硬编码 empathy 34/31/897；期望值来自真实语料；三张表标题、empathy 行、计数与百分比分母自洽均校验；语料缺失 it.skipIf；含 data/debug-sessions 的全量 pnpm test 4949 passed / 0 failed。未改渲染口径、engine-core 或台词隐私。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地测试、lint、typecheck。"
+  }
+}

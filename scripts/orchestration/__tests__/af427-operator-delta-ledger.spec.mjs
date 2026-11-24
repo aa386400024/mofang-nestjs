@@ -19,6 +19,7 @@ import {
   CAP_BOUNDS,
   DELTA_DIMS,
   OPERATOR_ORDER,
+  REALIZED_DIMS,
   buildLedger,
   loadOperatorCorpusStats,
   operatorCapUsage,
@@ -40,6 +41,31 @@ function writeSyntheticSessions(sessions) {
     fs.writeFileSync(path.join(dir, `debug_syn_${index}.json`), JSON.stringify(session), 'utf8');
   }
   return dir;
+}
+
+/** 按台账真实语料统计，算出表三某一算子的期望行，避免把语料规模写死。 */
+function expectedCoverageRow(ledger, kind) {
+  const entry = ledger.corpus.byOperator[kind];
+  const absSum = REALIZED_DIMS.reduce((sum, dim) => sum + (entry.realizedSingleMean[dim] ?? 0), 0);
+  const coefSum = REALIZED_DIMS.reduce((sum, dim) => sum + Math.abs(ledger.table[kind][dim] ?? 0), 0);
+  const ratio = coefSum === 0 ? null : absSum / coefSum;
+  return {
+    turns: entry.turns,
+    single: entry.singleEventTurns,
+    multi: entry.multiEventTurns,
+    absSum: entry.singleEventTurns ? absSum.toFixed(4) : '-',
+    ratio: entry.singleEventTurns && ratio !== null ? `${(ratio * 100).toFixed(1)}%` : '-',
+  };
+}
+
+/** 从 markdown 里抓出表三的指定算子行并拆单元格。 */
+function coverageCells(markdown, kind) {
+  const row = markdown.split('\n').find((line) => line.startsWith(`| ${kind} | `) && /^\| \S+ \| \d+ \| \d+ \| \d+ \|/.test(line));
+  if (!row) throw new Error(`未找到表三 ${kind} 数据行`);
+  return row
+    .split('|')
+    .slice(1, -1)
+    .map((cell) => cell.trim());
 }
 
 describe('AF-427 · 算子 delta 台账', () => {
@@ -158,8 +184,7 @@ describe('AF-427 · 算子 delta 台账', () => {
     expect(stats.uncovered).toContain('holding_present');
   });
 
-  it('④ 端到端：真实仓库解析 + 真实语料，台账结构完整', () => {
-    if (!HAS_CORPUS) return; // CI 无语料（data/debug-sessions 被 gitignore），跳过
+  it.skipIf(!HAS_CORPUS)('④ 端到端：真实仓库解析 + 真实语料，台账结构完整', () => {
     const ledger = buildLedger({ rootDir: REPO_ROOT });
     expect(ledger.operators).toEqual([...OPERATOR_ORDER]);
     expect(ledger.dims).toEqual([...DELTA_DIMS]);
@@ -171,8 +196,7 @@ describe('AF-427 · 算子 delta 台账', () => {
     expect(Object.keys(ledger.table)).toHaveLength(13);
   });
 
-  it('④ 渲染含三张表标题与关键结论行', () => {
-    if (!HAS_CORPUS) return; // 同上：渲染断言依赖真实语料覆盖数字
+  it.skipIf(!HAS_CORPUS)('④ 渲染含三张表标题与语料驱动的 empathy 行', () => {
     const ledger = buildLedger({ rootDir: REPO_ROOT });
     const markdown = renderLedgerMarkdown(ledger);
     expect(markdown).toContain('表一 · 13 算子 × 11 维系数');
@@ -180,7 +204,25 @@ describe('AF-427 · 算子 delta 台账', () => {
     expect(markdown).toContain('表三 · 语料覆盖');
     expect(markdown).toMatch(/\| empathy \| 50\.0% \| trust \|/);
     expect(markdown).toContain('实测/系数比');
-    expect(markdown).toMatch(/\| empathy \| 34 \| 31 \| 3 \| 0\.2\d+ \| \d+\.\d% \|/);
     expect(markdown).toContain(`零语料算子=${ledger.corpus.uncovered.join(', ')}`);
+
+    // 期望值来自同一份真实语料统计，不写死 34/31/897；语料增长只改期望不改断言形状
+    const expected = expectedCoverageRow(ledger, 'empathy');
+    const cells = coverageCells(markdown, 'empathy');
+    expect(cells[1]).toBe(String(expected.turns));
+    expect(cells[2]).toBe(String(expected.single));
+    expect(cells[3]).toBe(String(expected.multi));
+    expect(cells[4]).toBe(expected.absSum);
+    expect(cells[5]).toBe(expected.ratio);
+
+    // 自洽检查：单算子 + 多算子不超过命中轮次；两者相等说明没有缺 detail 的轮次
+    expect(expected.single + expected.multi).toBeLessThanOrEqual(expected.turns);
+    // 百分比分母：ratio 与 8 维幅度和 / 8 维系数和一致
+    if (expected.ratio !== '-') {
+      const ratioValue = Number.parseFloat(expected.ratio) / 100;
+      const absSum = Number.parseFloat(expected.absSum);
+      const coefSum = REALIZED_DIMS.reduce((sum, dim) => sum + Math.abs(ledger.table.empathy[dim] ?? 0), 0);
+      expect(ratioValue).toBeCloseTo(absSum / coefSum, 2);
+    }
   });
 });

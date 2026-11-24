@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-482",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-25T01:38:00+08:00",
+  "updatedAt": "2026-11-24T17:26:33.082Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-482/task-sheet.md",
+    "sha256": "442db1ddb5753a9e68c5de2d0d302cef1382f00c2e3c0087588c05cb534ad896",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-482/receipt-RC-AF-482-1.json",
+      "sha256": "e9e97e63bce4a12e571eeba81792206f9f59ad3c202252170b7a6643ba8b6ffe",
+      "receiptId": "RC-AF-482-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af482-af427-corpus-debt-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af482-af427-corpus-debt-2026-11-25.md"
+  ],
+  "tombstone": null
+}
