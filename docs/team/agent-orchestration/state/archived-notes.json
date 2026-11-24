@@ -51,5 +51,7 @@
   "AF-391": "角色域错误，取消并重登 AF-392",
   "AF-392": "scope 不足，重登 AF-393",
   "AF-394": "scope 重签发 → AF-395",
-  "AF-416": "scope 缺 .env.example；改动由 AF-417 承接"
+  "AF-416": "scope 缺 .env.example；改动由 AF-417 承接",
+  "AF-447": "scope 重签发 → AF-448",
+  "AF-448": "scope 重签发 → AF-449"
 }
