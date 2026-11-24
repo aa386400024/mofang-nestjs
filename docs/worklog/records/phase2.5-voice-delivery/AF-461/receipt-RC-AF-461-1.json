@@ -1,0 +1,168 @@
+{
+  "deliveredAt": "2026-11-24T07:56:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-461-1",
+    "taskId": "AF-461",
+    "contextId": "phase2.5-voice-delivery",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "c239b8a7cbd33b3d8ff0579baaac1bdb1bd75b5a",
+    "dependsOn": [],
+    "priorTasks": ["AF-460", "AF-459"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#5.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-voice-delivery/AF-461/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af461-tts-provider-type-contract-2026-11-24.md",
+      "reply": null,
+      "others": ["docs/runbooks/voice-prosody-pipeline.md"]
+    },
+    "changedFiles": {
+      "commits": ["ced5a7fb0f034d7cf828c52526757d6cb20ded04"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af461-tts-provider-type-contract-2026-11-24.md",
+        "docs/worklog/records/phase2.5-voice-delivery/AF-461/task-sheet.md"
+      ],
+      "modified": [
+        "docs/runbooks/voice-prosody-pipeline.md",
+        "src/admin-debug/tts/debug-tts.providers.ts",
+        "src/shared/voice-delivery/index.ts",
+        "src/shared/voice-delivery/voice-delivery.profile.ts",
+        "src/shared/voice-delivery/voice-delivery.render.ts",
+        "src/shared/voice-delivery/voice-delivery.types.ts",
+        "src/voice/tts/tts-bidi-client.ts",
+        "test/admin-debug/debug-tts.spec.ts",
+        "test/shared/voice-delivery/voice-delivery.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm vitest run test/shared/voice-delivery test/voice test/admin-debug",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 29,
+        "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "5.98s",
+        "note": "28 passed / 1 skipped（29 文件），494 passed / 4 skipped（498 用例）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量约 6s",
+        "note": "tsc --noEmit --incremental 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中，秒级",
+        "note": "eslint --cache（src/test/bin + scripts 两段）0 error 0 warning"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出：engine-core 纯层零改动"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 1,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": 328,
+        "machine": "同上",
+        "wallClock": "30.59s",
+        "note": "326 passed / 1 failed / 1 skipped（328 文件），4900 passed / 1 failed / 4 skipped（4905 用例）。唯一失败为 af427-operator-delta-ledger 依赖本地 data/debug-sessions 真实语料，用户跑自动对练后 empathy 命中由 34 增至 39，硬编码断言失配；该目录 gitignore，CI 无语料会 skip，与本任务改动无关"
+      },
+      {
+        "command": "POST /admin/api/debug/tts/render（sessionId=aCCe-PwwKFBGigWmIyH5h turnIndex=29）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上 / 本地 127.0.0.1:5174 真实上游",
+        "wallClock": "三家合计约 10s",
+        "note": "minimax-hd / minimax-turbo / doubao-seed-tts-2.0 均 OK，pitch=-1，音频分别 129520 / 138224 / 62780 字节，预计时长 6213ms"
+      }
+    ],
+    "reproNotes": "修复前同一请求三家全 503：MiniMax 2013 报 pitch=-0.7 非 int64；豆包报 additions 是 object 而非 string。修复后 toMiniMaxVoiceSettingValues() 统一做 pitch 取整/范围夹取与 speed/vol 有限性检查，调试同步合成与生产 tts-bidi-client 共用；豆包 additions 改为 JSON.stringify，并按官方语义设 max_length_to_filter_parenthesis=100、disable_markdown_filter=true、disable_emoji_filter=true。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-461 贯穿任务单 / 分支 / 交付记录 / 回执 / commit trailer" },
+      { "item": "state-write", "result": "pass", "note": "状态面只经 CLI（register / promote / run-once / branch create）；未手改索引与事件链" },
+      { "item": "index-schema", "result": "pass", "note": "任务单 frontmatter 与 artifacts.kind 枚举合法" },
+      { "item": "event-chain", "result": "pass", "note": "登记、提级、领单事件由 CLI 生成，未手写 journal" },
+      { "item": "engine-core-untouched", "result": "pass", "note": "git diff --stat HEAD -- src/engine-core 为空" },
+      { "item": "provider-type-contract", "result": "pass", "note": "MiniMax pitch 为整数；豆包 additions 为 JSON 字符串；真实上游三家均已返回音频" },
+      { "item": "debug-production-parity", "result": "pass", "note": "调试同步合成与生产 WebSocket 共用 toMiniMaxVoiceSettingValues()，数值映射不再分叉" },
+      { "item": "preview-actual-parity", "result": "pass", "note": "交付档案源头量化 pitch，预览显示值与实际下发值一致（同一请求均为 -1）" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单五条成功判据逐条满足：MiniMax 类型与范围、调试/生产共用映射、豆包 additions 字符串与语义值、pitch 源头整数化、类型契约测试"
+    },
+    "backlogItems": [
+      {
+        "id": "AF461-B1",
+        "impact": "af427-operator-delta-ledger 对本地真实语料硬编码计数（empathy 34），语料增长即红；应改为结构断言或 CI 同口径 skip。",
+        "layer": "test",
+        "status": "candidate"
+      },
+      {
+        "id": "AF461-B2",
+        "impact": "调试页把 provider 参数错误统一映射 503，语义上更像 400/422；错误分类可后续细化，避免把请求参数不合法误报成服务不可用。",
+        "layer": "adapter",
+        "status": "candidate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "豆包 additions 附带语义纠偏",
+        "taskSays": "additions 改为 JSON 字符串",
+        "reality": "同时把 max_length_to_filter_parenthesis 从 0 改为 100，disable_markdown_filter / disable_emoji_filter 从 false 改为 true",
+        "action": "按官方文档语义修正并在交付记录说明",
+        "why": "原值会导致括号注释被朗读、Markdown/Emoji 不被过滤，属于同一个 additions 契约内的错误取值"
+      },
+      {
+        "item": "全量测试",
+        "taskSays": "全量闸门记录真实数字",
+        "reality": "本地 pnpm test 有 1 例与任务无关的语料漂移失败",
+        "action": "记录真实数字并登记 AF461-B1，不修改语料、不改断言凑绿",
+        "why": "该测试依赖 gitignore 的本地 debug 语料，CI 会 skip；不能把环境数据变化说成代码回归"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "两处厂商强类型契约已修复，同一真实请求在三家 provider 上均恢复音频；调试与生产共用一份 MiniMax 映射，pitch 源头整数化保证预览与下发一致。定向 494 例、类型、lint、engine-core 边界全绿；全量测试唯一失败为本地语料漂移导致的既有测试脆性，已如实记录并登记遗留，不影响 CI。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "修复前后各 3 次调试 TTS 真实调用（共 6 次短文本合成）；无 LLM 调用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-461",
+  "contextId": "phase2.5-voice-delivery",
+  "status": "submitted",
+  "createdAt": "2026-11-24T15:50:00+08:00",
+  "updatedAt": "2026-11-24T07:54:07.318Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-voice-delivery/AF-461/task-sheet.md",
+    "sha256": "a6303ca572b1e13a860ff98f6024bc04591f68e84dc95a0e646239d42ded0f85",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-voice-delivery/AF-461/receipt-RC-AF-461-1.json",
+      "sha256": "02c630516fc797c2b4e3a05aa8a17f1f88221fe7167602d1031168ae8de648ad",
+      "receiptId": "RC-AF-461-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af461-tts-provider-type-contract-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af461-tts-provider-type-contract-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}
