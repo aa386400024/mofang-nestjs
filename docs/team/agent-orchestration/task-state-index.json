@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1945,
+    "lastEventSeq": 1976,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -3782,6 +3782,60 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af438-kernelref-grouping-2026-11-24.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-453",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-453/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af453-engine-core-comment-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-454",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af454-engine-core-comment-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-455",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-455/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af455-archive-backfill-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-456",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-456/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af456-improvement-intake-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-457",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-457/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af457-commit-order-backfill-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-458",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-458/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af458-minimax-lane-worktree-2026-11-24.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -3839,6 +3893,7 @@
     "AF-394": "scope 重签发 → AF-395",
     "AF-416": "scope 缺 .env.example；改动由 AF-417 承接",
     "AF-447": "scope 重签发 → AF-448",
-    "AF-448": "scope 重签发 → AF-449"
+    "AF-448": "scope 重签发 → AF-449",
+    "AF-453": "scope 重签发 → AF-454"
   }
 }
