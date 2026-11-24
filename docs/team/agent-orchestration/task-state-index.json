@@ -4,115 +4,22 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2015,
+    "lastEventSeq": 2018,
     "rebuiltAt": null
   },
   "tasks": [
     {
-      "taskId": "AF-466",
+      "taskId": "AF-470",
       "status": "submitted",
       "history": [
         {
-          "at": "2026-11-24T11:52:43.412Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始补齐 10 角色语域资产"
-        },
-        {
-          "at": "2026-11-24T13:14:36.615Z",
+          "at": "2026-11-24T13:17:46.536Z",
           "from": "ready",
           "to": "submitted",
           "by": "orchestrator-cli",
           "reason": "编排者领单（派发通道由 agent cu 衔接）"
         }
       ],
-      "contextId": "phase2.5-visitor-register-eval",
-      "title": "补齐 10 个标定角色的语域资产并重跑机制稳定性评测",
-      "type": "implementation",
-      "baselineRef": "28aa06c1dbfe9f35acda47fb62c18c0c25a08f01",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-465",
-        "AF-462"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.2.0",
-      "policyRefs": [
-        "conventions.md#1.2",
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-24T11:30:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/engine-adapters/wiring/character/",
-          "bin/seed-character-profiles.ts",
-          "test/engine-adapters/",
-          "scripts/eval/visitor-register-stability/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/"
-        ],
-        "modules": [
-          "character-assets",
-          "eval"
-        ],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/engine-adapters/character-baseline-calibration.spec.ts test/engine-adapters/character-baseline-seed-calibration.spec.ts test/engine-adapters/af106-character-pool.spec.ts test/engine-adapters/wp9b-db-character-resolver.spec.ts test/engine-adapters/wp51-character-seed-alliance-baseline.spec.ts test/engine-adapters/wp10a-character-expression-fields.spec.ts test/engine-adapters/af357-character-desire-mapping.spec.ts",
-          "check": "角色资产相关单测全绿",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "pnpm exec vitest run scripts/eval/visitor-register-stability/__tests__/metrics.spec.mjs",
-          "check": "评测指标单测全绿",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查",
-          "threshold": "0 error"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "全量 lint",
-          "threshold": "0 error"
-        }
-      ],
-      "successCriteria": [
-        "10 个标定角色在 character_profiles 中全部为 approved + enabled，且 speech_register 非空",
-        "两个缺口角色（vpt_parenting_projection_l1 / vpt_social_anxiety_avoidance_l1）进入 A 类内容 seed，核心信念取自来访池模板",
-        "4 个 B 类角色的内容 seed 按 templateId 装配 speechRegister，不复制第二份语域真相",
-        "权威标定表扩到 10 行并通过区间 / 情绪标签 / 可区分性 / 无维度塌缩自检",
-        "seed 连续两次执行幂等（第二次 A 类 6 / B 类 4 全部 unchanged）",
-        "用既有 harness 跑满 10 角色 × base/active × 30 轮 = 20 场，失败轮 0",
-        "active 注入覆盖 10/10，base 0/10；报告给出方向、刻板、稳定、不回归、护栏与成本口径",
-        "不改 src/engine-core；不提交原始心理台词；报告写清与 AF-465 的结论差异"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "10 角色语域资产补齐与重跑报告",
-          "path": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-24T11:52:43.411Z"
-    },
-    {
-      "taskId": "AF-470",
-      "status": "ready",
-      "history": [],
       "contextId": "phase2.5-orchestration-closed-loop",
       "title": "扩展 executor 资源域覆盖 scripts/eval/",
       "type": "implementation",
@@ -4053,6 +3960,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-469/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af469-executor-eval-resource-2026-11-24.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-466",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
         "reply": null
       }
     }
