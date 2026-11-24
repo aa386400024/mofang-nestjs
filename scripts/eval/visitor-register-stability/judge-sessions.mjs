@@ -12,13 +12,13 @@ import { buildBlindPrompt, buildRoleSummary, evaluateGates, mapPreference, mean,
 
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 const OUT_ROOT = path.join(ROOT, 'data', 'eval-reports', 'visitor-register-stability');
-const JUDGE_TIMEOUT_MS = 120_000;
+const JUDGE_TIMEOUT_MS = 240_000;
 
 const rating = await import(pathToFileURL(path.join(ROOT, 'dist', 'auto-practice', 'metrics', 'visitor-register-rating.js')));
 const calibration = await import(pathToFileURL(path.join(ROOT, 'dist', 'shared', 'speech-register', 'speech-register.calibration.js')));
 
 function parseArgs(argv) {
-  const options = { runId: '', judges: 'doubao,minimax', reuse: false };
+  const options = { runId: '', judges: 'doubao,minimax', reuse: false, reuseRaw: false };
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--run-id') {
       options.runId = argv[index + 1];
@@ -28,6 +28,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (argv[index] === '--reuse') {
       options.reuse = true;
+    } else if (argv[index] === '--reuse-raw') {
+      options.reuseRaw = true;
     }
   }
   return options;
@@ -284,7 +286,20 @@ async function main() {
         anchors,
         turnNumbers: RATING_TURNS,
       });
-      const { parsed, raw } = await askJudge(judge, prompt, dimensions, path.join(ratingsDir, `${role}.${judge.id}`));
+      const debugBasePath = path.join(ratingsDir, `${role}.${judge.id}`);
+      const rawPath = `${debugBasePath}.txt`;
+      let parsed;
+      let raw;
+      if (options.reuseRaw && existsSync(rawPath)) {
+        raw = readFileSync(rawPath, 'utf8');
+        parsed = parseBlindRating(closeTruncatedJson(raw), dimensions);
+        if (!parsed) {
+          process.stdout.write(`[${manifest.taskId ?? 'AF-465'}] 复用的 raw 无法解析, 重新盲评 ${role} ${judge.id}\n`);
+        }
+      }
+      if (!parsed) {
+        ({ parsed, raw } = await askJudge(judge, prompt, dimensions, debugBasePath));
+      }
       const scores = {
         [leftMode]: parsed.sides.left.scores,
         [rightMode]: parsed.sides.right.scores,
@@ -304,7 +319,7 @@ async function main() {
         preferenceMapped: mapPreference(parsed.preference, leftMode),
         confidence: parsed.confidence,
       });
-      process.stdout.write(`[AF-465] 盲评 ${role} ${judge.id} → ${entries[entries.length - 1].preferenceMapped}\n`);
+      process.stdout.write(`[${manifest.taskId ?? 'AF-465'}] 盲评 ${role} ${judge.id} → ${entries[entries.length - 1].preferenceMapped}\n`);
     }
 
     const blind = { base: {}, active: {} };
@@ -405,7 +420,7 @@ async function main() {
   const missingRoles = expectedRoles.filter((role) => !manifest.roles.includes(role));
   const analysis = {
     runId: options.runId,
-    taskId: 'AF-465',
+    taskId: manifest.taskId ?? 'AF-465',
     protocol: `${rating.REGISTER_RATING_VERSION}-paired`,
     status: rating.REGISTER_RATING_STATUS,
     conclusion,
@@ -435,10 +450,12 @@ async function main() {
     ],
   };
   await writeFile(path.join(runDir, 'analysis.json'), `${JSON.stringify(analysis, null, 2)}\n`, 'utf8');
-  process.stdout.write(`\n[AF-465] 结论=${conclusion} 门槛=${gatePass ? 'PASS' : 'FAIL'} → ${path.join(runDir, 'analysis.json')}\n`);
+  process.stdout.write(
+    `\n[${analysis.taskId}] 结论=${conclusion} 门槛=${gatePass ? 'PASS' : 'FAIL'} → ${path.join(runDir, 'analysis.json')}\n`,
+  );
 }
 
 main().catch((error) => {
-  process.stderr.write(`\n[AF-465] 盲评失败: ${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(`\n[visitor-register-stability] 盲评失败: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 });

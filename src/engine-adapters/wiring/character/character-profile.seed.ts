@@ -270,7 +270,7 @@ function baselineOf(
 }
 
 /**
- * 首批内容基线 (任务单 §6 拍板: 4 个 slug, 2 焦虑 × 2 回避).
+ * 首批内容基线 (任务单 §6 拍板: 4 个 slug, 2 焦虑 × 2 回避; AF-466 补阿禾 / 小舟 2 个缺口角色, 共 6 个).
  *
  * 基线数值口径 (WP-J 起): **从权威标定表按 templateId 装配** ——
  * 每个角色**各自独立**的数值剖面 (不再按"焦虑 / 回避两档"一刀切).
@@ -388,6 +388,52 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       maintaining: '用忙碌盖过情绪、把话题转到琐事, 靠"一切照旧"维持日常 functioning。',
       protective: '可靠的照料能力与家庭责任感, 让他还能把日子撑起来。',
       vulnerability: '早年丧母时无人可依靠的经历, 让他在最需要支持时仍选择独自承担。',
+    },
+  },
+  {
+    templateId: 'vpt_parenting_projection_l1',
+    displayName: '阿禾',
+    attachmentStyle: 'anxious',
+    beliefMeta: [
+      { theme: 'parenting_projection', activationTags: ['parenting', 'child', 'anger'] },
+      { theme: 'externalized_blame', activationTags: ['blame', 'school', 'control'] },
+    ],
+    ...baselineOf('vpt_parenting_projection_l1'),
+    underlyingDesires: [
+      { key: 'control', label: '能掌控自己的情绪与教养方式', baselineWeight: 0.68 },
+      { key: 'understood', label: '被看见一次自己的不容易', baselineWeight: 0.55 },
+    ],
+    forbiddenBehaviors: ['承认自己在孩子身上重复了童年', '直接说出对母亲的怨', '主动承认自己很生气'],
+    sensitiveTopics: ['被说不是好妈妈', '童年被忽视', '当众批评'],
+    fivePs: {
+      presenting: '一辅导孩子作业就发火, 事后又自责, 想学会不在孩子身上重复自己的童年。',
+      precipitating: '孩子成绩下滑, 被老师提醒"家长要多上心", 再次感到自己被评判。',
+      maintaining: '用"都是学校 / 孩子的问题"解释冲突, 回避自己的情绪, 怒火于是反复出现。',
+      protective: '对孩子有耐心、学习能力强, 也愿意为改变主动来咨询。',
+      vulnerability: '童年长期被忽视又不敢抱怨, 形成"必须让孩子别走我的老路"的紧绷。',
+    },
+  },
+  {
+    templateId: 'vpt_social_anxiety_avoidance_l1',
+    displayName: '小舟',
+    attachmentStyle: 'avoidant',
+    beliefMeta: [
+      { theme: 'negative_evaluation', activationTags: ['evaluation', 'attention', 'mistake'] },
+      { theme: 'avoidance_safety', activationTags: ['avoidance', 'expression', 'rejection'] },
+    ],
+    ...baselineOf('vpt_social_anxiety_avoidance_l1'),
+    underlyingDesires: [
+      { key: 'accepted', label: '被群体接纳、不被排斥', baselineWeight: 0.62 },
+      { key: 'control', label: '能掌控开口时的紧张', baselineWeight: 0.58 },
+    ],
+    forbiddenBehaviors: ['主动成为注意中心', '在会上即兴发言', '直接拒绝别人'],
+    sensitiveTopics: ['当众发言', '被注视', '说错话'],
+    fivePs: {
+      presenting: '一进会议室就脸红, 想说的话全咽回去, 想学会自然地把话说完。',
+      precipitating: '实习汇报前一晚反复排练到凌晨, 上台时脑子一片空白, 之后开始回避发言。',
+      maintaining: '用提前写稿、少发言、回避群体场合控制风险, 短期缓解, 长期加固"我说不好"的预期。',
+      protective: '做事细致、书面表达清晰, 有两三个能说几句的朋友。',
+      vulnerability: '小学被当众取笑过一次, 形成"开口就会被看轻"的敏感点。',
     },
   },
 ];

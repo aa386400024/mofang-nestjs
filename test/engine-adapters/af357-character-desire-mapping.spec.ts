@@ -1,6 +1,6 @@
 // AF-357 · 角色愿望键 → 内核四键映射 (adapter spec):
 //   覆盖开工单 successCriteria 的"角色愿望映射"部分:
-//     ① 8 个真实角色 + 2 个内置种子映射后都覆盖到内核四键，且数值原样;
+//     ① 10 个真实角色 + 2 个内置种子映射后都覆盖到内核四键，且数值原样;
 //     ② 每个角色的关键键位落到正确的内核键（临床语义方向不许错）;
 //     ③ 同内核键多条 → 取最大基线，不求和;
 //     ④ 未登记键 → 原样保留并计入 unmapped，不猜测;
@@ -25,7 +25,7 @@ import { planIntention } from '../../src/engine-core/cognition/intention-planner
 import { createEmptyBdiSnapshot, type BdiSnapshot } from '../../src/engine-core/domain/bdi-snapshot.js';
 import type { UnderlyingDesireSeed } from '../../src/engine-core/index.js';
 
-/** 全部 10 个角色种子（8 真实 + 2 内置）. */
+/** 全部 12 个角色种子（10 真实 + 2 内置）. */
 const ALL_ROLES: readonly { readonly templateId: string; readonly underlyingDesires: readonly UnderlyingDesireSeed[] }[] = [
   ...CHARACTER_PROFILE_SEED_SPECS,
   ...DB_ONLY_CHARACTER_PROFILE_SEED_SPECS,
@@ -37,9 +37,9 @@ function weightOf(desires: readonly UnderlyingDesireSeed[], key: string): number
   return desires.find((desire) => desire.key === key)?.baselineWeight;
 }
 
-describe('AF-357 · ① 10 个角色全部覆盖内核四键', () => {
+describe('AF-357 · ① 12 个角色全部覆盖内核四键', () => {
   it('每个角色映射后至少命中一个内核键，且没有未登记键', () => {
-    expect(ALL_ROLES).toHaveLength(10);
+    expect(ALL_ROLES).toHaveLength(12);
     for (const role of ALL_ROLES) {
       const result = mapRoleDesiresToCoreDetailed(role.underlyingDesires);
       const mappedKeys = result.desires.filter((desire) => (CORE_DESIRE_KEYS as readonly string[]).includes(desire.key));

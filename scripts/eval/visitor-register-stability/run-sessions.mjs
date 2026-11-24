@@ -23,7 +23,7 @@ const audit = await import(pathToFileURL(path.join(ROOT, 'dist', 'shared', 'spee
 const calibration = await import(pathToFileURL(path.join(ROOT, 'dist', 'shared', 'speech-register', 'speech-register.calibration.js')));
 
 function parseArgs(argv) {
-  const options = { runId: '', roles: '', turns: TURN_COUNT };
+  const options = { runId: '', roles: '', turns: TURN_COUNT, taskId: 'AF-465' };
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
     const value = argv[index + 1];
@@ -35,6 +35,9 @@ function parseArgs(argv) {
       index += 1;
     } else if (key === '--turns') {
       options.turns = Number(value);
+      index += 1;
+    } else if (key === '--task-id') {
+      options.taskId = value;
       index += 1;
     }
   }
@@ -180,7 +183,7 @@ async function main() {
 
   const manifest = {
     runId,
-    taskId: 'AF-465',
+    taskId: options.taskId,
     startedAt: new Date().toISOString(),
     gitHead: head,
     counselorScriptHash: COUNSELOR_SCRIPT_HASH,
@@ -265,7 +268,7 @@ async function main() {
           rows,
           complete: false,
         });
-        process.stdout.write(`[AF-465] ${item.role} ${mode} ${turnIndex + 1}/${turns.length}\r`);
+        process.stdout.write(`[${options.taskId}] ${item.role} ${mode} ${turnIndex + 1}/${turns.length}\r`);
       }
 
       const endedAt = new Date().toISOString();
@@ -306,10 +309,10 @@ async function main() {
 
   manifest.finishedAt = new Date().toISOString();
   await writeJson(path.join(runDir, 'manifest.json'), manifest);
-  process.stdout.write(`\n[AF-465] 完成 ${roles.length * 2} 场 → ${path.relative(ROOT, runDir)}\n`);
+  process.stdout.write(`\n[${options.taskId}] 完成 ${roles.length * 2} 场 → ${path.relative(ROOT, runDir)}\n`);
 }
 
 main().catch((error) => {
-  process.stderr.write(`\n[AF-465] 运行失败: ${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(`\n[visitor-register-stability] 运行失败: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 });

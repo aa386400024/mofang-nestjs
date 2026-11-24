@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-466",
+  "contextId": "phase2.5-visitor-register-eval",
+  "status": "backlog",
+  "createdAt": "2026-11-24T19:30:00+08:00",
+  "updatedAt": "2026-11-24T11:52:39.282Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-466/task-sheet.md",
+    "sha256": "e3ae10a6a19db5fdf6ebd9415c4302c7d89596749a78d7df54d1f6afcb3a42b6",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af466-10role-register-rerun-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af466-10role-register-assets-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}

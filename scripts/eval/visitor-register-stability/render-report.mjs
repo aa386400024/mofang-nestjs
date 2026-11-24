@@ -7,10 +7,13 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 
 function parseArgs(argv) {
-  const options = { runId: '' };
+  const options = { runId: '', out: '' };
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--run-id') {
       options.runId = argv[index + 1];
+      index += 1;
+    } else if (argv[index] === '--out') {
+      options.out = argv[index + 1];
       index += 1;
     }
   }
@@ -78,7 +81,7 @@ function main() {
         : (fitDeltas[fitDeltas.length / 2 - 1] + fitDeltas[fitDeltas.length / 2]) / 2;
 
   const lines = [
-    '# AF-465 来访者语域指纹机制稳定性评测（AI 盲评）',
+    `# ${analysis.taskId ?? 'AF-465'} 来访者语域指纹机制稳定性评测（AI 盲评）`,
     '',
     `- 运行 ID：\`${analysis.runId}\`  `,
     `- 代码基线：\`${manifest.gitHead}\`  `,
@@ -106,7 +109,7 @@ function main() {
     '## 注入覆盖拆分',
     '',
     `- 可注入：${injected.length} 个角色；active 占优 ${injected.filter((role) => role.direction === 'active').length}/${injected.length}；可注入集合的中位 \`register_fit\` Δ ${fmt(medianDelta)}。`,
-    `- 未注入：${uninjected.length ? uninjected.map((role) => `\`${role.roleKey}\``).join('、') : '无'}。这些角色在 active 模式下没有语域块，active 实质等同 base，不能计入机制证据。`,
+    `- 未注入：${uninjected.length ? uninjected.map((role) => `\`${role.roleKey}\``).join('、') : '无'}${uninjected.length ? '。这些角色在 active 模式下没有语域块，active 实质等同 base，不能计入机制证据。' : '；全部角色 active 都带语域块，active 与 base 的差异可以计入机制证据。'}`,
     '',
     '## 逐角色',
     '',
@@ -140,10 +143,12 @@ function main() {
     '',
   ];
 
-  const outPath = path.join(ROOT, 'docs', 'worklog', 'completed', 'phase2.5', 'af465-visitor-register-stability-2026-11-24.md');
+  const outPath = options.out
+    ? path.resolve(ROOT, options.out)
+    : path.join(ROOT, 'docs', 'worklog', 'completed', 'phase2.5', 'af465-visitor-register-stability-2026-11-24.md');
   mkdirSync(path.dirname(outPath), { recursive: true });
   writeFileSync(outPath, `${lines.join('\n')}\n`, 'utf8');
-  process.stdout.write(`[AF-465] 报告 → ${outPath}\n`);
+  process.stdout.write(`[${analysis.taskId ?? 'AF-465'}] 报告 → ${outPath}\n`);
 }
 
 function gateDigits(name, gate) {

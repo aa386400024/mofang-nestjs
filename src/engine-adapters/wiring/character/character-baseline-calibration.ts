@@ -173,7 +173,7 @@ export const MIN_DIMENSION_SPREAD = 0.4;
 export const MAX_VERBAL_VOICE_LENGTH = 500;
 
 /**
- * 8 个角色的基线标定表 (唯一真相源).
+ * 10 个角色的基线标定表 (唯一真相源).
  *
  * 数值来源: docs/reference/character-baseline-research.md §6 (v2 循证推导) 与任务单 §四,
  * **逐字照抄, 一个数都没改**. 其中两处是研究阶段做的真实函数边界修正:
@@ -181,7 +181,8 @@ export const MAX_VERBAL_VOICE_LENGTH = 500;
  *   · 惊尘 arousal 0.64 (< 0.65) → 内核落 `hurt` (创伤以恐惧为主), 不是 `angry`.
  *
  * 台词指纹 (verbalVoice) 来源: docs/worklog/pending/phase2.5-verbal-voice-drafts-2026-11-10.md
- * (8 段 80-120 字定稿), 逐字搬入, 未做改写.
+ * (8 段 80-120 字定稿), 逐字搬入, 未做改写. AF-466 为原先缺行的阿禾 / 小舟补两段,
+ * 口径同上, 只写句式 / 节奏 / 语气, 不复述语域指纹的词汇与身份信息.
  *
  * ⚠️ 数值是**工程标定值** (文献给排序 / 方向 / 剖面形状, 小数是工程锚点),
  *    不是临床标定 —— 待真实对练数据回来后再校准.
@@ -298,6 +299,34 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     verbalVoice:
       '说话前后矛盾——刚说"我没事"突然又说"那晚走廊的声音…"然后戛然而止。会突然换话题。' +
       '有时语速很快像倒豆子，有时像失忆一样接不上。偶尔会问"我刚才说到哪了？"',
+  },
+  {
+    templateId: 'vpt_parenting_projection_l1',
+    trust: 0.38,
+    resistance: { verbal: 0.5, depth: 0.45, style: 0.4 },
+    emotion: { valence: -0.42, arousal: 0.68 },
+    safety: 0.38,
+    bond: 0.45,
+    expectedLabel: 'anxious',
+    // 阿禾: 投射型家长 —— 情绪先落在孩子 / 老师 / 学校身上, 被问到自己会短暂停住.
+    //   高唤醒配中等负价, 内核落 anxious; 与语桐 (更年轻、自我修正型焦虑) 区分.
+    verbalVoice:
+      '一开口先讲孩子的事——"他昨天又磨到十一点"。被问到自己会停一下，然后说"其实也没什么"。' +
+      '生气时语速变快、句子变短，事后立刻自嘲"我这脾气"。很少直接说"我难受"，多用"你说这怎么办"。',
+  },
+  {
+    templateId: 'vpt_social_anxiety_avoidance_l1',
+    trust: 0.28,
+    resistance: { verbal: 0.6, depth: 0.35, style: 0.3 },
+    emotion: { valence: -0.38, arousal: 0.44 },
+    safety: 0.3,
+    bond: 0.25,
+    expectedLabel: 'guarded',
+    // 小舟: 社交回避型 —— 不是语桐那种"说快了又收回", 而是**开口前先评估风险**,
+    //   能少说就少说; 与惊尘 (高唤醒混乱) / 沉舟 (低唤醒空洞) 都不同档.
+    verbalVoice:
+      '开口前会先停两秒，常从"就…有点…"起头，句子说一半会看对方反应。' +
+      '谈到具体场合就迅速缩小——"也还好"、"可能那天状态不对"。很少主动展开，回答偏短，结尾常带"大概就这样"。',
   },
 ];
 
