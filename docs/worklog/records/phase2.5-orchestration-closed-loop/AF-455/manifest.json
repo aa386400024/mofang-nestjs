@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-455",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-24T10:45:00+08:00",
+  "updatedAt": "2026-11-24T02:41:04.839Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-455/task-sheet.md",
+    "sha256": "1086ea3fda7fbd30095233729ce5e94d236f963228f3d6b9bbd572607ae0a756",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-455/receipt-RC-AF-455-1.json",
+      "sha256": "c5f2e3f4791063c7e56981e67fc2f4affe40b64c2b8956f52e7c115ad54a56ad",
+      "receiptId": "RC-AF-455-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af455-archive-backfill-2026-11-24.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-455-archive-backfill-task-2026-11-24.md"
+  ],
+  "tombstone": null
+}

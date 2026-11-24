@@ -1,0 +1,129 @@
+{
+  "receiptId": "RC-AF-455-1",
+  "taskId": "AF-455",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "type": "documentation",
+  "agentRole": "executor",
+  "baselineRef": "e855dbcc2f8b5a1ad59873ca5a44a3fd0857ea26",
+  "dependsOn": [],
+  "priorTasks": ["AF-454", "AF-453", "AF-446", "AF-322"],
+  "policyRefs": ["conventions.md#1.2"],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-455/task-sheet.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af455-archive-backfill-2026-11-24.md",
+    "reply": null,
+    "others": [
+      "docs/worklog/completed/phase2.5/af453-engine-core-comment-2026-11-24.md",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-453/manifest.json",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/manifest.json",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/receipt-RC-AF-454-1.json"
+    ]
+  },
+  "changedFiles": {
+    "commits": ["7e287821"],
+    "added": [
+      "docs/worklog/completed/phase2.5/af453-engine-core-comment-2026-11-24.md",
+      "docs/worklog/completed/phase2.5/af455-archive-backfill-2026-11-24.md",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-453/manifest.json",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-453/task-sheet.md",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/manifest.json",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/receipt-RC-AF-454-1.json",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-454/task-sheet.md",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-455/manifest.json",
+      "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-455/task-sheet.md"
+    ],
+    "modified": [],
+    "deleted": [],
+    "deletionChecks": []
+  },
+  "gateResults": [
+    {
+      "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "DESKTOP-E3EVQ9P / Windows / pwsh 7.6.4 / node v22.23.2",
+      "wallClock": "约 8s",
+      "note": "PASS (strict) 活跃=1 归档=424 记录包=436 inbox=0 legacy指针=133/133；补齐件落地前此处报「交付记录缺文件：AF-453」"
+    },
+    {
+      "command": "git diff --stat HEAD -- src/engine-core",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "即时",
+      "note": "空输出：内核零改动"
+    },
+    {
+      "command": "git diff --stat HEAD~1 -- src/",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "即时",
+      "note": "空输出：本任务提交不含任何 src/ 代码改动"
+    },
+    {
+      "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/inbox/AF-455-archive-backfill-task-2026-11-24.md",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "specFiles": null,
+      "machine": "同上",
+      "wallClock": "约 6s",
+      "note": "任务单元 PASS；命令行整体 exit=1 仅因既有无关失败 [FAIL] 回执 AF-384.json（gitignored transport 内历史回执缺 deletionChecks.path/check）"
+    }
+  ],
+  "reproNotes": "在 D:\\work\\Project\\backend\\mofang-nestjs-af281r 分支 task/AF-455-archive-backfill 上依次执行：node scripts/orchestration/cli.mjs worklog verify --strict → git diff --stat HEAD -- src/engine-core → git diff --stat HEAD~1 -- src/。补齐件位于 docs/worklog/completed/phase2.5/af453-engine-core-comment-2026-11-24.md。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-455 贯穿任务单 / 提交 trailer / 交付记录 / 回执" },
+    { "item": "state-write", "result": "pass", "note": "状态面只经 CLI（register / promote / run-once / receipt freeze），未手改索引" },
+    { "item": "scope-isolation", "result": "pass", "note": "本次提交 9 个文件全部落在 AF-455 scope 内的文档与记录包，状态面单独提交" },
+    { "item": "immutable-records", "result": "pass", "note": "AF-453 / AF-454 的冻结任务单与冻结回执均原样入库，未改写" },
+    { "item": "backfill-honesty", "result": "pass", "note": "AF-453 补齐件明确声明「已重签发为 AF-454，实现证据见 af454 记录」，不冒充交付结论" },
+    { "item": "no-code-change", "result": "pass", "note": "git diff HEAD~1 -- src/ 为空" },
+    { "item": "delivery-record-markers", "result": "pass", "note": "六组机读字段标记齐全：gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict" }
+  ],
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "任务单五条成功判据逐条满足：补齐件存在且说明取代关系、交付记录写清缺口、三记录包入库、verify exit 0、内核 diff 为空"
+  },
+  "backlogItems": [
+    {
+      "id": "AF455-B1",
+      "impact": "取消任务的 artifactPath 强制存在 + 不在新任务 scope 内，只能靠「再开一个专门任务覆盖补齐件」解决，一次重签发连带产生两个任务与一次额外 PR 载荷。建议 task reissue 自动把原任务 artifactPath 纳入新任务 scope，或取消时自动生成占位件。",
+      "layer": "framework",
+      "status": "candidate"
+    },
+    {
+      "id": "AF455-B2",
+      "impact": "run-once 的 GUI 交付租约与回执摄入是两条独立路径：本地就地执行完成后必须先 `receipt freeze` 再跑一次 run-once，才会走 late-receipt-recovered 收口；租约过期会把任务回滚 ready 并置 held-for-human。建议文档化本地执行通道，或提供 --channel local 直接收口。",
+      "layer": "framework",
+      "status": "candidate"
+    },
+    {
+      "id": "AF455-B3",
+      "impact": "cli validate 命令行口径：单个 --sheet 校验 PASS 时整体 exit 仍可能为 1（被既有无关失败拖累），不利于脚本化判定。建议 validate 支持 --only-sheet 或输出机读退出码。",
+      "layer": "framework",
+      "status": "candidate"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [],
+  "deviationAbsent": true,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "本任务只做两件事：把 AF-453 的归档补齐件与 AF-453/AF-454/AF-455 三个记录包纳入版本库，使 PR HEAD 上的 worklog verify --strict 能够通过。补齐件与交付记录均如实声明取代关系，未冒充实现证据；AF-453/AF-454 的冻结件原样入库；内核与业务代码零改动。闸门 worklog verify --strict exit 0（PASS，归档 424、记录包 436），git diff HEAD -- src/engine-core 与 HEAD~1 -- src/ 均为空。",
+  "failureReasonCode": null,
+  "cancellationReason": null,
+  "costNote": "纯本地文档整理与 CLI 校验，无 LLM 调用、无网络请求、无数据写入。"
+}
