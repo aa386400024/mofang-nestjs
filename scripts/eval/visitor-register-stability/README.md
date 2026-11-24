@@ -33,10 +33,15 @@ node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --ro
 单进程逐轮配对（AF-475 起的成本门口径）：
 
 ```powershell
-# 只起 3010 一个进程；base/active 由 per-session registerMode 切换
-node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --roles <role1>,<role2> --task-id AF-475 --paired --port 3010
+# 只起 3010 一个进程；进程级开关必须打开，base/active 再由 per-session registerMode 切换
+$env:PORT='3010'; $env:ENGINE_DEBUG_CHAT_ENABLED='true'; $env:VISITOR_REGISTER_MODE='active'
+node dist/app.js
+node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --roles <role1>,<role2> --task-id AF-478 --paired --port 3010
 ```
 
+- **进程级灰度开关是必要条件**：`VISITOR_REGISTER_MODE` 默认 `off`；`registerMode=active` 只能在
+  该开关为 `active` 时生效，`off` 仍会强制关掉 base 臂。若只在请求里传 `active` 而进程开关没开，
+  两臂 prompt 会完全一致（静默假对照）。需要限定角色时同时设置 `VISITOR_REGISTER_PILOT_IDS`。
 - `--roles` 省略时跑标定表全部角色；库里没有 `approved character_profiles` 的角色会创建失败，
   不要伪造，按可用角色数写进报告的覆盖说明。
 - 每个角色 base/active 各 1 场、30 轮；旧跑法按 seed 随机整场顺序，`--paired` 同一端口开两场、

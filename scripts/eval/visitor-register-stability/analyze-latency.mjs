@@ -71,6 +71,7 @@ function loadRun(runId) {
         const wallMs = Number(row.wallMs ?? 0);
         const ttftMs = Number(usage.ttftMs ?? 0);
         const promptChars = String(row.promptFull ?? '').length;
+        const cachedTokens = typeof usage.cachedTokens === 'number' && Number.isFinite(usage.cachedTokens) ? usage.cachedTokens : null;
         const block = extractSpeechRegisterBlock(row.promptFull);
         const ts = Date.parse(row.ts ?? session.startedAt ?? '');
         turns[mode].push({
@@ -82,6 +83,7 @@ function loadRun(runId) {
           postMs: Math.max(0, wallMs - ttftMs),
           promptTokens: Number(usage.promptTokens ?? 0),
           completionTokens: Number(usage.completionTokens ?? 0),
+          cachedTokens,
           reasoningTokens: Number(usage.reasoningTokens ?? 0),
           promptChars,
           block,

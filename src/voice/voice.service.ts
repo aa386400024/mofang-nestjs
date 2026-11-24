@@ -80,7 +80,7 @@ import type {
   VoiceSessionReportStatus,
   VoiceSessionState,
 } from './voice.types.js';
-import type { LlmStream, LlmStreamChunk } from '../agent/llm/llm.types.js';
+import type { LlmStream, LlmStreamChunk, LlmUsage } from '../agent/llm/llm.types.js';
 import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor.js';
 import type { RunReportInput } from '../agent/supervisor/supervisor.types.js';
 import { VisitorService } from '../agent/visitor/visitor.service.js';
@@ -1815,12 +1815,7 @@ export class VoiceService {
           //   截断时 (`length`), 客户端要能分"说完了"与"被截断了"; 缺省 = 上游没给.
           send({
             type: 'llm_done',
-            usage: {
-              promptTokens: chunk.usage.promptTokens,
-              completionTokens: chunk.usage.completionTokens,
-              totalTokens: chunk.usage.totalTokens,
-              ...(chunk.usage.reasoningTokens === undefined ? {} : { reasoningTokens: chunk.usage.reasoningTokens }),
-            },
+            usage: buildLlmDoneUsage(chunk.usage),
             turnIndex,
             ...(chunk.finishReason === undefined ? {} : { finishReason: chunk.finishReason }),
           });
@@ -1960,4 +1955,15 @@ function parseSessionWhitelist(raw: string | undefined): ReadonlySet<string> {
     .map((id) => id.trim())
     .filter((id) => id.length > 0);
   return new Set(ids);
+}
+
+/** 组装 `llm_done` 的 usage (AF-478 抽出, 降主链路复杂度). */
+function buildLlmDoneUsage(usage: LlmUsage) {
+  return {
+    promptTokens: usage.promptTokens,
+    completionTokens: usage.completionTokens,
+    totalTokens: usage.totalTokens,
+    ...(usage.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+    ...(usage.cachedTokens === undefined ? {} : { cachedTokens: usage.cachedTokens }),
+  };
 }

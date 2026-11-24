@@ -110,6 +110,12 @@ export interface TurnTrace {
   readonly llmUsage: {
     readonly promptTokens: number;
     readonly completionTokens: number;
+    /**
+     * 命中前缀缓存的输入 token 数 (AF-478).
+     *
+     * 缺省 = 上游没报 / 老数据; 0 = 确实没命中. 只在可得时出现.
+     */
+    readonly cachedTokens?: number;
     readonly reasoningTokens: number;
     readonly ttftMs: number;
     readonly finishReason: string;
