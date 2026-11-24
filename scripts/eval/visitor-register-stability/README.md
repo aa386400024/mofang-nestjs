@@ -24,14 +24,25 @@ Start-Process node -ArgumentList 'dist/app.js' -WorkingDirectory . -RedirectStan
 
 ## 跑会话
 
+旧双端口跑法（历史对照，AF-465/AF-466 口径）：
+
 ```powershell
 node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --roles <role1>,<role2> --task-id AF-466
 ```
 
+单进程逐轮配对（AF-475 起的成本门口径）：
+
+```powershell
+# 只起 3010 一个进程；base/active 由 per-session registerMode 切换
+node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id <id> --roles <role1>,<role2> --task-id AF-475 --paired --port 3010
+```
+
 - `--roles` 省略时跑标定表全部角色；库里没有 `approved character_profiles` 的角色会创建失败，
   不要伪造，按可用角色数写进报告的覆盖说明。
-- 每个角色 base/active 各 1 场、30 轮；顺序按 seed 随机，脚本哈希写进 manifest。
-- 产出：`manifest.json`、`metrics.json`、`sessions/<role>/<mode>.json`。
+- 每个角色 base/active 各 1 场、30 轮；旧跑法按 seed 随机整场顺序，`--paired` 同一端口开两场、
+  逐轮交替并翻转先后，消除整场串行与双进程差异。
+- 产出：`manifest.json`（`paired=true`、`ports.paired`）、`metrics.json`、`sessions/<role>/<mode>.json`
+  （每场记录 `registerMode=off|active`）。
 
 ## AI 盲评
 

@@ -66,6 +66,16 @@ import { TurnDeltaAuditService } from '../engine-adapters/wiring/turn-delta-audi
 interface CreateDebugSessionBody {
   /** 角色代号 (从 `GET /admin/api/characters` 拿). */
   readonly characterSlug?: string;
+  /**
+   * 语域注入模式 (AF-475).
+   *
+   * - `off`：不注入 `speechRegister` / `speechRegisterAudit`，用于评测 base 臂；
+   * - `active`：按角色资产注入，用于评测 active 臂；
+   * - 缺省：保持既有行为（有资产就注入）。
+   *
+   * 只在调试接口暴露，不影响正式对练入口。
+   */
+  readonly registerMode?: 'off' | 'active';
 }
 
 /**
@@ -126,7 +136,7 @@ export class DebugSessionController {
    */
   @Post('session')
   async createSession(@Body() body: CreateDebugSessionBody): Promise<DebugSessionCreated> {
-    return this.service.createSession(body?.characterSlug);
+    return this.service.createSession(body?.characterSlug, undefined, undefined, body?.registerMode);
   }
 
   /**

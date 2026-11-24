@@ -1,0 +1,169 @@
+{
+  "deliveredAt": "2026-11-24T23:18:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-475-2",
+    "taskId": "AF-475",
+    "contextId": "phase2.5-visitor-register-eval",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "17a15e53e468a5f9aa19484802ad5da952b8743f",
+    "dependsOn": [],
+    "priorTasks": ["AF-471", "AF-474"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-475/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af475-register-cost-paired-measurement-implementation-2026-11-24.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["98bea7aa"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af475-register-cost-paired-measurement-implementation-2026-11-24.md",
+        "scripts/eval/visitor-register-stability/paired-order.mjs",
+        "scripts/eval/visitor-register-stability/__tests__/paired-order.spec.mjs"
+      ],
+      "modified": [
+        "src/admin-debug/debug-session.controller.ts",
+        "src/admin-debug/debug-session.service.ts",
+        "test/admin-debug/wp58-debug-session.spec.ts",
+        "scripts/eval/visitor-register-stability/run-sessions.mjs",
+        "scripts/eval/visitor-register-stability/README.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/admin-debug/wp58-debug-session.spec.ts scripts/eval/visitor-register-stability/__tests__/paired-order.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 3.5s",
+        "note": "36 tests passed；含 off/active 语域开关与配对顺序用例"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "0 error 0 warning；import/order warning 已修"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未动"
+      },
+      {
+        "command": "node --check scripts/eval/visitor-register-stability/run-sessions.mjs && node --check scripts/eval/visitor-register-stability/paired-order.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "脚本语法检查通过"
+      }
+    ],
+    "reproNotes": "paired 路径见 README：只起一个端口，--paired --port 3010；每角色同端口开 base(off)/active(active) 两场，逐轮按 pairedTurnOrder 奇偶翻转。真实 600 轮未执行，原因见 backlog AF475-B1。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-475 经 CLI register / promote / run-once；实现提交带 Task: AF-475 trailer"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 生成，实现提交未混入状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 由 CLI 维护；Husky worklog verify --strict PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=executor；改动限定 src/admin-debug、test/admin-debug、scripts/eval、docs/worklog"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "只处理评测口径与调试开关，无心理内容、无会话原文"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord 均落文件；worklog strict PASS"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 17a15e53；type fix；agentRole executor；提交 d90b39e0 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF475-B1",
+        "impact": "真实 600 轮 paired 评测未跑：本机 3010/3011 后端未启动，MySQL 3306、Redis 6379 未监听，且无 docker。p95 成本门仍未证明通过。",
+        "owner": "eval",
+        "status": "accepted"
+      },
+      {
+        "id": "AF475-B2",
+        "impact": "provider cachedTokens 仍未采集；AF-471 的缓存前缀因素暂时无法从 usage 侧直接核对。",
+        "owner": "eval",
+        "status": "accepted"
+      },
+      {
+        "id": "AF475-B3",
+        "impact": "本次只修测量口径，未改产品 prompt、未压缩语域块、未改 context budget；若配对数据仍超门，需另立产品侧任务。",
+        "owner": "eval",
+        "status": "accepted"
+      }
+    ],
+    "openQuestions": [
+      "单进程逐轮配对后，10 角色 p95 比值中位是否仍超过 1.15",
+      "post-TTFT 增量在配对条件下是否仍随轮次累积"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "任务单 7 条 successCriteria 全部满足：调试会话支持 off/active 且非法值 400；run-sessions 支持单端口 paired 与逐轮奇偶翻转；逐轮 partial、metrics、manifest 标记齐备；旧双端口路径保留；README 补齐；未改生产 prompt/context；单测、lint、typecheck 全绿。真实 600 轮未跑与 cachedTokens 未采集已登记 backlog，不冒充成本门通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地单测、lint、typecheck 与语法检查。"
+  }
+}
+
