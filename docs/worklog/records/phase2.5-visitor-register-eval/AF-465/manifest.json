@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-465",
   "contextId": "phase2.5-visitor-register-eval",
-  "status": "backlog",
+  "status": "ready",
   "createdAt": "2026-11-24T18:10:00+08:00",
-  "updatedAt": "2026-11-24T10:08:24.736Z",
+  "updatedAt": "2026-11-24T11:24:40.710Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-465/task-sheet.md",
     "sha256": "9f5a15301e2e89a0fcdd9878040983907a2b554b88c2cda29b8734d94c45b448",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-465/receipt-RC-AF-465-1.json",
+      "sha256": "99f9d46e9718a7176744f0f148b139e5f9ad4dedec7e241ec745442d23f928c1",
+      "receiptId": "RC-AF-465-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af465-visitor-register-stability-2026-11-24.md",
   "legacyPaths": [
     "docs/worklog/pending/AF-465-visitor-register-stability-2026-11-24.md"
