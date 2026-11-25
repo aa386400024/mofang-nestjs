@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-303",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T19:58:00+08:00",
-  "updatedAt": "2026-11-22T11:50:22.976Z",
+  "updatedAt": "2026-11-25T14:42:40.008Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/task-sheet.md",
     "sha256": "401d84500d02626ee5a81f2dc08f8dd7d979bbebca4614fb2a71be1d24f4579b",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/receipt-RC-AF-303-1.json",
+      "sha256": "c90bf393fb600e044657831bf32033fc90e972d8e9fb1b1822febe6c721aa1c8",
+      "receiptId": "RC-AF-303-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af303-acceptance-fallback-task-2026-11-22.md"
