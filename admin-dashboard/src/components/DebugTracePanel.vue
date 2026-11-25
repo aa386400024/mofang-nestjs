@@ -56,24 +56,6 @@ const snapshotBdi = computed<BdiSnapshotPoint | null>(() => {
   return props.bdiHistory[props.bdiHistory.length - 1] ?? null
 })
 
-const snapshotRows = computed(() => {
-  const point = snapshotBdi.value
-  if (!point) return []
-  const rows: Array<{ key: string; label: string; value: number }> = []
-  const push = (key: string, label: string, value: number | undefined) => {
-    if (value === undefined || !Number.isFinite(value)) return
-    rows.push({ key, label, value })
-  }
-  push('trust', '信任', point.trust)
-  push('safety', '安全感', point.safety)
-  push('bond', '联结感', point.bond)
-  push('arousal', '唤醒', point.arousal)
-  push('resistanceVerbal', '阻抗·话量', point.resistanceVerbal)
-  push('resistanceDepth', '阻抗·深度', point.resistanceDepth)
-  push('resistanceStyle', '阻抗·风格', point.resistanceStyle)
-  return rows
-})
-
 const intention = computed<IntentionSummary | null>(() => props.trace?.intention ?? null)
 
 const STRATEGY_LABELS: Record<string, string> = {
@@ -193,28 +175,19 @@ function messageTurnLabel(msg: { turnIndex?: number }, index: number): string {
 </script>
 
 <template>
-  <NTabs v-model:value="activeTab" size="small" type="line" class="flex-1 flex flex-col">
+  <NTabs v-model:value="activeTab" size="small" type="line" class="h-full min-h-0 flex flex-col" style="height: 100%">
     <!-- Tab 1: BDI 状态 -->
-    <NTabPane name="bdi" tab="BDI 状态" class="flex-1 overflow-auto">
+    <NTabPane name="bdi" tab="BDI 状态" class="flex-1 min-h-0 overflow-auto">
       <BdiStatePanel
         :trace="trace"
         :bdi-history="bdiHistory"
         :turn-index="turnIndex"
         @select-turn="(index) => emit('select-turn', index)"
       />
-      <div v-if="snapshotRows.length" class="px-3 pb-3">
-        <div class="text-[10px] text-muted mb-1.5">数值明细（0~1）</div>
-        <div class="grid grid-cols-2 gap-1.5">
-          <div v-for="row in snapshotRows" :key="row.key" class="flex items-center justify-between gap-2 text-[11px] bg-bg-elevated rounded px-2 py-1">
-            <span class="text-muted">{{ row.label }}</span>
-            <span class="font-mono">{{ formatMetric(row.value) }}</span>
-          </div>
-        </div>
-      </div>
     </NTabPane>
 
     <!-- Tab 2: 事件分类 + 本轮决策 -->
-    <NTabPane name="events" tab="事件分类" class="flex-1 overflow-auto">
+    <NTabPane name="events" tab="事件分类" class="flex-1 min-h-0 overflow-auto">
       <div class="p-3 space-y-3">
         <div v-if="!trace" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
         <template v-else>
@@ -279,7 +252,7 @@ function messageTurnLabel(msg: { turnIndex?: number }, index: number): string {
     </NTabPane>
 
     <!-- Tab 3: 安全判定 + 模型用量 -->
-    <NTabPane name="safety" tab="安全判定" class="flex-1 overflow-auto">
+    <NTabPane name="safety" tab="安全判定" class="flex-1 min-h-0 overflow-auto">
       <div class="p-3 space-y-3">
         <div v-if="!trace" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
         <template v-else>
@@ -304,7 +277,7 @@ function messageTurnLabel(msg: { turnIndex?: number }, index: number): string {
     </NTabPane>
 
     <!-- Tab 4: 渲染 prompt -->
-    <NTabPane name="prompt" tab="渲染 prompt" class="flex-1 overflow-auto">
+    <NTabPane name="prompt" tab="渲染 prompt" class="flex-1 min-h-0 overflow-auto">
       <div class="p-3 space-y-3">
         <div v-if="!promptText" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
         <div v-else :key="trace?.turnIndex">
@@ -354,7 +327,7 @@ function messageTurnLabel(msg: { turnIndex?: number }, index: number): string {
     </NTabPane>
 
     <!-- Tab 5: LLM 原始输出 -->
-    <NTabPane name="raw" tab="LLM 原始输出" class="flex-1 overflow-auto">
+    <NTabPane name="raw" tab="LLM 原始输出" class="flex-1 min-h-0 overflow-auto">
       <div class="p-3">
         <div class="flex items-center justify-between gap-2 mb-2">
           <span class="text-[10px] text-muted">默认只显示第 {{ turnIndex }} 轮</span>
@@ -374,7 +347,7 @@ function messageTurnLabel(msg: { turnIndex?: number }, index: number): string {
     </NTabPane>
 
     <!-- Tab 6: 原始数据（完整 trace JSON） -->
-    <NTabPane name="json" tab="原始 JSON" class="flex-1 overflow-auto">
+    <NTabPane name="json" tab="原始 JSON" class="flex-1 min-h-0 overflow-auto">
       <div class="p-3">
         <div v-if="!trace && !snapshotBdi" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
         <template v-else>

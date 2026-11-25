@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { NProgress, NTag } from 'naive-ui'
 import { use } from 'echarts/core'
 import { LineChart, RadarChart } from 'echarts/charts'
@@ -20,6 +20,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select-turn', turnIndex: number): void
 }>()
+
+type BdiView = 'current' | 'trend'
+
+const bdiView = ref<BdiView>('current')
+const showDetails = ref(false)
 
 const CORE_BELIEF_LABELS: Record<string, string> = {
   conditional_self_worth: '条件化自我价值',
@@ -175,6 +180,42 @@ const deltaRows = computed(() => {
   ]
 })
 
+const maxDelta = computed(() => {
+  const rows = deltaRows.value
+  if (rows.length === 0) return null
+  return rows.reduce((current, row) => (Math.abs(row.value) > Math.abs(current.value) ? row : current))
+})
+
+/** 折叠状态下也能看到细节摘要，避免关键变化被藏起来。 */
+const detailSummary = computed(() => {
+  const chips: Array<{ label: string; value: string }> = []
+  if (resistanceRows.value.length > 0) {
+    chips.push({
+      label: '阻抗',
+      value: resistanceRows.value.map((row) => `${row.label} ${formatMetric(row.value)}`).join(' / '),
+    })
+  }
+  if (transferenceRows.value.length > 0) {
+    chips.push({
+      label: '移情',
+      value: transferenceRows.value.map((row) => `${row.label} ${formatMetric(row.value)}`).join(' / '),
+    })
+  }
+  if (coreBeliefs.value.length > 0) {
+    const strongest = coreBeliefs.value[0]
+    if (strongest) {
+      chips.push({
+        label: '信念',
+        value: `峰值 ${formatMetric(selectedPoint.value?.coreBeliefActivationPeak)} · ${strongest.label} ${formatMetric(strongest.value)}`,
+      })
+    }
+  }
+  if (maxDelta.value) {
+    chips.push({ label: 'Δ 最大', value: `${maxDelta.value.label} ${formatSigned(maxDelta.value.value)}` })
+  }
+  return chips
+})
+
 const trendSeries = computed(() => {
   const points = props.bdiHistory
   if (points.length === 0) return []
@@ -191,85 +232,19 @@ const trendSeries = computed(() => {
 
 const trendOption = computed(() => {
   const points = props.bdiHistory
-  if (points.length === 0 || trendSeries.value.length === 0) return null
-  return {
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: '#1e222d',
-      borderColor: '#2a2f3d',
-      textStyle: { color: '#e5e7eb', fontSize: 12 },
-    },
-    legend: { textStyle: { color: '#9ca3af', fontSize: 10 }, top: 0, itemWidth: 10, itemHeight: 6 },
-    grid: { left: 38, right: 12, top: 26, bottom: 20 },
-    xAxis: {
-      type: 'category',
-      data: points.map((point) => String(point.turnIndex)),
-      axisLabel: { color: '#6b7280', fontSize: 9, formatter: (value: string) => `轮${value}` },
-      axisLine: { lineStyle: { color: '#2a2f3d' } },
-    },
-    yAxis: {
-      type: 'value',
-      min: 0,
-      max: 1,
-      axisLabel: { color: '#6b7280', fontSize: 9 },
-      splitLine: { lineStyle: { color: '#2a2f3d' } },
-    },
-    series: trendSeries.value.map((series, index) => ({
-      name: series.label,
-      type: 'line',
-      smooth: true,
-      connectNulls: false,
-      data: series.data,
-      symbol: 'circle',
-      symbolSize: 4,
-      lineStyle: { width: 1.5, color: series.color },
-      itemStyle: { color: series.color },
-      ...(index === 0 ? {
-        markLine: {
-          symbol: 'none',
-          silent: true,
-          lineStyle: { color: '#e8c87a', type: 'dashed', width: 1 },
-          label: { show: true, formatter: '选中', color: '#e8c87a', fontSize: 9 },
-          data: [{ xAxis: String(props.turnIndex) }],
-        },
-      } : {}),
-    })),
-  }
-})
-
-const valenceTrend = computed(() => {
-  const points = props.bdiHistory
   if (points.length === 0) return null
-  return {
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: '#1e222d',
-      borderColor: '#2a2f3d',
-      textStyle: { color: '#e5e7eb', fontSize: 12 },
-    },
-    grid: { left: 38, right: 12, top: 16, bottom: 20 },
-    xAxis: {
-      type: 'category',
-      data: points.map((point) => String(point.turnIndex)),
-      axisLabel: { color: '#6b7280', fontSize: 9, formatter: (value: string) => `轮${value}` },
-      axisLine: { lineStyle: { color: '#2a2f3d' } },
-    },
-    yAxis: {
-      type: 'value',
-      min: -1,
-      max: 1,
-      axisLabel: { color: '#6b7280', fontSize: 9 },
-      splitLine: { lineStyle: { color: '#2a2f3d' } },
-    },
-    series: [{
-      name: '效价',
-      type: 'line',
-      smooth: true,
-      data: points.map((point) => finite(point.valence) ? point.valence : null),
-      symbol: 'circle',
-      symbolSize: 4,
-      lineStyle: { width: 1.5, color: '#c890a8' },
-      itemStyle: { color: '#c890a8' },
+  const dimSeries = trendSeries.value.map((series, index) => ({
+    name: series.label,
+    type: 'line',
+    yAxisIndex: 0,
+    smooth: true,
+    connectNulls: false,
+    data: series.data,
+    symbol: 'circle',
+    symbolSize: 4,
+    lineStyle: { width: 1.5, color: series.color },
+    itemStyle: { color: series.color },
+    ...(index === 0 ? {
       markLine: {
         symbol: 'none',
         silent: true,
@@ -277,7 +252,68 @@ const valenceTrend = computed(() => {
         label: { show: true, formatter: '选中', color: '#e8c87a', fontSize: 9 },
         data: [{ xAxis: String(props.turnIndex) }],
       },
-    }],
+    } : {}),
+  }))
+  const valenceData = points.map((point) => (finite(point.valence) ? point.valence : null))
+  const hasValence = valenceData.some((value) => value !== null)
+  const valenceSeries = hasValence ? [{
+    name: '效价（右轴）',
+    type: 'line',
+    yAxisIndex: 1,
+    smooth: true,
+    connectNulls: false,
+    data: valenceData,
+    symbol: 'circle',
+    symbolSize: 4,
+    lineStyle: { width: 1.5, type: 'dashed', color: '#c890a8' },
+    itemStyle: { color: '#c890a8' },
+  }] : []
+  const series = [...dimSeries, ...valenceSeries]
+  if (series.length === 0) return null
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' },
+      backgroundColor: '#1e222d',
+      borderColor: '#2a2f3d',
+      textStyle: { color: '#e5e7eb', fontSize: 12 },
+    },
+    legend: {
+      textStyle: { color: '#9ca3af', fontSize: 10 },
+      top: 0,
+      itemWidth: 10,
+      itemHeight: 6,
+      data: series.map((item) => item.name),
+    },
+    grid: { left: 40, right: 46, top: 34, bottom: 24 },
+    xAxis: {
+      type: 'category',
+      data: points.map((point) => String(point.turnIndex)),
+      axisLabel: { color: '#6b7280', fontSize: 9, formatter: (value: string) => `轮${value}` },
+      axisLine: { lineStyle: { color: '#2a2f3d' } },
+      axisPointer: { label: { show: false } },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '0~1',
+        min: 0,
+        max: 1,
+        nameTextStyle: { color: '#6b7280', fontSize: 9 },
+        axisLabel: { color: '#6b7280', fontSize: 9 },
+        splitLine: { lineStyle: { color: '#2a2f3d' } },
+      },
+      {
+        type: 'value',
+        name: '效价',
+        min: -1,
+        max: 1,
+        nameTextStyle: { color: '#c890a8', fontSize: 9 },
+        axisLabel: { color: '#c890a8', fontSize: 9 },
+        splitLine: { show: false },
+      },
+    ],
+    series,
   }
 })
 
@@ -297,104 +333,144 @@ function coreBeliefTagType(value: number): 'success' | 'warning' | 'error' | 'in
 </script>
 
 <template>
-  <div class="p-3 space-y-4">
+  <div class="min-h-0">
+    <div class="sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2 bg-bg-surface border-b border-bg-border">
+      <div class="min-w-0">
+        <div class="text-xs text-muted truncate">BDI 快照 · 第 {{ turnIndex }} 轮</div>
+        <div class="text-[9px] text-muted truncate">0~1 维度与效价分轴展示</div>
+      </div>
+      <div class="flex items-center gap-0.5 bg-bg-elevated rounded p-0.5 flex-shrink-0">
+        <button
+          class="px-2 py-0.5 text-[11px] rounded transition-colors"
+          :class="bdiView === 'current' ? 'bg-accent text-white' : 'text-muted hover:text-text-primary'"
+          @click="bdiView = 'current'"
+        >
+          本轮
+        </button>
+        <button
+          class="px-2 py-0.5 text-[11px] rounded transition-colors"
+          :class="bdiView === 'trend' ? 'bg-accent text-white' : 'text-muted hover:text-text-primary'"
+          @click="bdiView = 'trend'"
+        >
+          走势
+        </button>
+      </div>
+    </div>
+
     <div v-if="!selectedPoint" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
+
     <template v-else>
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs text-muted">本轮快照 · 第 {{ turnIndex }} 轮</div>
-        <div class="text-[10px] text-muted">雷达 0~1 · 效价单独双极</div>
-      </div>
-
-      <div v-if="radarOption" class="bg-bg-elevated rounded p-1">
-        <VChart :option="radarOption" :autoresize="true" class="w-full" style="height: 190px" />
-      </div>
-      <div v-else class="text-[11px] text-muted bg-bg-elevated rounded p-3 text-center">
-        当前轮缺少足够的多维状态（至少需要 3 个 0~1 维度）
-      </div>
-
-      <div v-if="snapshotChips.length || selectedPoint.anxiousSecure" class="flex flex-wrap gap-1.5">
-        <NTag v-if="selectedPoint.anxiousSecure" size="tiny" type="warning" :bordered="false">
-          象限 · {{ selectedPoint.anxiousSecure }}
-        </NTag>
-        <NTag v-for="item in snapshotChips" :key="item.key" size="tiny" :bordered="false">
-          {{ item.label }} {{ formatMetric(item.value) }}
-        </NTag>
-      </div>
-
-      <div class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-[11px] text-muted">效价 valence</span>
-          <span class="text-xs font-mono font-medium" :class="valenceClass">{{ formatSigned(valence) }}</span>
-        </div>
-        <div class="relative h-2 rounded-full mt-2 bg-gradient-to-r from-red-500/40 via-bg-border to-emerald-500/40">
-          <div class="absolute top-1/2 -translate-y-1/2 w-0.5 h-4 bg-accent rounded-full" :style="{ left: `${valencePercent}%` }"></div>
-          <div class="absolute top-0 bottom-0 left-1/2 w-px bg-bg-border"></div>
-        </div>
-        <div class="flex justify-between text-[9px] text-muted mt-1">
-          <span>-1 负向</span>
-          <span>0</span>
-          <span>+1 正向</span>
-        </div>
-      </div>
-
-      <div v-if="resistanceRows.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
-        <div class="text-[11px] text-muted mb-2">阻抗三维</div>
-        <div class="space-y-1.5">
-          <div v-for="row in resistanceRows" :key="row.key" class="flex items-center gap-2 text-[11px]">
-            <span class="w-10 text-muted">{{ row.label }}</span>
-            <div class="flex-1"><NProgress type="line" :percentage="row.value * 100" :show-text="false" :show-indicator="false" /></div>
-            <span class="w-8 text-right font-mono">{{ formatMetric(row.value) }}</span>
+      <div v-if="bdiView === 'current'" class="p-3 space-y-2.5">
+        <div class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))">
+          <div class="min-w-0 bg-bg-elevated rounded p-1">
+            <VChart v-if="radarOption" :option="radarOption" :autoresize="true" class="w-full" style="height: 160px" />
+            <div v-else class="h-[160px] flex items-center justify-center text-[11px] text-muted text-center px-3">
+              当前轮缺少足够的多维状态（至少需要 3 个 0~1 维度）
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div v-if="transferenceRows.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
-        <div class="text-[11px] text-muted mb-2">移情三态</div>
-        <div class="grid grid-cols-3 gap-2">
-          <div v-for="row in transferenceRows" :key="row.key" class="text-center">
-            <div class="text-[10px] text-muted">{{ row.label }}</div>
-            <div class="text-xs font-mono font-medium">{{ formatMetric(row.value) }}</div>
-            <div class="h-1 rounded-full mt-1" :style="{ background: row.color, opacity: 0.25 + row.value * 0.75 }"></div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="coreBeliefs.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[11px] text-muted">核心信念激活</span>
-          <span class="text-[10px] text-muted">峰值 {{ formatMetric(selectedPoint.coreBeliefActivationPeak) }}</span>
-        </div>
-        <div class="flex flex-wrap gap-1">
-          <NTag v-for="belief in coreBeliefs" :key="belief.key" size="tiny" :type="coreBeliefTagType(belief.value)" :bordered="false">
-            {{ belief.label }} {{ formatMetric(belief.value) }}
-          </NTag>
-        </div>
-      </div>
-
-      <div v-if="deltaRows.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
-        <div class="text-[11px] text-muted mb-2">本轮 Δ（相对上一轮）</div>
-        <div class="grid grid-cols-4 gap-1.5">
-          <div v-for="row in deltaRows" :key="row.key" class="text-center">
-            <div class="text-[9px] text-muted">{{ row.label }}</div>
-            <div class="text-[11px] font-mono" :class="row.value > 0 ? 'text-success' : row.value < 0 ? 'text-error' : 'text-muted'">
-              {{ formatSigned(row.value) }}
+          <div class="min-w-0 bg-bg-elevated rounded p-2.5 flex flex-col justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1">
+              <NTag v-if="selectedPoint.anxiousSecure" size="tiny" type="warning" :bordered="false">
+                象限 · {{ selectedPoint.anxiousSecure }}
+              </NTag>
+              <span class="text-[10px] text-muted">第 {{ turnIndex }} 轮</span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-3 gap-y-1">
+              <div v-for="item in snapshotChips" :key="item.key" class="flex items-center justify-between gap-2 text-[11px] min-w-0">
+                <span class="text-muted truncate">{{ item.label }}</span>
+                <span class="font-mono flex-shrink-0">{{ formatMetric(item.value) }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div v-if="trace?.deltaDetail?.events?.length" class="flex flex-wrap gap-1 mt-2">
-          <NTag v-for="event in trace.deltaDetail.events" :key="event" size="tiny" type="info" :bordered="false">{{ event }}</NTag>
+
+        <div class="rounded-lg border border-bg-border bg-bg-elevated px-2.5 py-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[11px] text-muted">效价 valence</span>
+            <span class="text-xs font-mono font-medium" :class="valenceClass">{{ formatSigned(valence) }}</span>
+          </div>
+          <div class="relative h-1.5 rounded-full mt-1.5 bg-gradient-to-r from-red-500/40 via-bg-border to-emerald-500/40">
+            <div class="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-accent rounded-full" :style="{ left: `${valencePercent}%` }"></div>
+            <div class="absolute top-0 bottom-0 left-1/2 w-px bg-bg-border"></div>
+          </div>
+          <div class="flex justify-between text-[9px] text-muted mt-1">
+            <span>-1 负向</span>
+            <span>0</span>
+            <span>+1 正向</span>
+          </div>
+        </div>
+
+        <div v-if="detailSummary.length" class="flex flex-wrap items-center gap-1">
+          <span v-for="chip in detailSummary" :key="chip.label" class="rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-muted">
+            <span class="text-text-secondary">{{ chip.label }}</span> {{ chip.value }}
+          </span>
+        </div>
+
+        <button class="text-[10px] text-accent hover:underline flex items-center gap-1" @click="showDetails = !showDetails">
+          {{ showDetails ? '▾' : '▸' }} {{ showDetails ? '收起状态细节' : '展开状态细节（阻抗 / 移情 / 信念 / Δ）' }}
+        </button>
+
+        <div v-if="showDetails" class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))">
+          <div v-if="resistanceRows.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
+            <div class="text-[11px] text-muted mb-2">阻抗三维</div>
+            <div class="space-y-1.5">
+              <div v-for="row in resistanceRows" :key="row.key" class="flex items-center gap-2 text-[11px]">
+                <span class="w-8 text-muted">{{ row.label }}</span>
+                <div class="flex-1"><NProgress type="line" :percentage="row.value * 100" :show-text="false" :show-indicator="false" /></div>
+                <span class="w-8 text-right font-mono">{{ formatMetric(row.value) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="transferenceRows.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
+            <div class="text-[11px] text-muted mb-2">移情三态</div>
+            <div class="grid grid-cols-3 gap-2">
+              <div v-for="row in transferenceRows" :key="row.key" class="text-center">
+                <div class="text-[10px] text-muted">{{ row.label }}</div>
+                <div class="text-xs font-mono font-medium">{{ formatMetric(row.value) }}</div>
+                <div class="h-1 rounded-full mt-1" :style="{ background: row.color, opacity: 0.25 + row.value * 0.75 }"></div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="coreBeliefs.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] text-muted">核心信念激活</span>
+              <span class="text-[10px] text-muted">峰值 {{ formatMetric(selectedPoint.coreBeliefActivationPeak) }}</span>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              <NTag v-for="belief in coreBeliefs" :key="belief.key" size="tiny" :type="coreBeliefTagType(belief.value)" :bordered="false">
+                {{ belief.label }} {{ formatMetric(belief.value) }}
+              </NTag>
+            </div>
+          </div>
+
+          <div v-if="deltaRows.length" class="rounded-lg border border-bg-border bg-bg-elevated p-2.5">
+            <div class="text-[11px] text-muted mb-2">本轮 Δ（相对上一轮）</div>
+            <div class="grid grid-cols-4 gap-1.5">
+              <div v-for="row in deltaRows" :key="row.key" class="text-center">
+                <div class="text-[9px] text-muted">{{ row.label }}</div>
+                <div class="text-[11px] font-mono" :class="row.value > 0 ? 'text-success' : row.value < 0 ? 'text-error' : 'text-muted'">
+                  {{ formatSigned(row.value) }}
+                </div>
+              </div>
+            </div>
+            <div v-if="trace?.deltaDetail?.events?.length" class="flex flex-wrap gap-1 mt-2">
+              <NTag v-for="event in trace.deltaDetail.events" :key="event" size="tiny" type="info" :bordered="false">{{ event }}</NTag>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="space-y-2">
-        <div class="text-xs text-muted">历史趋势</div>
+      <div v-else class="p-3 space-y-2">
         <div v-if="trendOption" class="bg-bg-elevated rounded p-1">
-          <VChart :option="trendOption" :autoresize="true" class="w-full" style="height: 160px" @click="onTrendClick" />
+          <VChart :option="trendOption" :autoresize="true" class="w-full" style="height: 250px" @click="onTrendClick" />
         </div>
-        <div v-if="valenceTrend" class="bg-bg-elevated rounded p-1">
-          <VChart :option="valenceTrend" :autoresize="true" class="w-full" style="height: 110px" @click="onTrendClick" />
+        <div v-else class="text-xs text-muted text-center py-10">还没有可用的历史轮次数据</div>
+        <div class="text-[10px] text-muted leading-relaxed">
+          左轴 0~1：信任 / 安全感 / 联结 / 唤醒 / 阻抗话量；右轴效价 -1~1。点击趋势点可切换到该轮，黄色虚线为当前选中轮。
         </div>
-        <div class="text-[10px] text-muted">点击趋势点可切换到该轮；黄色虚线为当前选中轮。</div>
       </div>
     </template>
   </div>

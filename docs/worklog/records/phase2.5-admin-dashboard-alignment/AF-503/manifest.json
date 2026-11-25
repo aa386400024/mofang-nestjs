@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-503",
+  "contextId": "phase2.5-admin-dashboard-alignment",
+  "status": "backlog",
+  "createdAt": "2026-11-25T11:20:00+08:00",
+  "updatedAt": "2026-11-25T03:27:47.082Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-503/task-sheet.md",
+    "sha256": "5567f692d4e2b58904f91b68e97f44073fb8971c77b27c2c5827c78bf979cb7e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af503-auto-practice-debug-panel-density-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-admin-dashboard-debug-panel-density-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}
