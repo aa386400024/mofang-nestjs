@@ -4,83 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1414,
+    "lastEventSeq": 1416,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-516",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-25T16:07:17.895Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始实现非支付闭环"
-        },
-        {
-          "at": "2026-11-25T16:07:26.437Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-membership-v2",
-      "title": "会员 v2 非支付闭环：活动规则引擎与运营 API、年付按月刷新、旧 SKU 下线",
-      "type": "implementation",
-      "baselineRef": "7fb57be8",
-      "dependsOn": [],
-      "scope": {
-        "files": [
-          "src/membership/**",
-          "src/counselor/providers/billing.service.ts",
-          "src/counselor/dto/billing.dto.ts",
-          "src/common/exceptions/biz-code.enum.ts",
-          "src/common/exceptions/biz.exception.ts",
-          "src/migration/1714900000050-AddMembershipPromotionAndPlanGrant.ts",
-          "bin/ormconfig.ts",
-          "src/migration/index.ts",
-          "test/membership/**",
-          "docs/worklog/completed/phase2.5/af516-membership-nonpayment-closure-implementation-2026-11-25.md",
-          "docs/worklog/pending/af516-membership-nonpayment-closure-task-2026-11-25.md",
-          "docs/worklog/records/phase2.5-membership-v2/AF-516/**",
-          "docs/worklog/pending/phase4-backlog-2026-11-08.md"
-        ],
-        "modules": [
-          "membership",
-          "counselor"
-        ],
-        "interfaces": [
-          "/membership/**",
-          "/admin/membership/**",
-          "/counselor/billing/skus"
-        ]
-      },
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3",
-        "conventions.md#三"
-      ],
-      "createdAt": "2026-11-25T15:58:00.000Z",
-      "agentRole": "executor",
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-516/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "plannedArtifacts": [],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-25T16:07:17.894Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2827,6 +2754,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-515/task-sheet.md",
         "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-516",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-516/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af516-membership-nonpayment-closure-implementation-2026-11-25.md",
         "reply": null
       }
     }
