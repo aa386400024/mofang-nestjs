@@ -54,5 +54,6 @@
   "AF-416": "scope 缺 .env.example；改动由 AF-417 承接",
   "AF-447": "scope 重签发 → AF-448",
   "AF-448": "scope 重签发 → AF-449",
-  "AF-453": "scope 重签发 → AF-454"
+  "AF-453": "scope 重签发 → AF-454",
+  "AF-501": "scope 重签发 → AF-502"
 }

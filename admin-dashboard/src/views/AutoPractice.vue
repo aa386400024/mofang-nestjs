@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NSelect, NInputNumber, NButton, NEmpty, NTag, NProgress, NModal, NCheckbox, NSpace, NStatistic, NDivider, NBadge, useMessage } from 'naive-ui'
+import { NSelect, NInput, NInputNumber, NButton, NEmpty, NTag, NProgress, NModal, NCheckbox, NSpace, NStatistic, NDivider, NBadge, useMessage } from 'naive-ui'
 import { io, type Socket } from 'socket.io-client'
 import { api } from '@/api/client'
 import type { DebugTtsProvider, DebugTtsSpeechPreview, DebugTtsSpeechSentence } from '@/api/client'
-import type { CharacterBaseline, CounselorMode, PracticeSession, BatchProgress, ApTurn, ApSessionEnd, ApSessionStart, TurnTrace } from '@/api/types'
-import DebugTracePanel, { type BdiSnapshotPoint } from '@/components/DebugTracePanel.vue'
+import type { CharacterBaseline, CounselorMode, PracticeSession, BatchProgress, ApTurn, ApSessionEnd, ApSessionStart, TurnTrace, BdiSnapshotPoint } from '@/api/types'
+import DebugTracePanel from '@/components/DebugTracePanel.vue'
+import { stringifyTraceJson } from '@/utils/trace-format'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -137,7 +138,10 @@ const crisisOutcome = ref<string>('')
 const finalTurnCount = ref(0)
 
 /** 当前正在查看的场次行（含场景与危机结论；运行中可能还是乐观行）. */
-const currentSessionRow = computed(() => recentSessions.value.find((s) => s.id === runningSessionId.value))
+const selectedSessionSnapshot = ref<PracticeSession | null>(null)
+const currentSessionRow = computed(() =>
+  recentSessions.value.find((s) => s.id === runningSessionId.value) ?? selectedSessionSnapshot.value
+)
 
 /** 危机收尾结论的中文标签（旧场次无该字段 → 空串）. */
 const crisisOutcomeLabel = computed(() => {
@@ -159,6 +163,8 @@ const endReasonLabel = computed(() => exitReasonText(exitReason.value, sessionSt
 const bdiHistory = ref<BdiSnapshotPoint[]>([])
 // 当前轮的 trace（右侧面板展示用）
 const currentTrace = ref<TurnTrace | null>(null)
+// 手动选中的轮次；null = 跟随最新。不能只靠 currentTrace，否则 BDI/JSON 会串轮。
+const selectedTurnIndex = ref<number | null>(null)
 // 会话元信息（启动时固定保存，导出时用，不依赖选择器状态）
 const sessionMeta = ref<{ characterSlug: string; counselorModeId: string; debugSessionId: string } | null>(null)
 // WS 最后收到事件的时间
@@ -172,6 +178,7 @@ const sessionPage = ref(1)
 const sessionPageSize = ref(20)
 const sessionTotal = ref(0)
 const sessionLoadingMore = ref(false)
+const sessionSearch = ref('')
 const sessionListRef = ref<HTMLElement | null>(null)
 // 刚点「跑一场」但后端还没落库时的占位行（保证左栏立刻有条目，不闪）
 const pendingRow = ref<PracticeSession | null>(null)
@@ -195,10 +202,85 @@ let socket: Socket | null = null
 const canStart = computed(() => !!selectedCharacterSlug.value && !!selectedModeId.value && !running.value)
 const modeOptions = computed(() => modes.value.filter(m => m.enabled === 1).map(m => ({ label: m.name, value: m.id })))
 
+/** 最新轮（turns 还没 hydrate 时用 finalTurnCount 兜底）. */
+const latestTurnIndex = computed(() => {
+  let max = 0
+  for (const key of turns.keys()) if (key > max) max = key
+  return max || finalTurnCount.value || 0
+})
+
+/** 调试面板实际展示的轮次：手动选中优先，否则跟随最新. */
+const effectiveTurnIndex = computed(() => selectedTurnIndex.value ?? latestTurnIndex.value)
+
+/** 左栏搜索：角色名、模式名、状态中文、ID 都可命中. */
+const visibleSessions = computed(() => {
+  const keyword = sessionSearch.value.trim().toLowerCase()
+  if (!keyword) return recentSessions.value
+  return recentSessions.value.filter((s) => {
+    const haystack = [
+      characterNameBySlug(s.characterSlug),
+      s.characterSlug,
+      modeNameById(s.counselorModeId),
+      practiceStatusLabel(s.status),
+      s.id,
+    ].join(' ').toLowerCase()
+    return haystack.includes(keyword)
+  })
+})
+
+// 会话头信息：从当前场次行取，避免“列表里有、头上没有”.
+const currentSceneLabel = computed(() => {
+  const row = currentSessionRow.value
+  if (row) return encounterLabel(row)
+  return encounterMode.value === 'online'
+    ? (encounterChannel.value === 'voice' ? '线上语音' : encounterChannel.value === 'text' ? '线上文字' : '线上视频')
+    : '面对面'
+})
+const currentStartedAtText = computed(() => {
+  const row = currentSessionRow.value
+  return row?.startedAt ? formatPracticeTime(row.startedAt) : ''
+})
+const currentDurationText = computed(() => currentSessionRow.value ? practiceDurationText(currentSessionRow.value) : '')
+const currentCostText = computed(() => currentSessionRow.value ? practiceCostText(currentSessionRow.value) : '')
+const currentModelSummary = computed(() => currentSessionRow.value ? practiceModelSummary(currentSessionRow.value) : '')
+const currentSessionTooltip = computed(() => currentSessionRow.value ? practiceSessionTooltip(currentSessionRow.value) : '')
+const currentCrisisOutcomeText = computed(() => {
+  const value = currentSessionRow.value?.crisisOutcome
+  if (!value || value === 'none') return ''
+  if (value === 'safety_plan_completed') return '安全计划已完成'
+  if (value === 'escalated') return '已升级求助'
+  if (value === 'incomplete') return '安全计划未完成'
+  return value
+})
+
 // 根据 ID 查咨询师模式名称
 function modeNameById(id: string): string {
   const m = modes.value.find(x => x.id === id)
   return m?.name ?? id
+}
+
+/** 练习场次状态的中文标签；与后端 ap_practice_sessions.status 全量枚举对齐。 */
+function practiceStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case 'running': return '进行中'
+    case 'completed': return '已完成'
+    case 'crisis_ended': return '危机收尾'
+    case 'stagnant': return '停滞结束'
+    case 'failed': return '失败'
+    case 'canceled': return '已取消'
+    default: return status || '未知'
+  }
+}
+
+function practiceStatusTagType(status: string | null | undefined): 'success' | 'error' | 'warning' | 'info' {
+  switch (status) {
+    case 'completed': return 'success'
+    case 'failed': return 'error'
+    case 'crisis_ended':
+    case 'stagnant': return 'warning'
+    case 'canceled': return 'info'
+    default: return 'info'
+  }
 }
 
 /** AF-187: 场次接触方式的人读标签（缺省按面对面，兼容历史行）。 */
@@ -343,16 +425,35 @@ function rebuildFromTurns() {
       acc.push({
         turnIndex: r.turnIndex,
         trust: s.trust,
-        safety: s.safety ?? 0,
-        bond: s.bond ?? 0,
+        // 不把缺失的 safety/bond 补成 0：旧 trace 的“没有”与“极低”必须分开.
+        safety: s.safety,
+        bond: s.bond,
         valence: s.valence,
         arousal: s.arousal,
+        resistance: s.resistance,
+        resistanceVerbal: s.resistanceVerbal,
+        resistanceDepth: s.resistanceDepth,
+        resistanceStyle: s.resistanceStyle,
+        anxiousSecure: s.anxiousSecure,
+        transference: s.transference,
+        coreBeliefActivation: s.coreBeliefActivation,
+        coreBeliefActivationPeak: s.coreBeliefActivationPeak,
       })
     }
     return acc
   }, [])
-  const lastTrace = [...recs].reverse().find(r => r.trace)?.trace
-  if (lastTrace) currentTrace.value = lastTrace
+  const lastTrace = [...recs].reverse().find(r => r.trace)?.trace ?? null
+  if (selectedTurnIndex.value !== null) {
+    // 手动选中旧轮时，新轮推送不能把面板抢回最后轮.
+    if (turns.has(selectedTurnIndex.value)) {
+      currentTrace.value = turns.get(selectedTurnIndex.value)?.trace ?? null
+    } else {
+      selectedTurnIndex.value = null
+      currentTrace.value = lastTrace
+    }
+  } else {
+    currentTrace.value = lastTrace
+  }
 }
 
 /** 幂等写入一轮（WS 增量与 REST 快照都走这里，同 turnIndex 覆盖）. */
@@ -451,7 +552,22 @@ function copyMessage(text: string) {
 }
 
 function showTrace(trace: TurnTrace) {
+  selectedTurnIndex.value = trace.turnIndex
   currentTrace.value = trace
+}
+
+/** 回到最新轮（取消手动锁定）. */
+function followLatest() {
+  selectedTurnIndex.value = null
+  currentTrace.value = [...turns.values()].sort((a, b) => b.turnIndex - a.turnIndex).find(r => r.trace)?.trace ?? null
+}
+
+/** 图表/趋势点点击后切换轮次；没有 trace 的轮次不伪装成可查看. */
+function selectTurn(turnIndex: number) {
+  const rec = turns.get(turnIndex)
+  if (!rec?.trace) return
+  selectedTurnIndex.value = turnIndex
+  currentTrace.value = rec.trace
 }
 
 // ─── AF-395: 来访者气泡三模型 TTS（点击才生成，二次点击只读缓存） ───
@@ -698,6 +814,7 @@ async function startManualSession() {
     messages.value = []
     bdiHistory.value = []
     currentTrace.value = null
+    selectedTurnIndex.value = null
     message.success(`调试会话已开启: ${res.debugSessionId}`)
   } catch (e) {
     message.error('开启调试会话失败')
@@ -714,6 +831,7 @@ async function endManualSession() {
     messages.value = []
     bdiHistory.value = []
     currentTrace.value = null
+    selectedTurnIndex.value = null
     message.success('会话已结束')
   } catch (e) {
     message.error('结束会话失败')
@@ -727,6 +845,7 @@ async function loadDebugSession(s: { id: string; title: string; characterSlug: s
   messages.value = []
   bdiHistory.value = []
   currentTrace.value = null
+  selectedTurnIndex.value = null
   try {
     const data = await api.debugSession.get(s.id)
     hydrateSnapshot(data.messages.map((m: any) => ({
@@ -825,6 +944,7 @@ async function syncSessions() {  try {
     // 同步当前场次：debugSessionId / 轮次 / 终态
     const cur = runningSessionId.value ? arr.find(s => s.id === runningSessionId.value) : undefined
     if (!cur) return
+    selectedSessionSnapshot.value = cur
     if (sessionMeta.value && !sessionMeta.value.debugSessionId && cur.debugSessionId) {
       sessionMeta.value = { ...sessionMeta.value, debugSessionId: cur.debugSessionId }
       await hydrateFromRest()
@@ -953,7 +1073,7 @@ function connectWS(sessionId: string) {
     lastWsEventTime = Date.now()
     console.log('[auto-practice] session_end', p)
     applySessionEnd(p.status, p.exitReason, p.crisisEnded, p.turnCount, p.crisisOutcome ?? '')
-    message.success(`对练结束: ${p.status} (${p.turnCount} 轮)`)
+    message.success(`对练结束: ${practiceStatusLabel(p.status)} (${p.turnCount} 轮)`)
   })
 
   socket.on('connect_error', (err) => {
@@ -979,6 +1099,7 @@ async function startPractice() {
   finalTurnCount.value = 0
   bdiHistory.value = []
   currentTrace.value = null
+  selectedTurnIndex.value = null
   sessionMeta.value = null
 
   const charSlug = selectedCharacterSlug.value
@@ -1016,6 +1137,7 @@ async function startPractice() {
       errorMessage: null,
       startedAt: new Date().toISOString(),
     } as PracticeSession
+    selectedSessionSnapshot.value = pendingRow.value
     recentSessions.value = [pendingRow.value, ...recentSessions.value.filter(s => s.id !== pendingRow.value!.id)].slice(0, 20)
 
     connectWS(res.practiceSessionId)
@@ -1097,14 +1219,17 @@ function exportJSON() {
   const row = currentSessionRow.value
   const sceneMode = row?.encounterMode ?? encounterMode.value
   const sceneChannel = row?.encounterChannel ?? (sceneMode === 'online' ? encounterChannel.value : null)
+  const traceByTurn = new Map<number, TurnTrace>()
+  for (const rec of turns.values()) if (rec.trace) traceByTurn.set(rec.turnIndex, rec.trace)
   const data = {
     exportedAt: new Date().toISOString(),
+    schemaVersion: 'auto-practice-export/v1',
     session: {
       practiceSessionId: runningSessionId.value,
       characterSlug: sessionMeta.value?.characterSlug ?? selectedCharacterSlug.value,
       counselorModeId: sessionMeta.value?.counselorModeId ?? selectedModeId.value,
       status: running.value ? 'running' : sessionStatus.value,
-      turnCount: finalTurnCount.value || turns.size,
+      turnCount: latestTurnIndex.value || finalTurnCount.value || turns.size,
       encounterMode: sceneMode,
       encounterChannel: sceneChannel,
       encounterLabel: sceneMode === 'online'
@@ -1116,31 +1241,35 @@ function exportJSON() {
       crisisOutcome: crisisOutcome.value || null,
       crisisOutcomeLabel: crisisOutcomeLabel.value || null,
     },
+    // 同轮 trace / 同轮快照必须并排导出，复盘时才能对齐；展示层统一 4 位小数.
     bdiHistory: bdiHistory.value,
     messages: messages.value.map((m, i) => ({
       index: i,
+      turnIndex: m.turnIndex ?? null,
       role: m.role,
       text: m.text,
       crisis: m.crisis ?? false,
       bdiSnapshot: m.trace?.bdiSnapshot ?? null,
       eventTags: m.trace?.eventTags ?? null,
       crisisDetected: m.trace?.crisis ?? null,
+      trace: m.trace ?? (m.turnIndex !== undefined ? traceByTurn.get(m.turnIndex) ?? null : null),
     })),
   }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const blob = new Blob([stringifyTraceJson(data, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = `auto-practice-${runningSessionId.value || 'session'}.json`
   a.click()
   URL.revokeObjectURL(url)
-  message.success('已导出 JSON')
+  message.success('已导出 JSON（含完整 trace）')
 }
 
 async function loadSession(s: PracticeSession) {
   // 切到某场：先拉全量快照，运行中的场次继续跟随实时推送
   try {
     runningSessionId.value = s.id
+    selectedSessionSnapshot.value = s
     sessionMeta.value = {
       characterSlug: s.characterSlug,
       counselorModeId: s.counselorModeId,
@@ -1156,6 +1285,7 @@ async function loadSession(s: PracticeSession) {
     messages.value = []
     bdiHistory.value = []
     currentTrace.value = null
+    selectedTurnIndex.value = null
     await hydrateFromRest()
 
     if (s.status === 'running') {
@@ -1313,7 +1443,7 @@ onUnmounted(() => {
     <!-- 主区域: 三栏 -->
     <div class="flex-1 flex min-h-0 gap-3">
       <!-- 左栏: 历史场次 + 批量进度 -->
-      <div v-if="showSessionList" class="w-64 flex-shrink-0 flex flex-col gap-3 min-h-0">
+      <div v-if="showSessionList" class="w-72 flex-shrink-0 flex flex-col gap-3 min-h-0">
         <!-- 批量进度 -->
         <div v-if="batchProgress" class="bg-bg-surface rounded-lg border border-bg-border p-3">
           <div class="text-xs font-medium mb-2 flex items-center justify-between">
@@ -1328,8 +1458,8 @@ onUnmounted(() => {
           />
           <div class="flex flex-wrap gap-1 mt-2">
             <NTag v-for="(count, status) in batchProgress.byStatus" :key="status" size="tiny" round
-                  :type="status === 'completed' ? 'success' : status === 'failed' ? 'error' : 'info'">
-              {{ status }}: {{ count }}
+                  :type="practiceStatusTagType(status)">
+              {{ practiceStatusLabel(status) }}: {{ count }}
             </NTag>
           </div>
         </div>
@@ -1365,6 +1495,11 @@ onUnmounted(() => {
             </button>
           </div>
 
+          <!-- 场次搜索：角色 / 模式 / 状态 / ID 都能命中，避免几十场后只能靠滚动找 -->
+          <div v-if="mode === 'auto'" class="px-2 py-2 border-b border-bg-border">
+            <NInput v-model:value="sessionSearch" size="tiny" clearable placeholder="搜索角色 / 模式 / 状态" />
+          </div>
+
           <!-- 列表 -->
           <div ref="sessionListRef" class="flex-1 overflow-auto p-2 space-y-1" @scroll="onSessionListScroll">
             <div v-if="mode === 'auto' && recentSessions.length === 0" class="text-xs text-muted text-center py-12">
@@ -1374,6 +1509,9 @@ onUnmounted(() => {
                 </svg>
                 <span>暂无场次</span>
               </div>
+            </div>
+            <div v-if="mode === 'auto' && recentSessions.length > 0 && visibleSessions.length === 0" class="text-xs text-muted text-center py-8">
+              没有匹配的场次，试试换关键词
             </div>
             <div v-if="mode === 'manual' && debugSessions.length === 0" class="text-xs text-muted text-center py-12">
               <div class="flex flex-col items-center gap-2 opacity-60">
@@ -1386,7 +1524,7 @@ onUnmounted(() => {
 
             <!-- 自动对练：practice sessions -->
             <div
-              v-for="s in recentSessions"
+              v-for="s in visibleSessions"
               v-if="mode === 'auto'"
               :key="s.id"
               class="group rounded-lg border transition-all cursor-pointer"
@@ -1397,54 +1535,22 @@ onUnmounted(() => {
               ]"
               @click="loadSession(s)"
             >
-              <div class="px-3 py-2.5 flex items-start gap-2.5">
-                <div
-                  class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5"
-                  :style="{ background: avatarColor(s.characterSlug), color: '#fff' }"
-                >
-                  {{ avatarInitial(s.characterSlug) }}
+              <div class="px-3 py-2" :title="practiceSessionTooltip(s)">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div
+                      class="w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-medium flex-shrink-0"
+                      :style="{ background: avatarColor(s.characterSlug), color: '#fff' }"
+                    >
+                      {{ avatarInitial(s.characterSlug) }}
+                    </div>
+                    <span class="text-sm truncate font-medium">{{ characterNameBySlug(s.characterSlug) }}</span>
+                  </div>
+                  <NTag size="tiny" :type="practiceStatusTagType(s.status)" :bordered="false">{{ practiceStatusLabel(s.status) }}</NTag>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
-                    <span class="truncate">{{ characterNameBySlug(s.characterSlug) }}</span>
-                    <NTag size="tiny" :type="s.status === 'completed' ? 'success' : s.status === 'failed' ? 'error' : 'info'">{{ s.status }}</NTag>
-                  </div>
-                  <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
-                    <span>{{ s.id === runningSessionId && turns.size ? turns.size : s.turnCount }} 轮</span>
-                    <span>·</span>
-                    <span>{{ modeNameById(s.counselorModeId) }}</span>
-                    <span>·</span>
-                    <span>{{ encounterLabel(s) }}</span>
-                    <template v-if="s.crisisOutcome && s.crisisOutcome !== 'none'">
-                      <span>·</span>
-                      <span :class="s.crisisOutcome === 'incomplete' ? 'text-warning' : 'text-ok'">
-                        {{ s.crisisOutcome === 'safety_plan_completed' ? '安全计划已完成' : s.crisisOutcome === 'escalated' ? '已升级求助' : '安全计划未完成' }}
-                      </span>
-                    </template>
-                  </div>
-                  <!-- AF-314: 对练时间 / 时长 / 成本，悬浮提示给完整时间与排障字段 -->
-                  <div
-                    class="text-[11px] text-muted/90 mt-0.5 flex items-center gap-1.5 min-w-0"
-                    :title="practiceSessionTooltip(s)"
-                  >
-                    <span class="flex-shrink-0">对练 {{ formatPracticeTime(s.startedAt) }}</span>
-                    <span>·</span>
-                    <span class="truncate">{{ practiceDurationText(s) }}</span>
-                    <template v-if="practiceCostText(s)">
-                      <span>·</span>
-                      <span class="truncate">{{ practiceCostText(s) }}</span>
-                    </template>
-                  </div>
-                  <!-- AF-314: 来访者/咨询师模型，完整 ID 在悬浮提示里 -->
-                  <div
-                    class="text-[11px] text-muted/90 mt-0.5 flex items-center gap-1.5 min-w-0"
-                    :title="practiceSessionTooltip(s)"
-                  >
-                    <span class="flex-shrink-0">模型</span>
-                    <span class="truncate">{{ practiceModelSummary(s) }}</span>
-                  </div>
+                <div class="text-[11px] text-muted mt-1 pl-8 truncate">
+                  {{ s.id === runningSessionId && turns.size ? turns.size : s.turnCount }} 轮 · {{ modeNameById(s.counselorModeId) }}
                 </div>
-
               </div>
             </div>
 
@@ -1525,17 +1631,57 @@ onUnmounted(() => {
 
       <!-- 中栏: 对话流 -->
       <div class="w-[42%] flex-shrink-0 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0 h-full min-h-0">
-        <!-- 当前会话信息栏 -->
-        <div v-if="sessionMeta" class="px-4 py-2.5 border-b border-bg-border bg-bg-elevated/30 flex items-center gap-3 flex-shrink-0">
-          <div class="flex items-center gap-1.5 text-xs">
+        <!-- 当前会话信息栏：角色/模式是最小身份，时间/时长/成本/场景/模型放这里，左栏卡片只管角色和状态 -->
+        <div v-if="sessionMeta" class="px-4 py-2 border-b border-bg-border bg-bg-elevated/30 flex flex-wrap items-center gap-x-3 gap-y-1 flex-shrink-0 text-xs" :title="currentSessionTooltip">
+          <div class="flex items-center gap-1.5">
             <span class="text-muted">角色</span>
             <span class="font-medium text-gray-200">{{ characterNameBySlug(sessionMeta.characterSlug) }}</span>
           </div>
           <span class="w-px h-3 bg-bg-border"></span>
-          <div class="flex items-center gap-1.5 text-xs">
+          <div class="flex items-center gap-1.5">
             <span class="text-muted">咨询师模式</span>
             <span class="font-medium text-gray-200">{{ modeNameById(sessionMeta.counselorModeId) }}</span>
           </div>
+          <span class="w-px h-3 bg-bg-border"></span>
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-muted">场景</span>
+            <span class="text-gray-200">{{ currentSceneLabel }}</span>
+          </div>
+          <template v-if="currentStartedAtText">
+            <span class="w-px h-3 bg-bg-border"></span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted">对练</span>
+              <span class="text-gray-200">{{ currentStartedAtText }}</span>
+            </div>
+            <div v-if="currentDurationText" class="flex items-center gap-1.5">
+              <span class="text-muted">时长</span>
+              <span class="text-gray-200">{{ currentDurationText }}</span>
+            </div>
+          </template>
+          <template v-if="currentCrisisOutcomeText">
+            <span class="w-px h-3 bg-bg-border"></span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted">危机结论</span>
+              <span :class="currentCrisisOutcomeText === '安全计划未完成' ? 'text-warning' : 'text-ok'">{{ currentCrisisOutcomeText }}</span>
+            </div>
+          </template>
+          <template v-if="currentCostText">
+            <span class="w-px h-3 bg-bg-border"></span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted">成本</span>
+              <span class="text-gray-200">{{ currentCostText }}</span>
+            </div>
+          </template>
+          <template v-if="currentModelSummary">
+            <span class="w-px h-3 bg-bg-border"></span>
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-muted">模型</span>
+              <span class="text-gray-200 truncate">{{ currentModelSummary }}</span>
+            </div>
+          </template>
+          <span class="ml-auto text-muted font-mono flex-shrink-0">
+            {{ selectedTurnIndex !== null ? `查看 ${selectedTurnIndex} / 共 ${latestTurnIndex}` : `第 ${latestTurnIndex} 轮` }}
+          </span>
         </div>
         <div id="ap-messages" class="flex-1 overflow-auto p-4 space-y-4">
           <!-- 未开始：只有空态提示 -->
@@ -1559,15 +1705,22 @@ onUnmounted(() => {
               {{ msg.role === 'counselor' ? '咨' : '访' }}
             </div>
             <div class="flex flex-col max-w-[70%]" :class="msg.role === 'counselor' ? 'items-end' : 'items-start'">
-              <div class="text-[11px] text-muted/80 mb-1 px-1">
-                {{ msg.role === 'counselor' ? 'AI 咨询师' : 'AI 来访者' }}
-                <NTag v-if="msg.crisis" size="tiny" type="error" class="ml-1">⚠ 危机</NTag>
+              <div class="text-[11px] text-muted/80 mb-1 px-1 flex items-center gap-1.5">
+                <span>{{ msg.role === 'counselor' ? 'AI 咨询师' : 'AI 来访者' }}</span>
+                <span v-if="msg.turnIndex !== undefined" class="font-mono text-muted/60">第 {{ msg.turnIndex }} 轮</span>
+                <NTag v-if="msg.crisis" size="tiny" type="error">⚠ 危机</NTag>
+                <NTag v-if="msg.role === 'visitor' && msg.turnIndex === effectiveTurnIndex" size="tiny" type="success" :bordered="false">已选中</NTag>
               </div>
               <div
-                class="px-3.5 py-2.5 text-sm leading-relaxed shadow-sm"
-                :class="msg.role === 'counselor'
-                  ? 'bg-accent/15 text-text-primary rounded-2xl rounded-br-md'
-                  : 'bg-bg-elevated/80 text-text-secondary rounded-2xl rounded-bl-md'"
+                class="px-3.5 py-2.5 text-sm leading-relaxed shadow-sm transition-shadow"
+                :class="[
+                  msg.role === 'counselor'
+                    ? 'bg-accent/15 text-text-primary rounded-2xl rounded-br-md'
+                    : 'bg-bg-elevated/80 text-text-secondary rounded-2xl rounded-bl-md',
+                  msg.role === 'visitor' && msg.trace ? 'cursor-pointer' : '',
+                  msg.role === 'visitor' && msg.turnIndex === effectiveTurnIndex ? 'ring-2 ring-accent/45' : ''
+                ]"
+                @click="msg.role === 'visitor' && msg.trace ? showTrace(msg.trace) : undefined"
               >
                 <div class="whitespace-pre-wrap">{{ msg.text }}</div>
               </div>
@@ -1743,16 +1896,25 @@ onUnmounted(() => {
 
       <!-- 右栏: BDI 调试面板 -->
       <div class="flex-1 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-h-0">
-        <div class="px-3 py-2 border-b border-bg-border flex items-center justify-between">
-          <span class="text-xs font-medium">调试面板</span>
-          <NButton size="tiny" quaternary :disabled="messages.length === 0" @click="exportJSON">导出 JSON</NButton>
+        <div class="px-3 py-2 border-b border-bg-border flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-xs font-medium">调试面板</span>
+            <span v-if="selectedTurnIndex !== null" class="text-[10px] text-muted font-mono">锁定 第 {{ selectedTurnIndex }} 轮</span>
+            <span v-else-if="latestTurnIndex" class="text-[10px] text-muted font-mono">跟随 第 {{ latestTurnIndex }} 轮</span>
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <NButton v-if="selectedTurnIndex !== null" size="tiny" quaternary @click="followLatest">回到最新</NButton>
+            <NButton size="tiny" quaternary :disabled="messages.length === 0" @click="exportJSON">导出 JSON</NButton>
+          </div>
         </div>
         <div class="flex-1 min-h-0">
           <DebugTracePanel
             :trace="currentTrace"
             :bdi-history="bdiHistory"
-            :turn-index="finalTurnCount || messages.filter(m => m.role === 'visitor').length"
+            :turn-index="effectiveTurnIndex"
             :messages="messages"
+            :selected-turn-index="selectedTurnIndex"
+            @select-turn="selectTurn"
           />
         </div>
       </div>

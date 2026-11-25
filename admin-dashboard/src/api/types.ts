@@ -18,6 +18,44 @@ export interface BdiSnapshot {
   resistanceStyle?: number
   /** 内核按 valence×arousal 象限重算的离散标签 */
   anxiousSecure?: string | null
+  /** AF-315 移情三态：BDI 已参与决策，trace 必须能看到。 */
+  transference?: {
+    positive: number
+    negative: number
+    dependency: number
+  }
+  /** AF-315 核心信念激活表（theme → 强度）。 */
+  coreBeliefActivation?: Record<string, number>
+  /** AF-315 核心信念激活峰值。 */
+  coreBeliefActivationPeak?: number
+}
+
+/**
+ * 调试面板的 BDI 历史点。
+ *
+ * 与 `BdiSnapshot` 不同：历史点由前端从每轮 trace 投影出来，
+ * 字段可能因旧场次缺失；展示层必须区分「无数据」和「值为 0」。
+ */
+export interface BdiSnapshotPoint {
+  turnIndex: number
+  trust: number
+  safety?: number
+  bond?: number
+  valence: number
+  arousal: number
+  resistance?: number
+  resistanceVerbal?: number
+  resistanceDepth?: number
+  resistanceStyle?: number
+  /** 内核按 valence×arousal 象限重算的离散标签. */
+  anxiousSecure?: string | null
+  transference?: {
+    positive: number
+    negative: number
+    dependency: number
+  }
+  coreBeliefActivation?: Record<string, number>
+  coreBeliefActivationPeak?: number
 }
 
 export interface RenderSpecSummary {
@@ -26,14 +64,43 @@ export interface RenderSpecSummary {
   reasoningEffort?: string
   /** system 消息前 500 字截断预览 */
   promptPreview?: string
+  /** 后端 DebugTurnTrace 下发的完整渲染 prompt（历史行可能没有）。 */
+  promptFull?: string
 }
 
 export interface LlmUsage {
-  promptTokens: number
+  /** 上游没报输入侧时为 null，不是 0（WP-H）。 */
+  promptTokens: number | null
   completionTokens: number
+  /** AF-478：命中前缀缓存的输入 token；null = 上游没报。 */
+  cachedTokens?: number | null
   reasoningTokens: number
   ttftMs?: number
   finishReason?: string
+}
+
+/** 本轮决策意图（后端 engine-core/domain/intention.ts 的投影）。 */
+export interface IntentionSummary {
+  strategy?: string
+  emotion?: {
+    label?: string
+    valence?: number
+    arousal?: number
+  }
+  resistance?: {
+    verbal?: number
+    depth?: number
+    style?: number
+  }
+  transference?: {
+    positive?: number
+    negative?: number
+    dependency?: number
+  }
+  /** 本轮绝不能出现的角色行为（角色设定 + 本轮意图并集）。 */
+  forbiddenBehaviors?: string[]
+  /** 决策理由；只用于督导观测，不渲染给来访。 */
+  rationale?: string
 }
 
 export interface TurnTrace {
@@ -51,9 +118,9 @@ export interface TurnTrace {
   /** 与 eventTags 同序的中文标签；后端 event-tag-labels 唯一真相。 */
   eventTagLabels?: string[]
   /** 本轮意图（后端可选字段）。 */
-  intention?: Record<string, unknown>
+  intention?: IntentionSummary | null
   /** 本轮审议 trace（后端可选字段）。 */
-  deliberationTrace?: Record<string, unknown>
+  deliberationTrace?: Record<string, unknown> | null
   /** 本轮是否降级。 */
   degraded?: boolean
   /** 本轮审议闸门决策（WP-C 做完后接入） */
@@ -462,7 +529,7 @@ export interface PracticeSession {
   debugSessionId: string
   characterSlug: string
   counselorModeId: string
-  status: 'running' | 'completed' | 'failed'
+  status: 'running' | 'completed' | 'crisis_ended' | 'stagnant' | 'failed' | 'canceled'
   maxTurns: number
   turnCount: number
   crisisEnded: number
