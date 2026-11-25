@@ -1,0 +1,218 @@
+{
+  "deliveredAt": "2026-11-25T17:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-510-1",
+    "taskId": "AF-510",
+    "contextId": "phase2.5-memory-runtime",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "a1d04f957a36b4749e26c1115b490ae90da1e218",
+    "dependsOn": [],
+    "priorTasks": ["AF-509"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-510/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af510-production-runtime-hardening-2026-11-25.md",
+      "reply": null,
+      "others": [
+        "docs/runbooks/memory-runtime-production-release.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af510-production-runtime-hardening-2026-11-25.md",
+        "docs/worklog/records/phase2.5-memory-runtime/AF-510/manifest.json",
+        "docs/worklog/records/phase2.5-memory-runtime/AF-510/task-sheet.md"
+      ],
+      "modified": [
+        "docs/runbooks/memory-runtime-production-release.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["4e634bfb"]
+    },
+    "gateResults": [
+      {
+        "command": "docker ps --filter name=mofang-nestjs-api --format '{{.Names}}|{{.Status}}'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "40s 启动窗口",
+        "note": "mofang-nestjs-api|Up 40 seconds (healthy)"
+      },
+      {
+        "command": "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/health",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "health=200"
+      },
+      {
+        "command": "GET /admin/api/memories?limit=1 with Basic auth (服务端 Python 读取 env 后发起)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "HTTP 200；top_keys=[entries,limit,scope,source,total]，source=qdrant，scope=long_term，total=4，entries=4，首条 tier=long_term"
+      },
+      {
+        "command": "docker logs mofang-nestjs-api 2>&1 | grep -E 'BDI 状态存储形态=memory|候选 deepseek 缺少 apiKey|ADMIN_BASIC_AUTH_USER'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "空输出，三类告警均不再出现"
+      },
+      {
+        "command": "python3 读取 /opt/mofang-nestjs/.env 键检查",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "bdi_store=redis；render_primary=minimax；deepseek_key_present=False"
+      },
+      {
+        "command": "git diff --stat HEAD~1 -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "空输出，engine-core 零改动"
+      }
+    ],
+    "deploymentChecks": [
+      {
+        "check": "生产 API 容器",
+        "command": "docker ps --filter name=mofang-nestjs-api",
+        "result": "Up 40 seconds (healthy)",
+        "note": "只 --force-recreate，未重建镜像；镜像仍为 af509-20261125/latest"
+      },
+      {
+        "check": "env 备份",
+        "command": "cp /opt/mofang-nestjs/.env /opt/mofang-nestjs/.env.bak.af510",
+        "result": "已备份",
+        "note": "回滚可直接覆盖"
+      },
+      {
+        "check": "管理后台鉴权",
+        "command": "GET /admin/api/memories?limit=1 with Basic auth",
+        "result": "200",
+        "note": "从 401 变为 200；返回 source=qdrant 真实记忆，账号 admin"
+      },
+      {
+        "check": "BDI 状态存储",
+        "command": "docker logs | grep 'BDI 状态存储形态=memory'",
+        "result": "无输出",
+        "note": "ENGINE_BDI_STATE_STORE=redis 已生效"
+      },
+      {
+        "check": "DeepSeek 退出候选链",
+        "command": "docker logs | grep '候选 deepseek 缺少 apiKey'",
+        "result": "无输出",
+        "note": "LLM_DEEPSEEK_API_KEY 已删除；主候选 minimax、fallback 空"
+      }
+    ],
+    "reproNotes": "生产复核：ssh root@117.72.30.78 → docker ps / curl health；管理后台接口用服务端 Python 读取 /opt/mofang-nestjs/.env 后构造 Basic header 请求，不打印口令；日志用 docker logs + grep；env 键位用 Python 只读检查。仓库复核：git diff --stat HEAD~1 -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-510 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执 / 归档均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 与回执六组字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入与 completed / archived 事件由 run-once 与 archive 生成"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff；本次无 src 改动"
+      },
+      {
+        "item": "secrets",
+        "result": "pass",
+        "note": "服务器密码、Qdrant key、MiniMax key、ASR token、admin 口令均未写入仓库/日志/回执；admin 口令只在服务器 .env，临时片段已 shred"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "容器状态、健康码、接口 200、记忆条数、env 键位、日志空输出均来自真实命令"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF510-01",
+        "item": "admin 口令轮换",
+        "source": "implementation",
+        "impact": "口令只存服务器 .env，轮换需同步管理后台登录方",
+        "suggestion": "后续按运维周期轮换，并保留 .env.bak 回滚"
+      },
+      {
+        "id": "BL-AF510-02",
+        "item": "DeepSeek provider 历史代码仍在",
+        "source": "deviation",
+        "impact": "生产已无 key、无候选，但枚举与 provider 源码保留，`.env.example` 仍写 deepseek 默认",
+        "suggestion": "确认永久不用后另立任务删除 provider/枚举并迁移历史 DB 行"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "修复方式",
+        "taskSays": "只改生产 .env",
+        "reality": "只改 env + --force-recreate，未重建镜像",
+        "action": "按计划执行",
+        "why": "三项均为运行配置，镜像无需变化"
+      },
+      {
+        "item": "DeepSeek 处理",
+        "taskSays": "生产不再配置、不再进候选链",
+        "reality": "删除生产 key 并固定 minimax 主候选、fallback 空；provider 源码保留",
+        "action": "按任务范围执行，源码清理列 backlog",
+        "why": "避免枚举与历史 DB 行迁移风险"
+      },
+      {
+        "item": "管理后台口令",
+        "taskSays": "生成强随机口令",
+        "reality": "账号 admin，口令 18 字节随机 hex，只写服务器 .env",
+        "action": "未在仓库/聊天/回执输出口令",
+        "why": "满足可用性且不泄露"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "管理后台 401 已修至 200 并返回真实 Qdrant 记忆；BDI 已切 redis 且 memory 告警消失；生产已删除 DeepSeek key、主候选固定 MiniMax，deepseek 缺 key 告警消失；容器 healthy、/health 200、engine-core 零改动、无密钥外泄。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅生产容器重启与本地文档改动；未新增外部付费调用。"
+  }
+}
