@@ -2,9 +2,9 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-478",
   "contextId": "phase2.5-visitor-register-eval",
-  "status": "submitted",
+  "status": "completed",
   "createdAt": "2026-11-25T09:30:00+08:00",
-  "updatedAt": "2026-11-24T23:32:12.124Z",
+  "updatedAt": "2026-11-25T23:08:38.739Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/task-sheet.md",
     "sha256": "0517ddd6c2191d7574cac68dbbfee1716d52365c8956b9fa3ff9dbd94022cfd9",
@@ -24,7 +24,8 @@
   ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af478-register-cache-observability-and-paired-rerun-implementation-2026-11-25.md",
   "legacyPaths": [
-    "docs/worklog/pending/phase2.5-register-cache-observability-task-2026-11-25-v2.md"
+    "docs/worklog/pending/phase2.5-register-cache-observability-task-2026-11-25-v2.md",
+    "docs/team/agent-orchestration/transport/tasks/AF-478.json"
   ],
   "tombstone": null
 }

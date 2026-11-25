@@ -4,101 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2134,
+    "lastEventSeq": 2139,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-481",
-      "status": "ready",
-      "history": [
-        {
-          "at": "2026-11-25T00:36:24.684Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "人工提级"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "补齐 cachedTokens 跨层接线（wiring / observability / agent-llm）",
-      "type": "fix",
-      "baselineRef": "221475aab79d9e2c06aa1a9844bf4402c879018d",
-      "dependsOn": [
-        "AF-478"
-      ],
-      "priorTasks": [
-        "AF-478",
-        "AF-480"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.2.0",
-      "policyRefs": [
-        "conventions.md#1.2",
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-24T17:35:00.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/engine-adapters/wiring/",
-          "src/engine-adapters/observability/",
-          "src/agent/llm/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-481/"
-        ],
-        "modules": [
-          "engine-wiring-usage",
-          "session-cost",
-          "agent-llm-usage"
-        ],
-        "interfaces": [
-          "engine-stream-usage",
-          "turn-idempotency-usage",
-          "voice-llm-done-usage"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-481/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/llm/cached-tokens.spec.ts test/admin-debug/wp58-debug-session.spec.ts test/engine-adapters/wp8b-stream-render.spec.ts",
-          "check": "缓存透传相关单测全绿",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 通过",
-          "threshold": "0 error"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查通过",
-          "threshold": "0 error"
-        }
-      ],
-      "successCriteria": [
-        "wiring / observability / agent-llm 六处把 cachedTokens 写入 done、幂等快照、session cost 与 llm_done usage。",
-        "缺失仍为不可得（null/undefined），报 0 保留，不把缺失折算成 0。",
-        "不改 src/engine-core、不改生产 prompt、不把台词原文写入仓库。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-25T00:36:24.683Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -4206,6 +4115,24 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-478",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/task-sheet.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af478-register-cache-observability-and-paired-rerun-implementation-2026-11-25.md",
+        "reply": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-2.json"
+      }
+    },
+    {
+      "taskId": "AF-481",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-481/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -4265,6 +4192,7 @@
     "AF-447": "scope 重签发 → AF-448",
     "AF-448": "scope 重签发 → AF-449",
     "AF-453": "scope 重签发 → AF-454",
-    "AF-501": "scope 重签发 → AF-502"
+    "AF-501": "scope 重签发 → AF-502",
+    "AF-478": "补登历史已完成任务以解除 AF-481 依赖"
   }
 }
