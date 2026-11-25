@@ -7,13 +7,14 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '../auth/index.js';
+import { MembershipModule } from '../membership/membership.module.js';
 import { UserModule } from '../user/index.js';
 
 import { BillingController } from './controllers/billing.controller.js';
 import { BillingService } from './providers/billing.service.js';
 
 @Module({
-  imports: [UserModule, AuthModule],
+  imports: [UserModule, AuthModule, MembershipModule],
   controllers: [BillingController],
   providers: [BillingService],
   exports: [BillingService],

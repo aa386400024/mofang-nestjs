@@ -162,4 +162,17 @@ export enum BizCode {
   //     通用码只能表达"参数错了", 而主版本被锁的真实语义是"**现在不能改**, 等一下就行" ——
   //     前端要能据此给出"等会话结束再改"的提示, 而不是让运营以为自己填错了.
   CharacterVersionLocked = 49_001, // 角色主版本被锁 (还有活跃会话在用这个角色)
+
+  // ====== 会员体系 v2 (50xxx) — AF-512 ======
+  //   独立码的原因: 会员/配额错误必须能让客户端区分“档位不存在 / 订单状态冲突 /
+  //   余额不足 / 今日上限 / 活动不可用 / 退款不合法 / 支付通道未接”，
+  //   通用 1001 只能表达“参数错了”，前端无法给出正确的下一步动作.
+  MembershipPlanInvalid = 50_001, // 档位/加包 id 不存在或不可购买
+  MembershipOrderNotFound = 50_002, // 订单不存在或不属于当前用户
+  MembershipOrderStateInvalid = 50_003, // 订单状态不允许当前操作
+  MembershipQuotaInsufficient = 50_004, // 可用分钟不足，应引导买加包
+  MembershipQuotaDailyLimit = 50_005, // 今日 180 分钟上限
+  MembershipPromotionInvalid = 50_006, // 活动码/活动规则不可用
+  MembershipRefundInvalid = 50_007, // 退款金额或订单状态不合法
+  MembershipPaymentUnavailable = 50_008, // 真实支付通道未接
 }

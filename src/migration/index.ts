@@ -230,5 +230,7 @@ export { AddBatchMetricsColumns1714900000045 } from './1714900000045-AddBatchMet
 //   character_version + 轮级三列 (first_bad_turn / bad_turns / turn_note).
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 export { AddQualityAnnotationBatchColumns1714900000047 } from './1714900000047-AddQualityAnnotationBatchColumns.js';
+// V2026-11-25 AF-512 — 会员体系 v2：账号订阅列 + 配额 lot / 预扣 / 订单 / 活动兑换 4 张表。
+export { AddMembershipV2Tables1714900000049 } from './1714900000049-AddMembershipV2Tables.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

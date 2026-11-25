@@ -116,6 +116,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 //   时间戳: 2026-10-21
 import { AgentModule } from '../agent/agent.module.js';
 import { AuthModule } from '../auth/index.js';
+import { MembershipModule } from '../membership/membership.module.js';
 import { UserModule } from '../user/index.js';
 
 // V2026-10-15 治本 (V1.x W5-6 — ability controller):
@@ -446,6 +447,7 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
   imports: [
     UserModule,
     AuthModule,
+    MembershipModule,
     // V2026-10-21 治本 (V1.2 VS-A — 引入 AgentModule 拿 LlmService):
     //   督导反馈真接 LLM 需要 LlmService. AgentModule re-export 了 LlmModule
     //   (src/agent/agent.module.ts:23), 且 agent 侧 0 处 import counselor → 无循环依赖.

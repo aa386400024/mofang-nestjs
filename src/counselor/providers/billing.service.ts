@@ -40,10 +40,11 @@
 //   时间戳: 2026-10-15
 
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, type Repository, type FindOptionsWhere } from 'typeorm';
 
-import { MEMBERSHIP_TIER_PRESETS, type MembershipTierPreset } from '../config/membership-tier-presets.js';
+import { MembershipTier as MembershipTierV2 } from '../../membership/domain/membership.enums.js';
+import { MEMBERSHIP_PLANS } from '../../membership/membership.constants.js';
+import { MembershipAccountService } from '../../membership/providers/membership-account.service.js';
+import { QuotaLedgerService } from '../../membership/providers/quota-ledger.service.js';
 import {
   type ConsumeQuotaDto,
   type CreateOrderDto,
@@ -52,7 +53,6 @@ import {
   type QuotaStatusDto,
   type SkuListItemDto,
 } from '../dto/billing.dto.js';
-import { QuotaUsage } from '../entities/quota-usage.entity.js';
 import { MembershipTier } from '../enums/membership-tier.enum.js';
 import { QuotaType } from '../enums/quota-type.enum.js';
 
@@ -109,8 +109,8 @@ export class BillingService {
   ];
 
   constructor(
-    @InjectRepository(QuotaUsage)
-    private readonly quotaRepo: Repository<QuotaUsage>,
+    private readonly accountService: MembershipAccountService,
+    private readonly quotaLedger: QuotaLedgerService,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -124,22 +124,18 @@ export class BillingService {
    * @returns 5 档会员 + 3 类配额状态 + 周期
    */
   async getMembershipStatus(userId: string): Promise<MembershipStatusDto> {
-    // V0.5 阶段: 写死 NONE 档 (跟 V0.5 counselor-profile.service.ts:41 'membership: none' 风格一致),
-    // V1.x 续做时: 读 user_memberships.tier_v2 + expires_at, V0.x 客户端读 tier
-    const tier = MembershipTier.NONE;
-    const preset = MEMBERSHIP_TIER_PRESETS[tier];
+    const account = await this.accountService.getAccount(userId);
+    const tier = this.toLegacyTier(account.tier);
     const period = this.getCurrentPeriod();
-
-    // 查 user 本月 3 类配额使用情况 (从 quota_usage 表读, V0.5 阶段空表, 返全 0)
-    const quotas = await this.getQuotaStatuses(userId, preset, period);
+    const quotas = await this.getQuotaStatuses(userId, account.tier, period);
 
     return {
       userId,
       tier,
-      expiresAt: null,
+      expiresAt: account.expiresAt ? account.expiresAt.toISOString() : null,
       quotaPeriod: period,
       quotas,
-      textFallbackEnabled: true, // V0.5 默认开启, V1.x 用户可关
+      textFallbackEnabled: true,
     };
   }
 
@@ -188,21 +184,19 @@ export class BillingService {
 
     const orderId = this.generateUuid();
     const now = new Date().toISOString();
-    const amount = sku.memberPrice; // V0.5 阶段按会员价计算, V0.x 客户端无会员走 nonMemberPrice (V1.x 续做)
-
-    // 同步 +配额 (mock 阶段直接入账)
-    await this.addQuota(userId, sku.quotaType, sku.quotaPerUnit);
+    const amount = sku.memberPrice;
+    void userId; // 旧接口不再伪造支付；真实开通走 POST /membership/orders + markPaid
 
     return {
       orderId,
-      status: 'paid',
+      status: 'pending',
       amount,
       skuCode: sku.code,
       paymentMethod: input.paymentMethod,
-      quotaAdded: sku.quotaPerUnit,
+      quotaAdded: 0,
       quotaType: sku.quotaType,
       createdAt: now,
-      paidAt: now,
+      paidAt: null,
     };
   }
 
@@ -221,59 +215,14 @@ export class BillingService {
    * @returns { success, remaining } success=false 时触发 text fallback
    */
   async consumeQuota(userId: string, input: ConsumeQuotaDto): Promise<{ success: boolean; remaining: number }> {
-    // 0 消耗直接 success (文字模式)
     if (input.amount === 0) {
       return { success: true, remaining: -1 };
     }
-
-    // 1. 查会员档 (V0.5 写死 NONE, 0 配额; V1.x 续做读 user_memberships.tier_v2)
-    const tier = MembershipTier.NONE;
-    const preset = MEMBERSHIP_TIER_PRESETS[tier];
-
-    // 2. 校验该档是否支持此类配额 (NONE 全部 0, 直接返失败)
-    const limit = preset.quotas[input.quotaType];
-    if (limit === 0) {
-      throw new BadRequestException(`当前档 ${tier} 不支持 ${input.quotaType} 配额, 请升级会员`);
+    const minutes = this.quotaMinutes(input.quotaType, input.amount);
+    if (minutes <= 0) {
+      throw new BadRequestException(`当前配额类型 ${input.quotaType} 已并入分钟账本，请使用 /membership/quota/*`);
     }
-
-    // 3. UPSERT quota_usage 行 (本月 (userId, quotaType) 1:1 配对)
-    const period = this.getCurrentPeriod();
-    const where: FindOptionsWhere<QuotaUsage> = {
-      userId,
-      quotaType: input.quotaType,
-      period,
-      deletedAt: IsNull(),
-    };
-    // V2026-10-15 治本 (V4.4 consumeQuota 月度行 — SonarJS/typescript-eslint prefer-nullish-coalescing 治本):
-    //   原因: V0.5 stage 初次写 `if (!usage) { usage = this.quotaRepo.create({...}); }` 9 行
-    //     if-block 表达式赋值, @typescript-eslint/prefer-nullish-coalescing 报 248:5.
-    //   修法: 走 `??=` 1 行替 9 行 (let usage ??= this.quotaRepo.create({...})), 语义一致
-    //     (object 类型 !x 等价 x == null, 跟 ??= 行为 1:1).
-    //   反双胞胎:
-    //     - 不用 eslint-disable 注释压错 (V0.2 culture 禁止)
-    //     - 不用 || 写 `usage || (usage = create())` (压 1 个错, 引 1 个新坑)
-    //     - 不在 let 之前 try-catch 包 (over-engineering, V0.x 风格不写)
-    //   验证: tsc 0 错 + npm run lint 0 错 (大炮跑)
-    //   时间戳: 2026-10-15
-    let usage = await this.quotaRepo.findOne({ where });
-    usage ??= this.quotaRepo.create({
-      tenantId: userId,
-      userId,
-      quotaType: input.quotaType,
-      period,
-      used: 0,
-      limit: limit === -1 ? 999_999 : limit, // -1 (不限) 用大数占位
-    });
-
-    // 4. 校验 + 扣减
-    if (usage.used + input.amount > usage.limit) {
-      return { success: false, remaining: Math.max(0, usage.limit - usage.used) };
-    }
-    usage.used += input.amount;
-    await this.quotaRepo.save(usage);
-
-    const remaining = limit === -1 ? -1 : Math.max(0, usage.limit - usage.used);
-    return { success: true, remaining };
+    return this.quotaLedger.consumeMinutes(userId, minutes, `counselor:${input.quotaType}:${Date.now()}`);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -294,29 +243,11 @@ export class BillingService {
     userId: string,
     quotaType: QuotaType = QuotaType.VOICE_SESSION,
   ): Promise<{ allowed: boolean; fallbackToText: boolean }> {
-    // V0.5 阶段: 写死 NONE 档 0 配额, 全部返 false + fallbackToText=true (跟 V0.5
-    // 'membership: none' 风格一致, V1.x 续做时读 user_memberships.tier_v2)
-    const tier = MembershipTier.NONE;
-    const preset = MEMBERSHIP_TIER_PRESETS[tier];
-    const limit = preset.quotas[quotaType];
-
-    if (limit === 0) {
-      return { allowed: false, fallbackToText: true };
-    }
-
-    // 查 quota_usage 行
-    const period = this.getCurrentPeriod();
-    const usage = await this.quotaRepo.findOne({
-      where: { userId, quotaType, period, deletedAt: IsNull() },
-    });
-
-    if (!usage) {
-      return { allowed: true, fallbackToText: false };
-    }
-
+    void quotaType;
+    const balance = await this.quotaLedger.getBalance(userId);
     return {
-      allowed: usage.used < usage.limit,
-      fallbackToText: usage.used >= usage.limit,
+      allowed: balance.totalRemainingMinutes > 0,
+      fallbackToText: balance.totalRemainingMinutes <= 0,
     };
   }
 
@@ -333,32 +264,39 @@ export class BillingService {
   // 私有 helper: 3 类配额状态聚合
   // ══════════════════════════════════════════════════════════════════════════
 
-  private async getQuotaStatuses(userId: string, preset: MembershipTierPreset, period: string): Promise<QuotaStatusDto[]> {
-    const statuses: QuotaStatusDto[] = [];
-    for (const quotaType of Object.values(QuotaType)) {
-      const limit = preset.quotas[quotaType];
-      const usage = await this.quotaRepo.findOne({
-        where: { userId, quotaType, period, deletedAt: IsNull() },
-      });
-      const used = usage?.used ?? 0;
-      const effectiveLimit = limit === -1 ? 999_999 : limit;
-      const remaining = limit === -1 ? -1 : Math.max(0, effectiveLimit - used);
-      statuses.push({ quotaType, used, limit, remaining, period });
-    }
-    return statuses;
+  private async getQuotaStatuses(userId: string, tier: MembershipTierV2, period: string): Promise<QuotaStatusDto[]> {
+    const plan = MEMBERSHIP_PLANS[tier];
+    const balance = await this.quotaLedger.getBalance(userId, plan.monthlyMinutes);
+    const sessionLimit = Math.max(1, Math.ceil(plan.monthlyMinutes / 50));
+    const usedSessions = Math.min(sessionLimit, Math.floor(balance.usedMinutesThisPeriod / 50));
+    return [
+      {
+        quotaType: QuotaType.VOICE_SESSION,
+        used: usedSessions,
+        limit: sessionLimit,
+        remaining: Math.max(0, sessionLimit - usedSessions),
+        period,
+        minutesLimit: plan.monthlyMinutes,
+        minutesRemaining: balance.totalRemainingMinutes,
+      },
+      { quotaType: QuotaType.LONG_TERM_CASE, used: 0, limit: 0, remaining: 0, period, minutesLimit: 0, minutesRemaining: 0 },
+      { quotaType: QuotaType.VOICE_ANALYSIS, used: 0, limit: 0, remaining: 0, period, minutesLimit: 0, minutesRemaining: 0 },
+    ];
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // 私有 helper: +quotaAdded 入账 (V0.5 mock 阶段用, V1.x 写 orders entity 时改)
-  // ══════════════════════════════════════════════════════════════════════════
+  /** 新 4 档 → 旧 5+2 档兼容值；Max 在旧枚举中无对应，映射为年卡。 */
+  private toLegacyTier(tier: MembershipTierV2): MembershipTier {
+    if (tier === MembershipTierV2.Plus) return MembershipTier.MONTHLY;
+    if (tier === MembershipTierV2.Pro || tier === MembershipTierV2.Max) return MembershipTier.YEARLY;
+    return MembershipTier.NONE;
+  }
 
-  private async addQuota(userId: string, quotaType: QuotaType, amount: number): Promise<void> {
-    if (amount === 0) return;
-    // V0.5 mock 阶段: 不入库 (避免 mock 阶段 quota 滥用), V1.x 续做时改成 UPSERT quota_usage
-    // (跟 consumeQuota 同一段 upsert 逻辑, 但 +amount 而不是 -amount)
-    // 这里只 record console 跳过, V1.x 续做时改真实落库
-    void userId;
-    void quotaType;
+  /** 旧 3 类配额 → 分钟口径：全流程 1 场 50 分钟，长程 1 次 120 分钟，分析 1 次 20 分钟。 */
+  private quotaMinutes(quotaType: QuotaType, amount: number): number {
+    if (quotaType === QuotaType.VOICE_SESSION) return amount * 50;
+    if (quotaType === QuotaType.LONG_TERM_CASE) return amount * 120;
+    if (quotaType === QuotaType.VOICE_ANALYSIS) return amount * 20;
+    return 0;
   }
 
   // ══════════════════════════════════════════════════════════════════════════

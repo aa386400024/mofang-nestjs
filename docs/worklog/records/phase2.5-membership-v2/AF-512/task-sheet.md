@@ -6,6 +6,18 @@ type: implementation
 status: backlog
 baselineRef: c295c2b5
 dependsOn: []
+scope:
+  files:
+    - bin/ormconfig.ts
+    - src/**
+    - test/**
+    - docs/specs/active/membership-system-v2.0.md
+    - docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md
+    - docs/worklog/pending/phase4-backlog-2026-11-08.md
+  modules:
+    - membership
+  interfaces:
+    - /membership/**
 contractRef: urn:agent-collaboration-framework:schema:task-sheet:1.1.0
 policyRefs:
   - conventions.md#1.1

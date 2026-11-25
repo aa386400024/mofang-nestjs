@@ -25,22 +25,34 @@ import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 
 export class MembershipDto {
   @ApiProperty({
-    description: '会员状态 (5 档 + none, V0.5 拍板, V0.2 spec §17 漏写 lifetime)',
+    description: '旧 billing 状态兼容字段；v2 真实档位见 tier',
     enum: ['none', 'monthly', 'quarterly', 'yearly', 'lifetime'],
   })
   status!: 'none' | 'monthly' | 'quarterly' | 'yearly' | 'lifetime';
 
-  @ApiProperty({ description: '到期时间 (V0.5 写死 null, V1.x 接 billing 表)', type: Date, nullable: true })
+  @ApiProperty({ description: '到期时间', type: Date, nullable: true })
   expiresAt!: Date | null;
 
-  @ApiProperty({ description: '是否自动续费 (V0.5 写死 false, V1.x 接支付)', example: false })
+  @ApiProperty({ description: '是否自动续费', example: false })
   autoRenew!: boolean;
 
-  @ApiProperty({ description: '剩余配额 (训练 sessions + TTS 字符数, V0.5 写死 0)' })
+  @ApiProperty({ description: '旧配额字段；v2 分钟余额见 minutesRemaining', example: { sessions: 0, ttsChars: 0 } })
   remainingQuota!: {
     sessions: number;
     ttsChars: number;
   };
+
+  @ApiProperty({ description: 'v2 真实档位', enum: ['free', 'plus', 'pro', 'max'], required: false })
+  tier?: 'free' | 'plus' | 'pro' | 'max';
+
+  @ApiProperty({ description: 'v2 剩余语音分钟', required: false })
+  minutesRemaining?: number;
+
+  @ApiProperty({ description: 'v2 当前周期开始', type: Date, nullable: true, required: false })
+  periodStart?: Date | null;
+
+  @ApiProperty({ description: 'v2 当前周期结束', type: Date, nullable: true, required: false })
+  periodEnd?: Date | null;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -68,6 +80,18 @@ export class ProductDto {
     sessions: number;
     ttsChars: number;
   };
+
+  @ApiProperty({ description: 'v2 商品类型', enum: ['plan', 'addon'], required: false })
+  kind?: 'plan' | 'addon';
+
+  @ApiProperty({ description: 'v2 包含分钟', required: false })
+  minutes?: number;
+
+  @ApiProperty({ description: 'v2 续费价（分/月）', required: false })
+  renewalPriceCents?: number;
+
+  @ApiProperty({ description: 'v2 年付价（分/年）', required: false })
+  annualPriceCents?: number;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -112,8 +136,14 @@ export class OrderDto {
   @ApiProperty({ description: '下单时间' })
   createdAt!: Date;
 
-  @ApiProperty({ description: '支付完成时间 (V0.5 写死 null, 走 reserved 永不 completed)', type: Date, nullable: true })
+  @ApiProperty({ description: '支付完成时间', type: Date, nullable: true })
   paidAt!: Date | null;
+
+  @ApiProperty({ description: 'v2 计费周期', enum: ['monthly', 'annual'], required: false })
+  billingPeriod?: 'monthly' | 'annual';
+
+  @ApiProperty({ description: 'v2 优惠金额（分）', required: false })
+  discountCents?: number;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -127,8 +157,14 @@ export class MembershipOverviewDto {
   @ApiProperty({ description: '最近订单 (V0.5 写死空数组, V1.x 查 billing.orders 表)', type: [OrderDto] })
   recentOrders!: OrderDto[];
 
-  @ApiProperty({ description: '可购买单次 SKU 列表 (V0.5 写死 4 个 mock)', type: [ProductDto] })
+  @ApiProperty({ description: '可购买商品列表（v2 为档位 + 加包）', type: [ProductDto] })
   availableProducts!: ProductDto[];
+
+  @ApiProperty({ description: 'v2 可售档位', type: [ProductDto], required: false })
+  plans?: ProductDto[];
+
+  @ApiProperty({ description: 'v2 分钟加包', type: [ProductDto], required: false })
+  addons?: ProductDto[];
 
   @ApiProperty({ description: '用户当前角色 (写死 counselor_learner)', enum: ['counselor_learner'] })
   currentRole!: 'counselor_learner';
@@ -150,4 +186,12 @@ export class CreateOrderDto {
   @ApiProperty({ description: '支付通道 (V0.5 写死 reserved, V1.x 真接 wechat/alipay)', enum: ['wechat', 'alipay', 'reserved'] })
   @IsIn(['wechat', 'alipay', 'reserved'])
   paymentChannel!: 'wechat' | 'alipay' | 'reserved';
+
+  @ApiProperty({ description: 'v2 计费周期', enum: ['monthly', 'annual'], required: false })
+  @IsIn(['monthly', 'annual'])
+  billingPeriod?: 'monthly' | 'annual';
+
+  @ApiProperty({ description: 'v2 幂等键', required: false })
+  @IsString()
+  idempotencyKey?: string;
 }

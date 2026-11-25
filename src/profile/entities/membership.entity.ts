@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
+import { MembershipSource, MembershipStatus, MembershipTier } from '../../membership/domain/membership.enums.js';
 import { User } from '../../user/entities/user.entity.js';
 
 /**
@@ -25,13 +26,45 @@ export class Membership {
 
   /** active: 已开通; expired: 已过期; trial: 试用中; inactive: 未开通 (V2.0 默认). */
   @Column({ type: 'varchar', length: 16, name: 'status', default: 'inactive' })
-  status!: 'inactive' | 'active' | 'expired' | 'trial';
+  status!: MembershipStatus;
 
+  /** 旧 3 档字段：旧客户端继续读；新逻辑以 tierV2 为准。 */
   @Column({ type: 'varchar', length: 16, name: 'tier', default: 'free' })
   tier!: 'free' | 'plus' | 'pro';
 
+  /** 新 4 档字段。NULL 表示尚未迁移，按 legacy tier 映射。 */
+  @Column({ type: 'varchar', length: 20, name: 'tier_v2', nullable: true })
+  tierV2!: MembershipTier | null;
+
+  /** 旧 counselor 模块的月度周期字段（YYYY-MM），保留兼容。 */
+  @Column({ type: 'varchar', length: 7, name: 'quota_period', nullable: true })
+  quotaPeriod!: string | null;
+
+  /** 弱网文字降级开关，旧 counselor 模块保留字段。 */
+  @Column({ type: 'tinyint', name: 'quota_text_fallback', default: 1 })
+  quotaTextFallback!: boolean;
+
   @Column({ type: 'datetime', name: 'expires_at', nullable: true })
   expiresAt!: Date | null;
+
+  @Column({ type: 'datetime', name: 'period_start', nullable: true })
+  periodStart!: Date | null;
+
+  @Column({ type: 'datetime', name: 'period_end', nullable: true })
+  periodEnd!: Date | null;
+
+  @Column({ type: 'tinyint', name: 'auto_renew', default: 0 })
+  autoRenew!: boolean;
+
+  @Column({ type: 'varchar', length: 16, name: 'source', default: MembershipSource.System })
+  source!: MembershipSource;
+
+  /** 迁移前档位快照；Max 等新档在旧字段无法表达时用于审计。 */
+  @Column({ type: 'varchar', length: 16, name: 'legacy_tier', nullable: true })
+  legacyTier!: string | null;
+
+  @Column({ type: 'char', length: 36, name: 'last_order_id', nullable: true })
+  lastOrderId!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

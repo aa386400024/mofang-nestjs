@@ -49,6 +49,12 @@ export class QuotaStatusDto {
 
   @ApiProperty({ description: '月度周期 YYYY-MM 格式', example: '2026-10' })
   period!: string;
+
+  @ApiProperty({ description: 'v2 分钟上限', required: false })
+  minutesLimit?: number;
+
+  @ApiProperty({ description: 'v2 分钟余额', required: false })
+  minutesRemaining?: number;
 }
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1392,
+    "lastEventSeq": 1394,
     "rebuiltAt": null
   },
   "tasks": [
@@ -25,6 +25,20 @@
           "to": "submitted",
           "by": "orchestrator-cli",
           "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        },
+        {
+          "at": "2026-11-25T15:30:43.399Z",
+          "from": "submitted",
+          "to": "working",
+          "by": "orchestrator-cli",
+          "reason": "scope 补录：登记时 frontmatter 缺 scope"
+        },
+        {
+          "at": "2026-11-25T15:30:43.520Z",
+          "from": "working",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "scope 补录完成，回到在办"
         }
       ],
       "contextId": "phase2.5-membership-v2",
@@ -49,9 +63,20 @@
       "requiredSkills": [],
       "requiredTools": [],
       "scope": {
-        "files": [],
-        "modules": [],
-        "interfaces": []
+        "files": [
+          "bin/ormconfig.ts",
+          "src/**",
+          "test/**",
+          "docs/specs/active/membership-system-v2.0.md",
+          "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+          "docs/worklog/pending/phase4-backlog-2026-11-08.md"
+        ],
+        "modules": [
+          "membership"
+        ],
+        "interfaces": [
+          "/membership/**"
+        ]
       },
       "successCriteria": [],
       "outOfScope": [],
