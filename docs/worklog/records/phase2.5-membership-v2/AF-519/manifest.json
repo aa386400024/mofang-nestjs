@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-519",
   "contextId": "phase2.5-membership-v2",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-26T01:50:00+08:00",
-  "updatedAt": "2026-11-25T17:40:55.660Z",
+  "updatedAt": "2026-11-25T17:46:50.953Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md",
     "sha256": "5464c969462cc746267e8682554e1201d1a9639f1699233d582fd88ba7784c04",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/receipt-RC-AF-519-1.json",
+      "sha256": "731e2c54c2611f5d8841fae86a95220fd1609e391a57734f1b96eb9d40bc04cc",
+      "receiptId": "RC-AF-519-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
   "legacyPaths": [
     "docs/worklog/pending/af519-membership-migration-pr-closure-task-2026-11-26.md"

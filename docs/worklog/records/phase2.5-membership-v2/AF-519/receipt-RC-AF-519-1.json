@@ -1,0 +1,330 @@
+{
+  "deliveredAt": "2026-11-25T17:46:00.979Z",
+  "payload": {
+    "receiptId": "RC-AF-519-1",
+    "taskId": "AF-519",
+    "contextId": "phase2.5-membership-v2",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "7fb875ceac11812ae77c54f23c293f32d13cdbb6",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-518"
+    ],
+    "policyRefs": [
+      "conventions.md#1.1",
+      "conventions.md#1.3",
+      "conventions.md#2.5",
+      "autonomous-team-design.md#6.1"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "2fe85f8f"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+        "docs/worklog/completed/phase2.5/af516-membership-nonpayment-closure-implementation-2026-11-25.md",
+        "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-512/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-512/receipt-RC-AF-512-1.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-513/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-513/receipt-RC-AF-513-1.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-513/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-514/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-514/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-515/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-515/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-516/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-516/receipt-RC-AF-516-1.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-516/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-517/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-517/receipt-RC-AF-517-1.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-517/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-518/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-518/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-519/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md",
+        "src/membership/controllers/membership-admin.controller.ts",
+        "src/membership/controllers/membership.controller.ts",
+        "src/membership/domain/membership.enums.ts",
+        "src/membership/domain/membership.types.ts",
+        "src/membership/domain/membership.utils.ts",
+        "src/membership/dto/membership-promotion.dto.ts",
+        "src/membership/dto/membership.dto.ts",
+        "src/membership/entities/membership-order.entity.ts",
+        "src/membership/entities/membership-plan-grant-term.entity.ts",
+        "src/membership/entities/membership-promotion-redemption.entity.ts",
+        "src/membership/entities/membership-promotion-reservation.entity.ts",
+        "src/membership/entities/membership-promotion.entity.ts",
+        "src/membership/entities/membership-quota-lot.entity.ts",
+        "src/membership/entities/membership-quota-reservation.entity.ts",
+        "src/membership/guards/membership-admin.guard.ts",
+        "src/membership/membership.constants.ts",
+        "src/membership/membership.module.ts",
+        "src/membership/providers/default-promotion.engine.ts",
+        "src/membership/providers/membership-account.service.ts",
+        "src/membership/providers/membership-order-expiry.cron.ts",
+        "src/membership/providers/membership-order.service.ts",
+        "src/membership/providers/membership-plan-grant.service.ts",
+        "src/membership/providers/membership-pricing.service.ts",
+        "src/membership/providers/membership-promotion-reservation-cleanup.cron.ts",
+        "src/membership/providers/membership-promotion-reservation.service.ts",
+        "src/membership/providers/membership-promotion.service.ts",
+        "src/membership/providers/membership-quota-refresh.cron.ts",
+        "src/membership/providers/promotion-engine.port.ts",
+        "src/membership/providers/promotion/flex-rule.evaluator.ts",
+        "src/membership/providers/promotion/flex-rules-promotion.engine.ts",
+        "src/membership/providers/quota-allocator.ts",
+        "src/membership/providers/quota-ledger.service.ts",
+        "src/migration/1714900000054-AddMembershipV2Tables.ts",
+        "src/migration/1714900000055-AddMembershipPromotionAndPlanGrant.ts",
+        "src/migration/1714900000056-AddMembershipPromotionReservation.ts",
+        "test/membership/dynamic-promotion.engine.spec.ts",
+        "test/membership/legacy-compat.spec.ts",
+        "test/membership/legacy-sku-deprecated.spec.ts",
+        "test/membership/membership-account.service.spec.ts",
+        "test/membership/membership-controller-coupon.spec.ts",
+        "test/membership/membership-order.service.spec.ts",
+        "test/membership/membership-plan-grant.service.spec.ts",
+        "test/membership/membership-pricing.spec.ts",
+        "test/membership/membership-promotion-reservation.spec.ts",
+        "test/membership/membership-promotion.service.spec.ts",
+        "test/membership/promotion-engine.spec.ts",
+        "test/membership/quota-allocator.spec.ts",
+        "test/membership/quota-ledger.service.spec.ts"
+      ],
+      "modified": [
+        "bin/ormconfig.ts",
+        "src/app.module.ts",
+        "src/billing/billing.module.ts",
+        "src/billing/dto/billing.dto.ts",
+        "src/billing/providers/billing.service.ts",
+        "src/common/exceptions/biz-code.enum.ts",
+        "src/common/exceptions/biz.exception.ts",
+        "src/counselor/dto/billing.dto.ts",
+        "src/counselor/providers/billing.service.ts",
+        "src/migration/index.ts",
+        "src/profile/dto/membership.dto.ts",
+        "src/profile/entities/membership.entity.ts",
+        "src/profile/profile.module.ts",
+        "src/profile/providers/membership.service.ts",
+        "src/shared/infra/metrics/metrics.service.ts",
+        "src/user/enums/audit-event.enum.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit 0 error；TS6 下会员测试类型修复后通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "带缓存全量 eslint，0 error / 0 warning；mockResolvedValue({}) 同时满足 TS6 与 unicorn/no-useless-undefined"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "tsc -p tsconfig.build.json 成功"
+      },
+      {
+        "command": "pnpm test:smoke",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "/health 200，database up 38ms，redis up；会员 module 与 cron 装配可启动"
+      },
+      {
+        "command": "pnpm vitest run test/membership",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 13,
+        "machine": "同上",
+        "wallClock": "2.99s",
+        "note": "13 文件 / 69 例全过；会员业务断言未改"
+      },
+      {
+        "command": "pnpm migration:run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "本地 mofang_dev 迁移台账已改 54/55/56，重复执行返回 No migrations are pending；未重复建表"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，engine-core 纯层零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "[ORCH-GATE] PASS task=AF-519 status=submitted files=88 covered=67"
+      }
+    ],
+    "reproNotes": "会员定向：pnpm vitest run test/membership。迁移核对：pnpm migration:run 应返回 No migrations are pending；migrations 表中会员迁移名应为 54/55/56。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-519 任务单、分支 task/AF-519-membership-migration-pr-closure、提交标题一致"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / rescope / run-once 均经 CLI；AF-518 canceled 与 AF-519 审计链保留"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "migration-registered",
+        "result": "pass",
+        "note": "bin/ormconfig.ts import + migrations[]、src/migration/index.ts export 均已注册 54/55/56"
+      },
+      {
+        "item": "migration-renumber",
+        "result": "pass",
+        "note": "会员三段迁移文件、类名、name 全部改为 1714900000054/55/56，无 49/50/51 会员残留"
+      },
+      {
+        "item": "db-ledger",
+        "result": "pass",
+        "note": "本地 mofang_dev migrations 表 49/50/51 会员记录已改名为 54/55/56；migration:run 无 pending"
+      },
+      {
+        "item": "scope-rescope",
+        "result": "pass",
+        "note": "AF-518 因 scope 越 executor 资源域被取消，AF-519 以 priorTasks=[AF-518] 重签发"
+      },
+      {
+        "item": "commit-facts",
+        "result": "pass",
+        "note": "实现提交 2fe85f8f 共 88 文件，added 82 / modified 6 / deleted 0，与 changedFiles 一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=7fb875ce 为最新 integrate；注册提交 a12034d6，实现提交 2fe85f8f；AF-518 canceled、AF-519 承接。"
+    },
+    "backlogItems": [
+      {
+        "id": "membership-spec-sync",
+        "impact": "docs/specs/active/membership-system-v2.0.md 未进本分支，活动预占、订单过期、审计/指标口径与 spec 存在漂移",
+        "suggestion": "另开文档任务同步 spec；executor 资源域不含 docs/specs/active/"
+      },
+      {
+        "id": "membership-real-payment-and-renewal",
+        "impact": "真实微信/支付宝/Apple IAP、回调验签、自动续费、退款自动金额仍未接",
+        "suggestion": "公司注册后按 WP27 接支付；回调复用 markPaid 行锁事务"
+      },
+      {
+        "id": "membership-partial-refund-semantics",
+        "impact": "订单退款即终止全部权益，比例退款如何保留剩余权益未定",
+        "suggestion": "接真实支付前由产品/财务定口径"
+      },
+      {
+        "id": "membership-admin-dashboard-page",
+        "impact": "活动运营 API 已就绪，admin-dashboard 未接管理页",
+        "suggestion": "按授权前端任务接入"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务 ID AF-518",
+        "reality": "AF-519",
+        "action": "按 task rescope 重签发",
+        "why": "AF-518 scope 越 executor 资源域，调度器拒绝领取"
+      },
+      {
+        "taskSays": "复制 membership spec",
+        "reality": "未取入",
+        "action": "spec 同步另开文档任务",
+        "why": "executor 资源域不含 docs/specs/active/"
+      },
+      {
+        "taskSays": "全量测试未强制",
+        "reality": "未跑全量",
+        "action": "会员定向 69 例覆盖",
+        "why": "全量留到 PR 前一次，避免重复消耗"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "会员栈重放完成，迁移号唯一且本地台账同步，typecheck/lint/build/smoke/会员测试全绿；spec 同步与 PR 收口为显式遗留。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
