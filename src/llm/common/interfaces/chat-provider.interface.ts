@@ -166,6 +166,16 @@ export interface ChatCompletionChunk {
    */
   completionTokens?: number;
 
+  /**
+   * 累计**命中前缀缓存**的输入 token 数 (上游报了就带; 没报 = 缺省).
+   *
+   * AF-478: MiniMax M3/M3.1-Flash 默认开启自动前缀缓存, 但此前本仓的 usage 链
+   *   没有保留命中量 —— 于是 active 比 base 多出的 prompt token 里, 有多少是
+   *   "真的多算了", 有多少是"缓存没命中", 无法区分. 这个字段只做观测, 不参与
+   *   计费口径: `promptTokens` 仍是上游报的输入总量.
+   */
+  cachedTokens?: number;
+
   /** 是否为最终 chunk. */
   isFinal: boolean;
 
@@ -207,6 +217,12 @@ export interface ChatCompletionResponse {
      * "输出被截断"还是"思考吃光预算" —— 拆开上报, 才有得查.
      */
     reasoningTokens?: number;
+    /**
+     * 命中前缀缓存的输入 token 数 (上游报了就带; 没报 = 缺省).
+     *
+     * 与流式 chunk 同口径: 只做观测, 不改变 `promptTokens` 的"输入总量"语义.
+     */
+    cachedTokens?: number;
   };
 
   model: string;

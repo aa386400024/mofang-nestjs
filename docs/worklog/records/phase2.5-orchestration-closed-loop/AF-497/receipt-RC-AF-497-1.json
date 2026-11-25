@@ -1,0 +1,134 @@
+{
+  "deliveredAt": "2026-11-25T08:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-497-1",
+    "taskId": "AF-497",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "b6520ebe274e438d9b770e00627fdb28ec1b8eec",
+    "dependsOn": [],
+    "priorTasks": ["AF-478", "AF-481"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af497-cache-final-2026-11-25.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-2.json"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["cb158746"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af478-register-cache-observability-and-paired-rerun-implementation-2026-11-25.md",
+        "docs/worklog/completed/phase2.5/af478-register-paired-cost-rerun-2026-11-25.md",
+        "docs/worklog/completed/phase2.5/af497-cache-final-2026-11-25.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/task-sheet.md",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/manifest.json",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-1.json",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-2.json",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/task-sheet.md",
+        "test/llm/cached-tokens.spec.ts"
+      ],
+      "modified": [
+        "scripts/eval/visitor-register-stability/README.md",
+        "scripts/eval/visitor-register-stability/__tests__/metrics.spec.mjs",
+        "scripts/eval/visitor-register-stability/analyze-latency.mjs",
+        "scripts/eval/visitor-register-stability/latency-attribution.mjs",
+        "scripts/eval/visitor-register-stability/metrics.mjs",
+        "scripts/eval/visitor-register-stability/render-report.mjs",
+        "scripts/eval/visitor-register-stability/run-sessions.mjs",
+        "src/admin-debug/debug-session.service.ts",
+        "src/admin-debug/trace-recorder.service.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/rendering/streaming-render.port.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/llm/common/base/openai-compatible-chat.provider.ts",
+        "src/llm/common/interfaces/chat-provider.interface.ts",
+        "src/voice/voice.service.ts",
+        "src/voice/voice.types.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30s",
+        "note": "0 error；含 src/voice 与 scripts/eval"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs receipt lint --taskId AF-478 --path docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-2.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS；RC-2 scopeCheck=in-scope"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未改"
+      }
+    ],
+    "reproNotes": "从 integrate 重建分支后一次性检出 22 个业务/文档文件，再追加 voice.service.ts 的自洽类型修复与 RC-2。voice 侧使用 LlmUsage & { cachedTokens?: number } 局部交叉类型，不依赖 AF-481 对 llm.types.ts 的修改。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-497 经 CLI register / promote / run-once；提交带 Task: AF-497" },
+      { "item": "state-write", "result": "pass", "note": "状态面由 CLI 写；任务提交不含状态面" },
+      { "item": "index-schema", "result": "pass", "note": "index 由 CLI 维护" },
+      { "item": "scope-domain", "result": "pass", "note": "agentRole=executor；改动落在 src/llm、src/engine-adapters、src/admin-debug、src/voice、test/llm、scripts/eval、docs/worklog" },
+      { "item": "engine-core-auth", "result": "pass", "note": "src/engine-core 无改动" },
+      { "item": "privacy", "result": "pass", "note": "600 轮报告只保留聚合指标；不写台词原文" },
+      { "item": "artifact-pointer", "result": "pass", "note": "taskSheet / deliveryRecord / RC-2 均落文件" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baseline b6520ebe；提交 cb158746 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-478 原单提交 221475aa 独立合并",
+        "reality": "该提交单独检出 lint 失败，且 AF-478 已归档无法续用",
+        "action": "改为 AF-497 单提交，补 voice 自洽类型修复并以 RC-2 判定 scope",
+        "why": "任务号与提交/分支必须唯一对应，否则 CI 判双任务号"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-497 successCriteria 全部满足：从 integrate 重建单提交；内容等于 AF-478 的 22 文件加 voice 自洽修复与 RC-2；lint/typecheck 0 error；engine-core 未改。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地 lint、typecheck 与记录校验。"
+  }
+}

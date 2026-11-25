@@ -1,0 +1,229 @@
+{
+  "deliveredAt": "2026-11-25T01:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-478-2",
+    "taskId": "AF-478",
+    "contextId": "phase2.5-visitor-register-eval",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "3d5d4a4bece1df81bfa888443c5eb7fa8961b35d",
+    "dependsOn": [
+      "AF-475"
+    ],
+    "priorTasks": [
+      "AF-466",
+      "AF-471",
+      "AF-475"
+    ],
+    "policyRefs": [
+      "conventions.md#1.2",
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af478-register-cache-observability-and-paired-rerun-implementation-2026-11-25.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af478-register-paired-cost-rerun-2026-11-25.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "221475aa"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af478-register-cache-observability-and-paired-rerun-implementation-2026-11-25.md",
+        "docs/worklog/completed/phase2.5/af478-register-paired-cost-rerun-2026-11-25.md",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/manifest.json",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/receipt-RC-AF-478-1.json",
+        "docs/worklog/records/phase2.5-visitor-register-eval/AF-478/task-sheet.md",
+        "test/llm/cached-tokens.spec.ts"
+      ],
+      "modified": [
+        "scripts/eval/visitor-register-stability/README.md",
+        "scripts/eval/visitor-register-stability/__tests__/metrics.spec.mjs",
+        "scripts/eval/visitor-register-stability/analyze-latency.mjs",
+        "scripts/eval/visitor-register-stability/latency-attribution.mjs",
+        "scripts/eval/visitor-register-stability/metrics.mjs",
+        "scripts/eval/visitor-register-stability/render-report.mjs",
+        "scripts/eval/visitor-register-stability/run-sessions.mjs",
+        "src/admin-debug/debug-session.service.ts",
+        "src/admin-debug/trace-recorder.service.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/rendering/streaming-render.port.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/llm/common/base/openai-compatible-chat.provider.ts",
+        "src/llm/common/interfaces/chat-provider.interface.ts",
+        "src/voice/voice.service.ts",
+        "src/voice/voice.types.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/llm/minimax-provider.spec.ts test/llm/cached-tokens.spec.ts test/engine-adapters/wp8b-stream-render.spec.ts test/admin-debug/wp58-debug-session.spec.ts scripts/eval/visitor-register-stability/__tests__/metrics.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 5,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 4s",
+        "note": "96 tests passed；含 cached-tokens 7 条与 metrics 缓存聚合 2 条"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35s",
+        "note": "0 error；含 scripts 目录"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 28s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 70s",
+        "note": "生产构建成功"
+      },
+      {
+        "command": "node scripts/eval/visitor-register-stability/run-sessions.mjs --run-id af478-2026-11-25-10roles --task-id AF-478 --paired --port 3010",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上 + 3010 单进程 + MiniMax-M3",
+        "wallClock": "约 13 分 19 秒",
+        "note": "10 角色 × base/active × 30 轮 = 20 场 / 600 轮；0 失败轮；active 每场 registerTurnCount=30，base 每场 0；数据目录 data/eval-reports/visitor-register-stability/af478-2026-11-25-10roles/"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 1,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": 336,
+        "machine": "同上，含本地 gitignored data/debug-sessions 语料",
+        "wallClock": "约 30s",
+        "note": "4948 passed / 1 failed / 4 skipped；唯一失败为既有 AF-427 用例对本地语料规模硬编码（期望 empathy 34/31，本地实际 101/98），非本任务回归；已由 AF-479 承接修复"
+      },
+      {
+        "command": "临时移走 data/debug-sessions 后 pnpm test（CI 等价，跑完恢复目录）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 336,
+        "machine": "同上",
+        "wallClock": "约 28s",
+        "note": "335 passed / 1 skipped files；4948 passed / 5 skipped tests；exit 0；restore=True"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 一行未改"
+      }
+    ],
+    "reproNotes": "缓存字段链路：provider 解析 -> render adapter 累计 -> turn-render-orchestrator 透传 -> wiring/done/幂等/trace -> debug session -> eval row/metrics。paired 必须在启动 3010 时设 VISITOR_REGISTER_MODE=active，base 由 per-session registerMode=off 强制关闭；run-sessions 已加 active registerTurnCount=0 的假对照熔断。600 轮原始产物只落 gitignored data/eval-reports/。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-478 经 CLI register / claim；任务单基线 3d5d4a4b，与回执一致"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面全部由 CLI 生成；本回执未手改索引或事件日志"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 由 CLI 维护；新增 backlog 走 AF-479 任务单，不手写索引"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "AF-478 提交 221475aa 的 22 个文件全部落在任务单 scope；未登记的六处接线文件不在本提交，已由 AF-481 以其回执独立交付。"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动；仅适配层同构扩展，不改内核 RenderResult 契约"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "600 轮只落 gitignored 聚合指标与逐轮 usage/延迟；未把角色台词、心理内容写入仓库或普通日志"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord / 成本报告均落文件；worklog 路径与任务单 artifacts 一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "scope 对齐补充回执：changedFiles 严格等于提交 221475aa 的 22 个文件，全部落在 AF-478 任务单 scope 内；六个 wiring/observability/agent-llm 文件未进入该提交，由 AF-481 承接。"
+    },
+    "backlogItems": [
+      {
+        "id": "AF478-B1",
+        "impact": "角色级 p95 尾部风险仍在：workplace +32.4%、general_secure +28.4%、grief +16.6%，另有 depression_avoidant +15.6% 边界；中位门通过不等于全角色 SLA 通过。",
+        "owner": "eval",
+        "status": "accepted"
+      },
+      {
+        "id": "AF478-B2",
+        "impact": "无厂商 cache-read 单价，缓存命中只折算为 token 结构，不折算金额；不能用本报告做财务成本核算。",
+        "owner": "eval",
+        "status": "accepted"
+      },
+      {
+        "id": "AF478-B3",
+        "impact": "已由 AF-482 修复：台账测试改为语料驱动，含真实语料全量 4949 passed。",
+        "owner": "test",
+        "status": "closed"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-478 实现阶段曾触及六处 wiring/observability/agent-llm 文件",
+        "reality": "最终提交 221475aa 不包含这六文件，22 个文件全在 scope 内",
+        "action": "新增 RC-AF-478-2 将本次提交的 scopeCheck 修正为 in-scope；RC-1 保持冻结",
+        "why": "提交边界与回执判定应一致；越界文件由 AF-481 承接，不应让 AF-478 提交承担 deviated 结论"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "补充回执仅修正 AF-478 提交 221475aa 的 scope 判定：22 个文件全部在任务单 scope 内，故 in-scope；RC-1 的 deviationTable 仍保留，用于说明实现阶段越界文件已拆给 AF-481，不覆盖 RC-1 的历史证据。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "600 轮真实 MiniMax-M3 调用；仅落 gitignored 聚合指标与 usage，不含台词原文。"
+  }
+}

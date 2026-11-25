@@ -219,6 +219,8 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
         ...(typeof result.usage_metadata?.output_token_details?.reasoning === 'number'
           ? { reasoningTokens: result.usage_metadata.output_token_details.reasoning }
           : {}),
+        // AF-478: 前缀缓存命中量单独上报; 上游没报就不带, 不补 0.
+        ...resolveCachedUsageField(result.usage_metadata, result.response_metadata),
       },
       model: request.model ?? this.defaultChatModel,
       // V2026-10-29 治本 (WP9-C — finish_reason 此前**一直读不到**):
@@ -295,6 +297,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
               // V2026-11-10 (WP-H · 改动 7): 输入 / 输出侧拆分随 chunk 透传 (上游报了才有).
               promptTokens: usage.promptTokens,
               completionTokens: usage.completionTokens,
+              cachedTokens: usage.cachedTokens,
             });
           }
         }
@@ -312,6 +315,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
           // V2026-11-10 (WP-H · 改动 7): 收尾 chunk 同样带输入 / 输出侧拆分.
           promptTokens: usage.promptTokens,
           completionTokens: usage.completionTokens,
+          cachedTokens: usage.cachedTokens,
         });
       }
     } catch (e) {
@@ -438,6 +442,8 @@ interface StreamUsageState {
   promptTokens?: number;
   /** 累计输出侧 token (上游报了就带). */
   completionTokens?: number;
+  /** 命中前缀缓存的输入 token (上游报了就带). */
+  cachedTokens?: number;
 }
 
 /** 新建一份空的流式用量状态. */
@@ -465,6 +471,10 @@ function applyChunkUsage(state: StreamUsageState, chunk: AIMessageChunk): void {
   }
   if (split.completionTokens !== undefined) {
     state.completionTokens = split.completionTokens;
+  }
+  const cachedTokens = resolveCachedTokens({ usageMetadata: chunk.usage_metadata, responseMetadata: chunk.response_metadata });
+  if (cachedTokens !== undefined) {
+    state.cachedTokens = cachedTokens;
   }
   const reasoning = chunk.usage_metadata?.output_token_details?.reasoning;
   if (typeof reasoning === 'number') {
@@ -503,6 +513,59 @@ export function resolveChunkUsageSplit(usageMetadata: { readonly input_tokens?: 
 }
 
 /**
+ * 解析「命中前缀缓存的输入 token」 (AF-478).
+ *
+ * 上游与 LangChain 的字段形状并不统一, 这里按**已知真实形状**逐条兜底:
+ *   - LangChain 归一后的 `usage_metadata.input_token_details.cache_read`
+ *     (Anthropic 兼容缓存文档口径; OpenAI 兼容层也可能映射到 cached_tokens);
+ *   - 原始 OpenAI 兼容 `usage.prompt_tokens_details.cached_tokens`;
+ *   - Anthropic 兼容 `usage.cache_read_input_tokens`;
+ *   - 少数 SDK 把 usage 放在 `token_usage` 下.
+ *
+ * 纪律: **没报就不返回** (undefined), 不补 0. 0 是有效观测
+ *   ("这次确实一个缓存 token 都没命中"), 与"上游没报"必须分开.
+ *
+ * @param input LangChain usage_metadata / response_metadata (允许任意结构)
+ * @returns 命中 token 数; 上游没报则为 undefined
+ */
+export function resolveCachedTokens(input: { readonly usageMetadata?: unknown; readonly responseMetadata?: unknown }): number | undefined {
+  const paths: readonly (readonly string[])[] = [
+    ['input_token_details', 'cache_read'],
+    ['input_token_details', 'cached_tokens'],
+    ['input_token_details', 'cache_read_input_tokens'],
+    ['usage', 'prompt_tokens_details', 'cached_tokens'],
+    ['usage', 'cache_read_input_tokens'],
+    ['token_usage', 'prompt_tokens_details', 'cached_tokens'],
+    ['token_usage', 'cache_read_input_tokens'],
+    ['cached_tokens'],
+    ['cache_read_input_tokens'],
+  ];
+  for (const root of [input.usageMetadata, input.responseMetadata]) {
+    for (const path of paths) {
+      const value = readNestedNumber(root, path);
+      if (value !== undefined) return value;
+    }
+  }
+  return undefined;
+}
+
+/** 把缓存命中量收成可展开的 usage 字段 (没报就不出键). */
+export function resolveCachedUsageField(usageMetadata: unknown, responseMetadata: unknown): { readonly cachedTokens?: number } {
+  const cachedTokens = resolveCachedTokens({ usageMetadata, responseMetadata });
+  return cachedTokens === undefined ? {} : { cachedTokens };
+}
+
+/** 按路径读取一个非负有限数字; 结构不存在 / 类型不对一律 undefined. */
+function readNestedNumber(root: unknown, path: readonly string[]): number | undefined {
+  let current: unknown = root;
+  for (const key of path) {
+    if (!current || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return typeof current === 'number' && Number.isFinite(current) && current >= 0 ? current : undefined;
+}
+
+/**
  * 构造一条流式 chunk (把"可能没有的字段"收在一处).
  *
  * @param params chunk 内容
@@ -517,6 +580,7 @@ function buildStreamChunk(params: {
   readonly reasoningTokens?: number;
   readonly promptTokens?: number;
   readonly completionTokens?: number;
+  readonly cachedTokens?: number;
 }): ChatCompletionChunk {
   return {
     delta: params.delta,
@@ -528,6 +592,7 @@ function buildStreamChunk(params: {
     // V2026-11-10 (WP-H · 改动 7): 输入 / 输出侧的拆分随 chunk 一起透传.
     ...(params.promptTokens === undefined ? {} : { promptTokens: params.promptTokens }),
     ...(params.completionTokens === undefined ? {} : { completionTokens: params.completionTokens }),
+    ...(params.cachedTokens === undefined ? {} : { cachedTokens: params.cachedTokens }),
   };
 }
 

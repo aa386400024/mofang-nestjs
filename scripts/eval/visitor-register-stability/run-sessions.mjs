@@ -345,6 +345,11 @@ async function main() {
           last10: last10.metrics,
         };
       }
+      // 假对照熔断：进程没开 VISITOR_REGISTER_MODE=active 时，per-session active
+      // 只是传了字段，解析器仍会返回空语域；两臂 prompt 会完全一致。
+      if (!failure && metrics.roles[item.role].active.summary.prompt.registerTurnCount === 0) {
+        failure = `${item.role}/active 未注入语域块（registerTurnCount=0）；启动 3010 时需设置 VISITOR_REGISTER_MODE=active，已落盘供诊断`;
+      }
       metrics.generatedAt = new Date().toISOString();
       await writeJson(path.join(runDir, 'metrics.json'), metrics);
       process.stdout.write('\n');

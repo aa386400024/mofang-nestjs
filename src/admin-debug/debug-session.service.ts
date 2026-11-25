@@ -341,6 +341,8 @@ export interface DebugTurnTrace {
      */
     readonly promptTokens: number | null;
     readonly completionTokens: number;
+    /** 命中前缀缓存的输入 token 数; null = 上游没报 (不可得), 不是 0. AF-478. */
+    readonly cachedTokens: number | null;
     readonly reasoningTokens: number;
     readonly ttftMs: number;
     readonly finishReason: string;
@@ -1302,7 +1304,12 @@ function buildRenderSpec(result: {
  */
 function buildLlmUsage(result: {
   readonly render: {
-    readonly usage?: { readonly promptTokens?: number; readonly completionTokens?: number; readonly reasoningTokens?: number };
+    readonly usage?: {
+      readonly promptTokens?: number;
+      readonly completionTokens?: number;
+      readonly reasoningTokens?: number;
+      readonly cachedTokens?: number;
+    };
     readonly ttftMs?: number;
     readonly finishReason?: string;
   };
@@ -1312,6 +1319,8 @@ function buildLlmUsage(result: {
     // V2026-11-10 (WP-H · 改动 7): 上游没报就落 null (不可得), 不写 0 冒充"输入侧免费".
     promptTokens: usage?.promptTokens ?? null,
     completionTokens: usage?.completionTokens ?? 0,
+    // AF-478: 缓存命中量与输入侧同纪律 —— null 才是"上游没报", 0 是"确实没命中".
+    cachedTokens: usage?.cachedTokens ?? null,
     reasoningTokens: usage?.reasoningTokens ?? 0,
     ttftMs: result.render.ttftMs ?? 0,
     finishReason: result.render.finishReason ?? 'unknown',
