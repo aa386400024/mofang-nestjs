@@ -1895,7 +1895,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 右栏: BDI 调试面板 -->
-      <div class="flex-1 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-h-0">
+      <div class="flex-1 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-h-0 overflow-hidden">
         <div class="px-3 py-2 border-b border-bg-border flex items-center justify-between gap-2">
           <div class="flex items-center gap-2 min-w-0">
             <span class="text-xs font-medium">调试面板</span>
@@ -1907,7 +1907,7 @@ onUnmounted(() => {
             <NButton size="tiny" quaternary :disabled="messages.length === 0" @click="exportJSON">导出 JSON</NButton>
           </div>
         </div>
-        <div class="flex-1 min-h-0">
+        <div class="flex-1 min-h-0 overflow-hidden">
           <DebugTracePanel
             :trace="currentTrace"
             :bdi-history="bdiHistory"
