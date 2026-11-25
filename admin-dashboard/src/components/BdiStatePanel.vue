@@ -100,6 +100,14 @@ const radarOption = computed(() => {
       backgroundColor: '#1e222d',
       borderColor: '#2a2f3d',
       textStyle: { color: '#e5e7eb', fontSize: 12 },
+      formatter: (params: { name?: string; value?: unknown }) => {
+        const values = Array.isArray(params.value) ? params.value : []
+        const rows = dims.map((dim, index) => {
+          const value = values[index]
+          return `<div style="display:flex;justify-content:space-between;gap:16px;line-height:18px"><span style="color:#9ca3af">${dim.label}</span><span style="font-family:monospace">${formatMetric(typeof value === 'number' ? value : null, 2)}</span></div>`
+        })
+        return `<div style="margin-bottom:4px;color:#e5e7eb">${params.name ?? `第 ${props.turnIndex} 轮`}</div>${rows.join('')}`
+      },
     },
     radar: {
       shape: 'polygon',
@@ -277,6 +285,22 @@ const trendOption = computed(() => {
       backgroundColor: '#1e222d',
       borderColor: '#2a2f3d',
       textStyle: { color: '#e5e7eb', fontSize: 12 },
+      formatter: (params: unknown) => {
+        const list = (Array.isArray(params) ? params : [params]) as Array<{
+          dataIndex?: number
+          marker?: string
+          seriesName?: string
+          value?: unknown
+        }>
+        const dataIndex = list[0]?.dataIndex
+        const turn = dataIndex !== undefined ? points[dataIndex]?.turnIndex : undefined
+        const rows = list.map((item) => {
+          const raw = typeof item.value === 'number' ? item.value : null
+          const text = raw === null ? '—' : item.seriesName?.includes('右轴') ? formatSigned(raw, 2) : formatMetric(raw, 2)
+          return `<div style="display:flex;align-items:center;gap:6px;line-height:18px">${item.marker ?? ''}<span style="flex:1;color:#9ca3af">${item.seriesName ?? ''}</span><span style="font-family:monospace">${text}</span></div>`
+        })
+        return `<div style="margin-bottom:4px;color:#e5e7eb">第 ${turn ?? props.turnIndex} 轮</div>${rows.join('')}`
+      },
     },
     legend: {
       textStyle: { color: '#9ca3af', fontSize: 10 },

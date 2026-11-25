@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-504",
+  "contextId": "phase2.5-admin-dashboard-alignment",
+  "status": "backlog",
+  "createdAt": "2026-11-25T11:45:00+08:00",
+  "updatedAt": "2026-11-25T03:46:35.710Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-504/task-sheet.md",
+    "sha256": "cab5d9630fecacb3387472c1d4dae10a89e0b04aa9f14a9d7d1d10c98af3d185",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af504-bdi-tooltip-format-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-bdi-tooltip-format-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}
