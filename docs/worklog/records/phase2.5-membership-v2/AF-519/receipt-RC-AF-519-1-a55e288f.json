@@ -26,7 +26,7 @@
     },
     "changedFiles": {
       "commits": [
-        "2fe85f8f"
+        "fcb1c817"
       ],
       "added": [
         "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
@@ -253,12 +253,12 @@
       {
         "item": "commit-facts",
         "result": "pass",
-        "note": "实现提交 2fe85f8f 共 88 文件，added 82 / modified 6 / deleted 0，与 changedFiles 一致"
+        "note": "实现提交 fcb1c817 共 88 文件，added 82 / modified 6 / deleted 0，与 changedFiles 一致"
       }
     ],
     "fieldAlignment": {
       "result": "aligned",
-      "note": "baselineRef=7fb875ce 为最新 integrate；注册提交 a12034d6，实现提交 2fe85f8f；AF-518 canceled、AF-519 承接。"
+      "note": "baselineRef=7fb875ce 为最新 integrate；注册提交 e3a86c95，实现提交 fcb1c817；AF-518 canceled、AF-519 承接。"
     },
     "backlogItems": [
       {

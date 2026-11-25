@@ -2,9 +2,9 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-519",
   "contextId": "phase2.5-membership-v2",
-  "status": "submitted",
+  "status": "completed",
   "createdAt": "2026-11-26T01:50:00+08:00",
-  "updatedAt": "2026-11-25T17:46:50.953Z",
+  "updatedAt": "2026-11-25T17:48:34.652Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md",
     "sha256": "5464c969462cc746267e8682554e1201d1a9639f1699233d582fd88ba7784c04",
@@ -14,6 +14,11 @@
     {
       "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/receipt-RC-AF-519-1.json",
       "sha256": "731e2c54c2611f5d8841fae86a95220fd1609e391a57734f1b96eb9d40bc04cc",
+      "receiptId": "RC-AF-519-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/receipt-RC-AF-519-1-a55e288f.json",
+      "sha256": "a55e288fa5b315f8b7ee3405ed4ca14fb260861c04168fe51049e1c069de8ec9",
       "receiptId": "RC-AF-519-1"
     }
   ],
