@@ -4,90 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1419,
+    "lastEventSeq": 1421,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-517",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-25T16:43:23.705Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "人工提级"
-        },
-        {
-          "at": "2026-11-25T16:43:35.837Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-membership-v2",
-      "title": "会员非支付链企业级加固：优惠券入口、支付/退款事务、活动预算预占、审计与指标",
-      "type": "implementation",
-      "baselineRef": "f6b47f5c13af0424692001d32e8aa2a370edc5f5",
-      "dependsOn": [
-        "AF-516"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.1",
-        "conventions.md#1.3",
-        "conventions.md#2.5",
-        "autonomous-team-design.md#6.1"
-      ],
-      "createdAt": "2026-11-25T16:43:19.783Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/membership/",
-          "src/common/exceptions/",
-          "src/user/enums/audit-event.enum.ts",
-          "src/shared/infra/metrics/metrics.service.ts",
-          "src/migration/",
-          "bin/ormconfig.ts",
-          "test/membership/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/",
-          "docs/worklog/records/"
-        ],
-        "modules": [
-          "membership"
-        ],
-        "interfaces": [
-          "MembershipController",
-          "MembershipAdminController",
-          "MembershipOrderService",
-          "MembershipAccountService"
-        ]
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-517/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
-        "reply": null
-      },
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-25T16:43:23.704Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -2843,6 +2763,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-516/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af516-membership-nonpayment-closure-implementation-2026-11-25.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-517",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-517/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
         "reply": null
       }
     }
