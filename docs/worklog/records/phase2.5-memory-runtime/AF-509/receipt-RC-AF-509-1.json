@@ -1,0 +1,250 @@
+{
+  "deliveredAt": "2026-11-25T16:22:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-509-1",
+    "taskId": "AF-509",
+    "contextId": "phase2.5-memory-runtime",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "bbeff285",
+    "dependsOn": [],
+    "priorTasks": ["AF-505", "AF-506", "AF-507"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-509/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af509-memory-runtime-closeout-2026-11-25.md",
+      "reply": null,
+      "others": [
+        "docs/runbooks/memory-runtime-production-release.md",
+        "scripts/ops/memory-runtime-tunnel.ps1",
+        "docker/qdrant/config/config.yaml"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "scripts/ops/memory-runtime-tunnel.ps1",
+        "docs/runbooks/memory-runtime-production-release.md",
+        "docs/worklog/completed/phase2.5/af509-memory-runtime-closeout-2026-11-25.md",
+        "docs/worklog/records/phase2.5-memory-runtime/AF-509/task-sheet.md",
+        "docs/worklog/records/phase2.5-memory-runtime/AF-509/manifest.json"
+      ],
+      "modified": [
+        "docker-compose.yml",
+        "docker/qdrant/config/config.yaml",
+        "package.json",
+        "pnpm-lock.yaml",
+        "docs/runbooks/remote-memory-runtime.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["0f9c5bca"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/wp45-qdrant-sdk-contract.spec.ts test/llm/custom-embedding-provider.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "1.55s",
+        "note": "10 tests passed"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "缓存命中",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "增量",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "dist 3594 文件 / 9.0MB"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "空输出，engine-core 零改动"
+      }
+    ],
+    "deploymentChecks": [
+      {
+        "check": "生产 API 容器",
+        "command": "docker ps --filter name=mofang-nestjs-api",
+        "result": "mofang-nestjs-api|mofang-nestjs-api:latest|Up (healthy)",
+        "note": "created=2026-11-25T08:15:23Z，镜像 ID 2935c7e5a378"
+      },
+      {
+        "check": "生产健康检查",
+        "command": "curl -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/health",
+        "result": "200",
+        "note": "Nest application successfully started"
+      },
+      {
+        "check": "记忆调试路由",
+        "command": "curl -o /dev/null -w '%{http_code}' 'http://127.0.0.1:3001/admin/api/memories?limit=1'",
+        "result": "401",
+        "note": "生产 fail-close 鉴权生效，路由存在；不是 404/000"
+      },
+      {
+        "check": "Qdrant 记忆集合",
+        "command": "GET /collections/visitor_long_memory with api-key",
+        "result": "status=green points=4",
+        "note": "QdrantService 日志 Qdrant connected collections=1"
+      },
+      {
+        "check": "Qdrant/TEI 容器",
+        "command": "docker ps --filter name=mofang-qdrant --filter name=mofang-tei",
+        "result": "mofang-qdrant Up (healthy); mofang-tei Up (healthy)",
+        "note": "服务器 healthcheck 已改 bash /dev/tcp"
+      },
+      {
+        "check": "版本不兼容警告",
+        "command": "docker logs mofang-nestjs-api | grep -i qdrant/version/incompat",
+        "result": "无版本不兼容警告",
+        "note": "客户端固定 1.12.0，与 Qdrant 1.12 对齐"
+      }
+    ],
+    "reproNotes": "本地复跑：pnpm typecheck → pnpm exec vitest run test/engine-adapters/wp45-qdrant-sdk-contract.spec.ts test/llm/custom-embedding-provider.spec.ts → pnpm build → pnpm lint → git diff --stat HEAD -- src/engine-core。生产复核：ssh root@117.72.30.78 → docker ps / curl health / curl admin memories / docker logs；Qdrant 集合用 /opt/mofang-nestjs/.env 的 QDRANT_API_KEY 只读查询。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-509 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 与回执六组字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入与 completed 事件由 run-once 生成"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "secrets",
+        "result": "pass",
+        "note": "服务器密码、Qdrant API key、MiniMax key、ASR token 未写入仓库/回执/日志；生产 env 临时片段已 shred"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "测试、镜像、容器、健康检查、Qdrant 集合数字均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF509-01",
+        "item": "生产 /admin/api 未配 ADMIN_BASIC_AUTH_USER/PASS",
+        "source": "deviation",
+        "impact": "生产 fail-close 返回 401，管理后台当前无可用凭据",
+        "suggestion": "运维决定启用 basic auth 或走管理员 JWT"
+      },
+      {
+        "id": "BL-AF509-02",
+        "item": "生产 BDI 状态存储仍是 memory",
+        "source": "implementation",
+        "impact": "进程重启/多实例会丢会话快照",
+        "suggestion": "评估切 ENGINE_BDI_STATE_STORE=redis"
+      },
+      {
+        "id": "BL-AF509-03",
+        "item": "LLM_DEEPSEEK_API_KEY 未配置",
+        "source": "implementation",
+        "impact": "deepseek 候选运行期会失败，当前默认 MiniMax 单候选可用",
+        "suggestion": "补 key 或从候选链移除"
+      },
+      {
+        "id": "BL-AF509-04",
+        "item": "AF-507 代码尚未进 integrate",
+        "source": "implementation",
+        "impact": "AF-509 分支 stacked 在 AF-507 HEAD，PR 会一并带入 AF-507 的 4 个提交",
+        "suggestion": "PR 合并时按 stacked 链路处理"
+      },
+      {
+        "id": "BL-AF509-05",
+        "item": "executor Agent Card 资源域不含 scripts/ops/ 与根配置",
+        "source": "deviation",
+        "impact": "后续 ops 类任务仍会被 scope 拦截",
+        "suggestion": "单独登记编排配置任务扩展资源域"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务载体",
+        "taskSays": "AF-508 承接收尾",
+        "reality": "AF-508 scope 含 docs/worklog/completed/phase2.5/ 与 AF-481 冲突，已取消",
+        "action": "登记 AF-509 以文件级 scope 承接",
+        "why": "避免跨任务文件域冲突"
+      },
+      {
+        "item": "生产启动配置",
+        "taskSays": "只补 QDRANT / custom embedding",
+        "reality": "新代码启动硬性要求 MINIMAX_BASE_URL / MINIMAX_API_KEY / MINIMAX_LLM_MODEL / MINIMAX_ASR_TOKEN_SECRET",
+        "action": "补 4 个 MiniMax 键与 LLM_DEFAULT_CHAT_PROVIDER=minimax",
+        "why": "旧 .env 从未配置，容器两次启动退出"
+      },
+      {
+        "item": "发布方式",
+        "taskSays": "docker compose up -d",
+        "reality": "env 文件变化不触发重建",
+        "action": "改用 up -d --force-recreate",
+        "why": "确保新 env 生效"
+      },
+      {
+        "item": "回滚标签",
+        "taskSays": "rollback-20261125",
+        "reality": "实际保留 rollback-af509",
+        "action": "发布手册同步实际标签",
+        "why": "与任务代号一致，便于检索"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "根 compose、SDK 版本、隧道脚本、生产镜像与生产 env 全部收口；生产 API healthy、Qdrant 记忆集合 green；代码闸门全绿，engine-core 零改动，无并行产物混入。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "生产构建与部署均为自托管资源；未新增付费 API 调用。"
+  }
+}
