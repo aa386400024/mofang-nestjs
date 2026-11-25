@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-505",
+  "contextId": "phase2.5-memory-runtime",
+  "status": "backlog",
+  "createdAt": "2026-11-25T12:10:00+08:00",
+  "updatedAt": "2026-11-25T05:23:24.719Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-memory-runtime/AF-505/task-sheet.md",
+    "sha256": "30d902f6c01c029d08ddc2b1c02c44a19ab1ac90c55b99818d6058fbbd22325e",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af505-memory-runtime-repair-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af505-memory-runtime-qdrant-embedding-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}

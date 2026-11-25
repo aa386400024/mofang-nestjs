@@ -141,4 +141,38 @@ describe('WP45 · P3-1 · Qdrant SDK 契约 (请求体形状)', () => {
     expect(write?.url).toContain('/collections/knowledge_chunks/points/delete');
     expect(write?.body).toMatchObject({ points: ['doc-1'] });
   });
+
+  // AF-506 回归: 旧 ensureCollection 靠 getCollection 抛错的文案判断"集合不存在"，
+  //   只匹配 `Not found` / `404`，而 Qdrant 真实返回的是 `Not Found`（大写 + 空格）
+  //   → 创建集合这条路永远走不到 → 首次 upsert 必 400 → 长时记忆全部静默落回内存仓。
+  //   现在改成先列集合判断存在性，这里钉住"集合不存在时按 512 维 Cosine 创建"。
+  it('集合不存在 → 按 512 维 Cosine 创建, 不再靠错误文案判断', async () => {
+    const service = await buildService(captured);
+    const originalFetchForCase = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const method = init?.method ?? 'GET';
+      const normalizedUrl = url.split('?', 1)[0];
+      if (method === 'GET' && normalizedUrl.endsWith('/collections')) {
+        captured.push({ url, method, body: undefined });
+        return Response.json({ result: { collections: [] }, status: 'ok', time: 0 });
+      }
+      captured.push({
+        url,
+        method,
+        body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
+      });
+      return Response.json({ result: true, status: 'ok', time: 0 });
+    };
+
+    try {
+      await service.ensureCollection('visitor_long_memory', 512);
+    } finally {
+      globalThis.fetch = originalFetchForCase;
+    }
+
+    const create = captured.find((request) => request.method === 'PUT');
+    expect(create?.url).toContain('/collections/visitor_long_memory');
+    expect(create?.body).toMatchObject({ vectors: { size: 512, distance: 'Cosine' } });
+  });
 });

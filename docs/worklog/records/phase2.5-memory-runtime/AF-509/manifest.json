@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-509",
+  "contextId": "phase2.5-memory-runtime",
+  "status": "submitted",
+  "createdAt": "2026-11-25T14:52:00+08:00",
+  "updatedAt": "2026-11-25T08:22:23.482Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-memory-runtime/AF-509/task-sheet.md",
+    "sha256": "3831aead56fd22023d334dcd51b45df6a968697084790191e9de6ba9818b702c",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-memory-runtime/AF-509/receipt-RC-AF-509-1.json",
+      "sha256": "01c0b237e822f5a9785fa7605fdd0c42b67b0c0c1d07809bdf40da14b6c85dc9",
+      "receiptId": "RC-AF-509-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af509-memory-runtime-closeout-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af509-memory-runtime-closeout-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}

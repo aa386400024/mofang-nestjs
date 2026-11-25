@@ -81,8 +81,8 @@ importers:
         specifier: ^2.2.2
         version: 2.2.2
       '@qdrant/js-client-rest':
-        specifier: ^1.19.0
-        version: 1.20.0(typescript@6.0.3)
+        specifier: 1.12.0
+        version: 1.12.0(typescript@6.0.3)
       '@sentry/node':
         specifier: ^11.10.0
         version: 11.10.0
@@ -1717,9 +1717,9 @@ packages:
   '@protobufjs/utf8@1.1.2':
     resolution: { integrity: sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug== }
 
-  '@qdrant/js-client-rest@1.20.0':
-    resolution: { integrity: sha512-NhvW4z3rbxYc1e+ksHci5hE8vNBpbi5YoB7z3dzaVcskM2el7O/exNg5fclAN+G5MXn/TRx2Rcie8YTXo2YQdg== }
-    engines: { node: '>=22.0.0' }
+  '@qdrant/js-client-rest@1.12.0':
+    resolution: { integrity: sha512-H8VokZq2DYe9yfKG3c7xPNR+Oc5ZvwMUtPEr1wUO4xVi9w5P89MScJaCc9UW8mS5AR+/Y1h2t1YjSxBFPIYT2Q== }
+    engines: { node: '>=18.0.0', pnpm: '>=8' }
     peerDependencies:
       typescript: '>=4.7'
 
@@ -1892,6 +1892,9 @@ packages:
 
   '@sonarsource/analyzer-commons-configurations@2.31.0-5284':
     resolution: { integrity: sha512-ruk3blMs9BE9RNSp9LPpWZAIjxJmq4Cp00E3cELIHz7Kym3WxdWGRlKOMYLRQ5tJg/de7jN5AtEElY3bGIfTcw== }
+
+  '@sevinf/maybe@0.5.0':
+    resolution: { integrity: sha512-ARhyoYDnY1LES3vYI0fiG6e9esWfTNcXcO6+MPJJXcnyMV3bim4lnFt45VXouV7y82F4x3YH8nOQ6VztuvUiWg== }
 
   '@sqltools/formatter@1.2.5':
     resolution: { integrity: sha512-Uy0+khmZqUrUGm5dmMqVlnvufZRSK0FbYzVgp0UMstm+F5+W2/jnEEQyc9vo1ZR/E5ZI/B1WjjoTqBqwJL6Krw== }
@@ -6651,9 +6654,10 @@ snapshots:
 
   '@protobufjs/utf8@1.1.2': {}
 
-  '@qdrant/js-client-rest@1.20.0(typescript@6.0.3)':
+  '@qdrant/js-client-rest@1.12.0(typescript@6.0.3)':
     dependencies:
       '@qdrant/openapi-typescript-fetch': 1.2.6
+      '@sevinf/maybe': 0.5.0
       typescript: 6.0.3
       undici: 7.30.1
 
@@ -6782,6 +6786,8 @@ snapshots:
   '@socket.io/component-emitter@3.1.2': {}
 
   '@sonarsource/analyzer-commons-configurations@2.31.0-5284': {}
+
+  '@sevinf/maybe@0.5.0': {}
 
   '@sqltools/formatter@1.2.5': {}
 
