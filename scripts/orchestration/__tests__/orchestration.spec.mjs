@@ -4748,4 +4748,67 @@ describe('AF-498 编排根因修复', () => {
       rmSync(receipts, { recursive: true, force: true });
     }
   });
+
+  it('AF-500 验收按 commit 事实比对时，已声明交付记录不算 scope 外', () => {
+    const task = {
+      taskId: 'AF-500',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'fix',
+      scope: { files: ['scripts/orchestration/'] },
+      artifacts: {
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
+      },
+      receipt: {
+        changedFiles: { commits: ['abc1234'] },
+        deviationTable: [],
+        openQuestions: [],
+        manualReviewList: [],
+        backlogItems: [],
+      },
+    };
+    const result = runAcceptance(
+      task,
+      { tasks: [task], archivedTasks: [] },
+      {
+        changedFiles: [],
+        resolveCommitFiles: () => [
+          'scripts/orchestration/acceptance-runner.mjs',
+          'scripts/orchestration/__tests__/fixtures/delivery-record.md',
+        ],
+      },
+    );
+    expect(result.checks.find((check) => check.code === 'V7')?.status).toBe('pass');
+    expect(result.verdict).toBe('passed');
+  });
+
+  it('AF-500 未声明的 docs 文件仍按 scope 判 rejected', () => {
+    const task = {
+      taskId: 'AF-500',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'fix',
+      scope: { files: ['scripts/orchestration/'] },
+      artifacts: {
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
+      },
+      receipt: {
+        changedFiles: { commits: ['abc1234'] },
+        deviationTable: [],
+        openQuestions: [],
+        manualReviewList: [],
+        backlogItems: [],
+      },
+    };
+    const result = runAcceptance(
+      task,
+      { tasks: [task], archivedTasks: [] },
+      {
+        changedFiles: [],
+        resolveCommitFiles: () => ['docs/worklog/other.md'],
+      },
+    );
+    expect(result.checks.find((check) => check.code === 'V7')?.status).toBe('fail');
+    expect(result.verdict).toBe('rejected');
+  });
 });

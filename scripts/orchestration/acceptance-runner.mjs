@@ -359,8 +359,12 @@ function checkResidual(task, opts) {
     return { checks, manualReview: [] };
   }
   const statePlane = changed.filter(isStatePlaneArtifact);
-  const sheet = changed.filter((file) => !isStatePlaneArtifact(file) && isTaskSheetArtifact(task, file));
-  const deliverable = changed.filter((file) => !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file));
+  const sheet = changed.filter(
+    (file) => !isStatePlaneArtifact(file) && (isTaskSheetArtifact(task, file) || isDeclaredTaskArtifact(task, file)),
+  );
+  const deliverable = changed.filter(
+    (file) => !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file) && !isDeclaredTaskArtifact(task, file),
+  );
   if (deliverable.length === 0) {
     record(
       checks,
@@ -384,6 +388,22 @@ function checkResidual(task, opts) {
  * 按回执声明的提交集合做残留比对（AF-043-I1）。
  * 解析失败即 fail：声明了 commit 却给不出文件清单，等于没有证据。
  */
+function normalizeArtifactPath(file) {
+  return String(file ?? '')
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '');
+}
+
+/**
+ * 任务自身产物：任务单与交付记录由任务声明，天然不在代码 scope 内。
+ * 只豁免本任务声明的两个路径，其他 docs 仍按 scope 校验，避免放宽任意文档。
+ */
+function isDeclaredTaskArtifact(task, file) {
+  const normalized = normalizeArtifactPath(file);
+  const declared = [task?.artifacts?.taskSheet, task?.artifacts?.deliveryRecord].filter(Boolean).map(normalizeArtifactPath);
+  return declared.includes(normalized);
+}
+
 function checkResidualByCommits(task, opts, declaredCommits, changed) {
   const checks = [];
   const resolver = opts?.resolveCommitFiles;
@@ -405,7 +425,8 @@ function checkResidualByCommits(task, opts, declaredCommits, changed) {
     record(checks, 'V7', '文件域残留', 'fail', `回执声明的 commit 无法解析（不存在或不在本仓）：${unresolved.join('；')}`);
     return { checks, manualReview: [] };
   }
-  const deliverable = [...files].filter((file) => !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file));
+  const taskArtifacts = [...files].filter((file) => !isStatePlaneArtifact(file) && isDeclaredTaskArtifact(task, file));
+  const deliverable = [...files].filter((file) => !isStatePlaneArtifact(file) && !isDeclaredTaskArtifact(task, file));
   const uncommitted = Array.isArray(changed) ? changed.length : 0;
   if (deliverable.length === 0) {
     record(
@@ -413,7 +434,7 @@ function checkResidualByCommits(task, opts, declaredCommits, changed) {
       'V7',
       '文件域残留',
       'pass',
-      `声明的 ${declaredCommits.length} 个提交未改动任务交付面（工作树 ${uncommitted} 项未提交改动不参与比对）`,
+      `声明的 ${declaredCommits.length} 个提交未改动任务交付面（任务产物 ${taskArtifacts.length} 项、工作树 ${uncommitted} 项未提交改动均不参与比对）`,
     );
     return { checks, manualReview: [] };
   }
@@ -451,9 +472,7 @@ export const DELIVERY_RECORD_MARKERS = Object.freeze([
 export function findMissingDeliveryMarkers(text) {
   const source = String(text ?? '');
   if (!source.trim()) return DELIVERY_RECORD_MARKERS.map((marker) => marker.key);
-  return DELIVERY_RECORD_MARKERS.filter((marker) => !marker.patterns.some((pattern) => pattern.test(source))).map(
-    (marker) => marker.key,
-  );
+  return DELIVERY_RECORD_MARKERS.filter((marker) => !marker.patterns.some((pattern) => pattern.test(source))).map((marker) => marker.key);
 }
 
 /**
