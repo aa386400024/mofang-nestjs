@@ -1,0 +1,155 @@
+{
+  "deliveredAt": "2026-11-25T09:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-499-1",
+    "taskId": "AF-499",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "ac6d09bbe05bb1eec95ef5abb6f5e44d825c6f55",
+    "dependsOn": [],
+    "priorTasks": ["AF-498"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-499/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af499-ci-anchor-portability-2026-11-25.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["fb0cb3c4"],
+      "added": [],
+      "modified": [
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "scripts/orchestration/state-anchor.mjs"
+      ],
+      "deleted": ["scripts/orchestration/__tests__/af498-root-fix.spec.mjs"],
+      "deletionChecks": [
+        {
+          "file": "scripts/orchestration/__tests__/af498-root-fix.spec.mjs",
+          "reason": "AF-498 四条回归已原样并入既有 orchestration.spec.mjs；删除独立文件以恢复 CI shard 文件构成",
+          "replacement": "scripts/orchestration/__tests__/orchestration.spec.mjs"
+        }
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30s",
+        "note": "eslint TS + scripts 均 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 22,
+        "machine": "同上",
+        "wallClock": "约 2.4s",
+        "note": "451 tests passed；AF-498 四条回归已在 orchestration.spec.mjs"
+      },
+      {
+        "command": "CI=true GITHUB_ACTIONS=true pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "276 tests passed；CI 环境下锚点播种/恢复回归通过"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未改"
+      }
+    ],
+    "reproNotes": "远端 Unit (shard 2/3) 三次失败根因：AF-498 新增 spec 在 CI=true 下测试 ORCH_STATE_ANCHOR=on，但 stateAnchorEnabled 先判 CI 后判显式开启，返回 disabled 导致断言失败；blob reporter 不打印用例名。修复后显式 on 优先于 CI 自动关闭，普通 CI 未显式 on 仍不碰本机锚点。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-499 经 CLI register / promote / run-once；提交带 Task: AF-499"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 写；实现提交不含状态面文件"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "状态索引由 CLI 维护；worklog verify --strict --state-free PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=orchestrator；改动限 scripts/orchestration 与编排交付文档"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "只改状态锚点与测试，无心理内容、无台词原文"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord 均落文件"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baseline ac6d09bb；实现提交 fb0cb3c4 与 changedFiles.commits 一致；priorTasks 指向 AF-498"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "PR #240（AF-498）将由 AF-499 PR 取代；AF-499 分支基于 AF-498 HEAD，携带其全部提交"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "新增 AF-499 返修任务",
+        "taskSays": "AF-498 已完成并归档后才发现 CI 失败",
+        "reality": "终态任务不可原地追加提交，按框架 reissue 口径新开 AF-499，priorTasks 指向 AF-498",
+        "action": "AF-499 分支携带 AF-498 全部提交，PR 链内合并；#240 关闭为 superseded",
+        "why": "避免在已归档任务上手工改状态或绕过 pre-commit 门禁"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "根因已定位为显式锚点开启被 CI 自动关闭覆盖；修复后 CI 环境变量下 276 例全绿，编排全量 451 例全绿，lint/typecheck 0 error，engine-core 未动，删除文件有替代说明。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地 lint / typecheck / 单测。"
+  }
+}

@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { validateConfig, PATHS, REPO_ROOT, loadAgentCards, loadIndex } from '../state-store.mjs';
+import { ANCHORED_FILES, ensureStateAnchor, stateAnchorDir } from '../state-anchor.mjs';
 import {
   validateAgentCard,
   validateContractVersion,
@@ -4671,5 +4672,143 @@ describe('AF-380 PR 生命周期与 runner 选择', () => {
     const ci = readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
     expect(ci).not.toMatch(/runs-on:\s*ubuntu-latest/);
     expect(ci.match(/runs-on:\s*\$\{\{\s*vars\.CI_RUNNER\s*\|\|\s*'ubuntu-latest'\s*\}\}/g)?.length).toBe(9);
+  });
+});
+
+// AF-498 · 编排根因修复回归：锚点恢复 / check 去重 / RC 前缀 / 缺回执不拒绝
+describe('AF-498 编排根因修复', () => {
+  it('分支把索引回退到旧基线时，启动恢复锚点而不是接受旧索引', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'af498-repo-'));
+    const anchorHome = mkdtempSync(join(tmpdir(), 'af498-anchor-'));
+    const previousHome = process.env.ORCH_STATE_HOME;
+    process.env.ORCH_STATE_HOME = anchorHome;
+    process.env.ORCH_STATE_ANCHOR = 'on';
+    try {
+      const rel = ANCHORED_FILES[0];
+      const repoIndex = join(repo, rel);
+      mkdirSync(join(repo, 'docs', 'team', 'agent-orchestration'), { recursive: true });
+      writeFileSync(repoIndex, JSON.stringify({ tasks: ['new-state'] }), 'utf8');
+      const seeded = ensureStateAnchor({ repoRoot: repo });
+      expect(seeded.seeded).toBe(true);
+      writeFileSync(repoIndex, JSON.stringify({ tasks: ['old-state'] }), 'utf8');
+      const restored = ensureStateAnchor({ repoRoot: repo });
+      expect(restored.restored).toBe(true);
+      expect(JSON.parse(readFileSync(repoIndex, 'utf8')).tasks).toEqual(['new-state']);
+      expect(stateAnchorDir(repo)).toBe(anchorHome);
+    } finally {
+      if (previousHome === undefined) delete process.env.ORCH_STATE_HOME;
+      else process.env.ORCH_STATE_HOME = previousHome;
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(anchorHome, { recursive: true, force: true });
+    }
+  });
+
+  it('同名 check 只认最新一条，旧 failure / cancelled 不累计', () => {
+    const required = ['unit'];
+    const runs = [
+      { name: 'unit', status: 'completed', conclusion: 'failure', started_at: '2026-11-24T10:00:00Z' },
+      { name: 'unit', status: 'completed', conclusion: 'success', started_at: '2026-11-24T10:05:00Z' },
+      { name: 'unit', status: 'completed', conclusion: 'cancelled', started_at: '2026-11-24T10:01:00Z' },
+    ];
+    expect(evaluateRequiredChecks(runs, required).verdict).toBe('pass');
+  });
+
+  it('回执编号 RC-2 不参与任务号识别', () => {
+    expect(extractCommitTaskId('fix(AF-497): 缓存接线并补 RC-2 回执')).toBe('AF-497');
+    expect(resolveCommitTaskId({ message: 'chore: 同步 RC-2 回执\n\nTask: none', subject: 'chore: 同步 RC-2 回执' })).toEqual({
+      taskId: null,
+      source: 'trailer',
+      none: true,
+    });
+  });
+
+  it('submitted + 交付记录但无机读回执时保持 submitted，等待回执', () => {
+    const receipts = mkdtempSync(join(tmpdir(), 'af498-receipts-'));
+    try {
+      const index = {
+        tasks: [
+          {
+            taskId: 'AF-498',
+            status: 'submitted',
+            type: 'fix',
+            contextId: 'phase2.5-orchestration-closed-loop',
+            scope: { files: ['scripts/orchestration/'] },
+            artifacts: { taskSheet: 'x.md', deliveryRecord: 'y.md' },
+            history: [],
+          },
+        ],
+        archivedTasks: [],
+      };
+      const runtime = { tasks: {} };
+      const actions = [];
+      processReceipts(index, runtime, { reworkLimit: 2, maxConcurrentTasks: 1 }, actions, { receiptsDir: receipts });
+      expect(index.tasks[0].status).toBe('submitted');
+      expect(actions.some((action) => action.type === 'receipt-missing')).toBe(true);
+    } finally {
+      rmSync(receipts, { recursive: true, force: true });
+    }
+  });
+
+  it('AF-500 验收按 commit 事实比对时，已声明交付记录不算 scope 外', () => {
+    const task = {
+      taskId: 'AF-500',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'fix',
+      scope: { files: ['scripts/orchestration/'] },
+      artifacts: {
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
+      },
+      receipt: {
+        changedFiles: { commits: ['abc1234'] },
+        deviationTable: [],
+        openQuestions: [],
+        manualReviewList: [],
+        backlogItems: [],
+      },
+    };
+    const result = runAcceptance(
+      task,
+      { tasks: [task], archivedTasks: [] },
+      {
+        changedFiles: [],
+        resolveCommitFiles: () => [
+          'scripts/orchestration/acceptance-runner.mjs',
+          'scripts/orchestration/__tests__/fixtures/delivery-record.md',
+        ],
+      },
+    );
+    expect(result.checks.find((check) => check.code === 'V7')?.status).toBe('pass');
+    expect(result.verdict).toBe('passed');
+  });
+
+  it('AF-500 未声明的 docs 文件仍按 scope 判 rejected', () => {
+    const task = {
+      taskId: 'AF-500',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'fix',
+      scope: { files: ['scripts/orchestration/'] },
+      artifacts: {
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
+      },
+      receipt: {
+        changedFiles: { commits: ['abc1234'] },
+        deviationTable: [],
+        openQuestions: [],
+        manualReviewList: [],
+        backlogItems: [],
+      },
+    };
+    const result = runAcceptance(
+      task,
+      { tasks: [task], archivedTasks: [] },
+      {
+        changedFiles: [],
+        resolveCommitFiles: () => ['docs/worklog/other.md'],
+      },
+    );
+    expect(result.checks.find((check) => check.code === 'V7')?.status).toBe('fail');
+    expect(result.verdict).toBe('rejected');
   });
 });

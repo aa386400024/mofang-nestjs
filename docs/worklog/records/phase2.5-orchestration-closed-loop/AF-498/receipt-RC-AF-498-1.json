@@ -1,0 +1,163 @@
+{
+  "deliveredAt": "2026-11-25T09:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-498-1",
+    "taskId": "AF-498",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "8986a3ce55aaec4be5032530920eaf15145c01a3",
+    "dependsOn": [],
+    "priorTasks": [],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-498/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af498-orchestration-root-fix-2026-11-25.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["cda0bd9c"],
+      "added": [
+        "docs/team/agent-orchestration/af498-root-fix.md",
+        "docs/worklog/completed/phase2.5/af498-orchestration-root-fix-2026-11-25.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-498/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-498/task-sheet.md",
+        "scripts/orchestration/__tests__/af498-root-fix.spec.mjs",
+        "scripts/orchestration/state-anchor.mjs"
+      ],
+      "modified": [
+        ".husky/pre-push",
+        "package.json",
+        "scripts/orchestration/ci-task-gate.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/event-store.mjs",
+        "scripts/orchestration/pr-release.mjs",
+        "scripts/orchestration/scheduler.mjs",
+        "scripts/orchestration/state-store.mjs",
+        "scripts/orchestration/task-id-occupancy.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 40s",
+        "note": "eslint TS + scripts 均 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 23,
+        "machine": "同上",
+        "wallClock": "约 2.4s",
+        "note": "451 tests passed；含 AF-498 4 条回归"
+      },
+      {
+        "command": "pnpm exec vitest run --changed origin/integrate --exclude '**/e2e/**/*.ts'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 337,
+        "machine": "同上",
+        "wallClock": "约 29s",
+        "note": "336 files passed + 1 skipped；4953 tests passed，4 skipped，0 failed"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未改"
+      }
+    ],
+    "reproNotes": "状态锚点位于 %LOCALAPPDATA%\\mofang-orchestration\\<repo-hash>；CLI 与 pr-release 启动恢复锚点，写状态后镜像回锚点。回归覆盖：分支回退恢复、同名 check 去重、RC-2 不识别为任务号、缺回执保持 submitted。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-498 经 CLI register / promote / run-once；提交带 Task: AF-498"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 写；提交不含 task-state-index / journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "状态索引由 CLI 维护；worklog verify --strict --state-free PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=orchestrator；改动限 scripts/orchestration、package、husky、编排 docs"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "只改编排状态与门禁，无心理内容、无台词原文"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord / 既有记录包 manifest 均落文件"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baseline 8986a3ce；提交 cda0bd9c 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "框架仓 docs/state-machine.md §8.1 已补规范，需随框架仓自身提交节奏纳入版本库"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "跨仓规范补强",
+        "taskSays": "任务单 scope 只列 mofang 仓",
+        "reality": "同时在框架仓 docs/state-machine.md 增补 §8.1 状态锚点约束",
+        "action": "在框架仓单独保留该文档改动，按框架仓提交节奏入库",
+        "why": "根因属适配层违约，框架规范需明确实现必须把状态锚定工作树外，避免后续实现重犯"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "8 条 successCriteria 全部满足：状态锚点、编号退役、archived 合并、check 去重、RC-2 识别、本地 state-free、缺回执不拒绝、pre-push 分层；lint/typecheck 0 error，编排 451 例与全量 4953 例全绿；engine-core 未动。跨仓规范补强已显式登记为偏差，不冒充单仓完成。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地 lint / typecheck / 单测。"
+  }
+}

@@ -23,7 +23,29 @@ export const TASK_STATE_INDEX_PATH = 'docs/team/agent-orchestration/task-state-i
 /** 提交标题里的任务编号 token：字母前缀（≥2）可选连字符 + 数字，全文扫描但排除技术串。 */
 const TASK_ID_TOKEN_RE = /(?<![A-Za-z0-9])[A-Za-z]{2,}-?\d+/g;
 /** 常见技术串归一后形似任务编号，显式排除，避免 `fix(utf-8)` 被当成任务。 */
-const NON_TASK_PREFIXES = new Set(['UTF', 'UTF8', 'ISO', 'SHA', 'MD', 'IPV', 'HTTP', 'TLS', 'CSS', 'JS', 'TS', 'V2', 'BASE64']);
+const NON_TASK_PREFIXES = new Set([
+  'UTF',
+  'UTF8',
+  'ISO',
+  'SHA',
+  'MD',
+  'IPV',
+  'HTTP',
+  'TLS',
+  'CSS',
+  'JS',
+  'TS',
+  'V2',
+  'BASE64',
+  // AF-498：回执/评审/流程编号不是任务编号。`RC-2`、`PR-234`、`ADR-012` 出现在
+  // 提交标题时曾让 CI 误判「多个任务编号」，把正常提交挡在门外。
+  'RC',
+  'PR',
+  'ISSUE',
+  'ADR',
+  'BUG',
+  'CI',
+]);
 
 /**
  * `AF-219` / `af219` 统一归一为 `AF-219`；不合形态（如 `Phase2`、`utf-8`）返回 null。
@@ -76,13 +98,13 @@ export function extractTaskTrailer(message) {
  */
 export function resolveCommitTaskId({ message, subject }) {
   const trailer = extractTaskTrailer(message);
-  const subjectId = extractCommitTaskId(subject);
-  if (!trailer.present) return { taskId: subjectId, source: 'subject' };
+  if (!trailer.present) return { taskId: extractCommitTaskId(subject), source: 'subject' };
   if (trailer.taskId === null) {
     // 纯状态面提交允许 subject 自然提及所属任务号；是否真的纯状态面由
     // evaluateCommitSnapshot 的 state-none-with-impl 判定负责。
     return { taskId: null, source: 'trailer', none: true };
   }
+  const subjectId = extractCommitTaskId(subject);
   if (subjectId !== null && trailer.taskId !== subjectId) {
     throw new Error(`Task trailer ${trailer.taskId} 与 subject 任务号 ${subjectId} 不一致`);
   }

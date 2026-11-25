@@ -19,14 +19,52 @@
  * 边界：只读；远端不可达时跳过对应源并产出 warning，不阻塞离线登记。
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { REPO_ROOT } from './state-store.mjs';
 import { remoteReservationIds } from './task-id-reservation.mjs';
+import { stateAnchorDir, stateAnchorEnabled } from './state-anchor.mjs';
 
 const TASK_ID_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+\b/g;
 const INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const RECORDS_DIR = 'docs/worklog/records';
+
+/**
+ * AF-498 · 编号退役台账。
+ *
+ * 任务进入终态（completed / rejected / canceled / failed）即永久退役，编号不复用。
+ * 台账放在状态锚点目录，而不是记录目录：记录包被清理、分支被重建、工作树被切回旧基线，
+ * 都不会让一个用过的号重新「可用」。
+ */
+function retiredLedgerPath(rootDir = REPO_ROOT) {
+  return join(stateAnchorDir(rootDir), 'retired-task-ids.json');
+}
+
+export function loadRetiredTaskIds(rootDir = REPO_ROOT) {
+  const file = retiredLedgerPath(rootDir);
+  if (!existsSync(file)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8'));
+    return Array.isArray(parsed?.ids) ? parsed.ids : [];
+  } catch {
+    return [];
+  }
+}
+
+export function recordRetiredTaskId(taskId, rootDir = REPO_ROOT) {
+  const id = String(taskId ?? '').trim();
+  if (!id || !stateAnchorEnabled()) return false;
+  const file = retiredLedgerPath(rootDir);
+  const current = loadRetiredTaskIds(rootDir);
+  if (current.includes(id)) return false;
+  const next = { ids: [...current, id].sort(), updatedAt: new Date().toISOString() };
+  mkdirSync(dirname(file), { recursive: true });
+  const tmp = `${file}.tmp`;
+  writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  if (existsSync(file)) unlinkSync(file);
+  renameSync(tmp, file);
+  return true;
+}
 
 function defaultRunGit(args, opts = {}) {
   try {
@@ -141,8 +179,9 @@ export function collectOccupiedTaskIds(opts = {}) {
   const lsReservations = runGit(['ls-remote', '--heads', remote, 'orchestration-task-ids/*'], { cwd, allowFailure: true });
   if (lsReservations === null) warnings.push(`远端 ${remote} 不可达：跳过占号 ref 检查`);
   const remoteReservations = lsReservations === null ? [] : remoteReservationIds(lsReservations);
+  const retired = loadRetiredTaskIds(rootDir);
 
-  const ids = new Set([...local.index, ...local.records, ...remoteBranches, ...(remoteIndex ?? []), ...remoteReservations]);
+  const ids = new Set([...local.index, ...local.records, ...remoteBranches, ...(remoteIndex ?? []), ...remoteReservations, ...retired]);
   // 只被「自己已推送的同名分支」占用的编号：允许重建，但仍要过远端占号 CAS。
   const excludedSet = new Set(excludedBranchIds);
   const selfOnlyIds = [...excludedSet].filter((id) => !ids.has(id));
@@ -155,6 +194,7 @@ export function collectOccupiedTaskIds(opts = {}) {
       remoteBranches,
       remoteIndex: remoteIndex ?? [],
       remoteReservations,
+      retired,
       excludedRemoteBranches: [...excludedSet],
     },
     selfOnlyIds,

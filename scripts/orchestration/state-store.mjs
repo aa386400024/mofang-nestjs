@@ -12,6 +12,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mirrorStateFile } from './state-anchor.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -187,6 +188,7 @@ export function loadIndex() {
 /** 保存任务状态索引。 */
 export function saveIndex(index) {
   writeJsonAtomic(PATHS.index, index);
+  mirrorStateFile(PATHS.index);
 }
 
 /** L2 运行态空骨架。 */
@@ -205,6 +207,7 @@ export function loadRuntimeState() {
 export function saveRuntimeState(state) {
   state.updatedAt = nowIso();
   writeJsonAtomic(PATHS.runtimeState, state);
+  mirrorStateFile(PATHS.runtimeState);
 }
 
 /** 取某任务的 L2 运行态条目（不存在返回空对象，不创建）。 */

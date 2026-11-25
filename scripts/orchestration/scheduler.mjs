@@ -38,6 +38,7 @@ import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
 import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
+import { recordRetiredTaskId } from './task-id-occupancy.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed, resolveChannelSelection } from './dispatch.mjs';
 import { buildGuiBrief, writeGuiBrief, isDeliveryStalled, autoConfirmDelivery } from './gui-dispatch.mjs';
 import { CIRCUIT_BREAKER_DEFAULTS, evaluateCircuitBreaker, resolveDispatchDecision } from './dispatch-channel.mjs';
@@ -619,6 +620,12 @@ export function archiveTaskEntry(index, taskId, opts = {}) {
   if (opts.note) entry.note = opts.note;
   index.tasks = index.tasks.filter((t) => t.taskId !== taskId);
   index.archivedTasks.push(entry);
+  // AF-498：进入归档即退役该编号，记录包/分支/状态被清掉也不放号。
+  try {
+    if (task.taskSheet || task.sheetPath || task.artifacts?.taskSheet) recordRetiredTaskId(taskId);
+  } catch {
+    /* 台账失败不得阻断归档 */
+  }
   return entry;
 }
 
@@ -742,6 +749,13 @@ export function processReceipts(index, runtimeState, config, actions, opts = {})
       continue;
     }
     const deliveryRef = task.artifacts?.deliveryRecord;
+    if (!task.receipt) {
+      // AF-498：交付记录存在但机读回执尚未落盘时只能等，不能拿「缺回执」当成验收不通过
+      // 把任务打成 rejected——那会把一个已完成任务永久锁在不可合并状态。
+      actions.push({ type: 'receipt-missing', taskId: task.taskId, deliveryRef: deliveryRef ?? null });
+      remaining.push(task);
+      continue;
+    }
     if (!deliveryRef) {
       if (receiptStatus === 'completed') {
         actions.push({ type: 'receipt-delivery-missing', taskId: task.taskId, sourceRef: task.receipt?.sourceRef ?? null });
