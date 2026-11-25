@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2083,
+    "lastEventSeq": 2099,
     "rebuiltAt": null
   },
   "tasks": [
@@ -4105,6 +4105,33 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-504/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af504-bdi-tooltip-format-2026-11-25.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-505",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-505/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af505-memory-runtime-repair-2026-11-25.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-506",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-506/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af506-memory-runtime-repair-2026-11-25.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-507",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-507/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af507-memory-runtime-repair-2026-11-25.md",
         "reply": null
       }
     }
