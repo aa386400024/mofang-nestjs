@@ -1,0 +1,13 @@
+{
+  "taskId": "AF-497",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "taskSheet": "task-sheet.md",
+  "createdAt": "2026-11-25T08:30:00+08:00",
+  "artifacts": [
+    { "path": "task-sheet.md", "sha256": "eae6bb449ab9156a73b9e1d254049ea938cc537daf0558ee8499fdc0e5c44fdd" },
+    { "path": "receipt-RC-AF-497-1.json", "sha256": "1d808adcc5eccad94b9fc581f3ea6aaeff19467cb0fc9a66bbd2d0abe05d9aa8" }
+  ],
+  "receipts": [
+    { "receiptId": "RC-AF-497-1", "path": "receipt-RC-AF-497-1.json", "sha256": "1d808adcc5eccad94b9fc581f3ea6aaeff19467cb0fc9a66bbd2d0abe05d9aa8", "finalStatus": "completed" }
+  ]
+}
