@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2118,
+    "lastEventSeq": 2127,
     "rebuiltAt": null
   },
   "tasks": [
@@ -97,6 +97,90 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-25T00:36:24.683Z"
+    },
+    {
+      "taskId": "AF-519",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-25T17:40:55.842Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "scope 重签发自 AF-518"
+        },
+        {
+          "at": "2026-11-25T17:41:00.725Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-membership-v2",
+      "title": "会员栈迁移号冲突消解与受保护 PR 收口",
+      "type": "fix",
+      "baselineRef": "7fb875ceac11812ae77c54f23c293f32d13cdbb6",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-518"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3",
+        "conventions.md#2.5",
+        "autonomous-team-design.md#6.1"
+      ],
+      "createdAt": "2026-11-25T17:40:55.663Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/membership/",
+          "src/billing/",
+          "src/counselor/dto/billing.dto.ts",
+          "src/counselor/providers/billing.service.ts",
+          "src/profile/",
+          "src/app.module.ts",
+          "src/common/exceptions/",
+          "src/user/enums/audit-event.enum.ts",
+          "src/shared/infra/metrics/metrics.service.ts",
+          "src/migration/",
+          "bin/ormconfig.ts",
+          "test/membership/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "docs/worklog/records/"
+        ],
+        "modules": [
+          "membership"
+        ],
+        "interfaces": [
+          "MembershipController",
+          "MembershipAdminController",
+          "MembershipOrderService",
+          "MembershipAccountService"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
+        "reply": null
+      },
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-25T17:40:55.841Z"
     }
   ],
   "archivedTasks": [
@@ -4168,6 +4252,24 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-511/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af511-deepseek-removal-2026-11-25.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-517",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/team/agent-orchestration/transport/tasks/AF-517.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-518",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-518/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af518-membership-migration-pr-closure-implementation-2026-11-26.md",
         "reply": null
       }
     }
