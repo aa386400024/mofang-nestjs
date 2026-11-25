@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-25T03:02:20.576Z",
+  "generatedAt": "2026-11-25T03:35:01.520Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2067,6 +2067,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-449",
+      "recordedAt": "2026-11-25T03:28:34.492Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-503",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-503-auto-practice-bdi"
+      ]
+    },
+    {
+      "auditId": "AUD-448",
+      "recordedAt": "2026-11-25T03:28:00.011Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-503",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-503",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-503.json"
+      ]
+    },
+    {
+      "auditId": "AUD-447",
+      "recordedAt": "2026-11-25T03:27:51.528Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-503",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-446",
       "recordedAt": "2026-11-25T02:42:29.928Z",
       "actorRef": "orchestrator",
@@ -2257,67 +2304,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-434",
-      "recordedAt": "2026-11-25T00:08:41.135Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-496",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-496",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-496.json"
-      ]
-    },
-    {
-      "auditId": "AUD-433",
-      "recordedAt": "2026-11-25T00:08:36.465Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-496",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-432",
-      "recordedAt": "2026-11-25T00:07:54.793Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-495",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-495",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-495.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 446,
+    "total": 449,
     "byResult": {
-      "allowed": 446,
+      "allowed": 449,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 445,
+      "TOOL-QUEUE-SCHEDULER": 448,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 446
+      "orchestrator": 449
     }
   },
   "protocolView": {
@@ -10226,6 +10226,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af501-admin-dashboard-auto-practice-alignment-2026-11-25.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-503",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-503/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af503-auto-practice-debug-panel-density-2026-11-25.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -10263,5 +10281,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 446
+  "archivedCount": 447
 };
