@@ -1,0 +1,163 @@
+{
+  "deliveredAt": "2026-11-26T02:05:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-520-1",
+    "taskId": "AF-520",
+    "contextId": "phase2.5-membership-v2",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "81cb57f25aa6b91d803b50f0814800dc9f56b99d",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-519"
+    ],
+    "policyRefs": [
+      "conventions.md#1.1",
+      "conventions.md#1.3",
+      "conventions.md#2.5",
+      "autonomous-team-design.md#6.1"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-520/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "328afaa3"
+      ],
+      "added": [],
+      "modified": [
+        "src/counselor/counselor.module.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35s",
+        "note": "带缓存全量 eslint，0 error / 0 warning"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "tsc -p tsconfig.build.json 成功"
+      },
+      {
+        "command": "pnpm test:smoke",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "/health 200，database up 38ms，redis up；AppModule 完整装配含 CounselorModule + BillingService 通过"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "[ORCH-GATE] PASS task=AF-520 status=submitted files=1 covered=1"
+      }
+    ],
+    "reproNotes": "启动自检：pnpm test:smoke。若需复现 E2E 依赖解析：pnpm vitest run test/e2e/v2-user-flow.spec.ts（需 CI 服务 MySQL/Redis）。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-520 任务单、提交 Task trailer、分支任务链一致"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI；任务登记与实现分提交"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      },
+      {
+        "item": "scope-exact",
+        "result": "pass",
+        "note": "实现提交仅改 src/counselor/counselor.module.ts，2 行"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=81cb57f2 为 AF-519 PR 分支 HEAD；AF-520 作为返修任务承接已归档的 AF-519。"
+    },
+    "backlogItems": [
+      {
+        "id": "membership-real-payment-and-renewal",
+        "impact": "真实微信/支付宝/Apple IAP、回调验签、自动续费、退款自动金额仍未接",
+        "suggestion": "公司注册后按 WP27 接入支付"
+      },
+      {
+        "id": "membership-e2e-ci-confirmation",
+        "impact": "本地未单独跑 v2-user-flow E2E，避免向 mofang_dev 写测试用户；依赖 PR #251 CI E2E 复查",
+        "suggestion": "PR #251 最新 HEAD 的 E2E 作业确认通过后再合并"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "CounselorModule 已导入 MembershipModule，BillingService 的 MembershipAccountService / QuotaLedgerService 依赖可解析；typecheck/lint/build/smoke 全绿，改动仅 2 行且未改变会员业务逻辑。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-25T17:47:07.587Z",
+  "generatedAt": "2026-11-25T18:00:51.800Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -35,6 +35,46 @@ window.ORCH_SNAPSHOT = {
       },
       "manualReview": [],
       "dispatch": null
+    },
+    {
+      "taskId": "AF-520",
+      "contextId": "phase2.5-membership-v2",
+      "type": "fix",
+      "title": "CounselorModule 接入 MembershipModule 修复 E2E 依赖解析",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-520/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-520",
+        "contextId": "phase2.5-membership-v2",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-25T18:00:51.703Z",
+        "leaseDeadline": "2026-11-25T18:30:51.700Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-520.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-25T18:00:51.703Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-520.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
     }
   ],
   "deadLetters": [],
@@ -2039,6 +2079,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-545",
+      "recordedAt": "2026-11-25T18:00:47.250Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-520",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-544",
       "recordedAt": "2026-11-25T17:41:01.016Z",
       "actorRef": "orchestrator",
@@ -2265,37 +2322,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-512.json"
       ]
-    },
-    {
-      "auditId": "AUD-530",
-      "recordedAt": "2026-11-25T14:46:35.228Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-512",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 544,
+    "total": 545,
     "byResult": {
-      "allowed": 544,
+      "allowed": 545,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 543,
+      "TOOL-QUEUE-SCHEDULER": 544,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 544
+      "orchestrator": 545
     }
   },
   "protocolView": {
@@ -2324,6 +2364,30 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-520",
+        "title": "CounselorModule 接入 MembershipModule 修复 E2E 依赖解析",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-membership-v2",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-membership-v2/AF-520/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md"
           }
         ]
       }
@@ -10444,11 +10508,22 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-481",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md"
+      },
+      {
+        "taskId": "AF-520",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-membership-v2/AF-520/task-sheet.md"
+      },
+      {
+        "taskId": "AF-520",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
     "groupIds": [
-      "phase2.5-orchestration-closed-loop"
+      "phase2.5-orchestration-closed-loop",
+      "phase2.5-membership-v2"
     ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
