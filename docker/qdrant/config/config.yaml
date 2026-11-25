@@ -1,13 +1,15 @@
-# V2026-09-04 Qdrant 1.x 服务端配置 — 心塑 V6.0 §12 RAG 知识库.
+# V2026-11-25 Qdrant 1.12 服务端配置 — 心塑 V6.0 §12 RAG 知识库.
 #
 # 用法:
 #   docker compose --profile rag up -d qdrant
-#   容器启动时会读这个文件 (跟 docker-compose.yml command --config-ration-filename 配对).
+#   容器启动时会读这个文件 (跟 docker-compose.yml command --config-path 配对).
+#
+# 注意:
+#   - 1.12 不接受 storage.wal: true (wal 必须是对象), 这里保留空对象走默认.
+#   - API key 不写死在这里, 统一由 compose 的 QDRANT__SERVICE__API_KEY 注入.
 
 service:
-  # API key 鉴权, 推荐生产开启
-  api_key: '${QDRANT__SERVICE__API_KEY:-}'
-
+  # API key 鉴权只走环境变量, 配置文件不写 ${...} (Qdrant 不做 shell 展开)
   # CORS — 关闭 (只有服务端连)
   enable_cors: false
 
@@ -17,8 +19,8 @@ service:
 storage:
   # 单 collection 向量存储路径 (默认 /qdrant/storage/collections)
   storage_path: /qdrant/storage
-  # WAL — 写前日志, 防数据丢失
-  wal: true
+  # WAL — 1.12 要求对象类型, 空对象 = 使用默认 WAL 配置
+  wal: {}
   # 快照策略 — 每 1000 段写触发
   snapshots_path: /qdrant/snapshots
 

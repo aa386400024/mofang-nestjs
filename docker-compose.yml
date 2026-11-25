@@ -173,8 +173,10 @@ services:
     container_name: mofang-qdrant
     restart: unless-stopped
     profiles: ['rag']
+    # Qdrant 镜像自带 entrypoint 不带参数, 必须显式给二进制, command 才会成为它的参数
+    entrypoint: ['/qdrant/qdrant']
     command:
-      - --config-ration-filename=/qdrant/config/config.yaml
+      - --config-path=/qdrant/config/config.yaml
     environment:
       QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
       QDRANT__TELEMETRY__DISABLED: 'true'
@@ -187,7 +189,10 @@ services:
     networks:
       - mofang-net
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:6333/healthz']
+      # qdrant 镜像没有 curl/wget, 用 bash 内置 /dev/tcp 发一个最小 HTTP 请求看状态行
+      test:
+        - CMD-SHELL
+        - 'bash -c "exec 3<>/dev/tcp/127.0.0.1/6333 && printf \"GET /healthz HTTP/1.0\\r\\n\\r\\n\" >&3 && head -1 <&3 | grep -q 200"'
       interval: 10s
       timeout: 3s
       retries: 5

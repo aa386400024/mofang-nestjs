@@ -15,9 +15,9 @@
   └─ mofang-tei    (TEI cpu-1.5, bge-small-zh-v1.5) :8080
 ```
 
-生产容器内不需要隧道：后端与 Qdrant/TEI 同 `mofang-net`，直接用
-`http://qdrant:6333`、`http://tei:80`。本地开发用 SSH 隧道把两个端口拉到
-`127.0.0.1`。
+生产 `mofang-nestjs-api` 用 host 网络，容器内 `127.0.0.1` 就是宿主机，所以连
+`http://127.0.0.1:6333`、`http://127.0.0.1:8080/v1`，不能写 compose 服务名。本地开发用
+SSH 隧道把两个端口拉到 `127.0.0.1`。
 
 ## 2. 服务器启动
 
@@ -114,14 +114,19 @@ LLM_CUSTOM_DIMENSION=512
 `LLM_CUSTOM_BASE_URL` 会被归一补 `/v1`，填 `http://host:8080` 或
 `http://host:8080/v1` 都行。
 
-隧道：
+隧道（已固化为脚本，不再手工敲长命令）：
 
-```bash
-ssh -N \
-  -L 127.0.0.1:6333:127.0.0.1:6333 \
-  -L 127.0.0.1:8080:127.0.0.1:8080 \
-  root@117.72.30.78
+```powershell
+# 密码只放环境变量，脚本不会落盘明文
+$env:SSH_PASS = '<server-password>'
+pwsh -File scripts/ops/memory-runtime-tunnel.ps1 start
+pwsh -File scripts/ops/memory-runtime-tunnel.ps1 status
+pwsh -File scripts/ops/memory-runtime-tunnel.ps1 stop
 ```
+
+脚本用 `-N -L 127.0.0.1:6333:127.0.0.1:6333 -L 127.0.0.1:8080:127.0.0.1:8080`，
+带 `ExitOnForwardFailure`、`ServerAliveInterval=30`，PID 写 `%LOCALAPPDATA%\mofang\memory-runtime-tunnel.pid`。
+也可以直接配置 SSH key，此时无需 `SSH_PASS`。
 
 ## 4. 排障对照
 
@@ -143,10 +148,16 @@ ssh -N \
 - 本地 `/admin/api/memories`：`source=qdrant`，能列出真实写入。
 - 记忆专项单测 185 例 + Qdrant SDK 契约 5 例全绿。
 
-## 6. 遗留
+## 6. 收尾状态（2026-11-25 AF-509）
 
-- 仓库根 `docker-compose.yml` 的 Qdrant 参数仍是错误拼写
-  `--config-ration-filename`，且缺 `entrypoint`。不在 AF-506 executor 资源域，
-  本次未改；下次修根 compose 时按本手册 §2.1 一起改。
-- 生产 `mofang-nestjs-api` 仍是 2026-08-26 镜像，`/opt/mofang-nestjs/.env`
-  没配 QDRANT/LLM，需单独发布并补 env。
+- 仓库根 `docker-compose.yml` 已改为 `entrypoint: ['/qdrant/qdrant']` +
+  `--config-path=/qdrant/config/config.yaml`，健康检查改用 bash `/dev/tcp`（镜像没有 curl）。
+- 仓库 `docker/qdrant/config/config.yaml` 已按 1.12 schema 修正：`storage.wal: {}`，
+  不写死 `service.api_key`，鉴权只走 compose env。
+- `@qdrant/js-client-rest` 已固定 `1.12.0`，与服务器 Qdrant 1.12 同大版本同小版本，
+  运行时版本不兼容警告消失。
+- SSH 隧道已固化为 `scripts/ops/memory-runtime-tunnel.ps1`（start/stop/status/restart）。
+- 生产 `mofang-nestjs-api` 镜像已重建并补 `.env` QDRANT/LLM 配置，发布与回滚见
+  `docs/runbooks/memory-runtime-production-release.md`。
+- 服务器 `mofang-qdrant` / `mofang-tei` 的 Docker healthcheck 已改 bash `/dev/tcp`，
+  两者恢复 `Up (healthy)`。
