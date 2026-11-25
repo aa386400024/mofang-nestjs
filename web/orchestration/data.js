@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-25T03:35:01.520Z",
+  "generatedAt": "2026-11-25T03:51:48.898Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2067,6 +2067,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-452",
+      "recordedAt": "2026-11-25T03:47:12.287Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-504",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-504-bdi-tooltip-format"
+      ]
+    },
+    {
+      "auditId": "AUD-451",
+      "recordedAt": "2026-11-25T03:46:41.209Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-504",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-504",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-504.json"
+      ]
+    },
+    {
+      "auditId": "AUD-450",
+      "recordedAt": "2026-11-25T03:46:36.524Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-504",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-449",
       "recordedAt": "2026-11-25T03:28:34.492Z",
       "actorRef": "orchestrator",
@@ -2255,69 +2302,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-498.json"
       ]
-    },
-    {
-      "auditId": "AUD-437",
-      "recordedAt": "2026-11-25T00:53:49.638Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-498",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-436",
-      "recordedAt": "2026-11-25T00:09:41.112Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-497",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-497",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-497.json"
-      ]
-    },
-    {
-      "auditId": "AUD-435",
-      "recordedAt": "2026-11-25T00:09:36.243Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-497",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 449,
+    "total": 452,
     "byResult": {
-      "allowed": 449,
+      "allowed": 452,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 448,
+      "TOOL-QUEUE-SCHEDULER": 451,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 449
+      "orchestrator": 452
     }
   },
   "protocolView": {
@@ -10244,6 +10242,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af503-auto-practice-debug-panel-density-2026-11-25.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-504",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-504/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af504-bdi-tooltip-format-2026-11-25.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -10281,5 +10297,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 447
+  "archivedCount": 448
 };
