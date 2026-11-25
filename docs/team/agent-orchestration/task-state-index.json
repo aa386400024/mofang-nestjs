@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2129,
+    "lastEventSeq": 2132,
     "rebuiltAt": null
   },
   "tasks": [
@@ -97,6 +97,73 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-25T00:36:24.683Z"
+    },
+    {
+      "taskId": "AF-520",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-25T18:00:46.948Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "修复 E2E 依赖解析"
+        },
+        {
+          "at": "2026-11-25T18:00:51.700Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-membership-v2",
+      "title": "CounselorModule 接入 MembershipModule 修复 E2E 依赖解析",
+      "type": "fix",
+      "baselineRef": "81cb57f25aa6b91d803b50f0814800dc9f56b99d",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-519"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1",
+        "conventions.md#1.3",
+        "conventions.md#2.5",
+        "autonomous-team-design.md#6.1"
+      ],
+      "createdAt": "2026-11-25T18:00:46.103Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/counselor/counselor.module.ts"
+        ],
+        "modules": [
+          "counselor"
+        ],
+        "interfaces": [
+          "BillingService"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-520/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md",
+        "reply": null
+      },
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af520-counselor-membership-wiring-2026-11-26.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-25T18:00:46.947Z"
     }
   ],
   "archivedTasks": [
