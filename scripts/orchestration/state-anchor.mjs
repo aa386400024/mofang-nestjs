@@ -8,8 +8,9 @@
  * 归档说明锚定到仓库外的持久目录；仓库内文件只作为镜像/种子。CLI 每次启动先把
  * 锚点恢复回工作树，命令结束后把工作树镜像回锚点。
  *
- * 关闭：`ORCH_STATE_ANCHOR=off`、CI（`CI=1`/`GITHUB_ACTIONS=1`）、
- * `ORCH_STATE_FREE=1`；测试与 CI 不碰本机锚点。
+ * 关闭：`ORCH_STATE_ANCHOR=off`、`ORCH_STATE_FREE=1`；CI（`CI=1`/`GITHUB_ACTIONS=1`）
+ * 默认关闭。显式 `ORCH_STATE_ANCHOR=on` 优先于 CI 自动关闭，供锚点回归测试在
+ * CI 环境变量下验证；普通 CI 不显式开启时不碰本机锚点。
  */
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
@@ -37,7 +38,11 @@ function envFlag(name) {
 }
 
 export function stateAnchorEnabled() {
-  if (['0', 'off', 'false', 'no'].includes(envFlag('ORCH_STATE_ANCHOR'))) return false;
+  const flag = envFlag('ORCH_STATE_ANCHOR');
+  // `on` 是显式强制开启：CI 默认不碰本机状态，但锚点自身的回归测试必须能在
+  // CI 环境变量下验证播种/恢复，否则该路径只在开发者机器上被覆盖。
+  if (['1', 'on', 'true', 'yes', 'force'].includes(flag)) return true;
+  if (['0', 'off', 'false', 'no'].includes(flag)) return false;
   if (envFlag('CI') === 'true' || envFlag('GITHUB_ACTIONS') === 'true') return false;
   if (envFlag('ORCH_STATE_FREE') === '1') return false;
   return true;
