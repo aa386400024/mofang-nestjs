@@ -15,11 +15,6 @@
       "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/receipt-RC-AF-519-1.json",
       "sha256": "8ae31e2bd52ddd28617257c50443d8728b0d5185a14ca70fa3ac03446f1bd6ad",
       "receiptId": "RC-AF-519-1"
-    },
-    {
-      "path": "docs/worklog/records/phase2.5-membership-v2/AF-519/receipt-RC-AF-519-1-a55e288f.json",
-      "sha256": "a55e288fa5b315f8b7ee3405ed4ca14fb260861c04168fe51049e1c069de8ec9",
-      "receiptId": "RC-AF-519-1"
     }
   ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
