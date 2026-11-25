@@ -4,6 +4,7 @@ import { BillingPeriod, MembershipTier } from '../../src/membership/domain/membe
 import { CreateMembershipPromotionDto } from '../../src/membership/dto/membership-promotion.dto.js';
 import { MembershipPromotion } from '../../src/membership/entities/membership-promotion.entity.js';
 import { MembershipPromotionService } from '../../src/membership/providers/membership-promotion.service.js';
+import { AuditEvent } from '../../src/user/enums/audit-event.enum.js';
 
 function createService() {
   const rows: MembershipPromotion[] = [];
@@ -21,8 +22,9 @@ function createService() {
     }),
   };
   const redemptionRepo = { createQueryBuilder: vi.fn() };
-  const service = new MembershipPromotionService(promotionRepo as never, redemptionRepo as never);
-  return { service, rows, promotionRepo };
+  const audit = { log: vi.fn().mockResolvedValue({}) };
+  const service = new MembershipPromotionService(promotionRepo as never, redemptionRepo as never, undefined, audit as never);
+  return { service, rows, promotionRepo, audit };
 }
 
 function dto(overrides: Partial<CreateMembershipPromotionDto> = {}): CreateMembershipPromotionDto {
@@ -63,5 +65,25 @@ describe('AF-516 活动运营服务', () => {
     const { service } = createService();
     await service.create('admin-1', dto());
     await expect(service.create('admin-2', dto({ name: '另一个活动' }))).rejects.toThrow(/已存在/);
+  });
+
+  it('运营写操作落审计：带 action/promotionId/code/status/actor', async () => {
+    const { service, audit } = createService();
+
+    const created = await service.create('admin-1', dto());
+
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'admin-1',
+        event: AuditEvent.MembershipPromotionCreated,
+        metadata: expect.objectContaining({
+          action: 'created',
+          promotionId: created.id,
+          code: 'NEW_CAMPAIGN',
+          status: 'draft',
+          actor: 'admin-user',
+        }),
+      }),
+    );
   });
 });

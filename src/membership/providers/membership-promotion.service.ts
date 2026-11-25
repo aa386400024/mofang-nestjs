@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { IsNull, type FindOptionsWhere, type Repository } from 'typeorm';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { AuditEvent } from '../../user/enums/audit-event.enum.js';
+import { AuditLogService } from '../../user/providers/audit-log.service.js';
 import { BillingPeriod, MembershipPromotionAudience, MembershipPromotionStatus, MembershipTier } from '../domain/membership.enums.js';
 import type {
   CreateMembershipPromotionDto,
@@ -17,6 +19,7 @@ import { MembershipPromotionRedemption } from '../entities/membership-promotion-
 import { MembershipPromotion } from '../entities/membership-promotion.entity.js';
 import type { MembershipCampaignDefinition } from '../membership.constants.js';
 import { MEMBERSHIP_PLANS } from '../membership.constants.js';
+import { MembershipPromotionReservationService } from './membership-promotion-reservation.service.js';
 
 const PAID_TIERS: readonly MembershipTier[] = [MembershipTier.Plus, MembershipTier.Pro, MembershipTier.Max];
 
@@ -30,11 +33,17 @@ const PAID_TIERS: readonly MembershipTier[] = [MembershipTier.Plus, MembershipTi
  */
 @Injectable()
 export class MembershipPromotionService {
+  private readonly logger = new Logger(MembershipPromotionService.name);
+
   constructor(
     @InjectRepository(MembershipPromotion)
     private readonly promotionRepo: Repository<MembershipPromotion>,
     @InjectRepository(MembershipPromotionRedemption)
     private readonly redemptionRepo: Repository<MembershipPromotionRedemption>,
+    @Optional()
+    private readonly reservationService?: MembershipPromotionReservationService,
+    @Optional()
+    private readonly audit?: AuditLogService,
   ) {}
 
   async list(
@@ -90,38 +99,25 @@ export class MembershipPromotionService {
       createdBy: adminUid,
       deletedAt: null,
     });
-    return this.toDto(await this.promotionRepo.save(row));
+    const saved = await this.promotionRepo.save(row);
+    await this.auditWrite(AuditEvent.MembershipPromotionCreated, adminUid, saved, 'created');
+    return this.toDto(saved);
   }
 
-  async update(id: string, dto: UpdateMembershipPromotionDto): Promise<MembershipPromotionDto> {
+  async update(id: string, dto: UpdateMembershipPromotionDto, adminUid: string | null = null): Promise<MembershipPromotionDto> {
     const existing = await this.requirePromotion(id);
     if (dto.code && dto.code.trim().toUpperCase() !== existing.code) {
       throw this.invalid('活动码创建后不可修改；请新建活动并停用旧活动');
     }
-    const merged = this.validateAndNormalize({
-      code: existing.code,
-      name: dto.name ?? existing.name,
-      description: dto.description ?? existing.description,
-      status: dto.status ?? existing.status,
-      billingPeriod: dto.billingPeriod ?? existing.billingPeriod,
-      audience: dto.audience ?? existing.audience,
-      autoApply: dto.autoApply ?? existing.autoApply,
-      startsAt: dto.startsAt ?? existing.startsAt,
-      endsAt: dto.endsAt ?? existing.endsAt,
-      prices: dto.prices ?? existing.prices,
-      floors: dto.floors ?? existing.floors ?? {},
-      giftMinutes: dto.giftMinutes ?? existing.giftMinutes ?? {},
-      budgetCents: dto.budgetCents === undefined ? existing.budgetCents : dto.budgetCents,
-      perUserLimit: dto.perUserLimit ?? existing.perUserLimit,
-      priority: dto.priority ?? existing.priority,
-      ruleVersion: dto.ruleVersion ?? existing.ruleVersion,
-    });
+    const merged = this.mergeForUpdate(existing, dto);
 
     Object.assign(existing, merged);
-    return this.toDto(await this.promotionRepo.save(existing));
+    const saved = await this.promotionRepo.save(existing);
+    await this.auditWrite(AuditEvent.MembershipPromotionUpdated, adminUid, saved, 'updated');
+    return this.toDto(saved);
   }
 
-  async activate(id: string): Promise<MembershipPromotionDto> {
+  async activate(id: string, adminUid: string | null = null): Promise<MembershipPromotionDto> {
     const existing = await this.requirePromotion(id);
     this.validateAndNormalize({
       code: existing.code,
@@ -142,20 +138,25 @@ export class MembershipPromotionService {
       ruleVersion: existing.ruleVersion,
     });
     existing.status = MembershipPromotionStatus.Active;
-    return this.toDto(await this.promotionRepo.save(existing));
+    const saved = await this.promotionRepo.save(existing);
+    await this.auditWrite(AuditEvent.MembershipPromotionActivated, adminUid, saved, 'activated');
+    return this.toDto(saved);
   }
 
-  async pause(id: string): Promise<MembershipPromotionDto> {
+  async pause(id: string, adminUid: string | null = null): Promise<MembershipPromotionDto> {
     const existing = await this.requirePromotion(id);
     existing.status = MembershipPromotionStatus.Paused;
-    return this.toDto(await this.promotionRepo.save(existing));
+    const saved = await this.promotionRepo.save(existing);
+    await this.auditWrite(AuditEvent.MembershipPromotionPaused, adminUid, saved, 'paused');
+    return this.toDto(saved);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, adminUid: string | null = null): Promise<void> {
     const existing = await this.requirePromotion(id);
     existing.status = MembershipPromotionStatus.Ended;
     existing.deletedAt = new Date();
-    await this.promotionRepo.save(existing);
+    const saved = await this.promotionRepo.save(existing);
+    await this.auditWrite(AuditEvent.MembershipPromotionDeleted, adminUid, saved, 'deleted');
   }
 
   async stats(id: string): Promise<MembershipPromotionStatsDto> {
@@ -169,14 +170,18 @@ export class MembershipPromotionService {
       .andWhere('r.revokedAt IS NULL')
       .getRawOne<{ count: string; discount: string; minutes: string }>();
     const discountCents = Number(raw?.discount ?? 0);
+    const reserved = await this.reservationService?.statsForPromotion(id, new Date());
     return {
       promotionId: id,
       redemptionCount: Number(raw?.count ?? 0),
       discountCents,
       grantedMinutes: Number(raw?.minutes ?? 0),
       budgetCents: promotion.budgetCents,
-      budgetRemainingCents: promotion.budgetCents === null ? null : Math.max(0, promotion.budgetCents - discountCents),
+      budgetRemainingCents:
+        promotion.budgetCents === null ? null : Math.max(0, promotion.budgetCents - discountCents - (reserved?.heldCents ?? 0)),
       perUserLimit: promotion.perUserLimit,
+      reservedCount: reserved?.heldCount ?? 0,
+      reservedCents: reserved?.heldCents ?? 0,
     };
   }
 
@@ -204,7 +209,12 @@ export class MembershipPromotionService {
       .andWhere('r.revokedAt IS NULL')
       .groupBy('r.promotionId')
       .getRawMany<{ promotionId: string; count: string }>();
-    return Object.fromEntries(rows.map((row) => [row.promotionId, Number(row.count)]));
+    const paid = Object.fromEntries(rows.map((row) => [row.promotionId, Number(row.count)]));
+    const held = (await this.reservationService?.heldCountsByUid(uid)) ?? {};
+    for (const [promotionId, count] of Object.entries(held)) {
+      paid[promotionId] = (paid[promotionId] ?? 0) + count;
+    }
+    return paid;
   }
 
   async budgetRemainingByPromotion(campaigns: readonly MembershipCampaignDefinition[]): Promise<Record<string, number | null>> {
@@ -219,10 +229,13 @@ export class MembershipPromotionService {
       .groupBy('r.promotionId')
       .getRawMany<{ promotionId: string; spent: string }>();
     const spentByPromotion = new Map(rows.map((row) => [row.promotionId, Number(row.spent)]));
+    const heldByPromotion = (await this.reservationService?.reservedByPromotion(campaigns)) ?? {};
     const result: Record<string, number | null> = {};
     for (const campaign of campaigns) {
       result[campaign.id] =
-        campaign.budgetCents === null ? null : Math.max(0, campaign.budgetCents - (spentByPromotion.get(campaign.id) ?? 0));
+        campaign.budgetCents === null
+          ? null
+          : Math.max(0, campaign.budgetCents - (spentByPromotion.get(campaign.id) ?? 0) - (heldByPromotion[campaign.id] ?? 0));
     }
     return result;
   }
@@ -231,6 +244,27 @@ export class MembershipPromotionService {
     const row = await this.promotionRepo.findOne({ where: { id, deletedAt: IsNull() } });
     if (!row) throw new BizException(BizCode.MembershipPromotionNotFound, `活动 ${id} 不存在或已删除`);
     return row;
+  }
+
+  private mergeForUpdate(existing: MembershipPromotion, dto: UpdateMembershipPromotionDto) {
+    return this.validateAndNormalize({
+      code: existing.code,
+      name: dto.name ?? existing.name,
+      description: dto.description ?? existing.description,
+      status: dto.status ?? existing.status,
+      billingPeriod: dto.billingPeriod ?? existing.billingPeriod,
+      audience: dto.audience ?? existing.audience,
+      autoApply: dto.autoApply ?? existing.autoApply,
+      startsAt: dto.startsAt ?? existing.startsAt,
+      endsAt: dto.endsAt ?? existing.endsAt,
+      prices: dto.prices ?? existing.prices,
+      floors: dto.floors ?? existing.floors ?? {},
+      giftMinutes: dto.giftMinutes ?? existing.giftMinutes ?? {},
+      budgetCents: dto.budgetCents === undefined ? existing.budgetCents : dto.budgetCents,
+      perUserLimit: dto.perUserLimit ?? existing.perUserLimit,
+      priority: dto.priority ?? existing.priority,
+      ruleVersion: dto.ruleVersion ?? existing.ruleVersion,
+    });
   }
 
   private validateAndNormalize(input: {
@@ -384,6 +418,28 @@ export class MembershipPromotionService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  private async auditWrite(event: AuditEvent, adminUid: string | null, promotion: MembershipPromotion, action: string): Promise<void> {
+    if (!this.audit) return;
+    try {
+      await this.audit.log({
+        userId: adminUid,
+        event,
+        metadata: {
+          action,
+          promotionId: promotion.id,
+          code: promotion.code,
+          status: promotion.status,
+          billingPeriod: promotion.billingPeriod,
+          ruleVersion: promotion.ruleVersion,
+          actor: adminUid ? 'admin-user' : 'admin-basic',
+        },
+      });
+    } catch (error) {
+      // 审计是旁路：写审计失败不能让运营操作回滚，但必须留下可检索的告警。
+      this.logger.warn(`活动审计写入失败 action=${action} promotion=${promotion.id} error=${(error as Error).message}`);
+    }
   }
 
   private invalid(message: string): BizException {

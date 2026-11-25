@@ -26,6 +26,7 @@ function createService() {
   };
   const managedRepo = {
     findOne: vi.fn().mockResolvedValue(term),
+    create: vi.fn((value: unknown) => value),
     save: vi.fn(async (value: unknown) => value),
   };
   const dataSource = {
@@ -75,5 +76,27 @@ describe('AF-516 年付按月发放', () => {
 
     expect(execute).toHaveBeenCalledTimes(1);
     expect(queryBuilder.andWhere).toHaveBeenCalledWith('orderId <> :exceptOrderId', { exceptOrderId: 'o-new' });
+  });
+
+  it('未来周期续费登记 term 时首月不提前发：monthsGranted=0，nextGrantAt=termStart', async () => {
+    const { service, managedRepo, quotaLedger } = createService();
+    managedRepo.findOne.mockResolvedValue(null);
+
+    const termStart = new Date('2026-12-25T12:00:00+08:00');
+    const termEnd = new Date('2027-01-25T12:00:00+08:00');
+    const created = await service.createMonthlyTerm({ getRepository: () => managedRepo } as never, {
+      uid: 'u-1',
+      orderId: 'o-renew',
+      tier: MembershipTier.Plus,
+      termStart,
+      termEnd,
+      firstMonthGranted: false,
+    });
+
+    expect(created.monthsGranted).toBe(0);
+    expect(created.monthsTotal).toBe(1);
+    expect(created.nextGrantAt?.toISOString()).toBe(termStart.toISOString());
+    expect(created.status).toBe(MembershipPlanGrantStatus.Active);
+    expect(quotaLedger.grantPlan).not.toHaveBeenCalled();
   });
 });

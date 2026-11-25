@@ -69,21 +69,17 @@ export class MembershipController {
   }
 
   @Get('quote')
-  @ApiOperation({ summary: '价格预览（原价 → 活动价 → 优惠券 → 底价）' })
+  @ApiOperation({ summary: '价格预览（原价 → 活动价 → 服务端优惠券 → 底价）' })
   async getQuote(@CurrentUser() user: { userId: string }, @Query() query: QuoteQueryDto): Promise<PriceQuoteDto> {
-    return this.orderService.quote(
-      user.userId,
-      query.productId,
-      query.billingPeriod ?? BillingPeriod.Monthly,
-      query.couponDiscountCents ?? 0,
-      query.promotionCode,
-    );
+    this.assertNoClientCoupon(query.couponDiscountCents);
+    return this.orderService.quote(user.userId, query.productId, query.billingPeriod ?? BillingPeriod.Monthly, 0, query.promotionCode);
   }
 
   @Post('orders')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '创建会员/加包订单（幂等；支付通道未接时 pending）' })
   async createOrder(@CurrentUser() user: { userId: string }, @Body() body: CreateMembershipOrderDto) {
+    this.assertNoClientCoupon(body.couponDiscountCents);
     const channel = body.paymentChannel ?? PaymentChannel.Reserved;
     if (!SUPPORTED_PAYMENT_CHANNELS.includes(channel)) {
       throw new BizException(BizCode.MembershipPaymentUnavailable);
@@ -93,7 +89,7 @@ export class MembershipController {
       billingPeriod: body.billingPeriod ?? BillingPeriod.Monthly,
       paymentChannel: channel,
       promotionCode: body.promotionCode,
-      couponDiscountCents: body.couponDiscountCents,
+      couponDiscountCents: 0,
       idempotencyKey: body.idempotencyKey,
     });
   }
@@ -134,6 +130,13 @@ export class MembershipController {
       return await this.quotaLedger.release(user.userId, body.reservationId);
     } catch (error) {
       throw this.toBizException(error);
+    }
+  }
+
+  private assertNoClientCoupon(couponDiscountCents?: number): void {
+    if ((couponDiscountCents ?? 0) > 0) {
+      // 客户端自带折扣会直接击穿活动价/底价，必须显式拒绝；券系统接入后由服务端校验券码再计算。
+      throw new BizException(BizCode.MembershipCouponUnsupported);
     }
   }
 

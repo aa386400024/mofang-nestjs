@@ -199,4 +199,10 @@ export class MembershipPromotionStatsDto {
 
   @ApiProperty()
   perUserLimit!: number;
+
+  @ApiProperty()
+  reservedCount!: number;
+
+  @ApiProperty()
+  reservedCents!: number;
 }

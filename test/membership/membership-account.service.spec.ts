@@ -47,6 +47,7 @@ function createService(existing: Partial<Membership> | null = null) {
     refreshForUid: vi.fn().mockResolvedValue(0),
     cancelActiveTerms: vi.fn().mockResolvedValue(0),
     createAnnualTerm: vi.fn().mockResolvedValue({}),
+    createMonthlyTerm: vi.fn().mockResolvedValue({}),
   };
   const dataSource = {
     transaction: async (callback: (manager: unknown) => unknown) => callback({ getRepository: () => repo }),
@@ -160,7 +161,7 @@ describe('AF-512 会员账号开通', () => {
       legacyTier: 'plus',
       lastOrderId: 'o-old',
     };
-    const { service } = createService(existing);
+    const { service, quotaLedger, planGrantService } = createService(existing);
     const snapshot = await service.applyPaidOrder({
       orderId: 'o-2',
       uid: 'u-1',
@@ -175,6 +176,12 @@ describe('AF-512 会员账号开通', () => {
 
     expect(snapshot.periodStart?.toISOString()).toBe('2026-11-25T04:00:00.000Z');
     expect(snapshot.periodEnd?.toISOString()).toBe('2027-01-25T04:00:00.000Z');
+    // 未来周期续费不得在今天提前发下一周期分钟，由 term 在 periodStart 补发。
+    expect(quotaLedger.grantPlan).not.toHaveBeenCalled();
+    expect(planGrantService.createMonthlyTerm).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ orderId: 'o-2', firstMonthGranted: false }),
+    );
   });
 
   it('升档立即按新档重开周期，旧档进 legacyTier 审计', async () => {

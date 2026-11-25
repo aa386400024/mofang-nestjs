@@ -177,4 +177,7 @@ export enum BizCode {
   MembershipPaymentUnavailable = 50_008, // 真实支付通道未接
   MembershipSkuDeprecated = 50_009, // 旧单次 SKU 已下线
   MembershipPromotionNotFound = 50_010, // 活动不存在或已删除
+  MembershipCouponUnsupported = 50_011, // 优惠券系统未开放，客户端不得自带折扣
+  MembershipPromotionBudgetExhausted = 50_012, // 活动预算已用完，需重新报价
+  MembershipPromotionPerUserLimit = 50_013, // 活动单用户限次已达上限
 }

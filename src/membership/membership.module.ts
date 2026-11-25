@@ -10,15 +10,19 @@ import { MembershipController } from './controllers/membership.controller.js';
 import { MembershipOrder } from './entities/membership-order.entity.js';
 import { MembershipPlanGrantTerm } from './entities/membership-plan-grant-term.entity.js';
 import { MembershipPromotionRedemption } from './entities/membership-promotion-redemption.entity.js';
+import { MembershipPromotionReservation } from './entities/membership-promotion-reservation.entity.js';
 import { MembershipPromotion } from './entities/membership-promotion.entity.js';
 import { MembershipQuotaLot } from './entities/membership-quota-lot.entity.js';
 import { MembershipQuotaReservation } from './entities/membership-quota-reservation.entity.js';
 import { MembershipAdminGuard } from './guards/membership-admin.guard.js';
 import { DefaultPromotionEngine } from './providers/default-promotion.engine.js';
 import { MembershipAccountService } from './providers/membership-account.service.js';
+import { MembershipOrderExpiryCron } from './providers/membership-order-expiry.cron.js';
 import { MembershipOrderService } from './providers/membership-order.service.js';
 import { MembershipPlanGrantService } from './providers/membership-plan-grant.service.js';
 import { MembershipPricingService } from './providers/membership-pricing.service.js';
+import { MembershipPromotionReservationCleanupCron } from './providers/membership-promotion-reservation-cleanup.cron.js';
+import { MembershipPromotionReservationService } from './providers/membership-promotion-reservation.service.js';
 import { MembershipPromotionService } from './providers/membership-promotion.service.js';
 import { MembershipQuotaRefreshCron } from './providers/membership-quota-refresh.cron.js';
 import { FlexRulesPromotionEngine } from './providers/promotion/flex-rules-promotion.engine.js';
@@ -40,6 +44,7 @@ import { QuotaLedgerService } from './providers/quota-ledger.service.js';
       MembershipOrder,
       MembershipPromotion,
       MembershipPromotionRedemption,
+      MembershipPromotionReservation,
       MembershipPlanGrantTerm,
       User,
     ]),
@@ -50,10 +55,13 @@ import { QuotaLedgerService } from './providers/quota-ledger.service.js';
     QuotaLedgerService,
     MembershipPricingService,
     MembershipPromotionService,
+    MembershipPromotionReservationService,
     MembershipPlanGrantService,
     MembershipAccountService,
     MembershipOrderService,
     MembershipQuotaRefreshCron,
+    MembershipPromotionReservationCleanupCron,
+    MembershipOrderExpiryCron,
     MembershipAdminGuard,
     AdminBasicAuthMiddleware,
     DefaultPromotionEngine,

@@ -1,12 +1,15 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
-import { DataSource, IsNull, type Repository } from 'typeorm';
+import { DataSource, IsNull, LessThanOrEqual, type EntityManager, type Repository } from 'typeorm';
 
 import { MembershipAccountService } from './membership-account.service.js';
+import { MembershipPlanGrantService } from './membership-plan-grant.service.js';
 import { MembershipPricingService } from './membership-pricing.service.js';
+import { MembershipPromotionReservationService } from './membership-promotion-reservation.service.js';
 import { MembershipPromotionService } from './membership-promotion.service.js';
 import { QuotaLedgerService } from './quota-ledger.service.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { BillingPeriod, MembershipOrderStatus, MembershipOrderType, MembershipTier, PaymentChannel } from '../domain/membership.enums.js';
 import type { CreateMembershipOrderInput, MembershipOrderSummary, PriceQuote } from '../domain/membership.types.js';
 import { addDays } from '../domain/membership.utils.js';
@@ -42,6 +45,12 @@ export class MembershipOrderService {
     private readonly dataSource: DataSource,
     @Optional()
     private readonly promotionService?: MembershipPromotionService,
+    @Optional()
+    private readonly reservationService?: MembershipPromotionReservationService,
+    @Optional()
+    private readonly planGrantService?: MembershipPlanGrantService,
+    @Optional()
+    private readonly metrics?: MetricsService,
   ) {}
 
   /** 预览价格：供客户端展示原价、活动价、优惠券后价与底价。 */
@@ -122,33 +131,63 @@ export class MembershipOrderService {
       if (existing) return this.toSummary(existing);
     }
 
-    const addon = MEMBERSHIP_ADDONS.find((item) => item.id === input.productId);
-    if (addon) return this.createAddonOrder(uid, addon.id, input, now);
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        if (input.idempotencyKey) {
+          const existing = await manager.getRepository(MembershipOrder).findOne({
+            where: { uid, idempotencyKey: input.idempotencyKey },
+          });
+          if (existing) return this.toSummary(existing);
+        }
 
-    const tier = this.parsePlanTier(input.productId);
-    const quote = await this.quote(uid, input.productId, input.billingPeriod, input.couponDiscountCents ?? 0, input.promotionCode, now);
+        const addon = MEMBERSHIP_ADDONS.find((item) => item.id === input.productId);
+        if (addon) return this.createAddonOrder(manager, uid, addon.id, input, now);
 
-    const order = this.orderRepo.create({
-      id: randomUUID(),
-      uid,
-      planId: tier,
-      orderType: MembershipOrderType.Subscription,
-      billingPeriod: input.billingPeriod,
-      listAmountCents: quote.listPriceCents,
-      discountCents: quote.promotionDiscountCents + quote.couponDiscountCents,
-      amountCents: quote.amountCents,
-      giftMinutes: quote.giftMinutes,
-      currency: 'CNY',
-      status: MembershipOrderStatus.Pending,
-      paymentChannel: input.paymentChannel,
-      idempotencyKey: input.idempotencyKey ?? null,
-      promotionId: quote.promotionId,
-      couponCode: input.promotionCode ?? null,
-      paidAt: null,
-      expiresAt: addDays(now, 0.5),
-    });
-    await this.orderRepo.save(order);
-    return this.toSummary(order);
+        const tier = this.parsePlanTier(input.productId);
+        const quote = await this.quote(uid, input.productId, input.billingPeriod, input.couponDiscountCents ?? 0, input.promotionCode, now);
+        const expiresAt = addDays(now, 0.5);
+        const order = manager.getRepository(MembershipOrder).create({
+          id: randomUUID(),
+          uid,
+          planId: tier,
+          orderType: MembershipOrderType.Subscription,
+          billingPeriod: input.billingPeriod,
+          listAmountCents: quote.listPriceCents,
+          discountCents: quote.promotionDiscountCents + quote.couponDiscountCents,
+          amountCents: quote.amountCents,
+          giftMinutes: quote.giftMinutes,
+          currency: 'CNY',
+          status: MembershipOrderStatus.Pending,
+          paymentChannel: input.paymentChannel,
+          idempotencyKey: input.idempotencyKey ?? null,
+          promotionId: quote.promotionId,
+          couponCode: input.promotionCode ?? null,
+          paidAt: null,
+          expiresAt,
+        });
+
+        if (quote.promotionId && this.reservationService) {
+          await this.reservationService.reserve(manager, {
+            uid,
+            promotionId: quote.promotionId,
+            orderId: order.id,
+            discountCents: quote.promotionDiscountCents,
+            giftMinutes: quote.giftMinutes,
+            expiresAt,
+            now,
+          });
+        }
+        await manager.getRepository(MembershipOrder).save(order);
+        return this.toSummary(order);
+      });
+    } catch (error) {
+      // 幂等键唯一索引冲突：另一个并发请求已写入，回查返回同一订单，不把 500 抛给客户端。
+      if (input.idempotencyKey && this.isDuplicateKey(error)) {
+        const existing = await this.orderRepo.findOne({ where: { uid, idempotencyKey: input.idempotencyKey } });
+        if (existing) return this.toSummary(existing);
+      }
+      throw error;
+    }
   }
 
   /** 历史订单。 */
@@ -160,55 +199,66 @@ export class MembershipOrderService {
   /**
    * 支付成功回调 / 内部验单成功后调用。
    *
-   * 先开通账号与发放配额，再落订单 paid；账号侧按 orderId 幂等，重复回调不会重复发放。
+   * 同一事务内锁订单、开通账号、发配额、写订单 paid、活动兑换、确认预算预占；
+   * 重复回调在订单行锁后看到 paid 直接返回，不会二次延长会员周期。
    * 真实支付通道未接时，本方法只能由内部测试或未来回调调用，控制器不暴露伪支付入口。
    */
   async markPaid(uid: string, orderId: string, now: Date = new Date()): Promise<MembershipOrderSummary> {
-    const order = await this.orderRepo.findOne({ where: { id: orderId, uid } });
-    if (!order) throw new MembershipOrderError('订单不存在');
-    if (order.status === MembershipOrderStatus.Paid) return this.toSummary(order);
-    if (order.status !== MembershipOrderStatus.Pending) throw new MembershipOrderError(`订单状态 ${order.status} 不可支付`);
+    const summary = await this.dataSource.transaction(async (manager) => {
+      const orderRepo = manager.getRepository(MembershipOrder);
+      const order = await orderRepo.findOne({ where: { id: orderId, uid }, lock: { mode: 'pessimistic_write' } });
+      if (!order) throw new MembershipOrderError('订单不存在');
+      if (order.status === MembershipOrderStatus.Paid) return this.toSummary(order);
+      if (order.status !== MembershipOrderStatus.Pending) throw new MembershipOrderError(`订单状态 ${order.status} 不可支付`);
 
-    await this.accountService.applyPaidOrder({
-      orderId: order.id,
-      uid: order.uid,
-      planId: order.planId,
-      orderType: order.orderType,
-      billingPeriod: order.billingPeriod,
-      amountCents: order.amountCents,
-      promotionId: order.promotionId,
-      giftMinutes: order.giftMinutes,
-      paidAt: now,
+      await this.accountService.applyPaidOrder(
+        {
+          orderId: order.id,
+          uid: order.uid,
+          planId: order.planId,
+          orderType: order.orderType,
+          billingPeriod: order.billingPeriod,
+          amountCents: order.amountCents,
+          promotionId: order.promotionId,
+          giftMinutes: order.giftMinutes,
+          paidAt: now,
+        },
+        manager,
+      );
+
+      order.status = MembershipOrderStatus.Paid;
+      order.paidAt = now;
+      order.expiresAt = order.billingPeriod === BillingPeriod.Annual ? addDays(now, 365) : addDays(now, 30);
+      await orderRepo.save(order);
+
+      if (order.promotionId) {
+        await this.recordRedemption(order, now, manager);
+        await this.reservationService?.consume(order.id, manager);
+      }
+      return this.toSummary(order);
     });
 
-    order.status = MembershipOrderStatus.Paid;
-    order.paidAt = now;
-    order.expiresAt = order.billingPeriod === BillingPeriod.Annual ? addDays(now, 365) : addDays(now, 30);
-    await this.orderRepo.save(order);
-
-    if (order.promotionId) {
-      await this.recordRedemption(order, now);
-    }
-    this.logger.log(`membership order paid uid=${uid} order=${orderId} amountCents=${order.amountCents}`);
-    return this.toSummary(order);
+    this.metrics?.incMembershipOrderPaid(summary.planId, summary.billingPeriod, summary.orderType);
+    this.logger.log(`membership order paid uid=${uid} order=${orderId} amountCents=${summary.amountCents}`);
+    return summary;
   }
 
   /**
    * 退款：7 天内未使用全额、已使用按剩余天数比例由业务侧计算后传入 refundAmountCents。
-   * 本方法负责状态、活动兑换追回、该订单发放的未使用 lot 收回。
+   * 同一事务内完成订单状态、会员回退、term 终止、未使用 lot 收回、活动兑换撤销、预算预占释放。
    */
   async refund(uid: string, orderId: string, refundAmountCents: number, now: Date = new Date()): Promise<MembershipOrderSummary> {
-    const order = await this.orderRepo.findOne({ where: { id: orderId, uid } });
-    if (!order) throw new MembershipOrderError('订单不存在');
-    if (order.status !== MembershipOrderStatus.Paid) throw new MembershipOrderError(`订单状态 ${order.status} 不可退款`);
-    if (!Number.isInteger(refundAmountCents) || refundAmountCents < 0 || refundAmountCents > order.amountCents) {
+    if (!Number.isInteger(refundAmountCents) || refundAmountCents < 0) {
       throw new MembershipOrderError('退款金额必须是 0..订单金额 的整数分');
     }
 
-    await this.dataSource.transaction(async (manager) => {
+    const summary = await this.dataSource.transaction(async (manager) => {
       const orderRepo = manager.getRepository(MembershipOrder);
       const locked = await orderRepo.findOne({ where: { id: orderId, uid }, lock: { mode: 'pessimistic_write' } });
-      if (!locked || locked.status !== MembershipOrderStatus.Paid) throw new MembershipOrderError('订单状态已变化');
+      if (!locked) throw new MembershipOrderError('订单不存在');
+      if (locked.status !== MembershipOrderStatus.Paid) throw new MembershipOrderError(`订单状态 ${locked.status} 不可退款`);
+      if (refundAmountCents > locked.amountCents) throw new MembershipOrderError('退款金额不能超过订单金额');
+
       locked.status = MembershipOrderStatus.Refunded;
       locked.paidAt = locked.paidAt ?? now;
       await orderRepo.save(locked);
@@ -216,14 +266,48 @@ export class MembershipOrderService {
       const redemptionRepo = manager.getRepository(MembershipPromotionRedemption);
       await redemptionRepo.update({ uid, orderId }, { revokedAt: now });
       await this.quotaLedger.revokeOrderLots(uid, orderId, manager);
+      await this.reservationService?.release(orderId, manager);
+      await this.planGrantService?.cancelTermForOrder(uid, orderId, manager);
+      await this.accountService.markOrderRefunded(uid, orderId, now, manager);
+      return this.toSummary(locked);
     });
 
-    order.status = MembershipOrderStatus.Refunded;
-    await this.accountService.markOrderRefunded(uid, orderId, now);
-    return this.toSummary(order);
+    this.metrics?.incMembershipOrderRefunded(summary.planId, summary.billingPeriod, summary.orderType);
+    return summary;
+  }
+
+  /**
+   * 关闭过期 pending 订单：订单行锁内确认仍 pending 且已过期，置 closed 并释放活动预占。
+   *
+   * 没有这一步，pending 订单会无限期可支付，预算预占被超时释放后仍可能被晚到回调占用，
+   * 形成“预算已还给活动池、订单却还能付”的窗口。支付回调命中 closed 会直接拒绝。
+   */
+  async closeExpired(now: Date = new Date(), limit = 500): Promise<number> {
+    const candidates = await this.orderRepo.find({
+      where: { status: MembershipOrderStatus.Pending, expiresAt: LessThanOrEqual(now) },
+      order: { expiresAt: 'ASC' },
+      take: limit,
+    });
+    let closed = 0;
+    for (const candidate of candidates) {
+      const didClose = await this.dataSource.transaction(async (manager) => {
+        const orderRepo = manager.getRepository(MembershipOrder);
+        const order = await orderRepo.findOne({ where: { id: candidate.id }, lock: { mode: 'pessimistic_write' } });
+        if (!order || order.status !== MembershipOrderStatus.Pending) return false;
+        if (!order.expiresAt || order.expiresAt.getTime() > now.getTime()) return false;
+        order.status = MembershipOrderStatus.Closed;
+        await orderRepo.save(order);
+        await this.reservationService?.release(order.id, manager);
+        return true;
+      });
+      if (didClose) closed += 1;
+    }
+    if (closed > 0) this.logger.log(`membership pending orders closed rows=${closed}`);
+    return closed;
   }
 
   private async createAddonOrder(
+    manager: EntityManager,
     uid: string,
     addonId: string,
     input: CreateMembershipOrderInput,
@@ -231,7 +315,8 @@ export class MembershipOrderService {
   ): Promise<MembershipOrderSummary> {
     const addon = MEMBERSHIP_ADDONS.find((item) => item.id === addonId);
     if (!addon) throw new MembershipOrderError('加包不存在');
-    const order = this.orderRepo.create({
+    const orderRepo = manager.getRepository(MembershipOrder);
+    const order = orderRepo.create({
       id: randomUUID(),
       uid,
       planId: addon.id,
@@ -250,13 +335,14 @@ export class MembershipOrderService {
       paidAt: null,
       expiresAt: addDays(now, 0.5),
     });
-    await this.orderRepo.save(order);
+    await orderRepo.save(order);
     return this.toSummary(order);
   }
 
-  private async recordRedemption(order: MembershipOrder, now: Date): Promise<void> {
+  private async recordRedemption(order: MembershipOrder, now: Date, manager: EntityManager): Promise<void> {
     if (!order.promotionId) return;
-    await this.redemptionRepo
+    await manager
+      .getRepository(MembershipPromotionRedemption)
       .createQueryBuilder()
       .insert()
       .into(MembershipPromotionRedemption)
@@ -272,6 +358,11 @@ export class MembershipOrderService {
       })
       .orIgnore()
       .execute();
+  }
+
+  private isDuplicateKey(error: unknown): boolean {
+    const code = (error as { driverError?: { code?: string }; code?: string })?.driverError?.code ?? (error as { code?: string })?.code;
+    return code === 'ER_DUP_ENTRY' || code === '23505';
   }
 
   private async campaignBudgetRemaining(billingPeriod: BillingPeriod): Promise<number | null> {

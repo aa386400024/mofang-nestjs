@@ -107,9 +107,16 @@ export enum MembershipPromotionAudience {
   All = 'all',
 }
 
-/** 年付套餐发放 term 状态。 */
+/** 年付/月付套餐发放 term 状态。 */
 export enum MembershipPlanGrantStatus {
   Active = 'active',
   Completed = 'completed',
   Cancelled = 'cancelled',
+}
+
+/** 活动预算/限次预占状态：下单占位 → 支付确认 / 退款释放 / 超时释放。 */
+export enum MembershipPromotionReservationStatus {
+  Held = 'held',
+  Consumed = 'consumed',
+  Released = 'released',
 }

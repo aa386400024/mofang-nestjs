@@ -88,6 +88,18 @@ function createService() {
   const quotaLedger = {
     revokeOrderLots: vi.fn().mockResolvedValue(0),
   };
+  const reservationService = {
+    consume: vi.fn().mockResolvedValue(1),
+    release: vi.fn().mockResolvedValue(1),
+    reserve: vi.fn().mockResolvedValue({}),
+  };
+  const planGrantService = {
+    cancelTermForOrder: vi.fn().mockResolvedValue(1),
+  };
+  const metrics = {
+    incMembershipOrderPaid: vi.fn(),
+    incMembershipOrderRefunded: vi.fn(),
+  };
   const dataSource = {
     transaction: async (callback: (manager: unknown) => unknown) =>
       callback({
@@ -101,8 +113,12 @@ function createService() {
     pricingService as never,
     quotaLedger as never,
     dataSource as never,
+    undefined,
+    reservationService as never,
+    planGrantService as never,
+    metrics as never,
   );
-  return { service, orderRepo, redemptionRepo, accountService, pricingService };
+  return { service, orderRepo, redemptionRepo, accountService, pricingService, reservationService, planGrantService, metrics };
 }
 
 describe('AF-512 会员订单', () => {
@@ -138,7 +154,7 @@ describe('AF-512 会员订单', () => {
   });
 
   it('支付成功回调把订单 giftMinutes 传给账号开通', async () => {
-    const { service, orderRepo, redemptionRepo, accountService } = createService();
+    const { service, orderRepo, redemptionRepo, accountService, reservationService, metrics } = createService();
     orderRepo.findOne.mockResolvedValue(order({ giftMinutes: 30 }));
     const summary = await service.markPaid('u-1', 'o-1');
 
@@ -149,9 +165,16 @@ describe('AF-512 会员订单', () => {
         giftMinutes: 30,
         paidAt: expect.any(Date),
       }),
+      expect.anything(),
     );
     expect(orderRepo.save).toHaveBeenCalledTimes(1); // 仅订单 paid 状态
     expect(redemptionRepo.createQueryBuilder).toHaveBeenCalled();
+    expect(reservationService.consume).toHaveBeenCalledWith('o-1', expect.anything());
+    expect(metrics.incMembershipOrderPaid).toHaveBeenCalledWith(
+      MembershipTier.Plus,
+      BillingPeriod.Monthly,
+      MembershipOrderType.Subscription,
+    );
   });
 
   it('已支付订单重复回调直接返回，不重复发放', async () => {
@@ -163,18 +186,41 @@ describe('AF-512 会员订单', () => {
     expect(accountService.applyPaidOrder).not.toHaveBeenCalled();
   });
 
-  it('退款成功：订单置 refunded、收回该订单未使用 lot、回退当前会员状态', async () => {
-    const { service, orderRepo, accountService } = createService();
+  it('退款成功：订单置 refunded、收回未使用 lot、回退会员、终止 term、释放预占', async () => {
+    const { service, orderRepo, accountService, planGrantService, reservationService, metrics } = createService();
     orderRepo.findOne.mockResolvedValue(order({ status: MembershipOrderStatus.Paid, amountCents: 6800 }));
     const summary = await service.refund('u-1', 'o-1', 6800);
 
     expect(summary.status).toBe(MembershipOrderStatus.Refunded);
-    expect(accountService.markOrderRefunded).toHaveBeenCalledWith('u-1', 'o-1', expect.any(Date));
+    expect(accountService.markOrderRefunded).toHaveBeenCalledWith('u-1', 'o-1', expect.any(Date), expect.anything());
+    expect(planGrantService.cancelTermForOrder).toHaveBeenCalledWith('u-1', 'o-1', expect.anything());
+    expect(reservationService.release).toHaveBeenCalledWith('o-1', expect.anything());
+    expect(metrics.incMembershipOrderRefunded).toHaveBeenCalledWith(
+      MembershipTier.Plus,
+      BillingPeriod.Monthly,
+      MembershipOrderType.Subscription,
+    );
   });
 
   it('退款金额超出订单金额直接拒绝', async () => {
     const { service, orderRepo } = createService();
     orderRepo.findOne.mockResolvedValue(order({ status: MembershipOrderStatus.Paid, amountCents: 6800 }));
     await expect(service.refund('u-1', 'o-1', 6801)).rejects.toThrow('退款金额');
+  });
+
+  it('过期 pending 订单关闭并释放活动预占；支付回调随后命中 closed 被拒绝', async () => {
+    const { service, orderRepo, reservationService } = createService();
+    const now = new Date('2026-11-26T00:00:00+08:00');
+    const expired = order({ expiresAt: new Date('2026-11-25T23:00:00+08:00') });
+    orderRepo.find.mockResolvedValue([expired]);
+    orderRepo.findOne.mockResolvedValue(expired);
+
+    await expect(service.closeExpired(now)).resolves.toBe(1);
+
+    expect(expired.status).toBe(MembershipOrderStatus.Closed);
+    expect(orderRepo.save).toHaveBeenCalledTimes(1);
+    expect(reservationService.release).toHaveBeenCalledWith('o-1', expect.anything());
+
+    await expect(service.markPaid('u-1', 'o-1', now)).rejects.toThrow('不可支付');
   });
 });

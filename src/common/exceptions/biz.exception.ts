@@ -78,6 +78,8 @@ const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
   //   落默认分支会变成 400 ("你的请求有问题"), 运营会以为自己参数填错了, 而真相是"等一下".
   BizCode.CharacterVersionLocked,
   BizCode.MembershipOrderStateInvalid,
+  BizCode.MembershipPromotionBudgetExhausted,
+  BizCode.MembershipPromotionPerUserLimit,
 ]);
 
 const UNAUTHORIZED_CODES: ReadonlySet<BizCode> = new Set([
@@ -342,6 +344,9 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.MembershipPaymentUnavailable]: '真实支付通道尚未接入，订单已保留',
     [BizCode.MembershipSkuDeprecated]: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
     [BizCode.MembershipPromotionNotFound]: '活动不存在或已删除',
+    [BizCode.MembershipCouponUnsupported]: '优惠券系统暂未开放，请使用活动价下单',
+    [BizCode.MembershipPromotionBudgetExhausted]: '活动名额已用完，请重新报价',
+    [BizCode.MembershipPromotionPerUserLimit]: '该活动已达到单用户限次',
   };
   return messages[code] ?? '错误';
 }

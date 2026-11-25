@@ -325,7 +325,7 @@ export class QuoteQueryDto {
   @IsString()
   promotionCode?: string;
 
-  @ApiProperty({ required: false, description: '优惠券金额（分）' })
+  @ApiProperty({ required: false, deprecated: true, description: '已停用：客户端不得传优惠券金额，非零值返回 50011' })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -354,7 +354,7 @@ export class CreateMembershipOrderDto {
   @IsString()
   promotionCode?: string;
 
-  @ApiProperty({ required: false, description: '优惠券金额（分），不得击穿底价' })
+  @ApiProperty({ required: false, deprecated: true, description: '已停用：客户端不得传优惠券金额，非零值返回 50011' })
   @IsOptional()
   @IsInt()
   @Min(0)

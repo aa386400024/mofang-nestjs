@@ -284,6 +284,7 @@ import { AddEncounterAndCrisisOutcome1714900000048 } from '../src/migration/1714
 // V2026-11-25 AF-512 — 会员体系 v2：账号订阅列 + 配额 lot / 预扣 / 订单 / 活动兑换 4 张表。
 import { AddMembershipV2Tables1714900000049 } from '../src/migration/1714900000049-AddMembershipV2Tables.js';
 import { AddMembershipPromotionAndPlanGrant1714900000050 } from '../src/migration/1714900000050-AddMembershipPromotionAndPlanGrant.js';
+import { AddMembershipPromotionReservation1714900000051 } from '../src/migration/1714900000051-AddMembershipPromotionReservation.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -482,6 +483,7 @@ const ormconfig = async (): Promise<DataSource> => {
       AddMembershipV2Tables1714900000049,
       // V2026-11-25 AF-516 — 会员非支付闭环：活动主数据 + 年付按月发放 term。
       AddMembershipPromotionAndPlanGrant1714900000050,
+      AddMembershipPromotionReservation1714900000051,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

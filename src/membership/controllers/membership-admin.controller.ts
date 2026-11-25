@@ -38,23 +38,27 @@ export class MembershipAdminController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateMembershipPromotionDto): Promise<MembershipPromotionDto> {
-    return this.promotionService.update(id, dto);
+  update(
+    @Req() req: AdminDebugRequest,
+    @Param('id') id: string,
+    @Body() dto: UpdateMembershipPromotionDto,
+  ): Promise<MembershipPromotionDto> {
+    return this.promotionService.update(id, dto, req.user?.userId ?? null);
   }
 
   @Post(':id/activate')
-  activate(@Param('id') id: string): Promise<MembershipPromotionDto> {
-    return this.promotionService.activate(id);
+  activate(@Req() req: AdminDebugRequest, @Param('id') id: string): Promise<MembershipPromotionDto> {
+    return this.promotionService.activate(id, req.user?.userId ?? null);
   }
 
   @Post(':id/pause')
-  pause(@Param('id') id: string): Promise<MembershipPromotionDto> {
-    return this.promotionService.pause(id);
+  pause(@Req() req: AdminDebugRequest, @Param('id') id: string): Promise<MembershipPromotionDto> {
+    return this.promotionService.pause(id, req.user?.userId ?? null);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<{ removed: true }> {
-    await this.promotionService.remove(id);
+  async remove(@Req() req: AdminDebugRequest, @Param('id') id: string): Promise<{ removed: true }> {
+    await this.promotionService.remove(id, req.user?.userId ?? null);
     return { removed: true };
   }
 
