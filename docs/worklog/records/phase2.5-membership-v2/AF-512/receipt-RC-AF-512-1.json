@@ -1,0 +1,225 @@
+{
+  "deliveredAt": "2026-11-25T23:33:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-512-1",
+    "taskId": "AF-512",
+    "contextId": "phase2.5-membership-v2",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "880ec438b4ba1c93b6f0f0d7568c923e734f23c6",
+    "dependsOn": [],
+    "priorTasks": ["AF-303"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "autonomous-team-design.md#6.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+      "reply": null,
+      "others": ["docs/specs/active/membership-system-v2.0.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/specs/active/membership-system-v2.0.md",
+        "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+        "src/membership/controllers/membership.controller.ts",
+        "src/membership/domain/membership.enums.ts",
+        "src/membership/domain/membership.types.ts",
+        "src/membership/domain/membership.utils.ts",
+        "src/membership/dto/membership.dto.ts",
+        "src/membership/entities/membership-order.entity.ts",
+        "src/membership/entities/membership-promotion-redemption.entity.ts",
+        "src/membership/entities/membership-quota-lot.entity.ts",
+        "src/membership/entities/membership-quota-reservation.entity.ts",
+        "src/membership/membership.constants.ts",
+        "src/membership/membership.module.ts",
+        "src/membership/providers/default-promotion.engine.ts",
+        "src/membership/providers/membership-account.service.ts",
+        "src/membership/providers/membership-order.service.ts",
+        "src/membership/providers/membership-pricing.service.ts",
+        "src/membership/providers/promotion-engine.port.ts",
+        "src/membership/providers/quota-allocator.ts",
+        "src/membership/providers/quota-ledger.service.ts",
+        "src/migration/1714900000049-AddMembershipV2Tables.ts",
+        "test/membership/legacy-compat.spec.ts",
+        "test/membership/membership-account.service.spec.ts",
+        "test/membership/membership-order.service.spec.ts",
+        "test/membership/membership-pricing.spec.ts",
+        "test/membership/promotion-engine.spec.ts",
+        "test/membership/quota-allocator.spec.ts",
+        "test/membership/quota-ledger.service.spec.ts"
+      ],
+      "modified": [
+        "bin/ormconfig.ts",
+        "docs/worklog/pending/phase4-backlog-2026-11-08.md",
+        "src/app.module.ts",
+        "src/billing/billing.module.ts",
+        "src/billing/dto/billing.dto.ts",
+        "src/billing/providers/billing.service.ts",
+        "src/common/exceptions/biz-code.enum.ts",
+        "src/common/exceptions/biz.exception.ts",
+        "src/counselor/counselor.module.ts",
+        "src/counselor/dto/billing.dto.ts",
+        "src/counselor/providers/billing.service.ts",
+        "src/migration/index.ts",
+        "src/profile/dto/membership.dto.ts",
+        "src/profile/entities/membership.entity.ts",
+        "src/profile/profile.module.ts",
+        "src/profile/providers/membership.service.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["2495b682"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm vitest run test/membership",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 7,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 4s",
+        "note": "7 个文件、41 例全过：定价层级/底价/券/预算/窗口、活动边界、分配顺序/过期/不足/退款、账本幂等与日限、订单 pending/支付 gift/退款、旧 profile/billing 契约"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "带缓存全量 eslint，0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "tsc 0 error"
+      },
+      {
+        "command": "$env:ORCH_FRAMEWORK_DIR='D:/work/Project/backend/mofang-nestjs-af070/contracts/agent-collaboration-framework/2.0.0'; pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 289,
+        "machine": "同上",
+        "wallClock": "28.89s",
+        "note": "289 passed / 1 skipped files，4432 passed / 4 skipped / 0 failed；默认兄弟仓 framework 2.1.0 漂移会触发 1 个既有契约版本对账用例，非 AF-512 引入"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "NestJS build 成功"
+      },
+      {
+        "command": "pnpm test:smoke",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "/health 200，database up 41ms，redis up"
+      },
+      {
+        "command": "pnpm migration:run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "真实 mofang_dev 库执行成功：user_memberships 加 6 列，新建 4 张会员表（含 gift_minutes）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，engine-core 纯层零改动"
+      }
+    ],
+    "reproNotes": "会员定向测试：`pnpm vitest run test/membership`；全量测试必须显式设置 `ORCH_FRAMEWORK_DIR=D:/work/Project/backend/mofang-nestjs-af070/contracts/agent-collaboration-framework/2.0.0` 锁定 vendored 契约版本，避免兄弟仓 2.1.0 漂移干扰。迁移可 `pnpm migration:show` 核对 `AddMembershipV2Tables1714900000049` 已执行。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-512 任务单、分支 task/AF-512-membership-v2、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 与 scope 补录均经事件链提交，未手改索引"},
+      {"item": "receipt-groups", "result": "pass", "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "migration-registered", "result": "pass", "note": "bin/ormconfig.ts 与 src/migration/index.ts 均已注册 AddMembershipV2Tables"},
+      {"item": "legacy-contract", "result": "pass", "note": "旧 /profile/membership 与 /billing/membership 各至少 1 个契约测试，Max 在旧字段降级为 pro"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=880ec438 为 AF-512 登记提交；实现提交 2495b682，stacked 于 AF-303 归档提交 c295c2b5 之上"
+    },
+    "backlogItems": [
+      {
+        "id": "membership-flex-rules-engine-integration",
+        "impact": "当前只有 PromotionEnginePort + DefaultPromotionEngine，未接入 flex-rules-engine",
+        "suggestion": "后续 WP 用适配器实现端口，保持金额/订单/配额仍由后端计算"
+      },
+      {
+        "id": "membership-real-payment-and-renewal",
+        "impact": "真实支付、自动续费、退款自动金额与活动管理后台仍未接",
+        "suggestion": "按 WP27/WP33 分任务落地，先补支付回调幂等与对账"
+      },
+      {
+        "id": "membership-yearly-monthly-refresh",
+        "impact": "年付当前一次性发放 12 个月套餐分钟，未做月度调度刷新",
+        "suggestion": "补月度分期刷新任务，明确不结转与过期口径"
+      },
+      {
+        "id": "framework-contract-version-drift",
+        "impact": "兄弟仓 framework 2.1.0 与仓内固化 2.0.0 存在契约版本漂移，默认全量测试会命中既有用例失败",
+        "suggestion": "另开升级任务，统一 vendored 契约版本与 CI 环境变量"
+      }
+    ],
+    "openQuestions": [
+      "旧 counselor skuCatalog 仍展示旧 SKU，旧客户端下单会报 MembershipPlanInvalid，是否加 deprecated 提示或直接下线",
+      "student/public_welfare 最终是折扣标记还是独立权益，尚未落代码"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务单 frontmatter 需声明 scope",
+        "reality": "登记时 frontmatter 缺 scope，索引 scope.files 为空，preflight 首次报 scope-residual",
+        "action": "补 scope 后通过受控事件重放 submitted→working→submitted 写入事件链，再跑 preflight PASS",
+        "why": "避免手改索引破坏哈希链，同时保证后续提交 scope 校验可复现"
+      },
+      {
+        "taskSays": "全量测试必须全绿",
+        "reality": "默认兄弟仓 framework 2.1.0 会触发 1 个既有契约版本对账用例失败",
+        "action": "用 ORCH_FRAMEWORK_DIR 锁定仓内 2.0.0 跑全量，4432 passed / 0 failed，并登记版本漂移遗留",
+        "why": "失败与 AF-512 无关，锁定 vendored 契约版本才能得到可复现的会员交付证据"
+      },
+      {
+        "taskSays": "年付按 12 个月套餐分钟入账",
+        "reality": "当前一次性发放 12 个月分钟，未做月度调度",
+        "action": "首版接受一次性入账，登记 monthly-refresh 遗留",
+        "why": "配额口径与总量正确，月度刷新属调度能力，拆到后续任务降低首版风险"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "四档 + 三加包模型、定价/活动/配额/订单/退款链路与旧接口兼容均已落代码并有 41 例定向测试；lint/typecheck/build/全量测试/健康检查/真实迁移全部通过；engine-core 零改动；scope 经事件链修复后 preflight PASS，提交 2495b682 事实与回执声明一致。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

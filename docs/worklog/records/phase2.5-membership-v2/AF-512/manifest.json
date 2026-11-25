@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-512",
   "contextId": "phase2.5-membership-v2",
-  "status": "backlog",
+  "status": "rejected",
   "createdAt": "2026-11-25T10:00:00+08:00",
-  "updatedAt": "2026-11-25T14:46:30.576Z",
+  "updatedAt": "2026-11-25T15:36:26.453Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
     "sha256": "8fddd076a2554fa2640ac1941effe053110fbe5de4772a526cf8b201e13630aa",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-membership-v2/AF-512/receipt-RC-AF-512-1.json",
+      "sha256": "39dbafc45ae7801da9920c02e7a48872f3c56cba24668c9a88cbb97314548009",
+      "receiptId": "RC-AF-512-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
   "legacyPaths": [
     "docs/worklog/pending/AF-512-membership-v2-enterprise-task-2026-11-25.md"
   ],
