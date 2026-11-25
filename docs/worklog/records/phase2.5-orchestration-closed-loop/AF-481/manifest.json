@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-481",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-25T01:35:00+08:00",
+  "updatedAt": "2026-11-25T00:35:49.554Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-481/task-sheet.md",
+    "sha256": "cb0f574d8d6d0cd25a38246a4c89aac947e7e7bad68fb2ed739778e6ee6f56a9",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af481-cache-wiring-2026-11-25.md"
+  ],
+  "tombstone": null
+}

@@ -1,0 +1,144 @@
+{
+  "deliveredAt": "2026-11-25T01:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-481-1",
+    "taskId": "AF-481",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "221475aab79d9e2c06aa1a9844bf4402c879018d",
+    "dependsOn": ["AF-478"],
+    "priorTasks": ["AF-478", "AF-480"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-481/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["4866cbb2"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md"
+      ],
+      "modified": [
+        "src/engine-adapters/wiring/engine-stream-backend.adapter.ts",
+        "src/engine-adapters/wiring/llm-service-chat-caller.ts",
+        "src/engine-adapters/wiring/turn-idempotency.service.ts",
+        "src/engine-adapters/observability/session-cost.ts",
+        "src/agent/llm/llm.types.ts",
+        "src/agent/llm/llm.service.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/llm/cached-tokens.spec.ts test/admin-debug/wp58-debug-session.spec.ts test/engine-adapters/wp8b-stream-render.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 4s",
+        "note": "60 tests passed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空输出；engine-core 未改"
+      }
+    ],
+    "reproNotes": "六处接线：done usage / 幂等快照 / 本场累计 / TurnTrace.llmUsage / session cost / voice llm_done。缓存缺失仍不出键；0 保留。全量 pnpm test 当前仅被 AF-427 旧断言阻断，AF-482 在同一发布栈修复。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-481 经 CLI register / promote / run-once；提交带 Task: AF-481"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态面由 CLI 写；提交不含状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "index 由 CLI 维护；worklog strict PASS"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=executor；改动限定 wiring / observability / agent-llm / docs"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "src/engine-core 无改动"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "只改 usage 字段与聚合，无台词原文、无心理内容"
+      },
+      {
+        "item": "artifact-pointer",
+        "result": "pass",
+        "note": "taskSheet / deliveryRecord 均落文件"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baseline 221475aa；提交 4866cbb2 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF481-B1",
+        "impact": "本机全量 pnpm test 仍因 AF-427 语料漂移断言失败，AF-482 修复前不能作为本任务独立的全量闸门证据。",
+        "owner": "test",
+        "status": "accepted"
+      }
+    ],
+    "openQuestions": [
+      "AF-482 修复后，含真实语料的全量 pnpm test 是否 0 failed"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-481 6 条 successCriteria 全部满足：六处 cachedTokens 透传、缺失仍不可得、0 保留、未改 engine-core / prompt / 台词；targeted 60 tests、typecheck、lint 全绿。全量测试债不在本任务 scope，由 AF-482 承接，未冒充全量通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无模型调用；仅本地单测、typecheck、lint。"
+  }
+}

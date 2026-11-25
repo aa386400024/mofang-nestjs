@@ -68,6 +68,12 @@ interface MiniMaxStreamDelta {
      * 缺省时按"没有思考"处理 (字段可选).
      */
     readonly completion_tokens_details?: { readonly reasoning_tokens?: number };
+    /**
+     * 输入侧明细 (AF-478): OpenAI 兼容 / Anthropic 兼容两种缓存字段都可能出现.
+     * 实测 MiniMax 自动前缀缓存默认开启, 命中量按上游为准; 没报就不带.
+     */
+    readonly prompt_tokens_details?: { readonly cached_tokens?: number };
+    readonly cache_read_input_tokens?: number;
   };
 }
 
@@ -477,10 +483,12 @@ export class LlmService {
  */
 function toLlmUsage(usage: NonNullable<MiniMaxStreamDelta['usage']>): LlmUsage {
   const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens;
+  const cachedTokens = usage.prompt_tokens_details?.cached_tokens ?? usage.cache_read_input_tokens;
   return {
     promptTokens: usage.prompt_tokens,
     completionTokens: usage.completion_tokens,
     totalTokens: usage.total_tokens,
     ...(typeof reasoningTokens === 'number' ? { reasoningTokens } : {}),
+    ...(typeof cachedTokens === 'number' && Number.isFinite(cachedTokens) && cachedTokens >= 0 ? { cachedTokens } : {}),
   };
 }
