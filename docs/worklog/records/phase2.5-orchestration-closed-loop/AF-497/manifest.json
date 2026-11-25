@@ -1,13 +1,25 @@
 {
+  "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-497",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "taskSheet": "task-sheet.md",
+  "status": "submitted",
   "createdAt": "2026-11-25T08:30:00+08:00",
-  "artifacts": [
-    { "path": "task-sheet.md", "sha256": "eae6bb449ab9156a73b9e1d254049ea938cc537daf0558ee8499fdc0e5c44fdd" },
-    { "path": "receipt-RC-AF-497-1.json", "sha256": "1d808adcc5eccad94b9fc581f3ea6aaeff19467cb0fc9a66bbd2d0abe05d9aa8" }
-  ],
+  "updatedAt": "2026-11-25T00:15:06.548Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/task-sheet.md",
+    "sha256": "eae6bb449ab9156a73b9e1d254049ea938cc537daf0558ee8499fdc0e5c44fdd",
+    "immutable": true
+  },
   "receipts": [
-    { "receiptId": "RC-AF-497-1", "path": "receipt-RC-AF-497-1.json", "sha256": "1d808adcc5eccad94b9fc581f3ea6aaeff19467cb0fc9a66bbd2d0abe05d9aa8", "finalStatus": "completed" }
-  ]
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/receipt-RC-AF-497-2.json",
+      "sha256": "3d563b02d110d5c35d86569f663cac46de0e1cd8564335f95fe1e80d97fcbb56",
+      "receiptId": "RC-AF-497-2"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af497-cache-final-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af497-cache-final-2026-11-25.md"
+  ],
+  "tombstone": null
 }
