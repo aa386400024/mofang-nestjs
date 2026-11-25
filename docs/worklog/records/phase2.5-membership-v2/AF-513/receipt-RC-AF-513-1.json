@@ -1,0 +1,84 @@
+{
+  "deliveredAt": "2026-11-25T23:50:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-513-1",
+    "taskId": "AF-513",
+    "contextId": "phase2.5-membership-v2",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "2495b682d699bc488502780aefdaf049f1206fcb",
+    "dependsOn": [],
+    "priorTasks": ["AF-512"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-513/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [],
+      "modified": [
+        "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["e6624b0c"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 2s",
+        "note": "PASS task=AF-513 status=submitted files=5 covered=1"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，本返修不触碰 engine-core"
+      }
+    ],
+    "reproNotes": "验收修复内容：交付记录新增“机读回执字段对齐”表，明确六个字段与正文的对应；本任务 scope 覆盖 `docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md` 与 `docs/worklog/records/phase2.5-membership-v2/`。复跑 `pnpm orchestration:run` 即可摄入本回执。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-513 任务单、分支 task/AF-512-membership-v2、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI，未手改索引"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全，交付记录同步出现字段名"},
+      {"item": "rework-boundary", "result": "pass", "note": "AF-512 已归档不回写；本任务仅补交付记录与任务记录包"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=2495b682 为 AF-512 实现提交；本返修提交 e6624b0c 只改交付记录与 AF-513 记录包"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-512 归档后不再修改",
+        "reality": "AF-512 因机读字段缺失与 manifest scope 被拒并归档，不能原地返修",
+        "action": "按返修规则新开 AF-513，基线 2495b682，只补交付记录字段并扩大本任务记录包 scope",
+        "why": "保持已归档事件链不可变，同时让返修补丁有可验收的任务边界"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-512 的两条验收阻塞均已在本任务范围内闭合：交付记录补齐六组机读字段名，本任务 scope 覆盖任务记录包路径；preflight PASS，提交 e6624b0c 只涉及文档与 AF-513 记录包，未改代码与 engine-core。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

@@ -1,47 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
 
+import { MembershipStatus } from '../../membership/domain/membership.enums.js';
+import { LEGACY_TIER_REVERSE_MAP } from '../../membership/membership.constants.js';
+import { MembershipAccountService } from '../../membership/providers/membership-account.service.js';
 import { MembershipBenefitDto, MembershipDto } from '../dto/membership.dto.js';
-import { Membership } from '../entities/membership.entity.js';
 
 /**
- * Membership service — 心塑会员中心核心服务.
+ * 旧 /profile/membership 兼容层。
  *
- * V2.0 占位:
-  status - 全部返回 inactive, 5 个权益全 locked=false (UI 显示 "即将开通")
- *   - status/tier/expiresAt 实际查 DB, 但 V2.0 默认行不在 — 由 ensureMembership 建空行
- * V3 接订单 + 支付 + 自动续费:
- *   - 状态机: trial → active → expired (跟 UserState 模式一致)
- *   - cron 找 expires_at < now() 且 status=active → 批量 expired
- *   - 退款: 写 refund_events, 业务侧幂等处理
- *
- * 大厂做法:
- *   - 5 个权益是产品设计, 跟技术解耦 — 后端只返回权益数据, UI 控制锁/未锁图标
+ * 账号、档位、配额由 MembershipAccountService 统一提供；本层只做旧 4 态 /
+ * 旧 3 档 / 5 个硬编码权益的 wire 映射，旧客户端继续可用，新字段一并返回。
  */
 @Injectable()
 export class MembershipService {
-  constructor(
-    @InjectRepository(Membership)
-    private readonly repo: Repository<Membership>,
-  ) {}
+  constructor(private readonly accountService: MembershipAccountService) {}
 
   async getMembership(uid: string): Promise<MembershipDto> {
-    const membership = await this.ensureMembership(uid);
+    const overview = await this.accountService.getOverview(uid);
+    const account = overview.account;
     return {
-      status: membership.status,
-      tier: membership.tier,
-      expiresAt: membership.expiresAt,
-      benefits: this.getBenefits(membership),
+      status: this.toLegacyStatus(account.status),
+      tier: LEGACY_TIER_REVERSE_MAP[account.tier],
+      expiresAt: account.expiresAt,
+      benefits: this.getBenefits(account.status),
+      tierV2: account.tier,
+      minutesRemaining: overview.quota.totalRemainingMinutes,
+      periodEnd: account.periodEnd,
     };
+  }
+
+  /** 新状态机 → 旧 4 态 wire，旧客户端不感知 grace/paused/refunded。 */
+  private toLegacyStatus(status: MembershipStatus): 'inactive' | 'active' | 'expired' | 'trial' {
+    if (status === MembershipStatus.Active || status === MembershipStatus.Grace) return 'active';
+    if (status === MembershipStatus.Trial) return 'trial';
+    if (status === MembershipStatus.Expired || status === MembershipStatus.Refunded) return 'expired';
+    return 'inactive';
   }
 
   /**
    * 5 个 V2.0 权益 — 跟前端 V2.0 §Tab4 会员中心一致.
    * unlocked 跟当前 membership.status 关联 (active / trial → 解锁, 否则锁).
    */
-  private getBenefits(membership: Membership): MembershipBenefitDto[] {
-    const isActive = membership.status === 'active' || membership.status === 'trial';
+  private getBenefits(status: MembershipStatus): MembershipBenefitDto[] {
+    const isActive = status === MembershipStatus.Active || status === MembershipStatus.Trial;
     return [
       {
         icon: 'insights_outlined',
@@ -74,24 +75,5 @@ export class MembershipService {
         unlocked: isActive,
       },
     ];
-  }
-
-  private async ensureMembership(uid: string): Promise<Membership> {
-    const existing = await this.repo.findOne({ where: { uid } });
-    if (existing) return existing;
-    try {
-      return await this.repo.save(
-        this.repo.create({
-          uid,
-          status: 'inactive',
-          tier: 'free',
-          expiresAt: null,
-        }),
-      );
-    } catch {
-      const retry = await this.repo.findOne({ where: { uid } });
-      if (retry) return retry;
-      throw new Error('ensureMembership race retry failed');
-    }
   }
 }

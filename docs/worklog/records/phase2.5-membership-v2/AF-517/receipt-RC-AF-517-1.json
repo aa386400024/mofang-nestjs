@@ -1,0 +1,255 @@
+{
+  "deliveredAt": "2026-11-26T01:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-517-1",
+    "taskId": "AF-517",
+    "contextId": "phase2.5-membership-v2",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "f6b47f5c",
+    "dependsOn": ["AF-516"],
+    "priorTasks": ["AF-512", "AF-516"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "conventions.md#2.5", "autonomous-team-design.md#6.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-517/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af517-membership-enterprise-hardening-implementation-2026-11-26.md",
+        "src/membership/entities/membership-promotion-reservation.entity.ts",
+        "src/membership/providers/membership-order-expiry.cron.ts",
+        "src/membership/providers/membership-promotion-reservation-cleanup.cron.ts",
+        "src/membership/providers/membership-promotion-reservation.service.ts",
+        "src/migration/1714900000051-AddMembershipPromotionReservation.ts",
+        "test/membership/membership-controller-coupon.spec.ts",
+        "test/membership/membership-promotion-reservation.spec.ts"
+      ],
+      "modified": [
+        "bin/ormconfig.ts",
+        "docs/worklog/pending/phase4-backlog-2026-11-08.md",
+        "src/common/exceptions/biz-code.enum.ts",
+        "src/common/exceptions/biz.exception.ts",
+        "src/membership/controllers/membership-admin.controller.ts",
+        "src/membership/controllers/membership.controller.ts",
+        "src/membership/domain/membership.enums.ts",
+        "src/membership/dto/membership-promotion.dto.ts",
+        "src/membership/dto/membership.dto.ts",
+        "src/membership/membership.module.ts",
+        "src/membership/providers/membership-account.service.ts",
+        "src/membership/providers/membership-order.service.ts",
+        "src/membership/providers/membership-plan-grant.service.ts",
+        "src/membership/providers/membership-promotion.service.ts",
+        "src/migration/index.ts",
+        "src/shared/infra/metrics/metrics.service.ts",
+        "src/user/enums/audit-event.enum.ts",
+        "test/membership/membership-account.service.spec.ts",
+        "test/membership/membership-order.service.spec.ts",
+        "test/membership/membership-plan-grant.service.spec.ts",
+        "test/membership/membership-promotion.service.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["5df187aa"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 8s",
+        "note": "tsc -b tsconfig.check.json 0 error；Satisfies/EntityManager/新增 cron 类型均通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "带缓存全量 eslint，0 error / 0 warning；修复 prettier、import/order、complexity 与 unicorn/prefer-ternary"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "tsc -p tsconfig.build.json 成功"
+      },
+      {
+        "command": "pnpm test:smoke",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "重建后启动 dist/app.js，/health 200，database up 38ms，redis up；新增 reservation service/cron、order expiry cron、可选 Audit/Metrics 依赖装配可启动"
+      },
+      {
+        "command": "pnpm migration:run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "真实 mofang_dev 执行 AddMembershipPromotionReservation1714900000051：建 membership_promotion_reservations + uniq_mprsv_order + idx_mprsv_promo_status + idx_mprsv_status_expires"
+      },
+      {
+        "command": "pnpm vitest run test/membership",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 13,
+        "machine": "同上",
+        "wallClock": "3.04s",
+        "note": "13 文件 / 69 例全过；新增：优惠券入口 3 例、预占预算/限次/重入/清理 5 例、订单过期关闭 1 例、活动审计 1 例、未来月付 term 1 例"
+      },
+      {
+        "command": "$env:ORCH_FRAMEWORK_DIR='D:/work/Project/backend/mofang-nestjs-af070/contracts/agent-collaboration-framework/2.0.0'; pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 296,
+        "machine": "同上",
+        "wallClock": "46.17s",
+        "note": "默认 296 worker 全量：295 passed / 1 skipped files，4460 passed / 4 skipped / 0 failed；此前后两次同脚本仅 admin-debug/debug-session-persistence 单例超时，单文件复跑 28 例全过，属并行抖动"
+      },
+      {
+        "command": "$env:ORCH_FRAMEWORK_DIR='.../contracts/agent-collaboration-framework/2.0.0'; pnpm vitest run --maxWorkers=4 --exclude '**/e2e/**/*.ts'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 296,
+        "machine": "同上",
+        "wallClock": "69.37s",
+        "note": "稳定口径全量：295 passed / 1 skipped files，4460 passed / 4 skipped / 0 failed；用于排除 296 worker 下 admin-debug 文件系统竞争抖动"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，engine-core 纯层零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "[ORCH-GATE] PASS task=AF-517 status=submitted files=29 covered=28；29 个暂存文件均在任务单 scope"
+      }
+    ],
+    "reproNotes": "会员定向：`pnpm vitest run test/membership`。全量默认：`$env:ORCH_FRAMEWORK_DIR='D:/work/Project/backend/mofang-nestjs-af070/contracts/agent-collaboration-framework/2.0.0'; pnpm test`；若 admin-debug 并行抖动，改用 `pnpm vitest run --maxWorkers=4 --exclude '**/e2e/**/*.ts'` 稳定口径。迁移核对：`pnpm migration:show` 应显示 `[X] AddMembershipPromotionReservation1714900000051`。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-517 任务单、分支 task/AF-517-membership-enterprise-hardening、提交标题一致" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once 与状态均经 CLI 事件链，未手改索引" },
+      { "item": "receipt-groups", "result": "pass", "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动" },
+      { "item": "migration-registered", "result": "pass", "note": "bin/ormconfig.ts import + migrations[]、src/migration/index.ts export 均已注册 1714900000051" },
+      { "item": "reservation-contract", "result": "pass", "note": "order_id 唯一；reserve/consume/release/cleanup 与订单 create/markPaid/refund/closeExpired 对齐；held 计入报价预算与运营统计" },
+      { "item": "coupon-security", "result": "pass", "note": "客户端非零 couponDiscountCents 在 quote/createOrder 均 50011 拒绝，不下传；DTO 字段保留 deprecated" },
+      { "item": "commit-facts", "result": "pass", "note": "实现提交 5df187aa 共 29 文件，added 8 / modified 21，与 changedFiles 一致" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=f6b47f5c 为 AF-516 归档 HEAD；AF-517 登记提交 8481a5b4，实现提交 5df187aa，stacked 在未合并的 AF-516 分支上"
+    },
+    "backlogItems": [
+      {
+        "id": "membership-real-payment-and-renewal",
+        "impact": "真实微信/支付宝/Apple IAP、回调验签、自动续费扣款、退款自动金额仍未接",
+        "suggestion": "注册公司后按 WP27 接支付；回调必须复用 markPaid 行锁事务，并对 closed/expired 订单做退款或人工对账"
+      },
+      {
+        "id": "membership-partial-refund-semantics",
+        "impact": "refund 支持比例金额，但订单退款即终止该订单全部权益；比例退款如何保留剩余权益未定",
+        "suggestion": "接真实支付前由产品/财务定口径，必要时加 refund ledger 与按比例保留 lot/term 的逻辑"
+      },
+      {
+        "id": "membership-admin-dashboard-page",
+        "impact": "活动运营 API 已就绪，admin-dashboard 未接列表/创建/编辑/启停/统计页",
+        "suggestion": "按授权前端任务接入，复用 reservedCount/reservedCents 展示预算占用"
+      },
+      {
+        "id": "membership-spec-sync",
+        "impact": "活动预占、过期订单关闭、审计/指标口径未写入 active spec",
+        "suggestion": "另开文档任务同步 membership-system-v2.0.md，避免代码与 spec 漂移"
+      },
+      {
+        "id": "admin-debug-persistence-flaky",
+        "impact": "test/admin-debug/debug-session-persistence.spec.ts 在 296 worker 下偶发 10s waitFor 超时；单文件 28 例稳定通过",
+        "suggestion": "单开测试稳定性任务：降并发/隔离临时目录/放宽 waitFor，并在 CI 固定稳定 worker 数"
+      },
+      {
+        "id": "migration-ledger-drift",
+        "impact": "migration:run 显示 DB 94 条已执行、源码 90 条，DB 有源码未列的 AddVisitorFullPersonaSpeech1714900000053",
+        "suggestion": "另开迁移台账核对任务，确认该迁移是否应补回源码或标记历史漂移"
+      }
+    ],
+    "openQuestions": [
+      "比例退款是否应保留剩余周期权益，需产品/财务口径",
+      "活动预算是否允许 null 不限额，需运营/财务口径",
+      "过期订单关闭后晚到真实支付回调应自动退款还是人工对账，需支付接入时确定"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务单未列过期 pending 订单关闭",
+        "reality": "新增 MembershipOrderService.closeExpired + MembershipOrderExpiryCron",
+        "action": "订单行锁内置 closed 并释放预占；markPaid 对 closed 硬拒绝",
+        "why": "只释放预占不关闭订单会留下额度已回池但订单仍可支付的超卖窗口"
+      },
+      {
+        "taskSays": "指标标签 {tier,period}",
+        "reality": "增加 order_type 标签",
+        "action": "支付/退款指标改为 {tier,period,order_type}",
+        "why": "加包订单 planId 是加包 id，不是会员 tier；不区分会污染档位指标"
+      },
+      {
+        "taskSays": "审计写入 await",
+        "reality": "审计失败只 logger.warn，不回滚主操作",
+        "action": "auditWrite 包 try/catch",
+        "why": "审计是旁路，运营上下架不应被审计库抖动阻断，同时保留可检索告警"
+      },
+      {
+        "taskSays": "预占清理按 expiresAt <= now 释放",
+        "reality": "cleanupExpired 保留 1 小时宽限",
+        "action": "cutoff=now-1h，先由订单过期关闭 cron 释放，再由预占清理兜底",
+        "why": "避免预占清理先于订单关闭执行造成超卖窗口"
+      },
+      {
+        "taskSays": "交付含 spec 同步",
+        "reality": "未改 docs/specs/active/membership-system-v2.0.md",
+        "action": "变更写入交付记录，backlog 保留 membership-spec-sync",
+        "why": "spec 不在 executor scope，另开文档任务"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "6 个原始缺口全部落地并额外补过期订单关闭：客户端券入口 50011、支付/退款/账号/配额/兑换/预占同事务、预算限次 held 预占、未来周期不提前发、活动审计与四类指标；新迁移真实执行，会员 69 例与全量 4460 例通过，build/smoke/lint/typecheck 全绿，engine-core 零改动，提交 5df187aa 文件事实与回执一致。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

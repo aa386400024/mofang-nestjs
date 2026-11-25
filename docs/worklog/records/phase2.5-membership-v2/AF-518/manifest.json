@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-518",
+  "contextId": "phase2.5-membership-v2",
+  "status": "backlog",
+  "createdAt": "2026-11-26T01:45:00+08:00",
+  "updatedAt": "2026-11-25T17:38:52.313Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-membership-v2/AF-518/task-sheet.md",
+    "sha256": "a731a425a1c8f1e8013681be4239ec06e0447d74787f7e1b0d948f7a0080e0a2",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/records/phase2.5-membership-v2/AF-518/rescope-record.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af518-membership-migration-pr-closure-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

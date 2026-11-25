@@ -81,6 +81,8 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module.js';
 //     跑 pnpm migration:run 创 life_map_drift_bottles 表.
 //   时间戳: 2026-10-14 09:45 GMT+8 (V3 深度扫描发现 → 今日 VS-life-merge 治本).
 import { LifeMapModule } from './life-map/life-map.module.js';
+// V2026-11-25 — AF-512 会员体系 v2: 统一档位/配额/活动/订单契约.
+import { MembershipModule } from './membership/membership.module.js';
 import { PracticeModule } from './practice/practice.module.js';
 import { ProfileModule } from './profile/index.js';
 // V2026-11-10 治本 (WP-J P2 · 专业级标注工具): 质量标注台 admin 端点 (列表/详情/保存/reveal/一致性).
@@ -278,6 +280,8 @@ import { VoiceModule } from './voice/voice.module.js';
     //   真接未申请 → paymentChannel 写死 'reserved', 客户端 UI 显 "支付通道预留中".
     //   V1.x: TypeORM billing entities + 真接微信 V2 / 支付宝 + 配额 guard cron.
     BillingModule, // /billing/*
+    // V2026-11-25 — AF-512 会员 v2（新入口 /membership/*，旧端点保留兼容）
+    MembershipModule,
   ],
   providers: [
     // Global Throttler Guard

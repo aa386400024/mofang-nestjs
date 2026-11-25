@@ -38,4 +38,13 @@ export class MembershipDto {
 
   @ApiProperty({ description: '权益列表', type: [MembershipBenefitDto] })
   benefits!: MembershipBenefitDto[];
+
+  @ApiProperty({ description: 'v2 档位', enum: ['free', 'plus', 'pro', 'max'], required: false })
+  tierV2?: 'free' | 'plus' | 'pro' | 'max';
+
+  @ApiProperty({ description: 'v2 剩余语音分钟', required: false })
+  minutesRemaining?: number;
+
+  @ApiProperty({ description: 'v2 当前周期结束', nullable: true, required: false })
+  periodEnd?: Date | null;
 }

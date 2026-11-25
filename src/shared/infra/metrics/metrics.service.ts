@@ -49,6 +49,12 @@ export class MetricsService implements OnModuleInit {
   private auditLogEnqueuedCounter!: Counter<string>;
   private auditLogFailedCounter!: Counter<string>;
 
+  // Membership (AF-517)
+  private membershipOrderPaidCounter!: Counter<string>;
+  private membershipOrderRefundedCounter!: Counter<string>;
+  private membershipPlanGrantCounter!: Counter<string>;
+  private membershipPromotionReservationCounter!: Counter<string>;
+
   // V2026-10-23 治本 (语音微训练 STT 代理 — 上游转写用量):
   //   - 转写次数: 成功 / 失败, 用于成本核算 (上游按音频时长计费)
   //   - 转写耗时: 用于观察上游 P95 延迟, 异常时能第一时间发现
@@ -145,6 +151,32 @@ export class MetricsService implements OnModuleInit {
       name: 'audit_log_failed_total',
       help: '审计日志失败次数 (按 event/phase 标签, phase: enqueue / process)',
       labelNames: ['event', 'phase'],
+      registers: [this.registry],
+    });
+
+    // ----- Membership (AF-517) -----
+    this.membershipOrderPaidCounter = new Counter({
+      name: 'membership_order_paid_total',
+      help: '会员订单支付成功次数 (按 tier / period / orderType 标签)',
+      labelNames: ['tier', 'period', 'order_type'],
+      registers: [this.registry],
+    });
+    this.membershipOrderRefundedCounter = new Counter({
+      name: 'membership_order_refunded_total',
+      help: '会员订单退款次数 (按 tier / period / orderType 标签)',
+      labelNames: ['tier', 'period', 'order_type'],
+      registers: [this.registry],
+    });
+    this.membershipPlanGrantCounter = new Counter({
+      name: 'membership_plan_grant_total',
+      help: '套餐分钟发放次数 (按 result 标签: success / skipped / failed)',
+      labelNames: ['result'],
+      registers: [this.registry],
+    });
+    this.membershipPromotionReservationCounter = new Counter({
+      name: 'membership_promotion_reservation_total',
+      help: '活动预算/限次预占次数 (按 result 标签: held / consumed / released / expired / rejected)',
+      labelNames: ['result'],
       registers: [this.registry],
     });
 
@@ -303,6 +335,38 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.auditLogFailedCounter.inc({ event, phase });
+  }
+
+  /** 会员订单支付成功 (tier / period / orderType 只用封闭枚举，加包 tier 记为 addon id). */
+  incMembershipOrderPaid(tier: string, period: string, orderType: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.membershipOrderPaidCounter.inc({ tier, period, order_type: orderType });
+  }
+
+  /** 会员订单退款. */
+  incMembershipOrderRefunded(tier: string, period: string, orderType: string): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.membershipOrderRefundedCounter.inc({ tier, period, order_type: orderType });
+  }
+
+  /** 套餐分钟发放结果. */
+  incMembershipPlanGrant(result: 'success' | 'skipped' | 'failed', count = 1): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.membershipPlanGrantCounter.inc({ result }, count);
+  }
+
+  /** 活动预算/限次预占结果. */
+  incMembershipPromotionReservation(result: 'held' | 'consumed' | 'released' | 'expired' | 'rejected', count = 1): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.membershipPromotionReservationCounter.inc({ result }, count);
   }
 
   /** 语音转写次数 (成功 / 失败). */
