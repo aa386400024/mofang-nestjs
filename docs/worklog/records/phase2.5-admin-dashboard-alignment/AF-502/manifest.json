@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-502",
+  "contextId": "phase2.5-admin-dashboard-alignment",
+  "status": "backlog",
+  "createdAt": "2026-11-25T09:45:00+08:00",
+  "updatedAt": "2026-11-25T02:41:35.120Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-502/task-sheet.md",
+    "sha256": "967348f30cefa90fee5d50d41b0e92ac49410ac9f80393cedc6b403a6bcfa27c",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af501-admin-dashboard-auto-practice-alignment-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-502-admin-dashboard-auto-practice-alignment-2026-11-25.md"
+  ],
+  "tombstone": null
+}
