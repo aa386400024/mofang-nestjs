@@ -39,8 +39,10 @@
 //
 //   时间戳: 2026-10-15
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 import { MembershipTier as MembershipTierV2 } from '../../membership/domain/membership.enums.js';
 import { MEMBERSHIP_PLANS } from '../../membership/membership.constants.js';
 import { MembershipAccountService } from '../../membership/providers/membership-account.service.js';
@@ -78,6 +80,8 @@ export class BillingService {
       nonMemberPrice: 8,
       quotaPerUnit: 1,
       quotaType: QuotaType.VOICE_SESSION,
+      deprecated: true,
+      deprecationMessage: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
     },
     {
       code: 'sku_long_term_case_pack',
@@ -87,6 +91,8 @@ export class BillingService {
       nonMemberPrice: 20,
       quotaPerUnit: 5,
       quotaType: QuotaType.LONG_TERM_CASE,
+      deprecated: true,
+      deprecationMessage: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
     },
     {
       code: 'sku_voice_analysis',
@@ -96,6 +102,8 @@ export class BillingService {
       nonMemberPrice: 5,
       quotaPerUnit: 1,
       quotaType: QuotaType.VOICE_ANALYSIS,
+      deprecated: true,
+      deprecationMessage: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
     },
     {
       code: 'sku_supervision_interpretation',
@@ -105,6 +113,8 @@ export class BillingService {
       nonMemberPrice: 29.9,
       quotaPerUnit: 1,
       quotaType: QuotaType.VOICE_ANALYSIS, // 用 voice_analysis 配额兜底, 实际不消耗
+      deprecated: true,
+      deprecationMessage: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
     },
   ];
 
@@ -167,37 +177,9 @@ export class BillingService {
    * @returns 订单结果 (orderId + status + amount + quotaAdded)
    */
   async createOrder(input: CreateOrderDto, userId: string): Promise<OrderDto> {
-    // 1. 查 SKU (应用层校验, 非法 404)
-    const sku = this.skuCatalog.find((s) => s.code === input.skuCode);
-    if (!sku) {
-      throw new NotFoundException(`SKU ${input.skuCode} 不存在`);
-    }
-
-    // V2026-10-15 治本 (V4.4 mock 支付 inline — V0.5 stage):
-    //   原因: counselor-mode-v1.0 §7.6 + handoff §6 标 "VS-5 billing 微信/支付宝 等大炮申请
-    //     微信 V2 商户 + 支付宝当面付 入口", V0.5 阶段直接 inline mock 返 paid, V1.x 续做
-    //     抽 PaymentChannelService interface 接 WechatPayChannel + AlipayChannel 真接.
-    //   修法: 写死 paymentMethod='mock' → 立即返 paid + 同步 +quotaAdded; 0 真接, 0
-    //     异步回调, 0 签名校验 (跟 V0.5 memory mock 风格 1:1).
-    //   反双胞胎: 不在 V0.5 写 orders entity 表 (留 V1.x); 不引第三方支付 SDK
-    //     (V0.5 阶段依赖最少); 不用 eslint-disable 注释压错.
-
-    const orderId = this.generateUuid();
-    const now = new Date().toISOString();
-    const amount = sku.memberPrice;
-    void userId; // 旧接口不再伪造支付；真实开通走 POST /membership/orders + markPaid
-
-    return {
-      orderId,
-      status: 'pending',
-      amount,
-      skuCode: sku.code,
-      paymentMethod: input.paymentMethod,
-      quotaAdded: 0,
-      quotaType: sku.quotaType,
-      createdAt: now,
-      paidAt: null,
-    };
+    void input;
+    void userId;
+    throw new BizException(BizCode.MembershipSkuDeprecated);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -297,14 +279,5 @@ export class BillingService {
     if (quotaType === QuotaType.LONG_TERM_CASE) return amount * 120;
     if (quotaType === QuotaType.VOICE_ANALYSIS) return amount * 20;
     return 0;
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 私有 helper: 简单 UUID 生成 (V0.5 mock 阶段用, V1.x 续做改 uuid 包)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  private generateUuid(): string {
-    // V0.5 mock: 用 crypto.randomUUID() (Node.js 19+ 内置, 跟 crypto 模块无关)
-    return crypto.randomUUID();
   }
 }

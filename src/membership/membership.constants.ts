@@ -1,4 +1,13 @@
-import { BillingPeriod, MembershipFeature, MembershipTier, PaymentChannel, QuotaLotSource, TtsModel } from './domain/membership.enums.js';
+import {
+  BillingPeriod,
+  MembershipFeature,
+  MembershipPromotionAudience,
+  MembershipPromotionStatus,
+  MembershipTier,
+  PaymentChannel,
+  QuotaLotSource,
+  TtsModel,
+} from './domain/membership.enums.js';
 import type {
   MembershipAddonDefinition,
   MembershipEntitlement,
@@ -243,12 +252,18 @@ export interface MembershipCampaignDefinition {
   readonly name: string;
   readonly code: string;
   readonly billingPeriod: BillingPeriod;
+  readonly status?: MembershipPromotionStatus;
+  readonly audience?: MembershipPromotionAudience;
+  /** true 表示未传活动码时自动参与；false 只接受显式活动码。 */
+  readonly autoApply?: boolean;
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly prices: Readonly<Partial<Record<MembershipTier, number>>>;
   readonly floors: Readonly<Partial<Record<MembershipTier, number>>>;
-  readonly budgetCents: number;
+  readonly giftMinutes?: Readonly<Partial<Record<MembershipTier, number>>>;
+  readonly budgetCents: number | null;
   readonly perUserLimit: number;
+  readonly priority?: number;
   readonly ruleVersion: string;
 }
 
@@ -258,6 +273,9 @@ export const MEMBERSHIP_CAMPAIGNS: readonly MembershipCampaignDefinition[] = [
     name: '新用户首期活动',
     code: 'FIRST_MONTHLY',
     billingPeriod: BillingPeriod.Monthly,
+    status: MembershipPromotionStatus.Active,
+    audience: MembershipPromotionAudience.FirstPurchase,
+    autoApply: true,
     startsAt: new Date('2026-11-01T00:00:00+08:00'),
     endsAt: new Date('2027-12-31T23:59:59+08:00'),
     prices: {
@@ -279,6 +297,9 @@ export const MEMBERSHIP_CAMPAIGNS: readonly MembershipCampaignDefinition[] = [
     name: '首年限时年付',
     code: 'FIRST_ANNUAL',
     billingPeriod: BillingPeriod.Annual,
+    status: MembershipPromotionStatus.Active,
+    audience: MembershipPromotionAudience.FirstPurchase,
+    autoApply: true,
     startsAt: new Date('2026-11-01T00:00:00+08:00'),
     endsAt: new Date('2027-12-31T23:59:59+08:00'),
     prices: {

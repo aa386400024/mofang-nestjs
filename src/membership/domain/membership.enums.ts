@@ -92,3 +92,24 @@ export enum TtsModel {
   Turbo = 'turbo',
   Hd = 'hd',
 }
+
+/** 活动状态：草稿 / 生效 / 暂停 / 已结束。 */
+export enum MembershipPromotionStatus {
+  Draft = 'draft',
+  Active = 'active',
+  Paused = 'paused',
+  Ended = 'ended',
+}
+
+/** 活动受众：首购用户 / 全体付费用户。 */
+export enum MembershipPromotionAudience {
+  FirstPurchase = 'first_purchase',
+  All = 'all',
+}
+
+/** 年付套餐发放 term 状态。 */
+export enum MembershipPlanGrantStatus {
+  Active = 'active',
+  Completed = 'completed',
+  Cancelled = 'cancelled',
+}

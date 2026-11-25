@@ -2,7 +2,11 @@
 
 export function addMonths(base: Date, months: number): Date {
   const result = new Date(base);
+  const day = result.getDate();
+  result.setDate(1);
   result.setMonth(result.getMonth() + months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
   return result;
 }
 

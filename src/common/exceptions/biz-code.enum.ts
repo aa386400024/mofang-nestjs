@@ -175,4 +175,6 @@ export enum BizCode {
   MembershipPromotionInvalid = 50_006, // 活动码/活动规则不可用
   MembershipRefundInvalid = 50_007, // 退款金额或订单状态不合法
   MembershipPaymentUnavailable = 50_008, // 真实支付通道未接
+  MembershipSkuDeprecated = 50_009, // 旧单次 SKU 已下线
+  MembershipPromotionNotFound = 50_010, // 活动不存在或已删除
 }

@@ -65,6 +65,7 @@ const NOT_FOUND_CODES: ReadonlySet<BizCode> = new Set([
   //   后果: 前端拿到 400 会提示“参数错了”, 而真实语义是“这个工具 id 不存在” → 用户看不出该换哪个.
   BizCode.GrowthToolNotFound,
   BizCode.MembershipOrderNotFound,
+  BizCode.MembershipPromotionNotFound,
 ]);
 
 const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
@@ -105,6 +106,8 @@ const RATE_LIMITED_CODES: ReadonlySet<BizCode> = new Set([
 ]);
 
 const LOCKED_CODES: ReadonlySet<BizCode> = new Set([BizCode.AccountLocked]);
+
+const GONE_CODES: ReadonlySet<BizCode> = new Set([BizCode.MembershipSkuDeprecated]);
 
 const FORBIDDEN_CODES: ReadonlySet<BizCode> = new Set([BizCode.Forbidden, BizCode.VisitorPoolForbidden]);
 
@@ -177,6 +180,9 @@ function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
   }
   if (LOCKED_CODES.has(code)) {
     return HttpStatus.LOCKED;
+  }
+  if (GONE_CODES.has(code)) {
+    return HttpStatus.GONE;
   }
   if (FORBIDDEN_CODES.has(code)) {
     return HttpStatus.FORBIDDEN;
@@ -334,6 +340,8 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.MembershipPromotionInvalid]: '该活动当前不可用或已结束',
     [BizCode.MembershipRefundInvalid]: '退款金额或订单状态不合法',
     [BizCode.MembershipPaymentUnavailable]: '真实支付通道尚未接入，订单已保留',
+    [BizCode.MembershipSkuDeprecated]: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
+    [BizCode.MembershipPromotionNotFound]: '活动不存在或已删除',
   };
   return messages[code] ?? '错误';
 }

@@ -10,6 +10,7 @@ import {
   QuotaLotSource,
   TtsModel,
 } from './membership.enums.js';
+import type { MembershipCampaignDefinition } from '../membership.constants.js';
 
 export interface MembershipPlanDefinition {
   readonly id: MembershipTier;
@@ -119,6 +120,10 @@ export interface PromotionEvaluationInput {
   readonly campaignCode?: string;
   readonly redemptionCount: number;
   readonly campaignBudgetRemainingCents: number | null;
+  /** 订单服务传入的实时活动快照；缺省时规则引擎回落到静态活动常量。 */
+  readonly campaigns?: readonly MembershipCampaignDefinition[];
+  readonly redemptionCountByPromotion?: Readonly<Record<string, number>>;
+  readonly campaignBudgetRemainingCentsByPromotion?: Readonly<Record<string, number | null>>;
 }
 
 export interface PromotionDecision {

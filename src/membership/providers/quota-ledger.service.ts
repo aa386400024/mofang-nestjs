@@ -81,10 +81,17 @@ export class QuotaLedgerService {
 
   constructor(private readonly dataSource: DataSource) {}
 
-  /** 套餐发放：按订单幂等（同一 orderId + plan source 只发一次）。 */
-  async grantPlan(uid: string, plan: MembershipPlanDefinition, orderId: string, periodEnd: Date, manager?: EntityManager): Promise<void> {
+  /** 套餐发放：按订单 + 可选子键幂等（年付按月用 referenceKey=plan:N）。 */
+  async grantPlan(
+    uid: string,
+    plan: MembershipPlanDefinition,
+    orderId: string,
+    periodEnd: Date,
+    manager?: EntityManager,
+    referenceKey: string | null = null,
+  ): Promise<void> {
     if (plan.monthlyMinutes <= 0) return;
-    await this.grantOnce(uid, QuotaLotSource.Plan, plan.monthlyMinutes, periodEnd, orderId, null, manager);
+    await this.grantOnce(uid, QuotaLotSource.Plan, plan.monthlyMinutes, periodEnd, orderId, null, manager, referenceKey);
   }
 
   /** 加包发放：12 个月有效，按订单幂等。 */
@@ -368,10 +375,20 @@ export class QuotaLedgerService {
     orderId: string,
     campaignId: string | null,
     manager?: EntityManager,
+    referenceKey: string | null = null,
   ): Promise<void> {
     const run = async (entityManager: EntityManager) => {
       const repo = entityManager.getRepository(MembershipQuotaLot);
-      const existing = await repo.findOne({ where: { uid, source, orderId } });
+      const existing = await repo
+        .createQueryBuilder('lot')
+        .where('lot.uid = :uid', { uid })
+        .andWhere('lot.source = :source', { source })
+        .andWhere('lot.orderId = :orderId', { orderId })
+        .andWhere(
+          referenceKey === null ? 'lot.referenceKey IS NULL' : 'lot.referenceKey = :referenceKey',
+          referenceKey === null ? {} : { referenceKey },
+        )
+        .getOne();
       if (existing) return;
 
       const lot = repo.create({
@@ -382,6 +399,7 @@ export class QuotaLedgerService {
         minutesRemaining: minutes,
         expiresAt,
         orderId,
+        referenceKey,
         campaignId,
       });
       await repo.save(lot);

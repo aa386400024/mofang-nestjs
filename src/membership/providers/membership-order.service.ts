@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, IsNull, type Repository } from 'typeorm';
 
 import { MembershipAccountService } from './membership-account.service.js';
 import { MembershipPricingService } from './membership-pricing.service.js';
+import { MembershipPromotionService } from './membership-promotion.service.js';
 import { QuotaLedgerService } from './quota-ledger.service.js';
 import { BillingPeriod, MembershipOrderStatus, MembershipOrderType, MembershipTier, PaymentChannel } from '../domain/membership.enums.js';
 import type { CreateMembershipOrderInput, MembershipOrderSummary, PriceQuote } from '../domain/membership.types.js';
@@ -39,6 +40,8 @@ export class MembershipOrderService {
     private readonly pricingService: MembershipPricingService,
     private readonly quotaLedger: QuotaLedgerService,
     private readonly dataSource: DataSource,
+    @Optional()
+    private readonly promotionService?: MembershipPromotionService,
   ) {}
 
   /** 预览价格：供客户端展示原价、活动价、优惠券后价与底价。 */
@@ -79,6 +82,23 @@ export class MembershipOrderService {
     const redemptionCount = await this.redemptionRepo.count({ where: { uid, revokedAt: IsNull() } });
     const campaignBudgetRemainingCents = await this.campaignBudgetRemaining(billingPeriod);
 
+    if (!this.promotionService) {
+      return this.pricingService.quote({
+        uid,
+        tier,
+        billingPeriod,
+        isFirstPurchase: firstPurchase,
+        now,
+        couponDiscountCents,
+        campaignCode,
+        redemptionCount,
+        campaignBudgetRemainingCents,
+      });
+    }
+
+    const campaigns = await this.promotionService.listSellableCampaigns(billingPeriod, now);
+    const redemptionCountByPromotion = await this.promotionService.redemptionCountsByPromotion(uid);
+    const campaignBudgetRemainingCentsByPromotion = await this.promotionService.budgetRemainingByPromotion(campaigns);
     return this.pricingService.quote({
       uid,
       tier,
@@ -89,6 +109,9 @@ export class MembershipOrderService {
       campaignCode,
       redemptionCount,
       campaignBudgetRemainingCents,
+      campaigns,
+      redemptionCountByPromotion,
+      campaignBudgetRemainingCentsByPromotion,
     });
   }
 
@@ -261,7 +284,7 @@ export class MembershipOrderService {
       .andWhere('r.revokedAt IS NULL')
       .getRawOne<{ spent: string }>();
     const spent = Number(raw?.spent ?? 0);
-    return Math.max(0, campaign.budgetCents - spent);
+    return campaign.budgetCents === null ? null : Math.max(0, campaign.budgetCents - spent);
   }
 
   private parsePlanTier(productId: string): MembershipTier {

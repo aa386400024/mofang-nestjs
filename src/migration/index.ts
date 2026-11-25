@@ -232,5 +232,7 @@ export { AddBatchMetricsColumns1714900000045 } from './1714900000045-AddBatchMet
 export { AddQualityAnnotationBatchColumns1714900000047 } from './1714900000047-AddQualityAnnotationBatchColumns.js';
 // V2026-11-25 AF-512 — 会员体系 v2：账号订阅列 + 配额 lot / 预扣 / 订单 / 活动兑换 4 张表。
 export { AddMembershipV2Tables1714900000049 } from './1714900000049-AddMembershipV2Tables.js';
+// V2026-11-25 AF-516 — 会员非支付闭环：活动主数据 + 年付按月发放 term + quota lot reference_key。
+export { AddMembershipPromotionAndPlanGrant1714900000050 } from './1714900000050-AddMembershipPromotionAndPlanGrant.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

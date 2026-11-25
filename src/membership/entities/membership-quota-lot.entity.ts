@@ -13,6 +13,7 @@ import { QuotaLotSource } from '../domain/membership.enums.js';
 @Entity('membership_quota_lots')
 @Index('idx_mql_uid_expires', ['uid', 'expiresAt'])
 @Index('idx_mql_source', ['source'])
+@Index('idx_mql_order_ref', ['orderId', 'referenceKey'])
 export class MembershipQuotaLot {
   @PrimaryColumn({ type: 'char', length: 36, name: 'id' })
   id!: string;
@@ -34,6 +35,10 @@ export class MembershipQuotaLot {
 
   @Column({ type: 'char', length: 36, name: 'order_id', nullable: true })
   orderId!: string | null;
+
+  /** 同订单多次发放（如年付按月）时的幂等子键，例如 plan:3。 */
+  @Column({ type: 'varchar', length: 64, name: 'reference_key', nullable: true })
+  referenceKey!: string | null;
 
   @Column({ type: 'varchar', length: 64, name: 'campaign_id', nullable: true })
   campaignId!: string | null;

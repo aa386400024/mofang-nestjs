@@ -43,11 +43,22 @@ function createService(existing: Partial<Membership> | null = null) {
     grantPromotion: vi.fn().mockResolvedValue(),
     grantAddon: vi.fn().mockResolvedValue(),
   };
+  const planGrantService = {
+    refreshForUid: vi.fn().mockResolvedValue(0),
+    cancelActiveTerms: vi.fn().mockResolvedValue(0),
+    createAnnualTerm: vi.fn().mockResolvedValue({}),
+  };
   const dataSource = {
     transaction: async (callback: (manager: unknown) => unknown) => callback({ getRepository: () => repo }),
   };
-  const service = new MembershipAccountService(repo as never, orderRepo as never, quotaLedger as never, dataSource as never);
-  return { service, repo, orderRepo, quotaLedger, saved };
+  const service = new MembershipAccountService(
+    repo as never,
+    orderRepo as never,
+    quotaLedger as never,
+    dataSource as never,
+    planGrantService as never,
+  );
+  return { service, repo, orderRepo, quotaLedger, planGrantService, saved };
 }
 
 const PAID_AT = new Date('2026-11-25T12:00:00+08:00');
@@ -75,6 +86,64 @@ describe('AF-512 会员账号开通', () => {
     expect(snapshot.source).toBe(MembershipSource.Order);
     expect(quotaLedger.grantPlan).toHaveBeenCalledTimes(1);
     expect(saved.length).toBeGreaterThan(0);
+  });
+
+  it('年付首月只发一个月分钟并登记 term，剩余月份由补发服务按月发', async () => {
+    const { service, quotaLedger, planGrantService } = createService(null);
+    const snapshot = await service.applyPaidOrder({
+      orderId: 'o-annual',
+      uid: 'u-1',
+      planId: MembershipTier.Pro,
+      orderType: MembershipOrderType.Subscription,
+      billingPeriod: BillingPeriod.Annual,
+      amountCents: 168_000,
+      promotionId: 'campaign_first_annual_2026',
+      giftMinutes: 0,
+      paidAt: PAID_AT,
+    });
+
+    expect(snapshot.periodEnd?.toISOString()).toBe('2027-11-25T04:00:00.000Z');
+    expect(quotaLedger.grantPlan).toHaveBeenCalledTimes(1);
+    const grantArgs = quotaLedger.grantPlan.mock.calls[0];
+    expect(grantArgs[1].monthlyMinutes).toBe(500);
+    expect(grantArgs[3].toISOString()).toBe('2026-12-25T04:00:00.000Z');
+    expect(grantArgs[5]).toBe('plan:1');
+    expect(planGrantService.createAnnualTerm).toHaveBeenCalledTimes(1);
+    expect(planGrantService.createAnnualTerm.mock.calls[0][1]).toMatchObject({
+      orderId: 'o-annual',
+      tier: MembershipTier.Pro,
+      monthsTotal: 12,
+      firstMonthGranted: true,
+    });
+  });
+
+  it('跨档购买会停掉旧年付 term，防止旧订单继续发放套餐分钟', async () => {
+    const existing = {
+      uid: 'u-1',
+      status: MembershipStatus.Active,
+      tier: 'plus' as const,
+      tierV2: MembershipTier.Plus,
+      expiresAt: new Date('2026-12-25T12:00:00+08:00'),
+      periodEnd: new Date('2026-12-25T12:00:00+08:00'),
+      autoRenew: true,
+      source: MembershipSource.Order,
+      legacyTier: 'plus',
+      lastOrderId: 'o-old',
+    };
+    const { service, planGrantService } = createService(existing);
+    await service.applyPaidOrder({
+      orderId: 'o-upgrade',
+      uid: 'u-1',
+      planId: MembershipTier.Pro,
+      orderType: MembershipOrderType.Subscription,
+      billingPeriod: BillingPeriod.Monthly,
+      amountCents: 18_800,
+      promotionId: null,
+      giftMinutes: 0,
+      paidAt: PAID_AT,
+    });
+
+    expect(planGrantService.cancelActiveTerms).toHaveBeenCalledWith('u-1', 'o-upgrade', expect.anything());
   });
 
   it('同档续费从原 periodEnd 顺延，不吞掉剩余周期', async () => {

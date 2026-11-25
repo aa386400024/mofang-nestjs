@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, LessThanOrEqual, type Repository } from 'typeorm';
 
+import { MembershipPlanGrantService } from './membership-plan-grant.service.js';
 import { QuotaLedgerService } from './quota-ledger.service.js';
 import { Membership } from '../../profile/entities/membership.entity.js';
 import {
@@ -46,10 +47,13 @@ export class MembershipAccountService {
     private readonly orderRepo: Repository<MembershipOrder>,
     private readonly quotaLedger: QuotaLedgerService,
     private readonly dataSource: DataSource,
+    @Optional()
+    private readonly planGrantService?: MembershipPlanGrantService,
   ) {}
 
   /** 读取当前账号快照；不存在时初始化 Free 账号并发放 Free 月度/新人时长。 */
   async getAccount(uid: string, now: Date = new Date()): Promise<MembershipAccountSnapshot> {
+    await this.planGrantService?.refreshForUid(uid, now);
     const membership = await this.ensureAccount(uid, now);
     await this.ensureFreeAllowance(membership, now);
     return this.toSnapshot(membership);
@@ -57,6 +61,7 @@ export class MembershipAccountService {
 
   /** 会员总览：账号 + 配额 + 权益 + 可售档位/加包 + 最近订单。 */
   async getOverview(uid: string, now: Date = new Date()): Promise<MembershipOverview> {
+    await this.planGrantService?.refreshForUid(uid, now);
     const membership = await this.ensureAccount(uid, now);
     await this.ensureFreeAllowance(membership, now);
     const effectiveTier = this.resolveEffectiveTier(membership, now);
@@ -115,6 +120,10 @@ export class MembershipAccountService {
       const periodStart = nowActive && sameTier && membership.periodEnd ? membership.periodEnd : payload.paidAt;
       const periodEnd = payload.billingPeriod === BillingPeriod.Annual ? addYears(periodStart, 1) : addMonths(periodStart, 1);
 
+      if (this.planGrantService && (!sameTier || !nowActive)) {
+        await this.planGrantService.cancelActiveTerms(payload.uid, payload.orderId, manager);
+      }
+
       membership.status = MembershipStatus.Active;
       membership.tierV2 = tier;
       membership.tier = LEGACY_TIER_REVERSE_MAP[tier];
@@ -128,8 +137,28 @@ export class MembershipAccountService {
       membership.quotaPeriod = currentPeriod(payload.paidAt);
       await membershipRepo.save(membership);
 
-      const grantedPlan = payload.billingPeriod === BillingPeriod.Annual ? { ...plan, monthlyMinutes: plan.monthlyMinutes * 12 } : plan;
-      await this.quotaLedger.grantPlan(payload.uid, grantedPlan, payload.orderId, periodEnd, manager);
+      if (payload.billingPeriod === BillingPeriod.Annual) {
+        // 年付不一次性发 12 个月：首月立即发，后续由 MembershipPlanGrantService 按 term 补发。
+        const firstMonthEnd = this.minDate(addMonths(periodStart, 1), periodEnd);
+        await this.quotaLedger.grantPlan(payload.uid, plan, payload.orderId, firstMonthEnd, manager, 'plan:1');
+        if (this.planGrantService) {
+          await this.planGrantService.createAnnualTerm(manager, {
+            uid: payload.uid,
+            orderId: payload.orderId,
+            tier,
+            termStart: periodStart,
+            termEnd: periodEnd,
+            monthsTotal: 12,
+            firstMonthGranted: true,
+          });
+        } else {
+          // 兼容没有 planGrantService 的旧单测/降级装配：退回一次性 12 个月，不静默少发。
+          const fallbackPlan = { ...plan, monthlyMinutes: plan.monthlyMinutes * 12 };
+          await this.quotaLedger.grantPlan(payload.uid, fallbackPlan, payload.orderId, periodEnd, manager, 'plan:fallback');
+        }
+      } else {
+        await this.quotaLedger.grantPlan(payload.uid, plan, payload.orderId, periodEnd, manager);
+      }
       if (payload.giftMinutes > 0 && payload.promotionId) {
         await this.quotaLedger.grantPromotion(payload.uid, payload.giftMinutes, payload.orderId, payload.promotionId, periodEnd, manager);
       }
@@ -237,6 +266,10 @@ export class MembershipAccountService {
     const tier = Object.values(MembershipTier).find((item) => item === planId);
     if (!tier || tier === MembershipTier.Free) throw new Error(`未知或不可购买的档位: ${planId}`);
     return tier;
+  }
+
+  private minDate(left: Date, right: Date): Date {
+    return left.getTime() < right.getTime() ? left : right;
   }
 
   private toSnapshot(membership: Membership): MembershipAccountSnapshot {

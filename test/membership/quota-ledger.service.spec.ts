@@ -26,15 +26,29 @@ function createLedger() {
     create: vi.fn((value: any) => value),
     createQueryBuilder: vi.fn(() => {
       let uid = '';
+      let source: QuotaLotSource | undefined;
+      let orderId: string | undefined;
+      let referenceKey: string | null = null;
       const builder: any = {
         where: vi.fn((_sql: string, params: { uid: string }) => {
           uid = params.uid;
           return builder;
         }),
-        andWhere: vi.fn(() => builder),
+        andWhere: vi.fn((sql: string, params: Record<string, string>) => {
+          if (sql.includes('lot.source')) source = params.source as QuotaLotSource;
+          if (sql.includes('lot.orderId')) orderId = params.orderId;
+          if (sql.includes('lot.referenceKey =')) referenceKey = params.referenceKey;
+          return builder;
+        }),
         setLock: vi.fn(() => builder),
         getMany: vi.fn(async () =>
           lots.filter((lot) => lot.uid === uid && lot.minutesRemaining > 0 && lot.expiresAt.getTime() > NOW.getTime()),
+        ),
+        getOne: vi.fn(
+          async () =>
+            lots.find(
+              (lot) => lot.uid === uid && lot.source === source && lot.orderId === orderId && (lot.referenceKey ?? null) === referenceKey,
+            ) ?? null,
         ),
       };
       return builder;

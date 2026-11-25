@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { BillingPeriod, MembershipTier } from '../domain/membership.enums.js';
 import type { PriceQuote, PromotionEvaluationInput } from '../domain/membership.types.js';
-import { MEMBERSHIP_PLANS } from '../membership.constants.js';
+import { MEMBERSHIP_PLANS, type MembershipCampaignDefinition } from '../membership.constants.js';
 import { PROMOTION_ENGINE, type PromotionEnginePort } from './promotion-engine.port.js';
 
 export interface QuoteInput {
@@ -15,6 +15,9 @@ export interface QuoteInput {
   readonly couponDiscountCents?: number;
   readonly redemptionCount?: number;
   readonly campaignBudgetRemainingCents?: number | null;
+  readonly campaigns?: readonly MembershipCampaignDefinition[];
+  readonly redemptionCountByPromotion?: Readonly<Record<string, number>>;
+  readonly campaignBudgetRemainingCentsByPromotion?: Readonly<Record<string, number | null>>;
 }
 
 /**
@@ -80,6 +83,9 @@ export class MembershipPricingService {
       campaignCode: input.campaignCode,
       redemptionCount: input.redemptionCount ?? 0,
       campaignBudgetRemainingCents: input.campaignBudgetRemainingCents ?? null,
+      campaigns: input.campaigns,
+      redemptionCountByPromotion: input.redemptionCountByPromotion,
+      campaignBudgetRemainingCentsByPromotion: input.campaignBudgetRemainingCentsByPromotion,
     };
 
     const decision = this.promotionEngine.evaluate(evaluation);
