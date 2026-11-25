@@ -265,6 +265,8 @@ interface StreamUsageAccumulator {
   promptTokens?: number;
   /** 累计输出侧 token (上游报了才有; 没报 = 不可得). */
   completionTokens?: number;
+  /** 命中前缀缓存的输入 token (上游报了才有; 没报 = 不可得). */
+  cachedTokens?: number;
   /** 终止原因 (上游报了就记). */
   finishReason?: string;
 }
@@ -380,19 +382,23 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // 一个"失败过一次、后来已经恢复"的候选会带着旧计数进冷却,
       // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
       this.runtime.markSuccess(outcome.candidateId);
+      // AF-478: 内核 RenderResult 契约不含 cachedTokens (不能改纯层), 适配层用
+      //   同构扩展携带; 下游 debug/eval 通过结构读取, 不影响内核消费方.
+      const usage = {
+        completionTokens: outcome.value.usage.completionTokens ?? 0,
+        totalTokens: outcome.value.usage.totalTokens ?? 0,
+        // WP24: 上游聚合响应**有** promptTokens, 此前被丢弃 —— 丢掉它, 成本
+        // 就只能算输出侧, 输入侧开销与输出侧混在一个数里估不出来.
+        // 缺省即"上游没报" (不编造): 上游给了就如实带上去.
+        // (用 typeof 而非 `=== undefined`: 上游类型里它是必填 number, 但运行时
+        //  可能压根没填 —— typeof 判的是"真有这个数", 两种情况都判得对.)
+        ...(typeof outcome.value.usage.promptTokens === 'number' ? { promptTokens: outcome.value.usage.promptTokens } : {}),
+        ...(typeof outcome.value.usage.cachedTokens === 'number' ? { cachedTokens: outcome.value.usage.cachedTokens } : {}),
+      } as RenderResult['usage'] & { readonly cachedTokens?: number };
       const result: RenderResult = {
         text: this.projectOutput(outcome.value.text),
         taskKind: spec.taskKind,
-        usage: {
-          completionTokens: outcome.value.usage.completionTokens ?? 0,
-          totalTokens: outcome.value.usage.totalTokens ?? 0,
-          // WP24: 上游聚合响应**有** promptTokens, 此前被丢弃 —— 丢掉它, 成本
-          // 就只能算输出侧, 输入侧开销与输出侧混在一个数里估不出来.
-          // 缺省即"上游没报" (不编造): 上游给了就如实带上去.
-          // (用 typeof 而非 `=== undefined`: 上游类型里它是必填 number, 但运行时
-          //  可能压根没填 —— typeof 判的是"真有这个数", 两种情况都判得对.)
-          ...(typeof outcome.value.usage.promptTokens === 'number' ? { promptTokens: outcome.value.usage.promptTokens } : {}),
-        },
+        usage,
         // fallbackUsed = 切过备 / 走过 block 重生成 / 走过真人度重试 (降级路径恒为 true).
         fallbackUsed: ctx.usedRegen || ctx.usedRealismRegen || attempted.length > 1,
         providerHint: outcome.value.providerHint,
@@ -827,6 +833,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       promptTokens: (first.promptTokens ?? 0) + (second.promptTokens ?? 0),
       completionTokens: (first.completionTokens ?? 0) + (second.completionTokens ?? 0),
       totalTokens: (first.totalTokens ?? 0) + (second.totalTokens ?? 0),
+      // AF-478: 缓存命中同样累计; 两次都没报才保持"不可得", 只要有一次报了就按 0 补另一次.
+      ...(first.cachedTokens === undefined && second.cachedTokens === undefined
+        ? {}
+        : { cachedTokens: (first.cachedTokens ?? 0) + (second.cachedTokens ?? 0) }),
     };
   }
 
@@ -1036,6 +1046,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       tokenCount: opened.tokenCount,
       promptTokens: opened.promptTokens,
       completionTokens: opened.completionTokens,
+      cachedTokens: opened.cachedTokens,
     };
     try {
       await feed(opened.firstDelta);
@@ -1113,6 +1124,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         reasoningTokens: usage.reasoningTokens,
         promptTokens: usage.promptTokens,
         completionTokens: usage.completionTokens,
+        cachedTokens: usage.cachedTokens,
         params,
         messages,
         candidateId: candidate.id,
@@ -1149,6 +1161,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (typeof chunk.completionTokens === 'number' && Number.isFinite(chunk.completionTokens)) {
       acc.completionTokens = chunk.completionTokens;
     }
+    if (typeof chunk.cachedTokens === 'number' && Number.isFinite(chunk.cachedTokens)) {
+      acc.cachedTokens = chunk.cachedTokens;
+    }
     if (typeof chunk.finishReason === 'string' && chunk.finishReason.length > 0) {
       acc.finishReason = chunk.finishReason;
     }
@@ -1172,6 +1187,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     readonly promptTokens: number | undefined;
     /** 上游报的输出侧累计 token (没报 = 不可得). */
     readonly completionTokens: number | undefined;
+    /** 上游报的缓存命中累计 token (没报 = 不可得). */
+    readonly cachedTokens: number | undefined;
     readonly params: ResolvedRenderParams;
     readonly messages: readonly ChatMessage[];
     readonly candidateId: string;
@@ -1192,6 +1209,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         totalTokens: input.tokenCount,
         ...(input.promptTokens === undefined ? {} : { promptTokens: input.promptTokens }),
         ...(input.reasoningTokens === undefined ? {} : { reasoningTokens: input.reasoningTokens }),
+        ...(input.cachedTokens === undefined ? {} : { cachedTokens: input.cachedTokens }),
       },
       fallbackUsed: false,
       providerHint: input.candidateId,
@@ -1233,6 +1251,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         readonly promptTokens?: number;
         /** 上游报的输出侧累计 token (没报 = 不可得). V2026-11-10 (WP-H 改动 7). */
         readonly completionTokens?: number;
+        /** 上游报的缓存命中累计 token (没报 = 不可得). AF-478. */
+        readonly cachedTokens?: number;
         /** 中止本轮流（首包后空闲超时 / 消费方中断时用）。 */
         readonly abort: () => void;
         /** 释放外部取消监听与定时器；流结束后必须调用。 */
@@ -1273,6 +1293,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       // V2026-11-10 (WP-H 改动 7): 首 chunk 也可能带用量 (上游有时第一块就报) —— 带着走.
       let promptTokens: number | undefined;
       let completionTokens: number | undefined;
+      let cachedTokens: number | undefined;
       for (;;) {
         const next = await iterator.next();
         if (next.done) break;
@@ -1286,6 +1307,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         if (typeof chunk.completionTokens === 'number' && Number.isFinite(chunk.completionTokens)) {
           completionTokens = chunk.completionTokens;
         }
+        cachedTokens = mergeChunkCachedTokens(chunk, cachedTokens);
         const delta = chunk.delta ?? '';
         if (delta.length > 0) {
           keepOpen = true;
@@ -1297,6 +1319,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
             tokenCount,
             promptTokens,
             completionTokens,
+            cachedTokens,
             abort: guard.abort,
             dispose: guard.cleanup,
           };
@@ -1358,6 +1381,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         totalTokens: result.usage.totalTokens,
         // WP24: 聚合路径有 promptTokens 就带上去 (与流式路径的口径差异如实透出).
         ...(result.usage.promptTokens === undefined ? {} : { promptTokens: result.usage.promptTokens }),
+        // AF-478: 聚合兜底路径同样透出缓存命中 (适配层扩展字段, 内核契约不变).
+        ...((result.usage as RenderResult['usage'] & { readonly cachedTokens?: number }).cachedTokens === undefined
+          ? {}
+          : { cachedTokens: (result.usage as RenderResult['usage'] & { readonly cachedTokens?: number }).cachedTokens }),
       },
       fallbackUsed: result.fallbackUsed,
       ...(result.providerHint ? { providerHint: result.providerHint } : {}),
@@ -1698,6 +1725,16 @@ function createStreamGuard(handlers: StreamRenderHandlers, timeoutMs: number): S
     timedOut: (): boolean => timedOut,
     externalAborted: (): boolean => externalSignal?.aborted === true,
   };
+}
+
+/**
+ * AF-478: 合并首 chunk 的缓存命中量.
+ *
+ * 抽成模块函数是为了让 `openStream` 的圈复杂度不再增加 —— 它已贴着红线;
+ * 语义仍是"上游报了就以最新值为准, 没报就保持原值".
+ */
+function mergeChunkCachedTokens(chunk: { readonly cachedTokens?: number }, current: number | undefined): number | undefined {
+  return typeof chunk.cachedTokens === 'number' && Number.isFinite(chunk.cachedTokens) ? chunk.cachedTokens : current;
 }
 
 /**

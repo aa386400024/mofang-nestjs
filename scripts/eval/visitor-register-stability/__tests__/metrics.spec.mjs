@@ -155,6 +155,73 @@ it('汇总一场会话不保留原文', () => {
   expect(JSON.stringify(summary)).not.toContain('夜班，咋说呢');
 });
 
+it('AF-478 · 会话聚合透出缓存命中量与命中率', () => {
+  const rows = [1, 2].map((turnIndex) => ({
+    turnIndex,
+    reply: '仓库就我一个人。',
+    promptFull: '你说话的样子（只影响用词，不改内容和情绪）：\n句短',
+    llmUsage: { promptTokens: 100, completionTokens: 5, cachedTokens: turnIndex === 1 ? 80 : 0 },
+    wallMs: 100,
+    crisis: { detected: false },
+    degraded: false,
+  }));
+  const summary = summarizeSession(
+    rows,
+    register,
+    (text) => ({
+      roleKey: register.roleKey,
+      charCount: text.length,
+      sentenceCount: 1,
+      averageSentenceLength: text.length,
+      fragmentRate: 1,
+      abstractTermRate: 0,
+      jargonRate: 0,
+      signatureHitRate: 0,
+      anchorDensity: 1,
+    }),
+    (items) => items[0],
+  );
+  expect(summary.usage).toMatchObject({
+    promptTokens: 200,
+    cachedTokens: 80,
+    cacheHitRate: 0.4,
+    cachedTokensAvailable: true,
+  });
+});
+
+it('AF-478 · 全轮都没报缓存 → 聚合落 null, 不冒充 0', () => {
+  const rows = [
+    {
+      turnIndex: 1,
+      reply: '仓库就我一个人。',
+      promptFull: '你说话的样子（只影响用词，不改内容和情绪）：\n句短',
+      llmUsage: { promptTokens: 100, completionTokens: 5, cachedTokens: null },
+      wallMs: 100,
+      crisis: { detected: false },
+      degraded: false,
+    },
+  ];
+  const summary = summarizeSession(
+    rows,
+    register,
+    (text) => ({
+      roleKey: register.roleKey,
+      charCount: text.length,
+      sentenceCount: 1,
+      averageSentenceLength: text.length,
+      fragmentRate: 1,
+      abstractTermRate: 0,
+      jargonRate: 0,
+      signatureHitRate: 0,
+      anchorDensity: 1,
+    }),
+    (items) => items[0],
+  );
+  expect(summary.usage.cachedTokens).toBeNull();
+  expect(summary.usage.cacheHitRate).toBeNull();
+  expect(summary.usage.cachedTokensAvailable).toBe(false);
+});
+
 it('门槛：方向 8/10、无回归时通过', () => {
   const roles = Array.from({ length: 10 }, (_, index) => makeRole(`r${index}`, index < 8 ? 'active' : 'base'));
   const result = evaluateGates(roles);
