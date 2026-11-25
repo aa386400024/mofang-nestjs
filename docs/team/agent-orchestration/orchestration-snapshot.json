@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-25T17:41:00.815Z",
+  "generatedAt": "2026-11-25T17:47:07.587Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -34,46 +34,6 @@
       },
       "manualReview": [],
       "dispatch": null
-    },
-    {
-      "taskId": "AF-519",
-      "contextId": "phase2.5-membership-v2",
-      "type": "fix",
-      "title": "会员栈迁移号冲突消解与受保护 PR 收口",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-519",
-        "contextId": "phase2.5-membership-v2",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-25T17:41:00.727Z",
-        "leaseDeadline": "2026-11-25T18:11:00.725Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-519.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-25T17:41:00.727Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-519.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
     }
   ],
   "deadLetters": [],
@@ -2078,6 +2038,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-544",
+      "recordedAt": "2026-11-25T17:41:01.016Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-519",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-519",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-519.json"
+      ]
+    },
+    {
       "auditId": "AUD-543",
       "recordedAt": "2026-11-25T17:40:56.148Z",
       "actorRef": "orchestrator",
@@ -2306,35 +2281,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-529",
-      "recordedAt": "2026-11-22T11:51:12.076Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-303",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-303",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-303.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 543,
+    "total": 544,
     "byResult": {
-      "allowed": 543,
+      "allowed": 544,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 542,
+      "TOOL-QUEUE-SCHEDULER": 543,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 543
+      "orchestrator": 544
     }
   },
   "protocolView": {
@@ -2363,30 +2323,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-519",
-        "title": "会员栈迁移号冲突消解与受保护 PR 收口",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-membership-v2",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md"
           }
         ]
       }
@@ -10465,6 +10401,24 @@
             "ref": "docs/worklog/completed/phase2.5/af518-membership-migration-pr-closure-implementation-2026-11-26.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-519",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -10489,22 +10443,11 @@
         "taskId": "AF-481",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af481-cache-wiring-2026-11-25.md"
-      },
-      {
-        "taskId": "AF-519",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-membership-v2/AF-519/task-sheet.md"
-      },
-      {
-        "taskId": "AF-519",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af519-membership-migration-pr-closure-implementation-2026-11-26.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
     "groupIds": [
-      "phase2.5-orchestration-closed-loop",
-      "phase2.5-membership-v2"
+      "phase2.5-orchestration-closed-loop"
     ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
@@ -10513,5 +10456,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 457
+  "archivedCount": 458
 }
