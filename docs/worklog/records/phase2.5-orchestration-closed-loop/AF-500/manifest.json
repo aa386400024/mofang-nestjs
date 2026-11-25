@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-500",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-25T09:42:00+08:00",
+  "updatedAt": "2026-11-25T01:34:28.781Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-500/task-sheet.md",
+    "sha256": "9e8f2313388f04ab39cbee555df01e0c284246562aeeb2c03166bb254e3bb86e",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-500/receipt-RC-AF-500-1.json",
+      "sha256": "909034a428aef16c27f163e4bff9e6ef6e55814dccc6ba141c93697a98d2be21",
+      "receiptId": "RC-AF-500-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af500-acceptance-artifact-exemption-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af500-acceptance-artifact-exemption.md"
+  ],
+  "tombstone": null
+}
