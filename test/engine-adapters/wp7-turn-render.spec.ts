@@ -285,14 +285,14 @@ describe('WP7 · 决策→说话闭环', () => {
 
   describe('③ 成功闭环', () => {
     it('reply 等于渲染文本, render 元信息正确透传', async () => {
-      const renderer = new StubRenderer({ ok: true, text: REPLY, fallbackUsed: false, providerHint: 'deepseek' });
+      const renderer = new StubRenderer({ ok: true, text: REPLY, fallbackUsed: false, providerHint: 'qwen' });
       const { orchestrator } = buildOrchestrator({ renderer });
 
       const result = await orchestrator.turn(HANDLE_ID, { userText: USER_TEXT });
 
       expect(result.reply).toBe(REPLY);
       expect(result.render.fallbackUsed).toBe(false);
-      expect(result.render.providerHint).toBe('deepseek');
+      expect(result.render.providerHint).toBe('qwen');
       expect(result.render.usage).toEqual({ completionTokens: 20, totalTokens: 40 });
       expect(result.turnIndex).toBe(1);
       expect(result.intention?.strategy).toBe('recounting');

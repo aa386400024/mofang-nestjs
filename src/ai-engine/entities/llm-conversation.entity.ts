@@ -44,11 +44,11 @@ export class LLMConversationEntity {
   @Column({ type: 'enum', enum: LLMTier, name: 'tier', default: LLMTier.RAG })
   tier!: LLMTier;
 
-  /** 调用的具体 provider — 审计用 (deepseek / doubao / qwen / ...). */
+  /** 调用的具体 provider — 审计用 (doubao / qwen / minimax / ...). */
   @Column({ type: 'varchar', length: 32, name: 'provider_id', nullable: true })
   providerId!: string | null;
 
-  /** 具体模型 — gpt-4o / deepseek-chat / doubao-pro-32k / qwen-plus. */
+  /** 具体模型 — gpt-4o / qwen-plus / doubao-pro-32k. */
   @Column({ type: 'varchar', length: 64, name: 'model', nullable: true })
   model!: string | null;
 

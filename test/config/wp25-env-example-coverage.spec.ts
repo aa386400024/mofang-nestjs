@@ -87,7 +87,7 @@ const ENV_KEY_SHAPE = /^[A-Z][A-Z0-9_]*$/;
 const DERIVED_ENV_KEYS: Readonly<Record<string, readonly string[]>> = {
   // src/llm/config/provider-env.ts:59 —— `LLM_${providerId.toUpperCase()}_API_KEY`
   //   (MiniMax 例外: 它走历史命名 MINIMAX_API_KEY, 不在本族里).
-  'LLM_<PROVIDER>_API_KEY': ['LLM_OPENAI_API_KEY', 'LLM_DEEPSEEK_API_KEY', 'LLM_DOUBAO_API_KEY', 'LLM_QWEN_API_KEY', 'LLM_CUSTOM_API_KEY'],
+  'LLM_<PROVIDER>_API_KEY': ['LLM_OPENAI_API_KEY', 'LLM_DOUBAO_API_KEY', 'LLM_QWEN_API_KEY', 'LLM_CUSTOM_API_KEY'],
 };
 
 /**
@@ -698,12 +698,12 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(orphans, `以下 .env.example 生效行在代码里查无读取点 (配了也不生效):\n${orphans.join('\n')}`).toEqual([]);
   });
 
-  it('③ 派生族登记与代码推导口径一致 (5 个 LLM_*_API_KEY)', () => {
+  it('③ 派生族登记与代码推导口径一致 (4 个 LLM_*_API_KEY)', () => {
     // 防"登记表自己漂了": 登记的族名必须与源码里出现的模板字符串对得上.
     const providerEnv = readFileSync(path.join(SRC_ROOT, 'llm/config/provider-env.ts'), 'utf8');
     expect(providerEnv).toContain(`LLM_\${providerId.toUpperCase()}_API_KEY`);
     // 登记的键数不能比推导口径少 (少一个 = 漏登记 = 断言放行了一个真实缺口).
-    expect(DERIVED_ENV_KEYS['LLM_<PROVIDER>_API_KEY']).toHaveLength(5);
+    expect(DERIVED_ENV_KEYS['LLM_<PROVIDER>_API_KEY']).toHaveLength(4);
   });
 
   it('③b 22 个 ENGINE_CAP_* 键已改字面量读取, 内核树不再有 cap 键 (WP26 · P2-13/P2-14 · WP42 加两维)', () => {

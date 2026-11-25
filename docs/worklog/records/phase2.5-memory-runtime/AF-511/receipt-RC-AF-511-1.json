@@ -1,0 +1,295 @@
+{
+  "deliveredAt": "2026-11-25T17:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-511-1",
+    "taskId": "AF-511",
+    "contextId": "phase2.5-memory-runtime",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "8ca2f3f9ff027ac725ad5514faf7366b0aae0f57",
+    "dependsOn": [],
+    "priorTasks": ["AF-510"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-511/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af511-deepseek-removal-2026-11-25.md",
+      "reply": null,
+      "others": [
+        "docs/runbooks/memory-runtime-production-release.md",
+        "src/llm/README.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["0995200a"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af511-deepseek-removal-2026-11-25.md",
+        "docs/worklog/records/phase2.5-memory-runtime/AF-511/task-sheet.md",
+        "docs/worklog/records/phase2.5-memory-runtime/AF-511/manifest.json"
+      ],
+      "modified": [
+        ".env.example",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "docker-compose.yml",
+        "docker/litellm/config.yaml",
+        "docs/architecture/ai-engine-roadmap-v1.1.md",
+        "docs/architecture/phase3-judge-layer-ai-review-design-2026-11-15.md",
+        "docs/architecture/v6.0-ai-engine.md",
+        "docs/reference/ai-simulation-blueprint-v1.1.md",
+        "docs/runbooks/memory-runtime-production-release.md",
+        "docs/specs/active/ai-voice-training-v0.3.md",
+        "scripts/smoke-ai-engine.cjs",
+        "src/ai-engine/ai-engine.module.ts",
+        "src/ai-engine/entities/llm-conversation.entity.ts",
+        "src/auto-practice/practice-runner.service.ts",
+        "src/engine-adapters/persistence/session-summary.generator.ts",
+        "src/engine-adapters/wiring/render-config.factory.ts",
+        "src/knowledge-base/providers/search.service.ts",
+        "src/llm/README.md",
+        "src/llm/common/base/openai-compatible-chat.provider.ts",
+        "src/llm/common/base/openai-compatible-embedding.provider.ts",
+        "src/llm/common/enums/llm.enums.ts",
+        "src/llm/common/interfaces/chat-provider.interface.ts",
+        "src/llm/config/llm.config.ts",
+        "src/llm/llm.module.ts",
+        "src/llm/providers/minimax.provider.ts",
+        "src/llm/registry/llm-router.service.ts",
+        "src/llm/registry/provider-registry.service.ts",
+        "test/config/wp25-env-example-coverage.spec.ts",
+        "test/engine-adapters/wp-h-render-availability.spec.ts",
+        "test/engine-adapters/wp11-psyguard-probe.spec.ts",
+        "test/engine-adapters/wp12-memory-closeout.spec.ts",
+        "test/engine-adapters/wp6-llm-render.spec.ts",
+        "test/engine-adapters/wp7-turn-render.spec.ts",
+        "test/engine-adapters/wp8-wiring.spec.ts",
+        "test/llm/af210-doubao-tier-mapping.spec.ts",
+        "test/llm/custom-embedding-provider.spec.ts",
+        "test/llm/minimax-provider.spec.ts",
+        "test/llm/wp9c-token-fields.spec.ts"
+      ],
+      "deleted": ["src/llm/providers/deepseek.provider.ts"],
+      "deletionChecks": [
+        "git grep -n -i deepseek -- src test scripts .env.example docker-compose.yml docker/litellm/config.yaml admin-dashboard/src 输出为空",
+        "生产镜像 /app/dist/llm/providers/deepseek.provider.js 不存在"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "git grep -n -i deepseek -- src test scripts .env.example docker-compose.yml docker/litellm/config.yaml admin-dashboard/src",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "空输出，代码/测试/模板/容器配置零引用"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "约 1 分钟",
+        "note": "0 error；曾因 render-config.factory.ts 一处 prettier 换行失败，修正后复跑通过"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "约 30 秒",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 337,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "40.87s",
+        "note": "336 passed / 1 skipped；4961 passed / 4 skipped（共 4965）"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "约 20 秒",
+        "note": "exit 0；清理 dist 后重建，dist 内 deepseek.provider.js 不存在，全量 dist/**/*.js 无 deepseek 字符串"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "空输出，engine-core 零改动"
+      },
+      {
+        "command": "docker ps --filter name=mofang-nestjs-api --format '{{.Names}} {{.Status}} {{.Image}}'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "43s 启动窗口",
+        "note": "mofang-nestjs-api Up 43 seconds (healthy) mofang-nestjs-api:latest"
+      },
+      {
+        "command": "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/health",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "health=200"
+      },
+      {
+        "command": "GET /admin/api/memories?limit=1 with Basic auth (服务端读取 .env 后发起)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "HTTP 200；返回 long_term 记忆条目，接口正常"
+      },
+      {
+        "command": "docker logs --since 10m mofang-nestjs-api 2>&1 | grep -i deepseek",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "空输出，NO_DEEPSEEK_LOG"
+      },
+      {
+        "command": "docker exec mofang-nestjs-api sh -c 'test ! -f /app/dist/llm/providers/deepseek.provider.js'",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "生产服务器 117.72.30.78 / Linux",
+        "wallClock": "秒级",
+        "note": "PROVIDER_ABSENT"
+      }
+    ],
+    "deploymentChecks": [
+      {
+        "check": "生产镜像重建",
+        "command": "docker build -f Dockerfile.prod -t mofang-nestjs-api:af511-20261125 -t mofang-nestjs-api:latest .",
+        "result": "success",
+        "note": "镜像 ID ca273933b436；构建产物 1.36GB"
+      },
+      {
+        "check": "回滚镜像",
+        "command": "docker tag mofang-nestjs-api:latest mofang-nestjs-api:rollback-af511",
+        "result": "2935c7e5a378",
+        "note": "AF-509 运行镜像，可回滚"
+      },
+      {
+        "check": "生产部署",
+        "command": "docker compose -f docker-compose.prod.yml up -d --force-recreate",
+        "result": "success",
+        "note": "容器 healthy，/health 200"
+      },
+      {
+        "check": "管理后台",
+        "command": "GET /admin/api/memories?limit=1 with Basic auth",
+        "result": "200",
+        "note": "带鉴权接口正常"
+      },
+      {
+        "check": "生产残留",
+        "command": "docker exec ... test ! -f /app/dist/llm/providers/deepseek.provider.js；docker logs | grep -i deepseek",
+        "result": "均无",
+        "note": "镜像与日志均无 DeepSeek"
+      }
+    ],
+    "reproNotes": "仓库复核：pnpm lint / pnpm typecheck / pnpm test / pnpm build；构建前去 dist 重新编译。生产复核：ssh root@117.72.30.78，docker images / docker ps / curl health；管理接口在服务器内读取 /opt/mofang-nestjs/.env 后构造 Basic header，不打印口令；镜像残留用 docker run/exec 检查。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-511 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执 / 归档均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 与回执六组字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入与 completed / archived 事件由 run-once 与 archive 生成"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "secrets",
+        "result": "pass",
+        "note": "服务器密码、Qdrant key、MiniMax key、ASR token、admin 口令均未写入仓库/日志/回执"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "容器状态、健康码、接口 200、测试数字、构建与镜像检查均来自真实命令"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF511-01",
+        "item": "构建前需清理 dist",
+        "source": "implementation",
+        "impact": "tsc 不清理历史产物，若直接 build 会把已删 provider 的旧 js 带进镜像",
+        "suggestion": "CI/发布脚本在 build 前 rm -rf dist，并保留镜像内 grep 作为兜底"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "数据迁移",
+        "taskSays": "审计为 0 条则不做迁移",
+        "reality": "生产库审计 llm_conversations 0 行、provider/model 列 0 命中",
+        "action": "不迁移",
+        "why": "无历史值可迁"
+      },
+      {
+        "item": "生产镜像大小",
+        "taskSays": "重建并部署",
+        "reality": "新镜像 ID ca273933b436，docker images 显示 1.36GB",
+        "action": "按计划部署",
+        "why": "与 AF-509 镜像体积一致，属镜像分层显示口径"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "DeepSeek provider/枚举/配置/模板/展示/现役文档全部清零；全量测试 4961 通过、lint/typecheck/build 全绿；生产镜像与日志无 DeepSeek 残留，容器 healthy、/health 200、管理后台鉴权接口 200；engine-core 零改动、无密钥外泄。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本地编译与生产镜像重建；无新增外部付费调用。"
+  }
+}

@@ -1,12 +1,12 @@
 // V2026-09-04 治本 (V6.0 §3.5 + audit P0-1):
 //   ChatProvider 抽象接口 — 对齐 mofang moyin-ai-core/providers/types.ts.
 //   原因: 前端 commit 14935e3 引入 LLMClient (OpenAI 兼容 SSE 流式),
-//         后端需要多厂商可插拔 — DeepSeek / 豆包 / 通义 / 月之暗面 / OpenAI /
+//         后端需要多厂商可插拔 — Qwen / 豆包 / 通义 / 月之暗面 / OpenAI /
 //         自定义 baseUrl, 全部走统一接口, 配置驱动切换.
 //   修复: 参照 moyin-ai-core 的 APIProvider / ChatProvider 抽象,
 //         扩展流式 + LangChain 包装 + 危机信号字段.
 //   如何验证: 单元测试 mock OpenAICompatibleChatProvider 基类,
-//             DeepSeek / Doubao / OpenAI provider 走同一个基类, 仅
+//             Qwen / Doubao / OpenAI provider 走同一个基类, 仅
 //             baseUrl + apiKey + model 不同.
 
 import type { AIProviderId, LLMCapability, LLMTier } from '../enums/llm.enums.js';
@@ -31,7 +31,7 @@ export type ChatReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
  * https://platform.openai.com/docs/api-reference/chat/create
  */
 export interface ChatCompletionRequest {
-  /** 模型 id (e.g. 'deepseek-chat', 'gpt-4o', 'doubao-pro-32k'). */
+  /** 模型 id (e.g. 'qwen-plus', 'gpt-4o', 'doubao-pro-32k'). */
   model: string;
 
   /** 消息列表 — role: 'system' | 'user' | 'assistant' | 'tool'. */
@@ -272,7 +272,7 @@ export interface LLMProviderConfig {
 /**
  * ChatProvider 抽象接口 — 对齐 moyin-ai-core ChatProvider.
  *
- * 所有具体厂商 (OpenAI / DeepSeek / 豆包 / 通义 / 自定义) 实现本接口.
+ * 所有具体厂商 (OpenAI / Qwen / 豆包 / 通义 / 自定义) 实现本接口.
  * OpenAI 兼容协议覆盖 90% 厂商, 走 OpenAICompatibleChatProvider 基类
  * 仅配置 baseUrl + apiKey + model 即可.
  */

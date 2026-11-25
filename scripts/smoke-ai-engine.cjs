@@ -83,14 +83,10 @@ function redisCommand(parts) {
     const sock = net.createConnection({ host, port }, () => {
       // 1. AUTH (如果需要)
       if (password) {
-        sock.write(
-          `*2\r\n$4\r\nAUTH\r\n$${Buffer.byteLength(password)}\r\n${password}\r\n`,
-        );
+        sock.write(`*2\r\n$4\r\nAUTH\r\n$${Buffer.byteLength(password)}\r\n${password}\r\n`);
       } else {
         // 没密码, 直接 SELECT
-        sock.write(
-          `*2\r\n$6\r\nSELECT\r\n$${Buffer.byteLength(String(db))}\r\n${db}\r\n`,
-        );
+        sock.write(`*2\r\n$6\r\nSELECT\r\n$${Buffer.byteLength(String(db))}\r\n${db}\r\n`);
         step = 'GET';
       }
     });
@@ -108,9 +104,7 @@ function redisCommand(parts) {
         if (step === 'AUTH') {
           if (line.startsWith('+OK')) {
             step = 'SELECT';
-            sock.write(
-              `*2\r\n$6\r\nSELECT\r\n$${Buffer.byteLength(String(db))}\r\n${db}\r\n`,
-            );
+            sock.write(`*2\r\n$6\r\nSELECT\r\n$${Buffer.byteLength(String(db))}\r\n${db}\r\n`);
           } else if (line.startsWith('-')) {
             sock.destroy();
             return reject(new Error('Redis AUTH: ' + line));
@@ -175,8 +169,8 @@ function redisCommand(parts) {
 
 async function getVerifyToken(uid) {
   // V2026-09-04 治本: strip trailing colon from REDIS_KEY_PREFIX (兼容 .env 任意写法:
-    // 写 'mofang:dev' / 'mofang:dev:' 都不出双冒号).
-    const _prefix = (process.env.REDIS_KEY_PREFIX || 'mofang:dev').replace(/:+$/, '');
+  // 写 'mofang:dev' / 'mofang:dev:' 都不出双冒号).
+  const _prefix = (process.env.REDIS_KEY_PREFIX || 'mofang:dev').replace(/:+$/, '');
   const key = `${_prefix}:verify:email:uid:${uid}`;
   const token = await redisCommand(['GET', key]);
   return token;
@@ -248,9 +242,7 @@ async function step(label, fn) {
   try {
     const result = await Promise.race([
       fn(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('step timeout')), STEP_TIMEOUT_MS),
-      ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('step timeout')), STEP_TIMEOUT_MS)),
     ]);
     process.stdout.write(`  ✓ done\n`);
     return result;
@@ -285,11 +277,7 @@ async function main() {
   console.log('=======================================');
   console.log(`REDIS: ${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || 6379}`);
   console.log(`REDIS_KEY_PREFIX: ${process.env.REDIS_KEY_PREFIX || 'mofang:dev'}`);
-  const hasKey =
-    process.env.LLM_OPENAI_API_KEY ||
-    process.env.LLM_DEEPSEEK_API_KEY ||
-    process.env.LLM_DOUBAO_API_KEY ||
-    process.env.LLM_QWEN_API_KEY;
+  const hasKey = process.env.LLM_OPENAI_API_KEY || process.env.LLM_DOUBAO_API_KEY || process.env.LLM_QWEN_API_KEY;
   console.log(`LLM: ${hasKey ? 'configured' : 'not configured — chat 步骤会 SKIP'}`);
   console.log('---------------------------------------\n');
 

@@ -459,7 +459,7 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
     it('缺 apiKey 的错误同样按候选切备 (备候选 key 独立)', async () => {
       const caller = new StubChatCaller([
-        { ok: false, error: new Error('API key not found for provider deepseek') },
+        { ok: false, error: new Error('API key not found for provider qwen') },
         { ok: true, content: SAFE_TEXT },
       ]);
       const adapter = new LlmRenderAdapter({

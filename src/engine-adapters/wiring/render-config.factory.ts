@@ -5,7 +5,7 @@
 //         不组装 RenderSpec (那些分别在内核 / WP7).
 //
 //   为什么模型名放在**候选 overrides** 而不是 taskDefaults:
-//     模型名是**厂商相关**的 —— deepseek 是 'deepseek-chat', qwen 是 'qwen-plus'.
+//     模型名是**厂商相关**的 —— minimax 是 'MiniMax-M3', qwen 是 'qwen-plus'.
 //     而 taskDefaults 是**全局一层**(不分厂商). 把模型名放全局, 主备两个不同厂商
 //     就会共用一个模型名, 切到备候选时必然打错模型. 所以:
 //       taskDefaults[kind]  → 温度 / token 上限 (厂商无关)
@@ -200,8 +200,7 @@ export class RenderConfigFactory {
    */
   private buildCandidates(): { readonly candidates: RenderCandidate[]; readonly autoFallbackId: string | null } {
     const visitorProvider = this.visitorProviderOverride();
-    const configuredPrimary =
-      this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.DEEPSEEK;
+    const configuredPrimary = this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.MINIMAX;
     // AF-252: `VISITOR_LLM_PROVIDER=doubao` 是**来访者总开关** —— 旧 VisitorService 与
     // 引擎渲染必须一起切，否则同一个开关只覆盖一条链路，生产主候选仍是 MiniMax。
     const primary = visitorProvider ?? configuredPrimary;

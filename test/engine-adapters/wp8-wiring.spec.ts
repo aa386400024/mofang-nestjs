@@ -188,7 +188,7 @@ class StubMemoryStore implements MemoryStore {
 const RESPONSE: ChatCompletionResponse = {
   content: '来访者的一句话',
   usage: { promptTokens: 10, completionTokens: 8, totalTokens: 18 },
-  model: 'deepseek-chat',
+  model: 'qwen-plus',
   finishReason: 'stop',
 };
 
@@ -204,7 +204,7 @@ class StubRouter {
 
   constructor(
     private readonly response: ChatCompletionResponse,
-    private readonly modelForProvider: Readonly<Record<string, string>> = { deepseek: 'deepseek-chat' },
+    private readonly modelForProvider: Readonly<Record<string, string>> = { minimax: 'MiniMax-M3' },
   ) {}
 
   async chat(req: ChatCompletionRequest, opts: { providerId?: AIProviderId; uid?: string } = {}): Promise<ChatCompletionResponse> {
@@ -214,7 +214,7 @@ class StubRouter {
 
   getDefaultModelForTier(tier: LLMTier, providerId?: AIProviderId): string {
     this.tierCalls.push({ tier, providerId });
-    const id = providerId ?? AIProviderId.DEEPSEEK;
+    const id = providerId ?? AIProviderId.MINIMAX;
     return this.modelForProvider[id] ?? `${id}-default`;
   }
 }
@@ -250,7 +250,7 @@ function buildService(options: { readonly session?: StubSession; readonly render
 /** 最小渲染配置 (只给一个候选). */
 function stubRenderConfig(): RenderAdapterConfig {
   return {
-    candidates: [{ id: AIProviderId.DEEPSEEK }],
+    candidates: [{ id: AIProviderId.QWEN }],
     taskDefaults: {
       chat: { temperature: 0.85 },
       stable: { temperature: 0.2 },
@@ -274,13 +274,13 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     it('req 与 providerId 原样透传, 响应原样返回', async () => {
       const router = new StubRouter(RESPONSE);
       const caller = new RouterChatCaller(router as unknown as LlmRouterService);
-      const req: ChatCompletionRequest = { model: 'deepseek-chat', messages: [{ role: 'user', content: '你好' }] };
+      const req: ChatCompletionRequest = { model: 'qwen-plus', messages: [{ role: 'user', content: '你好' }] };
 
-      const response = await caller.chat(req, AIProviderId.DEEPSEEK);
+      const response = await caller.chat(req, AIProviderId.QWEN);
 
       expect(router.chatCalls).toHaveLength(1);
       expect(router.chatCalls[0]?.req).toBe(req);
-      expect(router.chatCalls[0]?.opts).toEqual({ providerId: AIProviderId.DEEPSEEK });
+      expect(router.chatCalls[0]?.opts).toEqual({ providerId: AIProviderId.QWEN });
       expect(response).toBe(RESPONSE);
     });
 
@@ -288,7 +288,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const router = new StubRouter(RESPONSE);
       const caller = new RouterChatCaller(router as unknown as LlmRouterService);
 
-      await caller.chat({ model: 'deepseek-chat', messages: [] });
+      await caller.chat({ model: 'qwen-plus', messages: [] });
 
       expect(router.chatCalls[0]?.opts).toEqual({});
     });
@@ -467,7 +467,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const config = factory.build();
 
       expect(config.candidates).toHaveLength(1);
-      expect(config.candidates[0]?.id).toBe(AIProviderId.DEEPSEEK);
+      expect(config.candidates[0]?.id).toBe(AIProviderId.MINIMAX);
       expect(config.taskDefaults.chat.temperature).toBe(0.85);
       expect(config.taskDefaults.stable.temperature).toBe(0.2);
       expect(config.taskDefaults.advanced.temperature).toBe(0.85);
@@ -493,22 +493,22 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     });
 
     it('主候选 + 备候选按顺序组成候选序列 (顺序即优先级, 去重)', () => {
-      const router = new StubRouter(RESPONSE, { deepseek: 'deepseek-chat', qwen: 'qwen-plus', doubao: 'doubao-pro' });
+      const router = new StubRouter(RESPONSE, { minimax: 'MiniMax-M3', qwen: 'qwen-plus', doubao: 'doubao-pro' });
       const factory = new RenderConfigFactory(
         stubConfig({
-          ENGINE_RENDER_PRIMARY_PROVIDER: 'qwen',
-          ENGINE_RENDER_FALLBACK_PROVIDERS: 'deepseek, doubao ,qwen',
+          ENGINE_RENDER_PRIMARY_PROVIDER: 'minimax',
+          ENGINE_RENDER_FALLBACK_PROVIDERS: 'qwen, doubao ,qwen',
         }) as unknown as ConstructorParameters<typeof RenderConfigFactory>[0],
         router as unknown as LlmRouterService,
       );
 
       const config = factory.build();
 
-      expect(config.candidates.map((candidate) => candidate.id)).toEqual(['qwen', 'deepseek', 'doubao']);
+      expect(config.candidates.map((candidate) => candidate.id)).toEqual(['minimax', 'qwen', 'doubao']);
     });
 
     it('模型名缺省向 router 问 (装配层不硬编码模型名表)', () => {
-      const router = new StubRouter(RESPONSE, { deepseek: 'deepseek-chat' });
+      const router = new StubRouter(RESPONSE, { minimax: 'MiniMax-M3' });
       const factory = new RenderConfigFactory(
         stubConfig({}) as unknown as ConstructorParameters<typeof RenderConfigFactory>[0],
         router as unknown as LlmRouterService,
@@ -516,21 +516,21 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
 
       const config = factory.build();
 
-      expect(config.candidates[0]?.overrides?.chat?.model).toBe('deepseek-chat');
+      expect(config.candidates[0]?.overrides?.chat?.model).toBe('MiniMax-M3');
       expect(router.tierCalls.length).toBeGreaterThan(0);
       expect(router.tierCalls[0]?.tier).toBe(LLMTier.RAG);
     });
 
     it('显式配置的模型名优先于 router 默认', () => {
-      const router = new StubRouter(RESPONSE, { deepseek: 'deepseek-chat' });
+      const router = new StubRouter(RESPONSE, { minimax: 'MiniMax-M3' });
       const factory = new RenderConfigFactory(
-        stubConfig({ ENGINE_RENDER_CHAT_MODEL: 'deepseek-reasoner' }) as unknown as ConstructorParameters<typeof RenderConfigFactory>[0],
+        stubConfig({ ENGINE_RENDER_CHAT_MODEL: 'MiniMax-M3.1-Flash' }) as unknown as ConstructorParameters<typeof RenderConfigFactory>[0],
         router as unknown as LlmRouterService,
       );
 
       const config = factory.build();
 
-      expect(config.candidates[0]?.overrides?.chat?.model).toBe('deepseek-reasoner');
+      expect(config.candidates[0]?.overrides?.chat?.model).toBe('MiniMax-M3.1-Flash');
     });
 
     it('非法数值回落种子 (不把 NaN 带进退避计算)', () => {

@@ -8,7 +8,7 @@
 //         registerDefaultProviders 注入 env 配置的默认 provider.
 //   如何验证:
 //     1. AppModule.imports 加 LlmModule 后启动, log 应见 'Registered chat
-//        provider: deepseek' 等.
+//        provider: Qwen' 等.
 //     2. AI Engine Controller (后续 batch) 注入 LlmRouterService 调 chat.
 //     3. /v1/chat/completions Controller 暴露给前端, 流式响应正常.
 

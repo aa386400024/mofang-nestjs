@@ -19,28 +19,29 @@ pnpm add -D @types/node
 
 ## 装包后验证 (大炮跑)
 
-| 验证项               | 命令                                           | 预期                                                |
-| -------------------- | ---------------------------------------------- | --------------------------------------------------- |
-| TypeScript 编译      | `npx tsc -p tsconfig.build.json --noEmit`      | exit 0                                              |
-| pnpm build           | `pnpm build`                                   | exit 0                                              |
-| pnpm lint            | `pnpm lint`                                    | exit 0                                              |
-| 启动后 provider 注册 | `GET /llm/providers`                           | 返 4 provider (deepseek/doubao/qwen/custom), 0 warn |
-| 真实调用 LLM         | `POST /v1/chat/once` (走 LlmOrchestrator)      | 返真 AIMessage, 不再抛 [Stub] Error                 |
-| 真实调 embedding     | `POST /ai/knowledge/ingest` (走 Qdrant ingest) | 返真 number[][], 不再抛 [Stub] Error                |
+| 验证项               | 命令                                           | 预期                                               |
+| -------------------- | ---------------------------------------------- | -------------------------------------------------- |
+| TypeScript 编译      | `npx tsc -p tsconfig.build.json --noEmit`      | exit 0                                             |
+| pnpm build           | `pnpm build`                                   | exit 0                                             |
+| pnpm lint            | `pnpm lint`                                    | exit 0                                             |
+| 启动后 provider 注册 | `GET /llm/providers`                           | 返 4 provider (doubao/qwen/custom/minimax), 0 warn |
+| 真实调用 LLM         | `POST /v1/chat/once` (走 LlmOrchestrator)      | 返真 AIMessage, 不再抛 [Stub] Error                |
+| 真实调 embedding     | `POST /ai/knowledge/ingest` (走 Qdrant ingest) | 返真 number[][], 不再抛 [Stub] Error               |
 
 ---
 
-## V0.5 Provider (4 OpenAI 兼容, 装包后自动 work)
+## V0.5 Provider (3 OpenAI 兼容 + MiniMax, 装包后自动 work)
 
-| Provider ID | 用途                      | env                                          |
-| ----------- | ------------------------- | -------------------------------------------- |
-| `deepseek`  | 主力 chat (国产 LLM 兜底) | `LLM_DEEPSEEK_API_KEY`                       |
-| `doubao`    | 火山方舟 (豆包)           | `LLM_DOUBAO_API_KEY`                         |
-| `qwen`      | 阿里通义千问 (DashScope)  | `LLM_QWEN_API_KEY`                           |
-| `custom`    | 自定义 OpenAI 兼容        | `LLM_CUSTOM_API_KEY` + `LLM_CUSTOM_BASE_URL` |
+| Provider ID | 用途                     | env                                          |
+| ----------- | ------------------------ | -------------------------------------------- |
+| `doubao`    | 火山方舟 (豆包)          | `LLM_DOUBAO_API_KEY`                         |
+| `qwen`      | 阿里通义千问 (DashScope) | `LLM_QWEN_API_KEY`                           |
+| `custom`    | 自定义 OpenAI 兼容       | `LLM_CUSTOM_API_KEY` + `LLM_CUSTOM_BASE_URL` |
+| `minimax`   | MiniMax 订阅 chat        | `MINIMAX_API_KEY` + `MINIMAX_LLM_MODEL`      |
 
-> 注: V0.5 4 provider 同时支持 chat (completions) + embedding (embeddings) 双 capability. V1.x 升级
-> 加 base/large embedding 模型时, 改 env `LLM_DEFAULT_EMBEDDING_PROVIDER=deepseek` 切厂商, 0 代码改动.
+> 注: 3 个 OpenAI 兼容 provider 同时支持 chat (completions) + embedding (embeddings) 双 capability;
+> MiniMax 只注册 chat. V1.x 升级加 base/large embedding 模型时, 改 env
+> `LLM_DEFAULT_EMBEDDING_PROVIDER=qwen` 切厂商, 0 代码改动.
 
 ---
 
@@ -56,8 +57,8 @@ pnpm add -D @types/node
 
 ### VS-3b plan B 部署命令 (大炮跑, 2 步)
 
-**重大变更**: 大炮 14:57 拍板 plan B, **删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 4 provider embedding
-(deepseek/doubao/qwen/custom)**. 跟 VS-3a LangChain OpenAI 兼容 base class 1:1 复用, 0 新增技术栈.
+**重大变更**: 大炮 14:57 拍板 plan B, **删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 3 provider embedding
+(doubao/qwen/custom)**. 跟 VS-3a LangChain OpenAI 兼容 base class 1:1 复用, 0 新增技术栈.
 
 ```bash
 # 1. pnpm add @qdrant/js-client-rest (装包, 跟 VS-3a LangChain 同 pattern)
@@ -78,16 +79,15 @@ pnpm build
 npx tsc -p tsconfig.build.json --noEmit
 ```
 
-### OpenAI 兼容 embedding 性能 + 成本 (跟 chat 同 4 provider)
+### OpenAI 兼容 embedding 性能 + 成本 (跟 chat 同 3 provider)
 
 - **模型** (V0.5 默认, V1.x 升级 base/large):
-  - `deepseek`: deepseek-chat + text-embedding-3-small (1024 维, 国产兜底)
   - `doubao`: doubao-pro-32k + doubao-embedding (1024/2048 维)
   - `qwen`: qwen-plus + text-embedding-v3 (1024 维)
   - `custom`: 用户自定义 OpenAI 兼容
-- **成本**: 4 vendor 按 token 收费, KB 1000 条 ≈ ¥1-3 一次性 (1 vendor 1 次 embed)
+- **成本**: 3 vendor 按 token 收费, KB 1000 条 ≈ ¥1-3 一次性 (1 vendor 1 次 embed)
 - **性能**: 厂商 API 200-500ms/请求, KB 批量 100 条 ~5s
-- **V1.x 升级 path**: 改 env `LLM_DEFAULT_EMBEDDING_PROVIDER=deepseek` 切厂商, 0 代码改动
+- **V1.x 升级 path**: 改 env `LLM_DEFAULT_EMBEDDING_PROVIDER=qwen` 切厂商, 0 代码改动
 
 ### plan B vs plan A 维护性对比 (大炮 14:47 拍板理由)
 

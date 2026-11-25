@@ -9,7 +9,7 @@
 //   如何验证:
 //     1. 启动期 LLMConfigLoader 调用 registerXxx 注入默认 provider.
 //     2. admin 后台修改 apiKey 后调 invalidate(id) 触发热更新.
-//     3. resolveChat('deepseek') 返回 { provider, config }, 不存在返回 null
+//     3. resolveChat('Qwen') 返回 { provider, config }, 不存在返回 null
 //        (上层 LLMRouter 走默认 provider fallback).
 
 import { Injectable, Logger } from '@nestjs/common';

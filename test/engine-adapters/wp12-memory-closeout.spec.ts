@@ -707,10 +707,10 @@ describe('WP12 · 摘要生成 (解析与提示词)', () => {
 
   it('模型名 env 优先, 否则问 router 的 RAG 分层', () => {
     const router = {
-      getDefaultModelForTier: vi.fn(() => 'deepseek-chat'),
+      getDefaultModelForTier: vi.fn(() => 'qwen-plus'),
     } as unknown as LlmRouterService;
     expect(resolveSummaryModel(' my-model ', router)).toBe('my-model');
-    expect(resolveSummaryModel(undefined, router)).toBe('deepseek-chat');
+    expect(resolveSummaryModel(undefined, router)).toBe('qwen-plus');
   });
 });
 

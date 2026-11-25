@@ -14,7 +14,7 @@
 //     将来 LangChain 升级要改两处.
 //
 //   为什么基址与模型名从**构造参数**来而不是 provider 自己读 env:
-//     provider 是纯类 (与 deepseek/qwen/doubao 同构), 由启动配置层
+//     provider 是纯类 (与 qwen/doubao 同构), 由启动配置层
 //     (`llm.config.ts`) 读 env 后注入. 这样 provider 里没有 IO, 单测能直接
 //     构造任意基址/模型, 也让"基址归一"这件事只有一处实现 (provider-env.ts).
 //

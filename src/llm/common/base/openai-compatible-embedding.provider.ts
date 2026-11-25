@@ -59,7 +59,7 @@ export interface OpenAICompatibleEmbeddingConfig {
  * 重要: 维度 (dimension) 是关键参数 — 不同厂商模型维度不同:
  *   - OpenAI text-embedding-3-small: 1536
  *   - OpenAI text-embedding-3-large: 3072
- *   - DeepSeek (via bailian): 1024
+ *   - Qwen (via bailian): 1024
  *   - 豆包 embedding: 1024 / 2048
  *   - 通义 text-embedding-v3: 1024
  * 切换模型时必须重建 Qdrant collection (或用 collection alias).

@@ -95,7 +95,7 @@ Phase2.5 已具备离线规则评测（WP-E）与批次指标回归设施（WP-K
 - **端口抽象**：参照仓内仓储端口 / 分类器端口先例，judge 抽成接口（如 `ReviewJudgePort`），provider 是实现；业务层只依赖端口，切换厂商不改动评审逻辑。
 - **独立 providerId**：judge 的模型配置与对话生成的默认 provider **解耦**，显式配置独立的 `judgeProviderId` / `judgeModel`。
 - **跨模型族错开**：judge 模型族与被评角色（AI 来访者）生成模型族刻意错开，避免同源模型互背书；角色线将来换厂商，judge 跟随错开。
-- **复用现有链**：走 `llm-router` 与既有 provider 适配（DeepSeek / Doubao / Qwen / MiniMax），**不新增第三方依赖**。
+- **复用现有链**：走 `llm-router` 与既有 provider 适配（Doubao / Qwen / MiniMax），**不新增第三方依赖**。
 - **厂商压测**：具体选哪家，待第二家 key（Doubao）到位后，用一批固定样本压双 judge 一致率再定；选型沿用"同档费用取最佳模型"口径。
 
 ### 4.3 三态演进（沿用 D-1/D-7 思路）
@@ -131,7 +131,7 @@ Phase2.5 已具备离线规则评测（WP-E）与批次指标回归设施（WP-K
 
 ### 5.2 定案路径：外部国内厂商 judge + 专用脱敏层
 
-**私有部署路径已排除**：内部阶段成本不允许私有化模型。主路径定为现有国内厂商 provider（DeepSeek / Doubao / Qwen / MiniMax；排除出境红线厂商），经专用脱敏层后送审。
+**私有部署路径已排除**：内部阶段成本不允许私有化模型。主路径定为现有国内厂商 provider（Doubao / Qwen / MiniMax；排除出境红线厂商），经专用脱敏层后送审。
 
 **judge 专用脱敏层（新增，独立于日志 redactor）**：
 

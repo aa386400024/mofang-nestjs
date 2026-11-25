@@ -122,7 +122,7 @@ export class LlmSessionSummaryGenerator implements SessionSummaryGenerator {
  *
  * 口径: **env 优先, 否则问 router 自己**的 tier→model 映射.
  *
- * 为什么不在装配层硬编码模型名: 模型名是**厂商相关**的事实 (deepseek 是 'deepseek-chat',
+ * 为什么不在装配层硬编码模型名: 模型名是**厂商相关**的事实 (Qwen 是 'qwen-plus',
  * qwen 是 'qwen-plus'), 各厂商有什么模型只有 router 知道 —— 装配层再写一份模型名表,
  * 就是第二份真相, 厂商一改就漂移 (与 `render-config.factory.ts` 的 `modelFor()` 同款理由).
  *

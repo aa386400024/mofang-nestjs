@@ -58,7 +58,7 @@ LLM_DEFAULT_CHAT_PROVIDER=minimax
 - 改完 `.env` 必须 `docker compose -f docker-compose.prod.yml up -d --force-recreate`；
   `up -d` 不会因 env 文件变化重建容器。
 
-## 2.1 管理后台、BDI 持久化与 DeepSeek 退出（AF-510）
+## 2.1 管理后台、BDI 持久化与 DeepSeek 移除（AF-510 / AF-511）
 
 ```dotenv
 ADMIN_BASIC_AUTH_USER=admin
@@ -73,8 +73,8 @@ LLM_DEFAULT_CHAT_PROVIDER=minimax
   两个都配才启用 basic auth。口令只在服务器 `/opt/mofang-nestjs/.env`，不要写入仓库。
 - `ENGINE_BDI_STATE_STORE=redis` 后 BDI 会话快照跨进程重启保留；Redis 不可用时装配会
   在启动期直接失败，不会静默回落 memory。
-- 生产不再配置 `LLM_DEEPSEEK_API_KEY`，主候选固定 MiniMax、备候选为空；
-  DeepSeek provider 历史代码保留但不再注册，也不会进入渲染候选链。
+- 生产不再配置 `LLM_DEEPSEEK_API_KEY`；AF-511 起 DeepSeek provider 源码、枚举、配置模板已全部删除，
+  主候选固定 MiniMax、备候选为空。
 - 验证：
 
 ```bash
@@ -89,7 +89,7 @@ curl -s -u "$ADMIN_BASIC_AUTH_USER:$ADMIN_BASIC_AUTH_PASS" \
 
 # 不应再出现以下告警
 docker logs mofang-nestjs-api 2>&1 | grep -E \
-  'BDI 状态存储形态=memory|候选 deepseek 缺少 apiKey'
+  'BDI 状态存储形态=memory'
 ```
 
 ## 3. 构建与发布

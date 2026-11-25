@@ -42,7 +42,7 @@ describe('AF-210 豆包档位映射', () => {
   it('不改变其他厂商的档位映射', () => {
     const router = buildRouter();
 
-    expect(router.getDefaultModelForTier(LLMTier.BASIC, AIProviderId.DEEPSEEK)).toBe('deepseek-chat');
+    expect(router.getDefaultModelForTier(LLMTier.BASIC, AIProviderId.OPENAI)).toBe('gpt-4o-mini');
     expect(router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.QWEN)).toBe('qwen-plus');
     expect(router.getDefaultModelForTier(LLMTier.ADVANCED, AIProviderId.QWEN)).toBe('qwen-max');
   });
