@@ -49,6 +49,12 @@ export class QuotaStatusDto {
 
   @ApiProperty({ description: '月度周期 YYYY-MM 格式', example: '2026-10' })
   period!: string;
+
+  @ApiProperty({ description: 'v2 分钟上限', required: false })
+  minutesLimit?: number;
+
+  @ApiProperty({ description: 'v2 分钟余额', required: false })
+  minutesRemaining?: number;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -102,6 +108,12 @@ export class SkuListItemDto {
 
   @ApiProperty({ description: '3 类配额 enum (决定加购包扣哪类配额)', enum: QuotaType })
   quotaType!: QuotaType;
+
+  @ApiProperty({ description: '旧单次 SKU 已下线标记', required: false })
+  deprecated?: boolean;
+
+  @ApiProperty({ description: '下线提示文案', required: false })
+  deprecationMessage?: string;
 }
 
 // ════════════════════════════════════════════════════════════════════════════

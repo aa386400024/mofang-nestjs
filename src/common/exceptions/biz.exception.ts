@@ -64,6 +64,8 @@ const NOT_FOUND_CODES: ReadonlySet<BizCode> = new Set([
   //   工具不存在 = 资源不存在 → 404 (之前没归组, 落到默认分支 400).
   //   后果: 前端拿到 400 会提示“参数错了”, 而真实语义是“这个工具 id 不存在” → 用户看不出该换哪个.
   BizCode.GrowthToolNotFound,
+  BizCode.MembershipOrderNotFound,
+  BizCode.MembershipPromotionNotFound,
 ]);
 
 const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
@@ -75,6 +77,9 @@ const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
   //   "还有活跃会话在用这个角色, 改不了主版本" 是**状态冲突**, 不是参数错误 ——
   //   落默认分支会变成 400 ("你的请求有问题"), 运营会以为自己参数填错了, 而真相是"等一下".
   BizCode.CharacterVersionLocked,
+  BizCode.MembershipOrderStateInvalid,
+  BizCode.MembershipPromotionBudgetExhausted,
+  BizCode.MembershipPromotionPerUserLimit,
 ]);
 
 const UNAUTHORIZED_CODES: ReadonlySet<BizCode> = new Set([
@@ -99,9 +104,12 @@ const RATE_LIMITED_CODES: ReadonlySet<BizCode> = new Set([
   //   上游 1002 限流 = "可重试的限流", HTTP 语义必须是 429, 前端据此决定
   //   "稍等几秒自动重试"还是"提示用户稍后再来" (落到默认分支 400 会被当成"参数错了").
   BizCode.VoiceCatalogUpstreamRateLimited,
+  BizCode.MembershipQuotaDailyLimit,
 ]);
 
 const LOCKED_CODES: ReadonlySet<BizCode> = new Set([BizCode.AccountLocked]);
+
+const GONE_CODES: ReadonlySet<BizCode> = new Set([BizCode.MembershipSkuDeprecated]);
 
 const FORBIDDEN_CODES: ReadonlySet<BizCode> = new Set([BizCode.Forbidden, BizCode.VisitorPoolForbidden]);
 
@@ -174,6 +182,9 @@ function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
   }
   if (LOCKED_CODES.has(code)) {
     return HttpStatus.LOCKED;
+  }
+  if (GONE_CODES.has(code)) {
+    return HttpStatus.GONE;
   }
   if (FORBIDDEN_CODES.has(code)) {
     return HttpStatus.FORBIDDEN;
@@ -320,6 +331,22 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     // V2026-11-06 (WP38 — 角色版本 semver):
     //   文案给"下一步能做什么", 不回显内部表名 / 会话 id.
     [BizCode.CharacterVersionLocked]: '还有会话正在使用这个角色, 暂时不能改主版本 (可改次版本, 或等会话结束后再改)',
+
+    // V2026-11-25 (AF-512 会员体系 v2):
+    //   文案给“下一步能做什么”，不回显内部表名 / orderId / 预算数字.
+    [BizCode.MembershipPlanInvalid]: '该会员档位或加包当前不可购买',
+    [BizCode.MembershipOrderNotFound]: '会员订单不存在或不属于当前账号',
+    [BizCode.MembershipOrderStateInvalid]: '当前订单状态不允许此操作',
+    [BizCode.MembershipQuotaInsufficient]: '可用语音分钟不足，请购买分钟加包后继续',
+    [BizCode.MembershipQuotaDailyLimit]: '今日语音训练已达 180 分钟上限，请明天再来',
+    [BizCode.MembershipPromotionInvalid]: '该活动当前不可用或已结束',
+    [BizCode.MembershipRefundInvalid]: '退款金额或订单状态不合法',
+    [BizCode.MembershipPaymentUnavailable]: '真实支付通道尚未接入，订单已保留',
+    [BizCode.MembershipSkuDeprecated]: '旧单次 SKU 已下线，请改用会员订阅或分钟加包',
+    [BizCode.MembershipPromotionNotFound]: '活动不存在或已删除',
+    [BizCode.MembershipCouponUnsupported]: '优惠券系统暂未开放，请使用活动价下单',
+    [BizCode.MembershipPromotionBudgetExhausted]: '活动名额已用完，请重新报价',
+    [BizCode.MembershipPromotionPerUserLimit]: '该活动已达到单用户限次',
   };
   return messages[code] ?? '错误';
 }

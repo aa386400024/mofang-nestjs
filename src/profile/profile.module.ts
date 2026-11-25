@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { MembershipModule } from '../membership/membership.module.js';
 import { UserModule } from '../user/user.module.js';
 
 import { CertificationController } from './controllers/certification.controller.js';
@@ -71,6 +72,7 @@ import { User } from '../user/entities/user.entity.js';
       User,
     ]),
     UserModule,
+    MembershipModule,
   ],
   controllers: [ProfileController, CertificationController, CompanionController, ExportController, PrivacyAuthorizationController],
   providers: [

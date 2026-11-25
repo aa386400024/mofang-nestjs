@@ -80,4 +80,11 @@ export enum AuditEvent {
 
   // V2 软删
   UserHardDeleted = 'user_hard_deleted',
+
+  // Membership v2 运营 (AF-517): 活动主数据写操作必须可追溯
+  MembershipPromotionCreated = 'membership_promotion_created',
+  MembershipPromotionUpdated = 'membership_promotion_updated',
+  MembershipPromotionActivated = 'membership_promotion_activated',
+  MembershipPromotionPaused = 'membership_promotion_paused',
+  MembershipPromotionDeleted = 'membership_promotion_deleted',
 }

@@ -289,6 +289,10 @@ import { AddPracticeSessionModelColumns1714900000050 } from '../src/migration/17
 import { CreateAdminDebugTtsRenders1714900000051 } from '../src/migration/1714900000051-CreateAdminDebugTtsRenders.js';
 import { AddCharacterProfileSpeechRegister1714900000052 } from '../src/migration/1714900000052-AddCharacterProfileSpeechRegister.js';
 import { AddVisitorFullPersonaSpeech1714900000053 } from '../src/migration/1714900000053-AddVisitorFullPersonaSpeech.js';
+// V2026-11-25 AF-512 / AF-516 / AF-517 — 会员体系 v2 三段迁移，AF-518 重排到 54/55/56 避开 integrate 已用号段。
+import { AddMembershipV2Tables1714900000054 } from '../src/migration/1714900000054-AddMembershipV2Tables.js';
+import { AddMembershipPromotionAndPlanGrant1714900000055 } from '../src/migration/1714900000055-AddMembershipPromotionAndPlanGrant.js';
+import { AddMembershipPromotionReservation1714900000056 } from '../src/migration/1714900000056-AddMembershipPromotionReservation.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -492,6 +496,11 @@ const ormconfig = async (): Promise<DataSource> => {
       //   与 verbal_voice 同段; 内容走幂等 seed, 不进 migration.
       AddCharacterProfileSpeechRegister1714900000052,
       AddVisitorFullPersonaSpeech1714900000053,
+      // V2026-11-25 AF-512 — 会员体系 v2：部署顺序必须先 migration:run 再起服务。
+      AddMembershipV2Tables1714900000054,
+      // V2026-11-25 AF-516 — 会员非支付闭环：活动主数据 + 年付按月发放 term。
+      AddMembershipPromotionAndPlanGrant1714900000055,
+      AddMembershipPromotionReservation1714900000056,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

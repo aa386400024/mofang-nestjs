@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-513",
+  "contextId": "phase2.5-membership-v2",
+  "status": "completed",
+  "createdAt": "2026-11-25T23:45:00+08:00",
+  "updatedAt": "2026-11-25T15:40:41.791Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-membership-v2/AF-513/task-sheet.md",
+    "sha256": "675a5e42683cd7fccbc6dcdddd4ec9ed2fa87db8b95ed482954367b4ae6a7b30",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-membership-v2/AF-513/receipt-RC-AF-513-1.json",
+      "sha256": "56e5b09685b9de1c0b13f7b9332f1949cf9abe9d575da41f8db0e4ac87d0f971",
+      "receiptId": "RC-AF-513-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af513-membership-v2-rework-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}

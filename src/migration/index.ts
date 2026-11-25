@@ -252,4 +252,11 @@ export { AddCharacterProfileSpeechRegister1714900000052 } from './1714900000052-
 //   visitor_full_personas 加 speech JSON NULL; 长程人设的语域指纹, 缺省不渲染.
 export { AddVisitorFullPersonaSpeech1714900000053 } from './1714900000053-AddVisitorFullPersonaSpeech.js';
 
+// AF-512 / AF-516 / AF-517 (2026-11-25 · 会员体系 v2):
+//   会员订阅 / 配额 / 订单 / 活动兑换，活动主数据与年付 term，活动预算与限次预占。
+//   AF-518 重排到 54/55/56，避开 integrate 已占用的 49/50/51 号段。
+export { AddMembershipV2Tables1714900000054 } from './1714900000054-AddMembershipV2Tables.js';
+export { AddMembershipPromotionAndPlanGrant1714900000055 } from './1714900000055-AddMembershipPromotionAndPlanGrant.js';
+export { AddMembershipPromotionReservation1714900000056 } from './1714900000056-AddMembershipPromotionReservation.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

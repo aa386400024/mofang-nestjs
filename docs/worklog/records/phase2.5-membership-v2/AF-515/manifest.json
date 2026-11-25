@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-515",
+  "contextId": "phase2.5-membership-v2",
+  "status": "backlog",
+  "createdAt": "2026-11-25T23:58:00+08:00",
+  "updatedAt": "2026-11-25T16:06:29.982Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-membership-v2/AF-515/task-sheet.md",
+    "sha256": "43e769018de0c98c9263c8045480ce0818537d6c3f3c540bd1ed932c3068774b",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/af515-membership-nonpayment-closure-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}
