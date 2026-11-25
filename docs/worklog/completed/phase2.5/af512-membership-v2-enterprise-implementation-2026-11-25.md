@@ -135,6 +135,22 @@
 
 ---
 
-## 七、提交信息
+## 七、机读回执字段对齐
+
+本记录同时承载回执六组字段的正文对应，便于 `run-once` 与人工复核逐项定位：
+
+| 字段 | 对应内容 |
+|---|---|
+| `gateResults` | 本文件 §四“闸门与证据”的 8 行命令、退出码与数字 |
+| `scopeCheck` | `in-scope`；44 个实现/文档文件在 AF-512 scope 内；编排状态面由 CLI 生成 |
+| `contractChecks` | taskId / state-write / receipt-groups / engine-boundary / migration-registered / legacy-contract 六项均 pass |
+| `backlogItems` | 本文件 §六“已知风险与后续”的 8 项与回执 `backlogItems` 对应 |
+| `deviationTable` | 本文件 §三“关键设计决策与与任务单偏差”表 |
+| `reviewVerdict` | `passed`；理由见回执 `verdictRationale` |
+
+---
+
+## 八、提交信息
 
 `feat(af512): 会员体系 v2 四档与配额账本落地`
+

@@ -4,85 +4,65 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1394,
+    "lastEventSeq": 1401,
     "rebuiltAt": null
   },
   "tasks": [
     {
-      "taskId": "AF-512",
+      "taskId": "AF-513",
       "status": "submitted",
       "history": [
         {
-          "at": "2026-11-25T14:46:35.028Z",
+          "at": "2026-11-25T15:37:55.377Z",
           "from": "backlog",
           "to": "ready",
           "by": "orchestrator-cli",
-          "reason": "人工提级"
+          "reason": "AF-512 验收返修"
         },
         {
-          "at": "2026-11-25T14:47:30.636Z",
+          "at": "2026-11-25T15:38:37.088Z",
           "from": "ready",
           "to": "submitted",
           "by": "orchestrator-cli",
           "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        },
-        {
-          "at": "2026-11-25T15:30:43.399Z",
-          "from": "submitted",
-          "to": "working",
-          "by": "orchestrator-cli",
-          "reason": "scope 补录：登记时 frontmatter 缺 scope"
-        },
-        {
-          "at": "2026-11-25T15:30:43.520Z",
-          "from": "working",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "scope 补录完成，回到在办"
         }
       ],
       "contextId": "phase2.5-membership-v2",
-      "title": "会员体系 v2 企业级落地：四档 + 加包 + 配额账本 + 活动规则端口",
-      "type": "implementation",
-      "baselineRef": "c295c2b5",
+      "title": "AF-512 返修：交付记录机读字段与任务记录 scope 对齐",
+      "type": "fix",
+      "baselineRef": "2495b682",
       "dependsOn": [],
+      "priorTasks": [
+        "AF-512"
+      ],
+      "scope": {
+        "files": [
+          "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
+          "docs/worklog/records/phase2.5-membership-v2/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
       "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
       "policyRefs": [
         "conventions.md#1.1",
         "conventions.md#1.3",
         "conventions.md#三"
       ],
-      "createdAt": "2026-11-25T02:00:00.000Z",
+      "createdAt": "2026-11-25T15:37:51.072Z",
       "agentRole": "orchestrator",
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-513/task-sheet.md",
         "deliveryRecord": null,
         "reply": null
       },
       "plannedArtifacts": [],
       "requiredSkills": [],
       "requiredTools": [],
-      "scope": {
-        "files": [
-          "bin/ormconfig.ts",
-          "src/**",
-          "test/**",
-          "docs/specs/active/membership-system-v2.0.md",
-          "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
-          "docs/worklog/pending/phase4-backlog-2026-11-08.md"
-        ],
-        "modules": [
-          "membership"
-        ],
-        "interfaces": [
-          "/membership/**"
-        ]
-      },
       "successCriteria": [],
       "outOfScope": [],
       "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-25T14:46:35.027Z"
+      "promotedAt": "2026-11-25T15:37:55.376Z"
     }
   ],
   "archivedTasks": [
@@ -2795,6 +2775,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-303/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af303-acceptance-fallback-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-512",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md",
         "reply": null
       }
     }

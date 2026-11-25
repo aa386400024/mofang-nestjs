@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-513",
+  "contextId": "phase2.5-membership-v2",
+  "status": "backlog",
+  "createdAt": "2026-11-25T23:45:00+08:00",
+  "updatedAt": "2026-11-25T15:37:51.069Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-membership-v2/AF-513/task-sheet.md",
+    "sha256": "675a5e42683cd7fccbc6dcdddd4ec9ed2fa87db8b95ed482954367b4ae6a7b30",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/af513-membership-v2-rework-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}
