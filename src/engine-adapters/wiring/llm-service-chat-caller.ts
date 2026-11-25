@@ -73,6 +73,7 @@ export function createLlmServiceChatCaller(llm: LlmStreamSource, options: LlmSer
           tokenCount: chunk.usage.totalTokens,
           promptTokens: chunk.usage.promptTokens,
           completionTokens: chunk.usage.completionTokens,
+          ...(chunk.usage.cachedTokens === undefined ? {} : { cachedTokens: chunk.usage.cachedTokens }),
           isFinal: true,
           ...(chunk.finishReason ? { finishReason: chunk.finishReason } : {}),
         };

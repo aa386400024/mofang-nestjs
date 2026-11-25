@@ -115,6 +115,8 @@ export interface SessionUsageDelta {
   readonly totalTokens?: number;
   /** 思考 token (推理模型专用; WP9-C 已单列). */
   readonly reasoningTokens?: number;
+  /** 命中前缀缓存的输入 token; 缺省 = 上游没报. AF-478. */
+  readonly cachedTokens?: number;
   /** 本轮实际用的模型名 (缺省 = 上游没报). */
   readonly model?: string;
   /**
@@ -140,6 +142,8 @@ export interface ProviderUsageTotals {
   readonly totalTokens: number;
   /** 思考 token 累计. */
   readonly reasoningTokens: number;
+  /** 命中前缀缓存的输入 token 累计; 缺省 = 本场上游一次都没报. AF-478. */
+  readonly cachedTokens?: number;
   /** 该 provider 是否报过输入侧用量. */
   readonly promptTokensAvailable: boolean;
   /** 该 provider 最后一次模型名 (缺省 = 上游没报). */
@@ -160,6 +164,8 @@ export interface SessionUsageTotals {
   readonly totalTokens: number;
   /** 思考 token 累计. */
   readonly reasoningTokens: number;
+  /** 命中前缀缓存的输入 token 累计; 缺省 = 本场上游一次都没报. AF-478. */
+  readonly cachedTokens?: number;
   /** 输入侧用量是否可得 (上游报过 promptTokens). */
   readonly promptTokensAvailable: boolean;
   /** 本场用过的模型名 (最后一次; 缺省 = 上游没报). */
@@ -222,6 +228,9 @@ export function accumulateSessionUsage(totals: SessionUsageTotals, delta: Sessio
     completionTokens: totals.completionTokens + (delta.completionTokens ?? 0),
     totalTokens: totals.totalTokens + (delta.totalTokens ?? 0),
     reasoningTokens: totals.reasoningTokens + (delta.reasoningTokens ?? 0),
+    ...(totals.cachedTokens === undefined && delta.cachedTokens === undefined
+      ? {}
+      : { cachedTokens: (totals.cachedTokens ?? 0) + (delta.cachedTokens ?? 0) }),
     promptTokensAvailable: promptAvailable,
     ...(model === undefined ? {} : { model }),
     ...(delta.provider === undefined ? {} : { byProvider: mergeProviderUsage(totals.byProvider, delta.provider, delta) }),
@@ -258,6 +267,9 @@ function mergeProviderUsage(
       completionTokens: current.completionTokens + (delta.completionTokens ?? 0),
       totalTokens: current.totalTokens + (delta.totalTokens ?? 0),
       reasoningTokens: current.reasoningTokens + (delta.reasoningTokens ?? 0),
+      ...(current.cachedTokens === undefined && delta.cachedTokens === undefined
+        ? {}
+        : { cachedTokens: (current.cachedTokens ?? 0) + (delta.cachedTokens ?? 0) }),
       promptTokensAvailable: current.promptTokensAvailable || delta.promptTokens !== undefined,
       ...(model === undefined ? {} : { model }),
     },
@@ -388,6 +400,7 @@ export interface SessionCostSummary {
   readonly model: string | null;
   readonly totalPromptTokens: number;
   readonly totalCompletionTokens: number;
+  readonly totalCachedTokens?: number;
   readonly totalTokens: number;
   readonly estimatedCostCny: number;
   /** 成本口径 (见 SessionCostBasis). */
@@ -424,6 +437,7 @@ export function buildSessionCostSummary(params: {
     model: params.totals.model ?? null,
     totalPromptTokens: params.totals.promptTokens,
     totalCompletionTokens: params.totals.completionTokens,
+    ...(params.totals.cachedTokens === undefined ? {} : { totalCachedTokens: params.totals.cachedTokens }),
     totalTokens: params.totals.totalTokens,
     estimatedCostCny: cost.estimatedCostCny,
     costBasis: cost.costBasis,

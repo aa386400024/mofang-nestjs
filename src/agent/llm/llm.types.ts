@@ -127,6 +127,8 @@ export interface LlmUsage {
    * "输出被上游截断" 与 "思考吃光了预算" —— 拆开上报才查得动.
    */
   readonly reasoningTokens?: number;
+  /** 命中前缀缓存的输入 token 数 (上游报了就带; 缺省 = 不可得). AF-478. */
+  readonly cachedTokens?: number;
 }
 
 /** 错误信息, 含重试策略. */

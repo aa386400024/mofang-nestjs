@@ -44,6 +44,8 @@ export interface TurnUsageSnapshot {
   readonly totalTokens: number;
   /** 思考 token (推理模型专用; 缺省 = 上游没报). */
   readonly reasoningTokens?: number;
+  /** 命中前缀缓存的输入 token (缺省 = 上游没报). AF-478. */
+  readonly cachedTokens?: number;
 }
 
 /**

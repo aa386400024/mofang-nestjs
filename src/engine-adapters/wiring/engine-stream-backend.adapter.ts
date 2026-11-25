@@ -1194,6 +1194,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         completionTokens: usage?.completionTokens ?? 0,
         totalTokens: usage?.totalTokens ?? 0,
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+        // AF-478: 缓存命中量只在可得时出现; 没报就不出键.
+        ...cachedUsageField(usage),
       },
       // V2026-11-03 治本 (WP26 · P2-34): 透传上游结束原因 ——
       //   `length` 意味着正文被按长度砍断, 客户端与服务端据此分"说完了"与"被截断了".
@@ -1240,6 +1242,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         completionTokens: usage?.completionTokens ?? 0,
         totalTokens: usage?.totalTokens ?? 0,
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+        ...cachedUsageField(usage),
       },
       // WP26 · P2-34: 上游结束原因随快照存 (重放时原样回出).
       ...(result.render.finishReason === undefined ? {} : { finishReason: result.render.finishReason }),
@@ -1287,6 +1290,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         ...(usage?.completionTokens === undefined ? {} : { completionTokens: usage.completionTokens }),
         ...(usage?.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens }),
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+        ...cachedUsageField(usage),
         ...(model === undefined ? {} : { model }),
         ...(provider === undefined ? {} : { provider }),
       }),
@@ -1665,9 +1669,27 @@ function buildLlmUsage(render: TurnRenderResult['render'], usage: TurnRenderResu
     promptTokens: usage?.promptTokens ?? 0,
     completionTokens: usage?.completionTokens ?? 0,
     reasoningTokens: usage?.reasoningTokens ?? 0,
+    ...cachedUsageField(usage),
     ttftMs: render.ttftMs ?? 0,
     finishReason: render.finishReason ?? 'unknown',
   };
+}
+
+/**
+ * 读出适配层扩展的缓存命中量 (AF-478).
+ *
+ * 内核 `RenderResult.usage` 契约不含该字段 (纯层不可改), 运行时对象由
+ * `llm-render.adapter` 以同构扩展携带; 这里按 unknown 结构读取, 缺省 = 不可得.
+ */
+function readCachedTokens(usage: TurnRenderResult['render']['usage'] | undefined): number | undefined {
+  const raw = (usage as unknown as { readonly cachedTokens?: unknown } | undefined)?.cachedTokens;
+  return typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 ? raw : undefined;
+}
+
+/** 缓存命中量收成可展开字段; 没报不出键. */
+function cachedUsageField(usage: TurnRenderResult['render']['usage'] | undefined): { readonly cachedTokens?: number } {
+  const cachedTokens = readCachedTokens(usage);
+  return cachedTokens === undefined ? {} : { cachedTokens };
 }
 
 /**
