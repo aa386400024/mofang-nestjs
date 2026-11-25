@@ -139,6 +139,7 @@ import {
   terminalSession,
 } from './executor-session.mjs';
 import { excludeStatePlane, GENERATED_STATE_PATHS, isGeneratedStatePath } from './task-entry-gate.mjs';
+import { ensureStateAnchor, syncStateAnchor } from './state-anchor.mjs';
 import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
 import {
   copyReceiptToBundle,
@@ -762,7 +763,9 @@ function cmdWorklog(args = []) {
         debt.push(`无任务单 ${result.stats.missingTaskSheets} 超过基线 ${baseline.missingTaskSheets}`);
       }
     }
-    const failed = !result.ok || (strict && result.warnings.length > 0) || debt.length > 0;
+    // 分支内 pre-commit 用 --state-free：孤儿/继承清单是「等状态面同步后再判」的信息项，
+    // 不能把并行分支尚未同步的记录包当成阻断提交的错误（AF-498）。
+    const failed = !result.ok || debt.length > 0 || (strict && !stateFree && result.warnings.length > 0);
     if (json) {
       console.log(JSON.stringify({ ...result, strict, baseline, debt, ok: !failed }, null, 2));
     } else {
@@ -2051,6 +2054,16 @@ function printHelp() {
 }
 
 const [, , command, ...args] = process.argv;
+
+// AF-498：状态面是持久本机状态，分支切换不得把它回滚到旧基线。
+ensureStateAnchor();
+process.on('exit', () => {
+  try {
+    syncStateAnchor();
+  } catch {
+    /* 退出镜像失败不得改变命令结果 */
+  }
+});
 
 switch (command) {
   case 'status':

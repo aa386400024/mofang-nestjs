@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mirrorStateFile } from './state-anchor.mjs';
 import { dirname } from 'node:path';
 import { PATHS, loadIndex, nowIso, writeJsonAtomic } from './state-store.mjs';
 import { TERMINAL_STATUSES, TRANSITIONS } from './contract-enums.mjs';
@@ -349,6 +350,7 @@ export function appendEvents(candidates) {
     }
     if (lines.length > 0) {
       appendFileSync(PATHS.journal, `${lines.join('\n')}\n`, { encoding: 'utf8' });
+      mirrorStateFile(PATHS.journal);
     }
     return appended;
   } finally {
@@ -655,6 +657,7 @@ export function loadArchivedNotes() {
 /** 保存归档说明侧车。 */
 export function saveArchivedNotes(notes) {
   writeJsonAtomic(PATHS.archivedNotes, notes ?? {});
+  mirrorStateFile(PATHS.archivedNotes);
 }
 
 /** 从日志重建索引（默认落盘）。 */
@@ -662,7 +665,10 @@ export function rebuildIndex(opts = {}) {
   const events = loadJournal();
   const notes = opts.archivedNotes ?? loadArchivedNotes();
   const index = projectJournal(events, { archivedNotes: notes, note: opts.note ?? INDEX_NOTE });
-  if (opts.write !== false) writeJsonAtomic(PATHS.index, index);
+  if (opts.write !== false) {
+    writeJsonAtomic(PATHS.index, index);
+    mirrorStateFile(PATHS.index);
+  }
   return index;
 }
 

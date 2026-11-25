@@ -18,6 +18,7 @@ import { FAILING_CONCLUSIONS, PASSING_CONCLUSIONS, fetchCheckRuns } from './ci-s
 import { buildSquashCommitMessage } from './branch-workflow.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS } from './branch-protection.mjs';
 import { extractCommitTaskId, mergeableDurableReceipts } from './ci-task-gate.mjs';
+import { ensureStateAnchor, syncStateAnchor } from './state-anchor.mjs';
 
 const INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const JOURNAL_PATH = 'docs/team/agent-orchestration/state/journal.jsonl';
@@ -109,15 +110,26 @@ export function hasPassedDurableReceipt(taskId, rootDir = process.cwd()) {
   return { pass: mergeableDurableReceipts(receipts).length > 0, receipts };
 }
 
-/** 必需检查必须全部存在且完成；任何实际失败 check 都优先判 fail。 */
+/** 必需检查必须全部存在且完成；同名检查只认最新一次 run，旧 SHA/旧 run 的失败不累计。 */
 export function evaluateRequiredChecks(checkRuns, required = INTEGRATE_REQUIRED_CONTEXTS) {
   const runs = Array.isArray(checkRuns) ? checkRuns : [];
-  const names = new Set(runs.map((run) => run.name));
+  // AF-498：GitHub 对同一 SHA 会保留历史 check run（重跑前的 failure/cancelled 仍在列表里）。
+  // 按 name 取时间最新的一条，避免一次失败之后永远被判 failing。
+  const latestByName = new Map();
+  runs.forEach((run, index) => {
+    const time = Date.parse(run.completed_at ?? run.started_at ?? '') || index;
+    const previous = latestByName.get(run.name);
+    if (!previous || time >= previous.time) {
+      latestByName.set(run.name, { run, time, index });
+    }
+  });
+  const latest = [...latestByName.values()].map((entry) => entry.run);
+  const names = new Set(latest.map((run) => run.name));
   const missing = required.filter((name) => !names.has(name));
-  const failing = runs
+  const failing = latest
     .filter((run) => run.status === 'completed' && FAILING_CONCLUSIONS.includes(String(run.conclusion ?? '').toLowerCase()))
     .map((run) => `${run.name}（${run.conclusion}）`);
-  const pending = runs
+  const pending = latest
     .filter((run) => {
       if (!required.includes(run.name)) return false;
       if (run.status !== 'completed') return true;
@@ -418,14 +430,18 @@ async function waitForRequiredChecks({ repo, sha, timeoutMinutes, intervalSecond
 }
 
 async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, intervalSeconds }) {
-  const branch = currentTaskBranch(taskId);
-  const task = taskInfo(taskId);
-  const receipt = hasPassedDurableReceipt(taskId);
+  // AF-498：允许从当前任务分支反推任务号。任务归档后不再要求“先切回 индекс里的 active 任务”，
+  // 否则已完成任务永远找不到自己的分支，只能手工改 state 才能合并。
+  const resolvedTaskId = taskId ?? taskIdFromBranch(git(['branch', '--show-current']));
+  if (!resolvedTaskId) throw new Error('merge 需要 --taskId，或从 task/AF-NNN-* 分支反推任务号');
+  const branch = currentTaskBranch(resolvedTaskId);
+  const task = taskInfo(resolvedTaskId);
+  const receipt = hasPassedDurableReceipt(resolvedTaskId);
   const pr = await findPullRequest(repo, branch, base);
   const plan = {
     mode: apply ? 'apply' : 'dry-run',
     action: 'merge',
-    taskId,
+    taskId: resolvedTaskId,
     status: task.status,
     archived: task.archived,
     receipt,
@@ -438,9 +454,9 @@ async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, int
     console.log(JSON.stringify(plan, null, 2));
     return;
   }
-  if (!task.archived || task.status !== 'completed') throw new Error(`任务 ${taskId} 尚未 completed/archived`);
+  if (task.status !== 'completed') throw new Error(`任务 ${resolvedTaskId} 尚未 completed（当前 ${task.status}）`);
   if (!receipt.pass)
-    throw new Error(`任务 ${taskId} 没有可合并的 durable 回执（passed，或已登记 backlog 且无人工复核项的 conditional-pass）`);
+    throw new Error(`任务 ${resolvedTaskId} 没有可合并的 durable 回执（passed，或已登记 backlog 且无人工复核项的 conditional-pass）`);
   if (!pr) throw new Error(`未找到 ${branch} → ${base} 的开放 PR`);
   if (pr.head.sha !== plan.localHead) throw new Error(`PR HEAD ${pr.head.sha} 不等于本地 HEAD ${plan.localHead}；请先推送最新状态`);
   if (pr.draft) {
@@ -468,7 +484,7 @@ async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, int
       body: {
         merge_method: 'squash',
         commit_title: pullRequestTitle(task),
-        commit_message: `任务 ${taskId} 已完成机读验收与远端必需检查；由受保护 PR 流程 squash 合并。\n\nTask: ${taskId}`,
+        commit_message: `任务 ${resolvedTaskId} 已完成机读验收与远端必需检查；由受保护 PR 流程 squash 合并。\n\nTask: ${resolvedTaskId}`,
       },
     }),
   );
@@ -517,6 +533,15 @@ function parseArgs(argv) {
 }
 
 async function main(argv) {
+  // AF-498：pr-release 也依赖状态面，入口先恢复锚点，避免分支切换后读到旧索引。
+  ensureStateAnchor();
+  process.on('exit', () => {
+    try {
+      syncStateAnchor();
+    } catch {
+      /* ignore */
+    }
+  });
   const args = parseArgs(argv);
   if (!['create', 'status', 'merge', 'list', 'triage', 'close', 'supersede'].includes(args.command)) {
     throw new Error(
