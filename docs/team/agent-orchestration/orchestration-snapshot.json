@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-25T14:42:40.105Z",
+  "generatedAt": "2026-11-25T14:47:30.731Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,38 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-512",
+      "contextId": "phase2.5-membership-v2",
+      "type": "implementation",
+      "title": "会员体系 v2 企业级落地：四档 + 加包 + 配额账本 + 活动规则端口",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-512",
+        "contextId": "phase2.5-membership-v2",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-25T14:47:30.639Z",
+        "leaseDeadline": "2026-11-25T15:17:30.636Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-512.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,6 +1815,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-530",
+      "recordedAt": "2026-11-25T14:46:35.228Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-512",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-529",
       "recordedAt": "2026-11-22T11:51:12.076Z",
       "actorRef": "orchestrator",
@@ -2004,40 +2052,46 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-515",
-      "recordedAt": "2026-11-22T10:12:53.608Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-297",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-297",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-297.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 529,
+    "total": 530,
     "byResult": {
-      "allowed": 529,
+      "allowed": 530,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 528,
+      "TOOL-QUEUE-SCHEDULER": 529,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 529
+      "orchestrator": 530
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-512",
+        "title": "会员体系 v2 企业级落地：四档 + 加包 + 配额账本 + 活动规则端口",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-membership-v2",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7324,9 +7378,17 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-512",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md"
+      }
+    ],
+    "groupId": "phase2.5-membership-v2",
+    "groupIds": [
+      "phase2.5-membership-v2"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
