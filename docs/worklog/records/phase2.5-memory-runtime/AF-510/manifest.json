@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-510",
+  "contextId": "phase2.5-memory-runtime",
+  "status": "submitted",
+  "createdAt": "2026-11-25T16:50:00+08:00",
+  "updatedAt": "2026-11-25T08:53:05.136Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-memory-runtime/AF-510/task-sheet.md",
+    "sha256": "ebfcbe15231275bd4ad6c8a5d59f05fe8a223ccdc1e3cf1ec23f62f28457d6f4",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-memory-runtime/AF-510/receipt-RC-AF-510-1.json",
+      "sha256": "98d68f4c2635ce4cf1dc7796096b83886d7d5e64f8351174ebc6e96e173e7863",
+      "receiptId": "RC-AF-510-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af510-production-runtime-hardening-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af510-production-runtime-hardening-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}
