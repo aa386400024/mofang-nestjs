@@ -18,7 +18,7 @@ describe('AF-506 custom embedding provider registration', () => {
       // 不清空就会把本机 .env 的 doubao/minimax 带进单测，断言被环境污染。
       LLM_DOUBAO_API_KEY: '',
       LLM_QWEN_API_KEY: '',
-      LLM_DEEPSEEK_API_KEY: '',
+      LLM_OPENAI_API_KEY: '',
       MINIMAX_API_KEY: '',
       LLM_CUSTOM_BASE_URL: 'http://127.0.0.1:8080',
       LLM_CUSTOM_API_KEY: 'tei-local',

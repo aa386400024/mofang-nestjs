@@ -34,7 +34,7 @@ import { LlmOrchestratorService } from './providers/llm-orchestrator.service.js'
 import { QdrantService } from './providers/qdrant.service.js';
 import { RagService } from './providers/rag.service.js';
 // V2026-10-14 治本 (VS-3b plan B 调整 — 删 BgeEmbeddingService, 复用 OpenAI 兼容 4 provider):
-//   原因: 大炮 14:57 拍板 "B 方案 — 删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 embedding (deepseek/doubao/qwen/custom
+//   原因: 大炮 14:57 拍板 "B 方案 — 删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 embedding (doubao/qwen/custom
 //     4 provider 之一)". daocloud 502 Bad Gateway 拉 TEI 镜像失败, V0.5 阶段自托管 bge 不治本 (多
 //     1 个故障点 + 110MB 镜像 + 50MB 模型, 跟 V0.2 KISS 治本 culture 不一致).
 //   修法: 删 bge-embedding.service.ts + 删 L36 import + 删 providers/export 2 处, RagService
@@ -43,7 +43,7 @@ import { RagService } from './providers/rag.service.js';
 //   验证 (大炮装包后跑):
 //     1. pnpm add @qdrant/js-client-rest (装包, 跟 VS-3a LangChain 同 pattern)
 //     2. npx tsc -p tsconfig.build.json --noEmit 0 错
-//     3. 启动后 RagService.ingest() → ProviderRegistryService.embed() → deepseek/doubao/qwen/custom
+//     3. 启动后 RagService.ingest() → ProviderRegistryService.embed() → doubao/qwen/custom
 //        之一 (跟 env LLM_DEFAULT_EMBEDDING_PROVIDER 配置), 写 Qdrant collection.
 //   时间戳: 2026-10-14 14:57.
 import { UnlockEvaluateCron } from './providers/unlock-evaluate.cron.js';

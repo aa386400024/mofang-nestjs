@@ -261,7 +261,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
      */
     function stubRenderConfig(): RenderAdapterConfig {
       return {
-        candidates: [{ id: AIProviderId.DEEPSEEK }],
+        candidates: [{ id: AIProviderId.QWEN }],
         taskDefaults: {
           chat: { temperature: 0.85 },
           stable: { temperature: 0.2 },

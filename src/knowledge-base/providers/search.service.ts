@@ -1,7 +1,7 @@
 // V2026-10-14 治本 (VS-3c — search.service.ts 接 Qdrant + OpenAI 兼容 embedding, 治 V0.x LIKE):
 //   原因: V0.x LIKE %q% (V2026-10-12 spec §12.4) 在 KB 1K+ 数据后性能差 + 不走向量召回
 //     (RAG 效果差). VS-3b plan B 装 Qdrant + OpenAI 兼容 4 provider embedding
-//     (deepseek/doubao/qwen/custom), VS-3c 治本: search() 改 Qdrant vector search.
+//     (doubao/qwen/custom), VS-3c 治本: search() 改 Qdrant vector search.
 //   修法: 1) 1 个 query 向量化走 LlmRouterService.embed() 2) QdrantService.search()
 //     返 top-K chunk + score 3) 根据 chunk.itemId join knowledge_items 返 DTO.
 //   反双胞胎: 不引独立 vector client (QdrantService 已注入), 不用 ES (LLM 抽象层

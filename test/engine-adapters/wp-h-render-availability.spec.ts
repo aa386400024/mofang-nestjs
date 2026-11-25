@@ -278,18 +278,18 @@ describe('WP-H 第一波 · 渲染可用性 (冷却 / 半开探测 / 候选校�
         const factory = new RenderConfigFactory(
           stubConfig({
             ENGINE_RENDER_PRIMARY_PROVIDER: 'minimax',
-            ENGINE_RENDER_FALLBACK_PROVIDERS: 'deepseek',
+            ENGINE_RENDER_FALLBACK_PROVIDERS: 'qwen',
             ENGINE_RENDER_REQUIRE_FAILOVER: 'true',
             // AF-275: 显式候选缺 key 在 REQUIRE_FAILOVER=true 时启动失败，本用例只测候选数校验。
             MINIMAX_API_KEY: 'test-minimax-key',
-            LLM_DEEPSEEK_API_KEY: 'test-deepseek-key',
+            LLM_QWEN_API_KEY: 'test-qwen-key',
           }) as unknown as ConstructorParameters<typeof RenderConfigFactory>[0],
           stubRouter() as unknown as LlmRouterService,
         );
 
         const config = factory.build();
 
-        expect(config.candidates.map((candidate) => candidate.id)).toEqual(['minimax', 'deepseek']);
+        expect(config.candidates.map((candidate) => candidate.id)).toEqual(['minimax', 'qwen']);
         expect(warn).not.toHaveBeenCalled();
       } finally {
         warn.mockRestore();

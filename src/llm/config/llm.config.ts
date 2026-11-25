@@ -3,11 +3,11 @@
 //   原因: 多厂商可插拔, 启动期从 env 读默认 provider + apiKey, 注入
 //         ProviderRegistry. 后续 admin 后台修改走 DB 配置 + 热更新.
 //   修复: 单一函数 registerDefaultProviders(getIt, config) — NestJS
-//         模块 onModuleInit 调用, 注册 DeepSeek / Doubao / Qwen 三个
-//         国产代表 + 从 env 读 apiKey + 默认 chat/embedding provider.
+//         模块 onModuleInit 调用, 注册 Doubao / Qwen 两个国产代表
+//         + MiniMax + 从 env 读 apiKey + 默认 chat/embedding provider.
 //   如何验证:
-//     1. .env 里 LLM_DEEPSEEK_API_KEY=sk-xxx + LLM_DEFAULT_CHAT_PROVIDER=deepseek
-//        启动后 GET /llm/providers 返回 [{ id: 'deepseek', enabled: true, ... }].
+//     1. .env 里 LLM_QWEN_API_KEY=sk-xxx + LLM_DEFAULT_CHAT_PROVIDER=qwen
+//        启动后 GET /llm/providers 返回 [{ id: 'qwen', enabled: true, ... }].
 //     2. 缺 apiKey 时 provider 仍注册 (isConfigured 走 router 校验),
 //        但实际 chat 调用抛 'API key not found'.
 
@@ -18,7 +18,6 @@ import type { OpenAICompatibleChatOptions } from '../common/base/openai-compatib
 import { AIProviderId, LLMCapability } from '../common/enums/llm.enums.js';
 import type { LLMProviderConfig } from '../common/interfaces/chat-provider.interface.js';
 import { createCustomEmbeddingProvider } from '../providers/custom.provider.js';
-import { DeepSeekChatProvider, DeepSeekEmbeddingProvider } from '../providers/deepseek.provider.js';
 import { DoubaoChatProvider, DoubaoEmbeddingProvider } from '../providers/doubao.provider.js';
 import { MinimaxChatProvider } from '../providers/minimax.provider.js';
 import { QwenChatProvider, QwenEmbeddingProvider } from '../providers/qwen.provider.js';
@@ -35,15 +34,6 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
   // V2026-11-09 治本 (Phase2.5 WP-H · 改动 3): 客户端超时与显式重试次数是
   //   **部署事实**, 四家厂商共用同一套 env 口径 —— 各家 provider 各写一遍就是两份真相.
   const runtime = readRuntimeOptions(config);
-
-  // ─── DeepSeek ───
-  if (config.get<string>('LLM_DEEPSEEK_API_KEY')) {
-    registry.registerChat(
-      new DeepSeekChatProvider(runtime),
-      buildEnvConfig(config, AIProviderId.DEEPSEEK, 'DeepSeek', 'https://api.deepseek.com/v1', 'deepseek-chat'),
-    );
-    registry.registerEmbedding(new DeepSeekEmbeddingProvider());
-  }
 
   // ─── 豆包 (火山方舟) ───
   if (config.get<string>('LLM_DOUBAO_API_KEY')) {

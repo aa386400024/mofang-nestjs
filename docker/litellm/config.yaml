@@ -21,13 +21,6 @@ model_list:
       api_key: os.environ/OPENAI_API_KEY
       dimensions: 1536
 
-  # ----- DeepSeek (国内, 性价比) -----
-  - model_name: deepseek-chat
-    litellm_params:
-      model: deepseek/deepseek-chat
-      api_key: os.environ/DEEPSEEK_API_KEY
-      api_base: https://api.deepseek.com/v1
-
   # ----- 豆包 (火山引擎) -----
   - model_name: doubao-pro-32k
     litellm_params:
@@ -44,7 +37,7 @@ model_list:
 
 # 通用参数
 litellm_settings:
-  # 失败重试 (OpenAI/DeepSeek/Anthropic 等都支持)
+  # 失败重试 (OpenAI/Qwen/Doubao 等都支持)
   num_retries: 3
   # 限流 — 60 req/min 软限
   rpm: 60

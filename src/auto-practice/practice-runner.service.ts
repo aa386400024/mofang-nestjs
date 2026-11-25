@@ -1076,7 +1076,7 @@ export class PracticeRunnerService implements OnModuleInit {
  *   它对反映式复述(咨询师的正常技术动作)天然误伤, 金丝雀 5 场误判全在这里.
  *
  * 为什么语义层不用 embedding:
- *   本仓 embedding provider (通义 / 豆包 / DeepSeek) 都要各自 env key 才注册,
+ *   本仓 embedding provider (通义 / 豆包 / Qwen) 都要各自 env key 才注册,
  *   MiniMax 只提供 CHAT —— 走向量会让判定依赖未配置的上游, 本机根本验不了.
  *   本地词表计算零网络开销、确定性可测.
  *

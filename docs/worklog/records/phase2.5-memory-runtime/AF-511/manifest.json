@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-511",
+  "contextId": "phase2.5-memory-runtime",
+  "status": "submitted",
+  "createdAt": "2026-11-25T17:40:00+08:00",
+  "updatedAt": "2026-11-25T09:45:45.676Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-memory-runtime/AF-511/task-sheet.md",
+    "sha256": "98179f36783f93ef49a665f9c37b2a85ab1a59d02c3010340d7a51d73cc78169",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-memory-runtime/AF-511/receipt-RC-AF-511-1.json",
+      "sha256": "a31598cd01bba745b1eb435c6f1cc8a187c52ac5cb6db105897b93aa27b59656",
+      "receiptId": "RC-AF-511-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af511-deepseek-removal-2026-11-25.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af511-deepseek-removal-task-2026-11-25.md"
+  ],
+  "tombstone": null
+}

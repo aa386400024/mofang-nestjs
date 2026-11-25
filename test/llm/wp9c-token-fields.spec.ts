@@ -80,7 +80,7 @@ describe('WP9-C · 生成长度上限 / 思考强度的上游字段映射', () =
   });
 
   describe('② 基类 (OpenAI 兼容通用口径)', () => {
-    it('deepseek 这类只认 max_tokens 的厂商: 走 LangChain 自己的口径', () => {
+    it('qwen 这类只认 max_tokens 的厂商: 走 LangChain 自己的口径', () => {
       // 用 MiniMax 的父类行为做对照: 基类把上限交给 LangChain, 由 LangChain
       // 决定下发 max_tokens 还是 max_completion_tokens (按模型名判断).
       const base = Object.getPrototypeOf(MinimaxChatProvider.prototype) as {

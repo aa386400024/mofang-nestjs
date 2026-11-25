@@ -19,7 +19,7 @@
 
 // V2026-10-14 治本 (VS-3a 装包 + 修 stub — LangChain stub 治本):
 //   原因: V0.5 (V2026-09-12 卸 @langchain/core + @langchain/openai) 装 langchain-stubs.ts
-//     临时 stub, 4 OpenAI 兼容 provider (DeepSeek / Doubao / Qwen / Custom) 调 invoke/stream
+//     临时 stub, 4 OpenAI 兼容 provider (Doubao / Qwen / Custom) 调 invoke/stream
 //     抛 [Stub] Error. B4 #4 报 "non-functional stub", 任何走 LlmOrchestrator 调用
 //     (含 ai-profile 持久化 / ai-recommend / ai-effect / RAG) 真接 LLM 会失败.
 //   修法: 删 langchain-stubs.ts (决策 #4), 改本文件 + openai-compatible-embedding.provider.ts
@@ -30,7 +30,7 @@
 //   验证 (大炮装包后跑):
 //     1. pnpm add @langchain/core @langchain/openai (装包命令见 src/llm/README.md)
 //     2. pnpm build 0 错 + npx tsc -p tsconfig.build.json --noEmit 0 错
-//     3. 启动后 GET /llm/providers 返 4 provider (deepseek/doubao/qwen/custom), 0 warn
+//     3. 启动后 GET /llm/providers 返 4 provider (doubao/qwen/custom), 0 warn
 //   时间戳: 2026-10-14 11:35 GMT+8.
 // V2026-10-14 治本 (VS-3a — LangChain 1.x import 路径):
 //   原因: LangChain 0.3+ 把 AIMessage/BaseMessage 等 message 类从 '@langchain/core' 移到
@@ -65,7 +65,7 @@ export interface OpenAICompatibleConfig {
   customHeaders?: Record<string, string>;
   /**
    * 模型名映射 — 部分国产厂商的 model 名跟 OpenAI 不完全一致
-   * (e.g. deepseek-chat vs deepseek-reasoner). 子类覆盖 modelAlias() 方法.
+   * (e.g. qwen-plus vs qwen-max). 子类覆盖 modelAlias() 方法.
    */
   /**
    * 单次请求的**客户端超时** ms (仅聚合路径下发).
@@ -107,7 +107,7 @@ export interface OpenAICompatibleChatOptions {
 }
 
 /**
- * OpenAI 兼容 Chat Provider 基类 — 覆盖 DeepSeek / 豆包 / 通义 / 月之暗面 /
+ * OpenAI 兼容 Chat Provider 基类 — 覆盖 豆包 / 通义 / 月之暗面 /
  * 智谱 / 自定义等所有 OpenAI 协议厂商.
  *
  * 实现要点:
@@ -147,7 +147,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
 
   /**
    * V2026-09-04 治本 (TS2425 + TS4114 override):
-   *   把可选属性 modelAlias 改为方法, 让 DeepSeek 等子类用 `override`
+   *   把可选属性 modelAlias 改为方法, 让 Qwen 等子类用 `override`
    *   重写避免类型冲突 (属性 vs 方法在 strict 模式下不兼容).
    * 默认实现: 透传, 不做映射.
    */
@@ -380,7 +380,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
    *
    * 为什么做成钩子而不是在基类里写死:
    *   "生成长度上限用哪个字段" 是**厂商协议差异**, 不是抽象层能替所有人决定的.
-   *   - 国产 OpenAI 兼容厂商 (deepseek / qwen / doubao) 只认 `max_tokens`;
+   *   - 国产 OpenAI 兼容厂商 (qwen / doubao) 只认 `max_tokens`;
    *   - MiniMax M3.1-Flash 的思考 token **计入**长度上限, 官方口径是 `max_completion_tokens`;
    *   - OpenAI 自家的推理模型 (o1 / gpt-5) 也只认 `max_completion_tokens`.
    *   在基类里写死任何一种, 都是把某一家的协议焊死在所有厂商身上.

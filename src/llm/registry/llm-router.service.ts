@@ -68,7 +68,7 @@ export class LlmRouterService {
   ) {
     this.config = config;
     this.apiKeyResolver = customResolver ?? defaultEnvApiKeyResolver(config);
-    this.defaultChatProviderId = (config.get<string>('LLM_DEFAULT_CHAT_PROVIDER') as AIProviderId) ?? AIProviderId.DEEPSEEK;
+    this.defaultChatProviderId = (config.get<string>('LLM_DEFAULT_CHAT_PROVIDER') as AIProviderId) ?? AIProviderId.MINIMAX;
     this.defaultEmbeddingProviderId = (config.get<string>('LLM_DEFAULT_EMBEDDING_PROVIDER') as AIProviderId) ?? AIProviderId.QWEN;
   }
 
@@ -204,19 +204,16 @@ export class LlmRouterService {
     //   env `ENGINE_RENDER_<KIND>_MODEL_DOUBAO` 覆盖, 不必改这张表.
     const TIER_MODELS: Record<LLMTier, Partial<Record<AIProviderId, string>>> = {
       [LLMTier.BASIC]: {
-        [AIProviderId.DEEPSEEK]: 'deepseek-chat',
         [AIProviderId.DOUBAO]: 'doubao-seed-2-1-lite-260915',
         [AIProviderId.QWEN]: 'qwen-turbo',
         [AIProviderId.OPENAI]: 'gpt-4o-mini',
       },
       [LLMTier.RAG]: {
-        [AIProviderId.DEEPSEEK]: 'deepseek-chat',
         [AIProviderId.DOUBAO]: 'doubao-seed-2-1-pro-260628',
         [AIProviderId.QWEN]: 'qwen-plus',
         [AIProviderId.OPENAI]: 'gpt-4o',
       },
       [LLMTier.ADVANCED]: {
-        [AIProviderId.DEEPSEEK]: 'deepseek-reasoner',
         [AIProviderId.DOUBAO]: 'doubao-seed-2-1-pro-260628',
         [AIProviderId.QWEN]: 'qwen-max',
         [AIProviderId.OPENAI]: 'gpt-4o',
@@ -231,7 +228,7 @@ export class LlmRouterService {
    * V2026-10-28 治本 (MiniMax 接入时暴露的两处回落语义错位):
    *
    * 1. **问的是哪个 provider, 就该回哪个 provider 的模型**. 原实现回落取的是
-   *    "默认 chat provider"的模型 —— 问 minimax 拿回 deepseek 的模型名,
+   *    "默认 chat provider"的模型 —— 问 minimax 拿回 qwen 的模型名,
    *    上游必然 400, 整轮对练降级成兜底句.
    *
    * 2. **模型名是部署事实, 不是注册状态**. 回落的第一顺位取 env (如

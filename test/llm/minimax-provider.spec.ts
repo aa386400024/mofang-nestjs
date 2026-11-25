@@ -4,7 +4,7 @@
 //        (不是 `LLM_MINIMAX_API_KEY`)
 //     2. 无 `MINIMAX_API_KEY` → 不注册 minimax, 不抛错, 不影响其它三家
 //     3. provider id / defaultChatModel / baseUrl 归一 (无双 /v1、无缺 /v1)
-//     4. deepseek / doubao / qwen 现有注册行为不受影响 (回归断言)
+//     4. doubao / qwen 现有注册行为不受影响 (回归断言)
 //     5. 零真实网络、零真实 key
 //   另附 3 条**根因回归护栏** (本期真正踩到的两个坑, 必须有断言兜住):
 //     6. 运行时 apiKey 解析 (defaultEnvApiKeyResolver) 对 minimax 读 `MINIMAX_API_KEY`;
@@ -12,7 +12,7 @@
 //        —— 漏掉这条的症状是 "provider 注册成功, 一调用就报 API key not found".
 //     7. `getDefaultModelForTier(RAG, MINIMAX)` 返回 **minimax 自己**的默认模型,
 //        而不是默认 chat provider 的模型.
-//        —— 漏掉这条的症状是 "把 deepseek-chat 发给 minimax, 上游 400, 整轮降级".
+//        —— 漏掉这条的症状是 "把 qwen-plus 发给 minimax, 上游 400, 整轮降级".
 //     8. 基址归一函数的边界 (空串 / 空白 / 带尾斜杠 / 带完整端点).
 //
 //   全 mock, 不连真实上游, 不用真实 key:
@@ -44,7 +44,6 @@ import { ProviderRegistryService } from '../../src/llm/registry/provider-registr
 /** 假 key (测试专用, 不是真凭证). */
 const FAKE_MINIMAX_KEY = 'sk-test-minimax-key';
 const FAKE_LLM_MINIMAX_KEY = 'sk-test-llm-minimax-key';
-const FAKE_DEEPSEEK_KEY = 'sk-test-deepseek-key';
 const FAKE_DOUBAO_KEY = 'sk-test-doubao-key';
 const FAKE_QWEN_KEY = 'sk-test-qwen-key';
 
@@ -97,12 +96,12 @@ describe('MiniMax · chat provider 接入', () => {
 
       await expect(resolve(AIProviderId.MINIMAX)).resolves.toBe(FAKE_MINIMAX_KEY);
       // 其它厂商仍走 LLM_<ID>_API_KEY 规律 (回归).
-      await expect(resolve(AIProviderId.DEEPSEEK)).resolves.toBeNull();
+      await expect(resolve(AIProviderId.OPENAI)).resolves.toBeNull();
     });
 
     it('apiKey env 键名映射: minimax 走历史命名, 其它厂商走规律', () => {
       expect(resolveProviderApiKeyEnvKey(AIProviderId.MINIMAX)).toBe('MINIMAX_API_KEY');
-      expect(resolveProviderApiKeyEnvKey(AIProviderId.DEEPSEEK)).toBe('LLM_DEEPSEEK_API_KEY');
+      expect(resolveProviderApiKeyEnvKey(AIProviderId.DOUBAO)).toBe('LLM_DOUBAO_API_KEY');
       expect(resolveProviderApiKeyEnvKey(AIProviderId.QWEN)).toBe('LLM_QWEN_API_KEY');
     });
   });
@@ -116,14 +115,12 @@ describe('MiniMax · chat provider 接入', () => {
       expect(registry.listIds()).not.toContain(AIProviderId.MINIMAX);
     });
 
-    it('minimax 缺席不影响其它三家注册', () => {
+    it('minimax 缺席不影响其它两家注册', () => {
       const registry = register({
-        LLM_DEEPSEEK_API_KEY: FAKE_DEEPSEEK_KEY,
         LLM_DOUBAO_API_KEY: FAKE_DOUBAO_KEY,
         LLM_QWEN_API_KEY: FAKE_QWEN_KEY,
       });
 
-      expect(registry.resolveChat(AIProviderId.DEEPSEEK)?.config.apiKey).toBe(FAKE_DEEPSEEK_KEY);
       expect(registry.resolveChat(AIProviderId.DOUBAO)?.config.apiKey).toBe(FAKE_DOUBAO_KEY);
       expect(registry.resolveChat(AIProviderId.QWEN)?.config.apiKey).toBe(FAKE_QWEN_KEY);
       expect(registry.resolveChat(AIProviderId.MINIMAX)).toBeNull();
@@ -181,20 +178,13 @@ describe('MiniMax · chat provider 接入', () => {
     });
   });
 
-  // ── §6-4 既有三家回归 ────────────────────────────────────────────
-  describe('§6-4 既有 deepseek / doubao / qwen 注册行为不受影响', () => {
-    it('三家的 key / 基址 / 默认模型保持原样', () => {
+  // ── §6-4 既有两家回归 ────────────────────────────────────────────
+  describe('§6-4 既有 doubao / qwen 注册行为不受影响', () => {
+    it('两家的 key / 基址 / 默认模型保持原样', () => {
       const registry = register({
-        LLM_DEEPSEEK_API_KEY: FAKE_DEEPSEEK_KEY,
         LLM_DOUBAO_API_KEY: FAKE_DOUBAO_KEY,
         LLM_QWEN_API_KEY: FAKE_QWEN_KEY,
       });
-
-      const deepseek = registry.resolveChat(AIProviderId.DEEPSEEK);
-      expect(deepseek?.config.apiKey).toBe(FAKE_DEEPSEEK_KEY);
-      expect(deepseek?.config.baseUrl).toBe('https://api.deepseek.com/v1');
-      expect(deepseek?.config.defaultChatModel).toBe('deepseek-chat');
-      expect(deepseek?.config.capabilities).toContain(LLMCapability.EMBEDDING);
 
       const doubao = registry.resolveChat(AIProviderId.DOUBAO);
       expect(doubao?.config.apiKey).toBe(FAKE_DOUBAO_KEY);
@@ -219,12 +209,11 @@ describe('MiniMax · chat provider 接入', () => {
     });
 
     it('tier 映射表既有条目不受影响', () => {
-      const registry = register({ LLM_DEEPSEEK_API_KEY: FAKE_DEEPSEEK_KEY });
+      const registry = register({ LLM_QWEN_API_KEY: FAKE_QWEN_KEY });
       const router = new LlmRouterService(registry, stubConfig({}));
 
-      expect(router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.DEEPSEEK)).toBe('deepseek-chat');
-      expect(router.getDefaultModelForTier(LLMTier.ADVANCED, AIProviderId.DEEPSEEK)).toBe('deepseek-reasoner');
       expect(router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.QWEN)).toBe('qwen-plus');
+      expect(router.getDefaultModelForTier(LLMTier.ADVANCED, AIProviderId.QWEN)).toBe('qwen-max');
     });
   });
 
@@ -264,8 +253,8 @@ describe('MiniMax · chat provider 接入', () => {
       const env = {
         MINIMAX_API_KEY: FAKE_MINIMAX_KEY,
         MINIMAX_LLM_MODEL: 'MiniMax-M3.1-Flash',
-        LLM_DEEPSEEK_API_KEY: FAKE_DEEPSEEK_KEY,
-        LLM_DEFAULT_CHAT_PROVIDER: 'deepseek',
+        LLM_QWEN_API_KEY: FAKE_QWEN_KEY,
+        LLM_DEFAULT_CHAT_PROVIDER: 'qwen',
       };
       const registry = register(env);
       const router = new LlmRouterService(registry, stubConfig(env));
@@ -273,7 +262,7 @@ describe('MiniMax · chat provider 接入', () => {
       const model = router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.MINIMAX);
 
       expect(model).toBe('MiniMax-M3.1-Flash');
-      expect(model).not.toBe('deepseek-chat');
+      expect(model).not.toBe('qwen-plus');
     });
 
     it('provider 还没注册时也能拿到正确模型名 (启动期冻结配置的场景)', () => {
@@ -284,7 +273,7 @@ describe('MiniMax · chat provider 接入', () => {
       const emptyRegistry = new ProviderRegistryService();
       const router = new LlmRouterService(
         emptyRegistry,
-        stubConfig({ MINIMAX_LLM_MODEL: 'MiniMax-M3.1-Flash', LLM_DEFAULT_CHAT_PROVIDER: 'deepseek' }),
+        stubConfig({ MINIMAX_LLM_MODEL: 'MiniMax-M3.1-Flash', LLM_DEFAULT_CHAT_PROVIDER: 'qwen' }),
       );
 
       expect(router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.MINIMAX)).toBe('MiniMax-M3.1-Flash');
@@ -292,11 +281,11 @@ describe('MiniMax · chat provider 接入', () => {
     });
 
     it('被请求的 provider 既无 env 模型名也未注册时, 仍回落到默认 chat provider 的模型 (原行为不变)', () => {
-      const env = { LLM_DEEPSEEK_API_KEY: FAKE_DEEPSEEK_KEY, LLM_DEFAULT_CHAT_PROVIDER: 'deepseek' };
+      const env = { LLM_QWEN_API_KEY: FAKE_QWEN_KEY, LLM_DEFAULT_CHAT_PROVIDER: 'qwen' };
       const registry = register(env);
       const router = new LlmRouterService(registry, stubConfig(env));
 
-      expect(router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.MOONSHOT)).toBe('deepseek-chat');
+      expect(router.getDefaultModelForTier(LLMTier.RAG, AIProviderId.MOONSHOT)).toBe('qwen-plus');
     });
   });
 

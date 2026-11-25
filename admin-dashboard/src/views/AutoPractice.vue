@@ -295,7 +295,6 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'doubao-seed-character-260628': '豆包 Seed Character',
   'MiniMax-M3': 'MiniMax M3',
   'MiniMax-M3.1-Flash': 'MiniMax M3.1 Flash',
-  'deepseek-chat': 'DeepSeek Chat',
   'qwen-plus': 'Qwen Plus',
 }
 

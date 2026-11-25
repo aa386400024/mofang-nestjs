@@ -11,7 +11,6 @@
  * Provider 标识 — 对齐 moyin-ai-core ProviderId (lowercase + underscore).
  *
  * - openai: OpenAI 官方 (https://api.openai.com/v1)
- * - deepseek: DeepSeek (https://api.deepseek.com/v1)
  * - doubao: 豆包 / 字节跳动 (火山引擎方舟)
  * - qwen: 通义千问 / 阿里云 (DashScope)
  * - minimax: MiniMax (https://api.minimax.cn/v1) —— 订阅制, 既有 key 是
@@ -28,7 +27,6 @@
  */
 export enum AIProviderId {
   OPENAI = 'openai',
-  DEEPSEEK = 'deepseek',
   DOUBAO = 'doubao',
   QWEN = 'qwen',
   MINIMAX = 'minimax',
@@ -43,7 +41,6 @@ export enum AIProviderId {
 /** 全部 provider id (admin 后台初始化下拉框用). */
 export const ALL_PROVIDER_IDS: readonly AIProviderId[] = [
   AIProviderId.OPENAI,
-  AIProviderId.DEEPSEEK,
   AIProviderId.DOUBAO,
   AIProviderId.QWEN,
   AIProviderId.MINIMAX,
