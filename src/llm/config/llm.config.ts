@@ -13,9 +13,11 @@
 
 import { ConfigService } from '@nestjs/config';
 
+import { normalizeOpenAiCompatibleBaseUrl } from './provider-env.js';
 import type { OpenAICompatibleChatOptions } from '../common/base/openai-compatible-chat.provider.js';
 import { AIProviderId, LLMCapability } from '../common/enums/llm.enums.js';
 import type { LLMProviderConfig } from '../common/interfaces/chat-provider.interface.js';
+import { createCustomEmbeddingProvider } from '../providers/custom.provider.js';
 import { DeepSeekChatProvider, DeepSeekEmbeddingProvider } from '../providers/deepseek.provider.js';
 import { DoubaoChatProvider, DoubaoEmbeddingProvider } from '../providers/doubao.provider.js';
 import { MinimaxChatProvider } from '../providers/minimax.provider.js';
@@ -93,6 +95,28 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
       defaultChatModel: minimax.defaultChatModel,
       enabled: true,
     });
+  }
+
+  // ─── Custom OpenAI 兼容 embedding (TEI / 私有网关) ───
+  //   为什么放在这里: 自托管 bge/TEI 和私有 embedding 网关都是 OpenAI 兼容协议,
+  //   但它们没有固定厂商 id；用 custom 一个口子接, 不每接一个服务就加一个 provider.
+  //   只有 baseUrl + 模型都配置才注册 —— 缺一项就不占位, 避免
+  //   "provider 列表里有 custom, 一 embed 就报模型为空".
+  const customBaseUrl = config.get<string>('LLM_CUSTOM_BASE_URL')?.trim();
+  const customEmbeddingModel = config.get<string>('LLM_CUSTOM_DEFAULT_MODEL_EMBED')?.trim();
+  const customEnabled = (config.get<string>('LLM_CUSTOM_ENABLED') ?? 'true').trim().toLowerCase() !== 'false';
+  if (customEnabled && customBaseUrl && customEmbeddingModel) {
+    const dimensionRaw = Number(config.get<string>('LLM_CUSTOM_DIMENSION'));
+    const defaultDimension = Number.isFinite(dimensionRaw) && dimensionRaw > 0 ? Math.floor(dimensionRaw) : 1024;
+    registry.registerEmbedding(
+      createCustomEmbeddingProvider({
+        id: AIProviderId.CUSTOM,
+        baseUrl: normalizeOpenAiCompatibleBaseUrl(customBaseUrl),
+        defaultEmbeddingModel: customEmbeddingModel,
+        defaultDimension,
+        name: 'Custom (OpenAI Compatible Embedding)',
+      }),
+    );
   }
 }
 

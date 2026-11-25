@@ -1,0 +1,200 @@
+{
+  "deliveredAt": "2026-11-25T14:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-507-1",
+    "taskId": "AF-507",
+    "contextId": "phase2.5-memory-runtime",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "48cccbeb535e17e8859ba7ec1ebd85615b0e047c",
+    "dependsOn": [],
+    "priorTasks": ["AF-505", "AF-506"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-memory-runtime/AF-507/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af507-memory-runtime-repair-2026-11-25.md",
+      "reply": null,
+      "others": ["docs/runbooks/remote-memory-runtime.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "test/llm/custom-embedding-provider.spec.ts",
+        "docs/runbooks/remote-memory-runtime.md",
+        "docs/worklog/completed/phase2.5/af507-memory-runtime-repair-2026-11-25.md"
+      ],
+      "modified": [
+        "src/llm/config/llm.config.ts",
+        "src/ai-engine/providers/qdrant.service.ts",
+        ".env.example",
+        "test/engine-adapters/wp45-qdrant-sdk-contract.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/llm/custom-embedding-provider.spec.ts test/engine-adapters/wp45-qdrant-sdk-contract.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "1.55s",
+        "note": "10 tests passed：custom embedding 注册 5 例 + Qdrant 集合创建 1 例（该文件共 5 例）"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 337,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "30.63s",
+        "note": "336 passed / 1 skipped files；4961 passed / 4 skipped tests"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 eslint 均 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "增量",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "tsc -p tsconfig.build.json 0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4",
+        "wallClock": "秒级",
+        "note": "空输出，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm typecheck → pnpm exec vitest run 两个定向 spec → pnpm build → pnpm lint → pnpm test → git diff --stat HEAD -- src/engine-core。真实链路需先建立 SSH 隧道 6333/8080，本地后端 3000 指向 127.0.0.1:6333 / 8080；验收脚本用专用 tenant/visitor 写入 4 条合成记忆，验证召回/隔离/superseded 后按 visitorId 删除。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-507 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 派发 / 回执均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 与回执六组字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入与 completed 事件由 run-once 生成"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "secrets",
+        "result": "pass",
+        "note": "服务器密码、Qdrant API key、记忆正文未写入仓库/回执/日志"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "测试数字、运行态健康检查、召回分数均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF507-01",
+        "item": "根 docker-compose.yml 仍为 --config-ration-filename 且缺 Qdrant entrypoint",
+        "source": "deviation",
+        "impact": "根 compose 直接启动 Qdrant 仍失败；服务器 compose 已是可用事实源",
+        "suggestion": "另立任务按服务器已验证口径同步根 compose"
+      },
+      {
+        "id": "BL-AF507-02",
+        "item": "生产 mofang-nestjs-api 旧镜像、生产 .env 无 QDRANT/LLM",
+        "source": "deviation",
+        "impact": "生产 /admin/api/memories 仍不可用",
+        "suggestion": "获 L4 授权后更新镜像并补生产 env"
+      },
+      {
+        "id": "BL-AF507-03",
+        "item": "Qdrant SDK 1.20 与服务器 1.12 版本警告",
+        "source": "implementation",
+        "impact": "当前读写正常，但存在未来兼容风险",
+        "suggestion": "评估降客户端版本或升级服务端"
+      },
+      {
+        "id": "BL-AF507-04",
+        "item": "SSH 隧道为手工后台进程",
+        "source": "implementation",
+        "impact": "机器重启/断线后需重建",
+        "suggestion": "固化为启动脚本或系统服务"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务载体",
+        "taskSays": "AF-506 覆盖 llm.config / env / 测试 / 文档",
+        "reality": "真链路验收发现 QdrantService.ensureCollection 缺陷，AF-506 scope 未覆盖",
+        "action": "取消 AF-506，按完整 scope 重登记 AF-507",
+        "why": "不在范围外改代码，保持 scopeCheck=in-scope"
+      },
+      {
+        "item": "Qdrant 启动",
+        "taskSays": "修正 --config-path",
+        "reality": "还需显式 entrypoint、删 storage.wal: true、删写死空 api_key",
+        "action": "按 Qdrant 1.12 实际 schema 与镜像事实修正服务器 compose/config",
+        "why": "只修参数仍 exit 127"
+      },
+      {
+        "item": "TEI 模型获取",
+        "taskSays": "改 CPU 镜像即可",
+        "reality": "GHCR 拉取卡住、huggingface.co 不可达、CPU 后端只认 ONNX",
+        "action": "南京大学镜像 + hf-mirror 下载模型 + Xenova ONNX 挂载",
+        "why": "服务器网络与 TEI CPU 后端限制"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "代码闸门全绿，服务器 Qdrant/TEI 健康，真实写入/召回/跨 visitor/跨 tenant 隔离/同 topicKey superseded 均通过；遗留项已登记 backlog。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "验收 embedding 与 Qdrant 均为本地/自托管调用，无外部付费 API 消耗。"
+  }
+}

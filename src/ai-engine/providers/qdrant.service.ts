@@ -112,6 +112,21 @@ export class QdrantService implements OnModuleInit {
    */
   async ensureCollection(name: string, vectorSize = this.defaultVectorSize): Promise<void> {
     try {
+      // 先列集合判断是否存在，而不是靠 getCollection 抛错的文案。
+      //   原因: Qdrant SDK / 服务端在不同版本里对"集合不存在"的报错文案不一致
+      //   （`Not Found` / `Not found` / 空 message 都出现过），靠字符串匹配会在
+      //   某个版本静默把"创建集合"这条路吃掉 → 首次 upsert 必 400 → 长时记忆
+      //   全部落回内存仓。列集合是稳定契约，不存在就创建。
+      const collections = await this.client.getCollections();
+      const exists = collections.collections.some((collection) => collection.name === name);
+      if (!exists) {
+        await this.client.createCollection(name, {
+          vectors: { size: vectorSize, distance: 'Cosine' },
+        });
+        this.logger.log(`Qdrant collection created name=${name} dim=${vectorSize}`);
+        return;
+      }
+
       const info = await this.client.getCollection(name);
       const existingSize = readVectorSize(info);
       if (existingSize !== undefined && existingSize !== vectorSize) {
@@ -122,17 +137,11 @@ export class QdrantService implements OnModuleInit {
       }
     } catch (e) {
       const msg = (e as Error).message;
-      if (msg.includes('Not found') || msg.includes('404')) {
-        await this.client.createCollection(name, {
-          vectors: { size: vectorSize, distance: 'Cosine' },
-        });
-        this.logger.log(`Qdrant collection created name=${name} dim=${vectorSize}`);
-      } else if (msg.includes('mismatch')) {
+      if (msg.includes('mismatch')) {
         throw e;
-      } else {
-        // 其它错误软降级 (V2 阶段 RAG 软失败).
-        this.logger.warn(`ensureCollection ${name} skipped: ${msg}`);
       }
+      // 其它错误软降级 (V2 阶段 RAG 软失败).
+      this.logger.warn(`ensureCollection ${name} skipped: ${msg}`);
     }
   }
 
