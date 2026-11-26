@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-26T17:35:04.964Z",
+  "generatedAt": "2026-11-26T17:46:31.097Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-561",
-      "contextId": "phase2.5-audit-remediation",
-      "type": "implementation",
-      "title": "Phase2.5 出口④安全收束门 + Max TTS 并发治理 + 会员 TTS 权益口径对齐",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-561",
-        "contextId": "phase2.5-audit-remediation",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-26T17:35:04.867Z",
-        "leaseDeadline": "2026-11-26T18:05:04.864Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-561.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-26T17:35:04.867Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-561.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2068,6 +2027,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-639",
+      "recordedAt": "2026-11-26T17:35:13.870Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-561",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-561-safety-tts-membership-closure"
+      ]
+    },
+    {
+      "auditId": "AUD-638",
+      "recordedAt": "2026-11-26T17:35:05.176Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-561",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-561",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-561.json"
+      ]
+    },
+    {
       "auditId": "AUD-637",
       "recordedAt": "2026-11-26T17:35:00.265Z",
       "actorRef": "orchestrator",
@@ -2273,80 +2262,25 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-624",
-      "recordedAt": "2026-11-26T13:21:37.266Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-556",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-556-canceled-task-notes"
-      ]
-    },
-    {
-      "auditId": "AUD-623",
-      "recordedAt": "2026-11-26T13:21:28.287Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-556",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-556",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-556.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 637,
+    "total": 639,
     "byResult": {
-      "allowed": 637,
+      "allowed": 639,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 636,
+      "TOOL-QUEUE-SCHEDULER": 638,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 637
+      "orchestrator": 639
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-561",
-        "title": "Phase2.5 出口④安全收束门 + Max TTS 并发治理 + 会员 TTS 权益口径对齐",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-audit-remediation",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11133,8 +11067,22 @@
         },
         "artifactReferences": [
           {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-561",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-560/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -11155,22 +11103,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-561",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md"
-      },
-      {
-        "taskId": "AF-561",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
-      }
-    ],
-    "groupId": "phase2.5-audit-remediation",
-    "groupIds": [
-      "phase2.5-audit-remediation"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11178,5 +11113,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 497
+  "archivedCount": 498
 }

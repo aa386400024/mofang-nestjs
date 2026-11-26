@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-560",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "canceled",
+  "createdAt": "2026-11-27T10:00:00+08:00",
+  "updatedAt": "2026-11-27T10:00:00+08:00",
+  "taskSheet": {
+    "immutable": true,
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-560/task-sheet.md",
+    "sha256": "2ff6269d0fe198b056718328abccaa8d6694b3a102360e01b1b8d8bac0142512"
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [],
+  "tombstone": "重签为 AF-561：原任务 scope 误写 docs/worklog 泛目录，未开工即取消"
+}
