@@ -45,6 +45,11 @@ RUN addgroup -g 1001 -S nodejs && \
 # 系统依赖 (curl 用于 healthcheck, tini 用于 PID 1 信号处理)
 RUN apk add --no-cache curl tini
 
+# 运行时不需要包管理器；npm 自带的 undici / brace-expansion 会带进已知 HIGH 漏洞。
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
+
 # 拷贝产物
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
