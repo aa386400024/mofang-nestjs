@@ -1,0 +1,110 @@
+{
+  "batchId": "8vneJ7iZPv5zzy6QH6uqg",
+  "total": 6,
+  "byStatus": {
+    "completed": 5,
+    "crisis_ended": 1
+  },
+  "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+  "promptVersion": "249cac9c8a289ad4",
+  "metrics": {
+    "totalTurns": 204,
+    "renderFallbackTurns": 0,
+    "llmCallTurns": 204,
+    "renderFallbackRatio": 0,
+    "renderFallbackRatioWeighted": 0,
+    "llmCallRatio": 1,
+    "degradedTurns": 4,
+    "counselorDegradedTurns": 4,
+    "visitorDegradedTurns": 0,
+    "counterConsistent": true
+  },
+  "batchHealth": {
+    "valid": true,
+    "flags": [],
+    "llmCallRatio": 1,
+    "fallbackRatio": 0,
+    "counterConsistent": true,
+    "totalSessions": 6
+  },
+  "sessions": [
+    {
+      "id": "CG-gHZQd-M2dojixzWv9w",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "intermediate",
+      "status": "completed",
+      "turnCount": 27,
+      "exitReason": "crisis_practice_max",
+      "renderFallbackTurns": 0,
+      "llmCallTurns": 27,
+      "renderFallbackRatio": 0,
+      "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+      "promptVersion": "249cac9c8a289ad4"
+    },
+    {
+      "id": "n25NghbBpw8Kn-HcQOKZG",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "intermediate",
+      "status": "crisis_ended",
+      "turnCount": 15,
+      "exitReason": "crisis_escalated",
+      "renderFallbackTurns": 0,
+      "llmCallTurns": 15,
+      "renderFallbackRatio": 0,
+      "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+      "promptVersion": "249cac9c8a289ad4"
+    },
+    {
+      "id": "nkwbVVLxIeg3hTcpm8aG1",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "intermediate",
+      "status": "completed",
+      "turnCount": 50,
+      "exitReason": "natural_close",
+      "renderFallbackTurns": 0,
+      "llmCallTurns": 50,
+      "renderFallbackRatio": 0,
+      "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+      "promptVersion": "249cac9c8a289ad4"
+    },
+    {
+      "id": "o7SXSM3gFAcNC3KeBkFjh",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "intermediate",
+      "status": "completed",
+      "turnCount": 48,
+      "exitReason": "crisis_practice_max",
+      "renderFallbackTurns": 0,
+      "llmCallTurns": 48,
+      "renderFallbackRatio": 0,
+      "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+      "promptVersion": "249cac9c8a289ad4"
+    },
+    {
+      "id": "tX5_JfOuW-PLipjyAeiek",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "intermediate",
+      "status": "completed",
+      "turnCount": 25,
+      "exitReason": "crisis_practice_max",
+      "renderFallbackTurns": 0,
+      "llmCallTurns": 25,
+      "renderFallbackRatio": 0,
+      "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+      "promptVersion": "249cac9c8a289ad4"
+    },
+    {
+      "id": "WqvidAH01iPX9ZLulHgIY",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "intermediate",
+      "status": "completed",
+      "turnCount": 39,
+      "exitReason": "crisis_practice_max",
+      "renderFallbackTurns": 0,
+      "llmCallTurns": 39,
+      "renderFallbackRatio": 0,
+      "engineVersion": "v2026.11.16-6cfb46e-262-g8745f764-dirty",
+      "promptVersion": "249cac9c8a289ad4"
+    }
+  ]
+}

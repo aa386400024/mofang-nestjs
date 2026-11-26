@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-26T04:01:29.695Z",
+  "generatedAt": "2026-11-26T05:20:52.594Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-529",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "verification",
+      "title": "出口④复评：48 场 long 重跑 + 危机样本补足 + 文档口径同步",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af529-exit4-recheck-2026-11-26.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-529",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-26T05:20:52.501Z",
+        "leaseDeadline": "2026-11-26T05:50:52.498Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-529.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-26T05:20:52.501Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-529.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2018,6 +2059,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-569",
+      "recordedAt": "2026-11-26T05:20:48.241Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-529",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-568",
       "recordedAt": "2026-11-26T03:59:53.278Z",
       "actorRef": "orchestrator",
@@ -2236,40 +2294,50 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-554",
-      "recordedAt": "2026-11-26T00:56:53.849Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-523",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-523",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-523.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 568,
+    "total": 569,
     "byResult": {
-      "allowed": 568,
+      "allowed": 569,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 567,
+      "TOOL-QUEUE-SCHEDULER": 568,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 568
+      "orchestrator": 569
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-529",
+        "title": "出口④复评：48 场 long 重跑 + 危机样本补足 + 文档口径同步",
+        "type": "verification",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af529-exit4-recheck-2026-11-26.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -10578,9 +10646,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-529",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/task-sheet.md"
+      },
+      {
+        "taskId": "AF-529",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af529-exit4-recheck-2026-11-26.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
