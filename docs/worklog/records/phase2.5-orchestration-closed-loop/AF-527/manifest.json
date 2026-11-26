@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-527",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-26T11:20:00+08:00",
+  "updatedAt": "2026-11-26T03:28:17.630Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-527/task-sheet.md",
+    "sha256": "e742dc9e81643357ba10458bc1e09ced6af294ebe03e00cef04bb4d1c2c4c753",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-527/receipt-RC-AF-527-1.json",
+      "sha256": "ce7330b85049d5fad19d6dd7840009b6616b82c25342ead5643bc1360e51968b",
+      "receiptId": "RC-AF-527-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af527-validation-boundaries-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af527-validation-boundaries-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

@@ -1,0 +1,45 @@
+{
+  "capturedAt": "2026-11-26T11:21:49.1688002+08:00",
+  "processes": [
+    {
+      "ProcessId": 46400,
+      "ParentProcessId": 4716,
+      "Name": "node.exe",
+      "CommandLine": "node   \"D:\\work\\Project\\backend\\mofang-nestjs-af281r\\admin-dashboard\\node_modules\\.bin\\\\..\\vite\\bin\\vite.js\" ",
+      "CreationDate": "2026-11-26T09:15:47.871836+08:00"
+    },
+    {
+      "ProcessId": 13352,
+      "ParentProcessId": 47048,
+      "Name": "node.exe",
+      "CommandLine": "\"node\"   \"D:\\work\\Project\\backend\\mofang-nestjs-af281r\\node_modules\\.bin\\\\..\\@nestjs\\cli\\bin\\nest.js\" start --watch",
+      "CreationDate": "2026-11-26T10:08:13.087112+08:00"
+    },
+    {
+      "ProcessId": 38884,
+      "ParentProcessId": 42140,
+      "Name": "node.exe",
+      "CommandLine": "node  --enable-source-maps D:\\work\\Project\\backend\\mofang-nestjs-af281r\\dist\\app",
+      "CreationDate": "2026-11-26T10:08:41.672021+08:00"
+    }
+  ],
+  "ports": {
+    "LocalAddress": "::",
+    "LocalPort": 3000,
+    "OwningProcess": 38884
+  },
+  "oldPrefixMatches": [
+    {
+      "LineNumber": 7,
+      "Line": "//     · prefix: 'bullmq' + 全项目统一 defaultJobOptions;"
+    },
+    {
+      "LineNumber": 154,
+      "Line": "      prefix: 'bullmq',"
+    },
+    {
+      "LineNumber": 164,
+      "Line": "      prefix: 'bullmq',"
+    }
+  ]
+}

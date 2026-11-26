@@ -1,9 +1,55 @@
-# 验证环境隔离运行手册（AF-526）
+# 验证环境隔离运行手册（AF-526 / AF-527）
 
 > 适用：本机 / 共享 Redis / 共享 MySQL 上跑自动对练验证批次（含 1000 场出口⑤批次前的定向验证）。
 > 目标：不同工作树、不同实例的 BullMQ 队列不互相抢单；实例重启不误标其他实例的 running 场次。
 
+## 旧实例清理（AF-527 起）
+
+开验证批次前先盘点本机旧工作树进程，确认没有旧代码实例还在共享 MySQL / Redis 上运行：
+
+```powershell
+Get-CimInstance Win32_Process |
+  Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -match 'mofang-nestjs-(af|old)|nest start|dist\\app' } |
+  Select-Object ProcessId,ParentProcessId,CommandLine
+
+Get-NetTCPConnection -State Listen |
+  Where-Object { $_.LocalPort -in 3000,3001,3002 } |
+  Select-Object LocalPort,OwningProcess
+```
+
+确认是旧后端后停止 watcher 与 app（不要停无关前端）：
+
+```powershell
+Stop-Process -Id <nest-watcher-pid>,<app-pid> -Force
+```
+
+判据：`3000` 端口无监听、进程列表不再出现旧 worktree 的 `nest start --watch` / `dist/app`。旧代码实例的 `onModuleInit` 仍会无差别标记所有 running，不能只靠新实例的租约保护。
+
+## 双实例队列隔离 smoke（AF-527）
+
+脚本：`scripts/validation/queue-isolation-smoke.mjs`。它在同一个 Redis DB 上启动两个独立 Worker 进程，分别用 `af527-smoke-a` / `af527-smoke-b` 前缀；生产者向两边各入 2 个 job，断言只被各自前缀消费，并检查 key 命名空间不交叉。结束后 `obliterate` smoke 队列。
+
+```powershell
+# 从 .env 读取 REDIS_HOST / REDIS_PORT / REDIS_PASSWORD，验证用 DB5
+$env:REDIS_DB='5'
+$env:NODE_ENV='development'
+node scripts/validation/queue-isolation-smoke.mjs
+```
+
+通过判据：
+
+```json
+{
+  "ok": true,
+  "consumed": { "a": ["A1","A2"], "b": ["B1","B2"] },
+  "keyCounts": { "a": 5, "b": 5 }
+}
+```
+
+`keyCounts` 是清理前计数；脚本结束后再查 `af527-smoke-a:*` / `af527-smoke-b:*` 应为 0。若 A 消费了 B 的 job 或 key 前缀交叉，直接失败，不允许继续开批次。
+
 ## 两层隔离
+
 
 | 层 | 变量 | 作用 | 默认 |
 | --- | --- | --- | --- |
