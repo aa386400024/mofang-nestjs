@@ -1,0 +1,140 @@
+{
+  "deliveredAt": "2026-11-26T13:19:41.886Z",
+  "payload": {
+    "receiptId": "RC-AF-555-1",
+    "taskId": "AF-555",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "c55458a992b335041afbc75709ff5c34de8fb86b",
+    "dependsOn": ["AF-551"],
+    "priorTasks": ["AF-547", "AF-551", "AF-552", "AF-554"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-555/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af555-module-wiring-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["a1da67d2"],
+      "added": [
+        "src/config/module-flags.ts",
+        "test/app/af555-module-wiring.spec.ts",
+        "docs/worklog/completed/phase2.5/af555-module-wiring-2026-11-26.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-555/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-555/task-sheet.md"
+      ],
+      "modified": [
+        "src/app.module.ts",
+        "src/sample/controllers/crud.controller.ts",
+        "src/sample/controllers/crud.controller.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/app test/gql src/sample/controllers/crud.controller.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / node v22.23.2",
+        "wallClock": "10.46s",
+        "note": "3 文件 / 16 例全绿（含 AF-551 深度限制 7 例）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 12s",
+        "note": "tsc --noEmit 全绿"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 15s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 356,
+        "machine": "同上",
+        "wallClock": "39.88s",
+        "note": "355 passed | 1 skipped（356 文件），5072 passed | 4 skipped（5076 例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "GqlModule 挂载后复用 AF-551 的深度规则；SampleModule 由 shouldEnableSampleApi() 条件注入，生产硬拒绝。CrudController 补 JWT + admin 双门禁，并同步修既有 controller spec 的 guard 依赖。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-555 贯穿任务单、交付记录、提交 trailer 与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch 均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "状态索引未手改" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零 diff" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组齐全，reviewVerdict=passed" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "无接口/DTO 字段变更；GraphQL schema 未改"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF555-01",
+        "severity": "P2",
+        "title": "GraphQL resolver 仍是 sampletable1 demo 语义",
+        "impact": "GqlModule 已挂载且 admin-only，但 Query/Mutation 仍指向示例表；若作为真实业务 GraphQL 面使用，需要另立任务替换 schema/service 与实体"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "直接登记 AF-553 并实现",
+        "reality": "AF-553 agentRole=orchestrator，资源域不含 src/test，claim 报 scope-domain-conflict",
+        "action": "取消 AF-553，重登记 AF-554（executor）",
+        "why": "执行角色必须与 Agent Card 资源域匹配"
+      },
+      {
+        "taskSays": "AF-554 scope 精确列 crud.controller.ts",
+        "reality": "新增 class-level guard 导致既有 crud.controller.spec.ts 必须覆盖 guard，越出 AF-554 文件级 scope",
+        "action": "取消 AF-554，重登记 AF-555，scope 改为 src/sample/controllers 目录级",
+        "why": "测试与实现是同一变更面，目录级 scope 避免再次越界"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "GqlModule 真实进入 AppModule；SampleModule 生产硬隔离、非生产显式开关；CrudController 双门禁与既有测试同步修复；目标与全量测试、类型、lint 全绿，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": null
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

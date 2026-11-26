@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-555",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "submitted",
+  "createdAt": "2026-11-26T20:57:00+08:00",
+  "updatedAt": "2026-11-26T13:20:20.619Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-555/task-sheet.md",
+    "sha256": "b1b0bce54b9a1344fb0d0301c771231a6ea769544538ec51f6e260fce8c92e9a",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-555/receipt-RC-AF-555-1.json",
+      "sha256": "4ae4e35dc3a2303353ceb2a080c862f405638a39d54b33b15bffb22c99e88fb5",
+      "receiptId": "RC-AF-555-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af555-module-wiring-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-555-module-wiring.md"
+  ],
+  "tombstone": null
+}

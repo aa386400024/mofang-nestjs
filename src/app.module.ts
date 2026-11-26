@@ -31,6 +31,7 @@ import { BizExceptionFilter } from './common/filters/biz-exception.filter.js';
 import { CommonModule } from './common/index.js';
 import { CompanionModule } from './companion/companion.module.js';
 import { configuration, loggerOptions } from './config/index.js';
+import { shouldEnableSampleApi } from './config/module-flags.js';
 import { ConsentModule } from './consent/index.js';
 // V2026-10-13 治本 (Phase 7.10 — counselor 端 server module 注册):
 //   心理咨询师学员端「首页」Tab server 端, 跟 xin_su_app counselor_home
@@ -55,6 +56,7 @@ import { EmergencyModule } from './emergency/emergency.module.js';
 import { EngineWiringModule } from './engine-adapters/wiring/engine.module.js';
 import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module.js';
 import { GoodStateDiaryModule } from './good_state_diary/good_state_diary.module.js';
+import { GqlModule } from './gql/gql.module.js';
 import { GuideModule } from './guide/guide.module.js';
 import { HomeModule } from './home/home.module.js';
 import { GameUnlockModule } from './inner_world/game-unlock.module.js';
@@ -87,6 +89,8 @@ import { PracticeModule } from './practice/practice.module.js';
 import { ProfileModule } from './profile/index.js';
 // V2026-11-10 治本 (WP-J P2 · 专业级标注工具): 质量标注台 admin 端点 (列表/详情/保存/reveal/一致性).
 import { QualityAnnotationModule } from './quality/quality-annotation.module.js';
+// AF-554: SampleModule 是脚手架 demo，生产不挂载；仅非生产显式开 ENABLE_SAMPLE_API 时进入 imports。
+import { SampleModule } from './sample/sample.module.js';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra/index.js';
 import { SentryService } from './shared/infra/observability/index.js';
 import { UserCronModule } from './user/cron/cron.module.js';
@@ -99,11 +103,15 @@ import { VoiceModule } from './voice/voice.module.js';
 // - BaseModule: 注册 AuthController (/auth/send-code /auth/verify-code /auth/login ...)
 //               + HealthController (/health)
 
+// AF-554: demo 模块只在非生产且显式开启时挂载；生产环境硬拒绝（见 module-flags.ts）。
+const demoModules = shouldEnableSampleApi() ? [SampleModule] : [];
+
 /**
  * V2 AppModule — 大厂生产级.
  *
- * V2-temp: 暂时移除了 demo 模块 (AuthModule / GqlModule / SampleModule / DebugSampleModule).
- * 这些代码还在 src/{auth,gql,sample,debug} 目录里, V3 清理 demo 代码时直接删除整个目录即可.
+ * 历史: V2-temp 曾整体移除 demo 模块 (AuthModule / GqlModule / SampleModule / DebugSampleModule).
+ * 现状: AuthModule 已恢复；AF-554 起 GqlModule 正式挂载（admin-only，深度限制 10）；
+ *       SampleModule 仅在非生产显式 ENABLE_SAMPLE_API=true 时挂载，生产永不进入路由表.
  *
  * 业务模块:
  *   - UserModule: 心塑 + 魔方共用账号
@@ -198,6 +206,8 @@ import { VoiceModule } from './voice/voice.module.js';
     UserModule,
     // AuthModule 必须先于 BaseModule, 因为 BaseModule 的 AuthController 依赖 AuthService / LoginCodeService.
     AuthModule,
+    // AF-554: /graphql（admin-only resolver + 查询深度限制 10；生产 GraphiQL 关闭）
+    GqlModule,
     // V2026-11-08 — Phase2.5 WP-D: AI 自动对练 (咨询师 LLM × 来访者引擎, 批量验证).
     AutoPracticeModule,
     BaseModule,
@@ -282,6 +292,8 @@ import { VoiceModule } from './voice/voice.module.js';
     BillingModule, // /billing/*
     // V2026-11-25 — AF-512 会员 v2（新入口 /membership/*，旧端点保留兼容）
     MembershipModule,
+    // AF-554: 脚手架 demo，仅非生产显式 ENABLE_SAMPLE_API=true 时挂载；生产恒为空。
+    ...demoModules,
   ],
   providers: [
     // Global Throttler Guard

@@ -4,6 +4,8 @@ import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 
 import type { Sampletable1 } from '#entity/sampledb1/index.js';
 import { CrudController } from './crud.controller.js';
+import { RolesGuard } from '../../common/index.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 import { CrudService } from '../providers/index.js';
 
 let moduleRef: TestingModule | undefined;
@@ -16,6 +18,10 @@ beforeAll(async () => {
     controllers: [CrudController],
     providers: [CrudService],
   })
+    .overrideGuard(JwtAuthGuard)
+    .useValue({ canActivate: () => true })
+    .overrideGuard(RolesGuard)
+    .useValue({ canActivate: () => true })
     .overrideProvider(CrudService)
     .useValue(mockDeep<CrudService>())
     .compile();
