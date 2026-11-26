@@ -113,6 +113,24 @@ export interface ConsentRepository {
   findLatestByDevice(deviceId: string, consentType: string, appId: string): Promise<ConsentRow | null>;
 
   /**
+   * 取该用户某协议类型的**最新一条**同意记录（业务前置断言用）。
+   *
+   * @param userId 用户 uid
+   * @param consentType 协议类型
+   * @returns 行（无命中返 null）
+   */
+  findLatestByUser(userId: string, consentType: string): Promise<ConsentRow | null>;
+
+  /**
+   * 撤回某用户某协议类型的全部同意记录。
+   *
+   * @param userId 用户 uid
+   * @param consentType 协议类型
+   * @returns 删除行数
+   */
+  deleteByUser(userId: string, consentType: string): Promise<number>;
+
+  /**
    * 写入一行 —— 带 id = 更新既有行, 缺省 = 新增行.
    *
    * @param input 行纯对象 (service 内构造)

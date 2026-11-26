@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 import { BadgeStateDto, BadgesListDto, UnlockBadgeResponseDto } from '../dto/badge.dto.js';
 import { BadgeState } from '../entities/badge-state.entity.js';
@@ -132,24 +132,25 @@ export class BadgesService {
    */
   async bulkInsertUnlocks(userId: string, badgeIds: readonly BadgeId[]): Promise<readonly BadgeId[]> {
     if (badgeIds.length === 0) return [];
-    const newlyInserted: BadgeId[] = [];
+    const uniqueIds = [...new Set(badgeIds)];
 
-    await this.dataSource.transaction(async (tx) => {
+    return await this.dataSource.transaction(async (tx) => {
       const repo = tx.getRepository(BadgeState);
-      for (const id of badgeIds) {
-        const existing = await repo.findOne({ where: { userId, badgeId: id } });
-        if (existing) continue;
-        await repo.insert({
-          userId,
-          badgeId: id,
-          unlockedAt: new Date(),
-          unlockConsumedAt: null,
-        });
-        newlyInserted.push(id);
-      }
-    });
+      // AF-537 P1 6.21#9: 一次查询已存在徽章，避免事务内 N+1。
+      const existing = await repo.find({ where: { userId, badgeId: In(uniqueIds) } });
+      const existingIds = new Set(existing.map((row) => row.badgeId));
+      const candidates = uniqueIds.filter((id) => !existingIds.has(id));
+      if (candidates.length === 0) return [];
 
-    return newlyInserted;
+      // 唯一键冲突由 orIgnore 吸收，不再让整事务回滚。
+      await repo
+        .createQueryBuilder()
+        .insert()
+        .values(candidates.map((id) => ({ userId, badgeId: id, unlockedAt: new Date(), unlockConsumedAt: null })))
+        .orIgnore()
+        .execute();
+      return candidates;
+    });
   }
 
   /**

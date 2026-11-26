@@ -1,0 +1,264 @@
+{
+  "deliveredAt": "2026-11-26T10:00:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-540-1",
+    "taskId": "AF-540",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "33fe92e616ae3562ca7dec029fd84cfc06f9fb3e",
+    "dependsOn": [],
+    "priorTasks": ["AF-537", "AF-538", "AF-539"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3", "conventions.md#二"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-540/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af540-audit-p0-p1-remediation-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af540-audit-p0-p1-remediation-2026-11-26.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-537/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-537/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-538/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-538/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-539/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-539/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-540/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-540/task-sheet.md",
+        "src/agent/llm/dto/stream-chat.dto.ts",
+        "src/common/security/verification-code-hash.ts",
+        "src/config/env.validation.ts",
+        "src/engine-adapters/wiring/caching-risk-probe.ts",
+        "src/migration/1714900000057-AddCompanionTreeAndDualPuzzleTables.ts",
+        "src/user/providers/account-erasure.service.ts"
+      ],
+      "modified": [
+        ".env.example",
+        "bin/ormconfig.ts",
+        "src/agent/llm/llm.controller.ts",
+        "src/agent/persona/data/persona.repository.memory.ts",
+        "src/ai-engine/ai-engine.module.ts",
+        "src/ai-engine/dto/llm-chat.dto.ts",
+        "src/ai-engine/providers/llm-orchestrator.service.ts",
+        "src/app.middleware.ts",
+        "src/app.ts",
+        "src/auth/auth.interface.ts",
+        "src/auth/auth.module.ts",
+        "src/auth/auth.service.spec.ts",
+        "src/auth/auth.service.ts",
+        "src/auth/guards/index.ts",
+        "src/auth/login-code.service.ts",
+        "src/auth/strategies/index.ts",
+        "src/auth/strategies/jwt.strategy.ts",
+        "src/auto-practice/auto-practice.controller.ts",
+        "src/auto-practice/practice-queue.service.ts",
+        "src/base/controllers/auth.controller.ts",
+        "src/common/exceptions/biz-code.enum.ts",
+        "src/common/exceptions/biz.exception.ts",
+        "src/companion/companion-tree/controllers/companion-tree.controller.ts",
+        "src/companion/companion-tree/providers/companion-tree.service.ts",
+        "src/companion/dual-puzzle/controllers/dual-puzzle.controller.ts",
+        "src/companion/dual-puzzle/entities/dual-puzzle-answer.entity.ts",
+        "src/companion/dual-puzzle/providers/dual-puzzle.service.ts",
+        "src/companion/providers/companion.service.ts",
+        "src/config/configuration.ts",
+        "src/config/envs/default.ts",
+        "src/consent/controllers/consent.controller.ts",
+        "src/consent/data/consent.repository.typeorm.ts",
+        "src/consent/domain/repositories/consent.repository.ts",
+        "src/consent/providers/consent.service.ts",
+        "src/counselor/data/quote.repository.typeorm.ts",
+        "src/counselor/providers/llm-json.client.ts",
+        "src/counselor/providers/visitor-pool-admin.service.ts",
+        "src/emergency/dto/emergency.dto.ts",
+        "src/emergency/providers/emergency.service.ts",
+        "src/engine-adapters/deliberation-gate/deliberation-gate.quotas.ts",
+        "src/engine-adapters/deliberation-gate/deliberation-gate.service.ts",
+        "src/engine-adapters/deliberation/llm-deliberation-hook.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/wiring/engine-wiring.controller.ts",
+        "src/engine-adapters/wiring/engine.module.ts",
+        "src/inner_world/providers/badges.service.ts",
+        "src/knowledge-base/providers/scheduled-publish.service.ts",
+        "src/profile/dto/export.dto.ts",
+        "src/profile/providers/export.service.ts",
+        "src/shared/infra/email/email.service.ts",
+        "src/shared/infra/observability/sentry.service.ts",
+        "src/shared/infra/redis/redis.service.ts",
+        "src/shared/infra/sms/sms.service.ts",
+        "src/user/controllers/user.controller.ts",
+        "src/user/cron/soft-delete.cron.ts",
+        "src/user/decorators/current-user.decorator.ts",
+        "src/user/enums/audit-event.enum.ts",
+        "src/user/guards/jwt-auth.guard.ts",
+        "src/user/oauth/oauth.controller.ts",
+        "src/user/oauth/oauth.service.ts",
+        "src/user/providers/jwt-blacklist.service.ts",
+        "src/user/providers/user.service.ts",
+        "src/user/providers/verification-code.service.ts",
+        "src/user/user.module.ts",
+        "src/voice/voice.gateway.ts",
+        "test/base/auth-reset-password.spec.ts",
+        "test/consent/td17-consent-port-c2-batch1.spec.ts",
+        "test/engine-adapters/deliberation-gate/quotas.spec.ts",
+        "test/engine-adapters/wp7-turn-render.spec.ts",
+        "test/engine-adapters/wp8-wiring.spec.ts",
+        "test/shared/sentry-redaction.spec.ts",
+        "test/user/set-password-first-set.spec.ts"
+      ],
+      "deleted": [
+        "src/auth/auth.serializer.ts",
+        "src/auth/guards/authenticated.guard.ts",
+        "src/auth/guards/jwt-verify.guard.ts",
+        "src/auth/guards/local-auth.guard.ts",
+        "src/auth/guards/local-login.guard.ts",
+        "src/auth/strategies/jwt-verify.strategy.ts",
+        "src/auth/strategies/local.strategy.ts",
+        "src/shared/user/index.ts",
+        "src/shared/user/user.interface.ts",
+        "src/shared/user/user.module.ts",
+        "src/shared/user/user.service.ts"
+      ],
+      "deletionChecks": [],
+      "commits": ["6bb583de"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "约 60 秒",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "eslint 双配置 exit 0，0 error 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 90 秒",
+        "note": "352 passed / 1 skipped（353 文件）；5050 passed / 4 skipped（5054 例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "提交前 PASS task=AF-540 files=100 covered=91"
+      }
+    ],
+    "reproNotes": "按审计报告 §5 逐条回源码核对，13 条 P0 全部真实；P1 以 §6 条目为清单逐项改代码并补单测。最终在任务分支跑全量 typecheck / lint / test，数字见 gateResults。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-540 贯穿任务单、回执、交付记录与提交 trailer" },
+      { "item": "state-write", "result": "pass", "note": "register / claim 均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "状态索引由 CLI 维护" },
+      { "item": "event-chain", "result": "pass", "note": "提交后 events verify 复核" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为 AF-536 合并后的 integrate HEAD，也是任务分支切出点。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF540-01",
+        "severity": "P1",
+        "title": "token 预算低估且未计 system（审计 6.18）",
+        "impact": "长上下文可能触发生成上限，需改 engine-core 预算口径，受纯层红线约束未在本单处理"
+      },
+      {
+        "id": "BL-AF540-02",
+        "severity": "P2",
+        "title": "boundary.spec.ts 守卫未收紧（6.21#23–#25）",
+        "impact": "AGENTS.md 明令不得改该文件，需单独批准后另开任务"
+      },
+      {
+        "id": "BL-AF540-03",
+        "severity": "P2",
+        "title": "persona 内存仓储未持久化（6.21#11）",
+        "impact": "进程重启丢 persona，需新表与迁移"
+      },
+      {
+        "id": "BL-AF540-04",
+        "severity": "P1",
+        "title": "未成年人年龄门槛与监护人同意（6.21#33）",
+        "impact": "需用户年龄字段、注册契约与前端流程，属产品级变更"
+      },
+      {
+        "id": "BL-AF540-05",
+        "severity": "P2",
+        "title": "审计 §7 P2（37 条）与 §8 P3 未处理",
+        "impact": "不在本单范围，需另立批次"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务单聚焦 P0",
+        "reality": "用户口头要求扩展到 P1 主体",
+        "action": "按 P0+P1 主体交付，未闭环项逐条登记 backlog",
+        "why": "响应最新用户指令，同时不把未做的部分写成已完成"
+      },
+      {
+        "taskSays": "审计 6.21#12 supervisor jobId",
+        "reality": "报告给出的 supervision.processor.ts 不存在",
+        "action": "判定不成立，未做无效改动",
+        "why": "回源码核实后该链路无此队列"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "13 条 P0 全部真实且已修复；P1 主体落地并有测试；typecheck / lint / 全量测试全绿；engine-core 零 diff；未闭环项如实登记。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增 LLM 费用。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": []
+  }
+}

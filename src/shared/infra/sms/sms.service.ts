@@ -66,10 +66,8 @@ export class SmsService implements OnModuleInit {
     }
 
     if (!cfg.enabled || cfg.provider === 'mock') {
-      // dev / mock: 只 log
-      this.logger.log(
-        `[SMS MOCK] phone=${options.phone} template=${options.templateCode ?? 'default'} params=${JSON.stringify(options.templateParams)}`,
-      );
+      // dev / mock: 只 log，手机号脱敏、不打印验证码参数
+      this.logger.log(`[SMS MOCK] phone=${this.maskPhone(options.phone)} template=${options.templateCode ?? 'default'}`);
       return;
     }
 
@@ -93,18 +91,20 @@ export class SmsService implements OnModuleInit {
   // Provider 实现 (V3 接入)
   // ========================================================================
 
-  private async sendAliyun(options: SendSmsOptions): Promise<void> {
-    // 待办: 接入 @alicloud/dysmsapi20170525
-    this.logger.warn(`[SMS ALIYUN 待办] phone=${options.phone}`);
+  private async sendAliyun(_options: SendSmsOptions): Promise<void> {
+    // AF-537 P1 6.11: 空桩不再假装成功 —— 未接入真实通道时显式失败。
+    throw new BizException(BizCode.ServiceUnavailable, 'SMS provider aliyun 尚未接入');
   }
 
-  private async sendTencent(options: SendSmsOptions): Promise<void> {
-    // 待办: 接入 tencentcloud-sdk-nodejs
-    this.logger.warn(`[SMS TENCENT 待办] phone=${options.phone}`);
+  private async sendTencent(_options: SendSmsOptions): Promise<void> {
+    throw new BizException(BizCode.ServiceUnavailable, 'SMS provider tencent 尚未接入');
   }
 
-  private async sendTwilio(options: SendSmsOptions): Promise<void> {
-    // 待办: 接入 twilio
-    this.logger.warn(`[SMS TWILIO 待办] phone=${options.phone}`);
+  private async sendTwilio(_options: SendSmsOptions): Promise<void> {
+    throw new BizException(BizCode.ServiceUnavailable, 'SMS provider twilio 尚未接入');
+  }
+
+  private maskPhone(phone: string): string {
+    return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
   }
 }

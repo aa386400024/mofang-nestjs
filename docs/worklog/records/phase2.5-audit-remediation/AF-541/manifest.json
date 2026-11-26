@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-541",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "submitted",
+  "createdAt": "2026-11-26T18:40:00+08:00",
+  "updatedAt": "2026-11-26T09:58:07.511Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md",
+    "sha256": "1c25cef1574729395d63e51522e06cd14b731458abb118ac7c4f02c5d68f24eb",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-541/receipt-RC-AF-541-1.json",
+      "sha256": "cc88e82d331a0a9fd4c676b3622ecda207ef68f3bf7af8529cc96bcc723f28d2",
+      "receiptId": "RC-AF-541-1"
+    }
+  ],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-541-executor-resources.md"
+  ],
+  "tombstone": null
+}

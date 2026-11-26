@@ -285,6 +285,7 @@ export class AutoPracticeController {
             counselorModeId: modeId,
             maxTurns: params.maxTurns,
             batchId: params.batchId,
+            runIndex: r,
             // 只在**显式给了**场景时才写进 job data; 没给就整条省掉 (缺省由 runner 兜).
             ...(params.scenarioType ? { scenarioType: params.scenarioType } : {}),
             // 同款: 档案只透传, 缺省由 runner 兜 (legacy).

@@ -640,6 +640,16 @@ jobs:
           SIZE=$(docker images mofang-nestjs:${{ github.sha }} --format "{{.Size}}")
           echo "Image size: $SIZE"
 
+      - name: Run Trivy vulnerability scanner on built image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'mofang-nestjs:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
   # ============================================================
   # 6. Security audit (大厂必备)
   # ============================================================
@@ -682,13 +692,3 @@ jobs:
         # TD-11 · T-C: --ignore-registry-errors 只在 registry 网络 / 服务故障时放行 (exit 0),
         #   **真实 high 及以上 advisory 仍按 --audit-level=high 阻断** —— 容错不覆盖漏洞判定.
         run: pnpm audit --audit-level=high --prod --ignore-registry-errors
-
-      - name: Run Trivy vulnerability scanner on Dockerfile
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: 'node:26-alpine'
-          format: 'table'
-          exit-code: '0'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'

@@ -23,7 +23,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, type Repository, type SelectQueryBuilder } from 'typeorm';
+import { In, IsNull, type Repository, type SelectQueryBuilder } from 'typeorm';
 
 import type { QuoteCursorAnchor, QuoteRepository, QuoteRow } from '../domain/repositories/quote.repository.js';
 import { Quote } from '../entities/quote.entity.js';
@@ -102,7 +102,10 @@ export class QuoteRepositoryTypeorm implements QuoteRepository {
    * @returns 行列表
    */
   async findManyByIds(quoteIds: string[]): Promise<QuoteRow[]> {
-    const rows = await this.repo.find({ where: { id: In(quoteIds) } });
+    // AF-537 P1 6.21#1: 收藏列表必须过滤软删 / 下架，否则已下架内容仍可被读出。
+    const rows = await this.repo.find({
+      where: { id: In(quoteIds), deletedAt: IsNull(), enabled: true },
+    });
     return rows.map((row) => toRow(row));
   }
 

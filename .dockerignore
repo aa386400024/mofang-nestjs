@@ -17,6 +17,11 @@ node_modules/
 coverage/
 .nyc_output/
 
+# 本地运行数据（对练会话 / debug session，体积大且含隐私内容）
+data/
+*.sqlite
+*.db
+
 # IDE
 .vscode/
 .idea/

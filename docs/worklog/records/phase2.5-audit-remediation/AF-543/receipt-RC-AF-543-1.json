@@ -1,0 +1,88 @@
+{
+  "deliveredAt": "2026-11-26T11:05:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-543-1",
+    "taskId": "AF-543",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "documentation",
+    "agentRole": "executor",
+    "baselineRef": "33fe92e616ae3562ca7dec029fd84cfc06f9fb3e",
+    "dependsOn": ["AF-540", "AF-541", "AF-542"],
+    "priorTasks": ["AF-540", "AF-541", "AF-542"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-543/task-sheet.md",
+      "deliveryRecord": "docs/worklog/records/phase2.5-audit-remediation/AF-543/delivery-record.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-541/receipt-RC-AF-541-1.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-542/receipt-RC-AF-542-1.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-543/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-543/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-543/delivery-record.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-543/receipt-RC-AF-543-1.json"
+      ],
+      "modified": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-541/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-542/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["77f6917b"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "瞬时",
+        "note": "PASS task=- files=6 covered=6"
+      }
+    ],
+    "reproNotes": "将三任务记录包收口到 AF-543 一个提交；回执在归档前冻结并随记录提交，随后 run-once 归档，状态面单独提交。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-543 贯穿任务单、记录、回执与提交 trailer" },
+      { "item": "state-write", "result": "pass", "note": "register / claim 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "索引由 CLI 维护" },
+      { "item": "event-chain", "result": "pass", "note": "提交后 validate 复核" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 engine-core" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为 AF-536 合并后的 integrate HEAD。"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "交付记录落 completed",
+        "reality": "AF-543 scope 仅 records",
+        "action": "交付记录落 records/AF-543/delivery-record.md",
+        "why": "不越出 scope"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-541/542 回执已入库，AF-543 记录与回执可随归档提交；无业务代码改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增费用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

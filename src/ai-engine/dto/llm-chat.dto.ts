@@ -5,6 +5,24 @@
 //             admin 后台才用.
 
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 import { LLMTier } from '../../llm/common/enums/llm.enums.js';
 
@@ -13,15 +31,24 @@ import { LLMTier } from '../../llm/common/enums/llm.enums.js';
  */
 export class ChatMessageDto {
   @ApiProperty({ enum: ['system', 'user', 'assistant', 'tool'] })
+  @IsIn(['system', 'user', 'assistant', 'tool'])
   role!: 'system' | 'user' | 'assistant' | 'tool';
 
   @ApiProperty({ description: '文本内容 (vision 可走多模态 array)' })
+  @IsString()
+  @MaxLength(100_000)
   content!: string;
 
   @ApiProperty({ description: '工具调用 id (role=tool 时必填)', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
   toolCallId?: string;
 
   @ApiProperty({ description: '姓名 (多角色对话)', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
   name?: string;
 }
 
@@ -30,15 +57,23 @@ export class ChatMessageDto {
  */
 export class ChatCompletionDto {
   @ApiProperty({ enum: LLMTier, description: '§3.5 三层架构 tier' })
+  @IsEnum(LLMTier)
   tier!: LLMTier;
 
   @ApiProperty({ type: [ChatMessageDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => ChatMessageDto)
   messages!: ChatMessageDto[];
 
   @ApiProperty({ description: '是否流式 (SSE)', default: true })
+  @IsBoolean()
   stream!: boolean;
 
   @ApiProperty({ description: 'RAG 知识库检索开关 (默认 true for tier=rag)', default: true })
+  @IsBoolean()
   useRag!: boolean;
 
   @ApiProperty({
@@ -47,15 +82,27 @@ export class ChatCompletionDto {
     nullable: true,
     enum: ['none', 'low', 'medium', 'high'],
   })
+  @IsOptional()
+  @IsIn(['none', 'low', 'medium', 'high'])
   preCheckedCrisisLevel?: 'none' | 'low' | 'medium' | 'high';
 
   @ApiProperty({ description: '温度 0..2', required: false, minimum: 0, maximum: 2 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(2)
   temperature?: number;
 
   @ApiProperty({ description: '最大 token', required: false, minimum: 1, maximum: 32_000 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(32_000)
   maxTokens?: number;
 
   @ApiProperty({ description: '客户端会话 id (用于 token 累计 + crisis 关联)', required: false, nullable: true })
+  @IsOptional()
+  @IsUUID()
   conversationId?: string;
 }
 

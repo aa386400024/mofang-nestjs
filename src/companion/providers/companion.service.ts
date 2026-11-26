@@ -353,8 +353,14 @@ export class DualExerciseService {
         });
   }
 
-  async getSession(_uid: string, sessionId: string): Promise<DualSessionDto | null> {
-    const row = await this.sessionRepo.findOne({ where: { id: sessionId } });
+  async getSession(uid: string, sessionId: string): Promise<DualSessionDto | null> {
+    // AF-537 P0-12: 会话归属校验 —— 仅 companion 发起方或 owner 受邀方可读。
+    const row = await this.sessionRepo.findOne({
+      where: [
+        { id: sessionId, companionUid: uid },
+        { id: sessionId, ownerUid: uid },
+      ],
+    });
     return row ? this.sessionToDto(row) : null;
   }
 

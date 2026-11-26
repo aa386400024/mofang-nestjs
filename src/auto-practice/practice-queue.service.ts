@@ -20,7 +20,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type Job, Queue, Worker } from 'bullmq';
-import { nanoid } from 'nanoid';
 import type { Repository } from 'typeorm';
 
 import { CounselorMode } from './entities/counselor-mode.entity.js';
@@ -45,6 +44,8 @@ export interface AutoPracticeJobData {
   readonly maxTurns: number;
   /** 批量批次 id. */
   readonly batchId: string;
+  /** 批内重复序号（同一组合 repeats > 1 时区分 jobId）. */
+  readonly runIndex?: number;
   /**
    * 场景类型 (可选; `freeform` / `full_simulation` / `exam`).
    *
@@ -183,12 +184,9 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
    * @param data job 数据
    */
   async enqueue(data: AutoPracticeJobData): Promise<void> {
-    // V2026-11-09 P1-1 修复: BullMQ jobId 不允许含冒号 (Redis key 分隔符),
-    // 原来拼 `${batchId}:${slug}:${mode}:${nanoid(8)}` 直接 500.
-    // jobId 只需唯一, 业务字段已在 data 里, 直接用 nanoid.
-    await this.queue.add('run-practice', data, {
-      jobId: nanoid(),
-    });
+    // AF-537 P1 6.21#13: jobId 由业务键派生，重复投递同一场会被 BullMQ 幂等去重。
+    const jobId = [data.batchId, data.characterSlug, data.counselorModeId, data.runIndex ?? 0].join('-').replaceAll(/[^A-Za-z0-9_-]/g, '_');
+    await this.queue.add('run-practice', data, { jobId });
   }
 
   /** Worker 回调: 跑一场对练. */
@@ -204,6 +202,8 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
       counselorMode: mode,
       maxTurns: data.maxTurns,
       batchId: data.batchId,
+      // AF-537 P1 6.21#6: 租约键用 BullMQ 的幂等 jobId，重复投递同一场会被租约挡住。
+      practiceSessionId: job.id,
       // 场景类型原样透传 (缺省 = undefined → runner 缺省 `full_simulation`).
       scenarioType: data.scenarioType,
       // 会话档案原样透传 (缺省 = undefined → runner 缺省 `legacy`).

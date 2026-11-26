@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
@@ -11,11 +11,9 @@ import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
  *   - TTL = 原 token expiresIn (到期自动清理)
  *   - 多实例共享 (cluster / sentinel 都行)
  *
- * 容错 (大厂标准 fail-open):
- *   - Redis 不可用时, blacklist 检查返回 false (即"未撤销")
- *   - 业务层风险: 已撤销的 token 还能用一次 (短暂的窗口)
- *   - 大厂做法: 优先 availability, 失败 fail-open (不让 Redis 故障拖垮登录)
- *   - V3 可加 Redis Sentinel 自动切换, 进一步降低不可用窗口
+ * 容错:
+ *   - 写 (revoke) 失败只告警，不阻塞登出主流程；
+ *   - 读 (isRevoked) 失败 fail-closed，返回 503 而不是误放行（AF-537 P1 6.6）。
  */
 @Injectable()
 export class JwtBlacklistService {
@@ -38,14 +36,18 @@ export class JwtBlacklistService {
 
   /**
    * 检查 jti 是否已撤销.
-   * 失败 fail-open: Redis 不可用时返回 false (允许请求通过).
+   *
+   * AF-537 P1 6.6: 安全判定改为 fail-closed。Redis 不可用时无法证明 token 未被撤销，
+   * 继续放行等于让"已登出 / 已改密"的 token 重新生效；这里抛 503，由调用方按不可用处理。
+   *
+   * @throws ServiceUnavailableException Redis 读取失败
    */
   async isRevoked(jti: string): Promise<boolean> {
     try {
       return await this.redis.exists(REDIS_KEYS.jwtBlacklist(jti));
     } catch (err) {
-      this.logger.warn(`jwt blacklist read failed: jti=${jti} (fail-open): ${(<Error>err).message}`);
-      return false;
+      this.logger.error(`jwt blacklist read failed: jti=${jti} (fail-closed): ${(<Error>err).message}`);
+      throw new ServiceUnavailableException('会话校验服务暂不可用，请稍后重试');
     }
   }
 

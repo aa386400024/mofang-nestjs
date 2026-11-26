@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
@@ -37,6 +37,7 @@ export interface SendMailOptions {
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter!: Transporter;
+  private realTransport = false;
 
   constructor(private readonly config: ConfigService) {}
 
@@ -59,6 +60,7 @@ export class EmailService implements OnModuleInit {
       secure: cfg.secure,
       auth: { user: cfg.user, pass: cfg.pass },
     });
+    this.realTransport = true;
     this.logger.log(`Email SMTP ready: ${cfg.host}:${cfg.port} as ${cfg.from}`);
   }
 
@@ -75,6 +77,11 @@ export class EmailService implements OnModuleInit {
       this.logger.log(`[EMAIL MOCK] to=${options.to} subject="${options.subject}"`);
       this.logger.debug(`[EMAIL MOCK] body: ${options.text ?? options.html}`);
       return;
+    }
+
+    // AF-537 P1 6.12: enabled=true 但凭据缺失时，绝不能走 jsonTransport 假装成功。
+    if (!this.realTransport) {
+      throw new ServiceUnavailableException('邮件通道未配置（缺少 SMTP 凭据），发送失败');
     }
 
     await this.transporter.sendMail({

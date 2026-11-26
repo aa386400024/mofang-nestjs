@@ -23,6 +23,8 @@
 import type { INestApplication } from '@nestjs/common';
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { GUARDS_METADATA, HTTP_CODE_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -37,6 +39,7 @@ import { RsaKeyService } from '../../src/common/security/rsa-key.service.js';
 import { hashPassword, verifyPassword } from '../../src/shared/infra/security/password-hasher.js';
 import { User } from '../../src/user/entities/user.entity.js';
 import { AuditEvent } from '../../src/user/enums/audit-event.enum.js';
+import { JwtBlacklistService } from '../../src/user/providers/jwt-blacklist.service.js';
 import { UserService } from '../../src/user/providers/user.service.js';
 import { buildUserEntityStub, buildUserServiceStub } from '../helpers/user-stub.js';
 
@@ -88,6 +91,10 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
               },
             },
           },
+          // JwtAuthGuard 是 controller 级依赖，Nest 会实例化它（本组只测 reset-password）。
+          { provide: JwtService, useValue: { verify: () => ({}) } },
+          { provide: ConfigService, useValue: { get: () => 'secret', getOrThrow: () => 'secret' } },
+          { provide: JwtBlacklistService, useValue: { isRevoked: async () => false } },
           // EncryptedFieldsInterceptor 的依赖 (假解密: base64 → 明文).
           {
             provide: RsaKeyService,

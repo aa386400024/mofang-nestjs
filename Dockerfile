@@ -35,6 +35,7 @@ RUN pnpm install --prod --frozen-lockfile
 # Stage 3: prod — 运行时镜像 (最小)
 # ============================================================
 FROM node:26-alpine AS prod
+ENV NODE_ENV=production
 WORKDIR /app
 
 # 安全: 用非 root 用户
@@ -43,6 +44,11 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # 系统依赖 (curl 用于 healthcheck, tini 用于 PID 1 信号处理)
 RUN apk add --no-cache curl tini
+
+# 运行时不需要包管理器；npm 自带的 undici / brace-expansion 会带进已知 HIGH 漏洞。
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
 
 # 拷贝产物
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist

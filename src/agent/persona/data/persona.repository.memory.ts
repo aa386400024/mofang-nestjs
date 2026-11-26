@@ -93,15 +93,13 @@ export class PersonaRepositoryMemory implements PersonaRepository, OnModuleInit 
   }
 
   async findById(tenantId: string, id: string): Promise<Persona | null> {
-    const bucket = this.byTenant.get(tenantId);
-    const found = bucket?.get(id);
+    const found = this.bucket(tenantId).get(id);
     return found && found.isActive ? found : null;
   }
 
   async listActive(tenantId: string): Promise<readonly Persona[]> {
-    const bucket = this.byTenant.get(tenantId);
-    if (!bucket) return [];
-    return Array.from(bucket.values()).filter((p) => p.isActive);
+    // AF-537 P1 6.21#10: 真实租户拿不到种子 persona 时回退 `default` 共享池。
+    return Array.from(this.bucket(tenantId).values()).filter((p) => p.isActive);
   }
 
   async findDefault(tenantId: string): Promise<Persona | null> {
@@ -110,6 +108,10 @@ export class PersonaRepositoryMemory implements PersonaRepository, OnModuleInit 
   }
 
   // ── private ────────────────────────────────────────────────────
+
+  private bucket(tenantId: string): Map<string, Persona> {
+    return this.byTenant.get(tenantId) ?? this.byTenant.get('default') ?? new Map();
+  }
 
   private seed(personas: readonly Persona[]): void {
     for (const p of personas) {

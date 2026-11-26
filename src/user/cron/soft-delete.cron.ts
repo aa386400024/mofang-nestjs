@@ -5,11 +5,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CronJob } from 'cron';
 import { LessThan, Repository } from 'typeorm';
 
-import { OAuthIdentity } from '../entities/oauth-identity.entity.js';
-import { PasswordHistory } from '../entities/password-history.entity.js';
-import { Session } from '../entities/session.entity.js';
 import { User } from '../entities/user.entity.js';
 import { AuditEvent } from '../enums/audit-event.enum.js';
+import { AccountErasureService } from '../providers/account-erasure.service.js';
 import { AuditLogService } from '../providers/audit-log.service.js';
 import { SessionService } from '../providers/session.service.js';
 
@@ -41,12 +39,7 @@ export class SoftDeleteCron {
     private readonly schedulerRegistry: SchedulerRegistry,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    @InjectRepository(Session)
-    private readonly sessionRepo: Repository<Session>,
-    @InjectRepository(PasswordHistory)
-    private readonly passwordHistoryRepo: Repository<PasswordHistory>,
-    @InjectRepository(OAuthIdentity)
-    private readonly oauthRepo: Repository<OAuthIdentity>,
+    private readonly erasure: AccountErasureService,
     private readonly auditLog: AuditLogService,
     private readonly sessions: SessionService,
     private readonly config: ConfigService,
@@ -103,13 +96,10 @@ export class SoftDeleteCron {
   }
 
   /**
-   * 单个用户真删. FK 已有 ON DELETE CASCADE, 这里是双保险.
+   * 单个用户硬擦除 — 委托 AccountErasureService 按 metadata 全表删除。
    */
   private async purgeOne(uid: string): Promise<void> {
-    await this.sessionRepo.delete({ userId: uid });
-    await this.passwordHistoryRepo.delete({ userId: uid });
-    await this.oauthRepo.delete({ userId: uid });
-    await this.userRepo.delete({ uid });
+    await this.erasure.erase(uid);
     this.logger.log(`hard-deleted user: uid=${uid}`);
   }
 

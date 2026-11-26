@@ -1492,10 +1492,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level === 'pass') return;
     const categories = verdict.categories ?? [];
     this.deps.onSafetySignal?.(text, verdict.level, categories);
-    // V2026-11-06 治本 (WP46): 安全信号判定需要看片段 (dev 排查用), 但**生产不能打心理原文**.
-    //   prod 只打长度, dev 保留片段 —— 只改日志内容, 不改级别 / 触发条件 / 上下游逻辑.
-    const signalFragment = process.env.NODE_ENV === 'production' ? `text_len=${text.length}` : `片段=${text.slice(0, 120)}`;
-    this.logger.warn(`[render] 输出侧安全信号 level=${verdict.level} categories=${categories.join(',') || '-'} ${signalFragment}`);
+    // AF-537 P1 6.10: 心理原文不进日志，任何环境都只记录长度与类别。
+    this.logger.warn(`[render] 输出侧安全信号 level=${verdict.level} categories=${categories.join(',') || '-'} text_len=${text.length}`);
   }
 
   /**

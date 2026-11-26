@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { IsNull, Repository } from 'typeorm';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
@@ -19,6 +20,19 @@ import { User } from '../entities/user.entity.js';
 import { AuditEvent } from '../enums/audit-event.enum.js';
 import { SessionRevokeReason, TokenType } from '../user.constant.js';
 import { UserState, isLoginAllowed } from '../user.state.js';
+
+/**
+ * 失败登录的渐进延迟（AF-537 P1 6.3）。
+ *
+ * 第 1 次 100ms，之后每多失败 1 次 +100ms，上限 1.2s；不改变锁定策略本身，
+ * 只让脚本化爆破更慢，同时正常用户误输一两次几乎无感。
+ *
+ * @param failedCount 当前累计失败次数
+ * @returns 需要等待的毫秒数
+ */
+function progressiveLoginDelayMs(failedCount: number): number {
+  return Math.min(1200, Math.max(0, failedCount) * 100);
+}
 
 import { AuditLogService } from './audit-log.service.js';
 import { EmailVerificationService } from './email-verification.service.js';
@@ -156,7 +170,7 @@ export class UserService {
         state: saved.state,
         emailVerified: false,
         phoneVerified: false,
-        adminRole: saved.adminRole ?? 'admin',
+        adminRole: saved.adminRole,
         tenantId: saved.tenantId || saved.uid,
       },
     };
@@ -227,6 +241,8 @@ export class UserService {
       this.metrics.incAuthLoginAttempt('failed');
       // 增加失败计数 + 可能锁定
       await this.handleFailedLogin(user);
+      // AF-537 P1 6.3: 失败越多响应越慢（渐进延迟），降低定向爆破/锁定 DoS 的收益。
+      await sleep(progressiveLoginDelayMs(user.failedLoginCount));
       return fail('bad_password');
     }
 
@@ -274,7 +290,10 @@ export class UserService {
     let payload: { sub: string; jti: string; type: string };
     try {
       payload = this.jwt.verify<{ sub: string; jti: string; type: string }>(refreshToken, {
-        secret: this.config.get<string>('jwtRefreshSecret'),
+        secret: this.config.getOrThrow<string>('jwtRefreshSecret'),
+        algorithms: ['HS256'],
+        issuer: 'mofang-nestjs',
+        audience: 'mofang-client',
       });
     } catch {
       this.metrics.incAuthTokenRefresh('failed');
@@ -510,7 +529,7 @@ export class UserService {
       passwordChangedAt: user.passwordChangedAt,
       mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt,
-      adminRole: user.adminRole ?? 'admin',
+      adminRole: user.adminRole,
       tenantId: user.tenantId || user.uid,
     };
   }
@@ -672,7 +691,7 @@ export class UserService {
     //     - adminRole: NULL → 'admin' (V0.x 内部 dev / 测试能跑完整 RBAC 矩阵)
     //     - tenantId: '' 或 NULL → user.uid (V0.x 一人一租户, 跟 migration backfill 一致)
     //   V1.x 真值下发后, server 不 fallback, NULL 真正表示 "无权限 / 跨租户".
-    const adminRole = user.adminRole ?? 'admin';
+    const adminRole = user.adminRole;
     const tenantId = user.tenantId || user.uid;
 
     const accessToken = this.jwt.sign(
@@ -682,8 +701,10 @@ export class UserService {
         type: TokenType.Access,
         adminRole,
         tenantId,
+        iss: 'mofang-nestjs',
+        aud: 'mofang-client',
       },
-      { secret: this.config.get<string>('jwtSecret'), expiresIn: accessExpiresSec },
+      { secret: this.config.getOrThrow<string>('jwtSecret'), expiresIn: accessExpiresSec, algorithm: 'HS256' },
     );
     const refreshToken = this.jwt.sign(
       {
@@ -692,8 +713,10 @@ export class UserService {
         type: TokenType.Refresh,
         adminRole,
         tenantId,
+        iss: 'mofang-nestjs',
+        aud: 'mofang-client',
       },
-      { secret: this.config.get<string>('jwtRefreshSecret'), expiresIn: refreshExpiresSec },
+      { secret: this.config.getOrThrow<string>('jwtRefreshSecret'), expiresIn: refreshExpiresSec, algorithm: 'HS256' },
     );
 
     const session = await this.sessionService.create({

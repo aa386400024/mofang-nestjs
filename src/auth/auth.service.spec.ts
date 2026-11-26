@@ -2,58 +2,44 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 
 import type { JwtPayload, Payload } from './auth.interface.js';
 import { AuthService } from './auth.service.js';
-import { UserService } from '../shared/user/index.js';
 
 const payload: Payload = { userId: 'test', username: 'foobar', roles: ['test'] };
 
 let moduleRef: TestingModule | undefined;
 let auth: AuthService;
 let jwt: JwtService;
-let user: DeepMockProxy<UserService>;
 
 beforeAll(async () => {
   moduleRef = await Test.createTestingModule({
     imports: [JwtModule.register({ secret: 'access-secret' })],
-    providers: [
-      AuthService,
-      { provide: UserService, useValue: mockDeep<UserService>() },
-      { provide: ConfigService, useValue: new ConfigService({ jwtRefreshSecret: 'refresh-secret' }) },
-    ],
+    providers: [AuthService, { provide: ConfigService, useValue: new ConfigService({ jwtRefreshSecret: 'refresh-secret' }) }],
   }).compile();
 
   auth = moduleRef.get(AuthService);
   jwt = moduleRef.get(JwtService);
-  user = moduleRef.get(UserService);
 });
 
 test('requires a refresh secret that differs from the access secret', () => {
-  expect(() => new AuthService(jwt, user, new ConfigService({ jwtSecret: 'secret' }))).toThrow('JWT_REFRESH_SECRET');
-  expect(() => new AuthService(jwt, user, new ConfigService({ jwtSecret: 'secret', jwtRefreshSecret: 'secret' }))).toThrow(
-    'JWT_REFRESH_SECRET',
-  );
+  expect(() => new AuthService(jwt, new ConfigService({ jwtSecret: 'secret' }))).toThrow('JWT_REFRESH_SECRET');
+  expect(() => new AuthService(jwt, new ConfigService({ jwtSecret: 'secret', jwtRefreshSecret: 'secret' }))).toThrow('JWT_REFRESH_SECRET');
 });
 
-test('validateUser returns the user without the password', async () => {
-  user.fetch.mockResolvedValue({ id: 'test', name: 'foobar', email: 'foobar@test.com', roles: ['test'], password: 'crypto' });
-
-  await expect(auth.validateUser('foobar', 'crypto')).resolves.toEqual({
-    id: 'test',
-    name: 'foobar',
-    email: 'foobar@test.com',
-    roles: ['test'],
-  });
-  await expect(auth.validateUser('foobar', 'wrong')).resolves.toBeNull();
-});
-
-test('jwtSign signs the refresh token with its own secret', () => {
+test('jwtSign issues access token with jti and refresh token with its own secret', () => {
   const tokens = auth.jwtSign(payload);
 
-  expect(jwt.verify<JwtPayload>(tokens.access_token)).toMatchObject({ sub: 'test', username: 'foobar', roles: ['test'] });
-  expect(jwt.verify<JwtPayload>(tokens.refresh_token, { secret: 'refresh-secret' })).toMatchObject({ sub: 'test' });
+  expect(jwt.verify<JwtPayload>(tokens.access_token)).toMatchObject({
+    sub: 'test',
+    username: 'foobar',
+    roles: ['test'],
+    type: 'access',
+    iss: 'mofang-nestjs',
+    aud: 'mofang-client',
+  });
+  expect(jwt.verify<JwtPayload>(tokens.access_token).jti).toBeTypeOf('string');
+  expect(jwt.verify<JwtPayload>(tokens.refresh_token, { secret: 'refresh-secret' })).toMatchObject({ sub: 'test', type: 'refresh' });
   expect(() => jwt.verify<JwtPayload>(tokens.refresh_token)).toThrow();
 });
 

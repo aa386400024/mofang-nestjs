@@ -4,6 +4,7 @@ import { randomInt } from 'node:crypto';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { hashVerificationCode, verifyHashedCode } from '../../common/security/verification-code-hash.js';
 import { assertChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
@@ -35,13 +36,16 @@ import { SmsService } from '../../shared/infra/sms/index.js';
 @Injectable()
 export class VerificationCodeService {
   private readonly logger = new Logger(VerificationCodeService.name);
+  private readonly pepper: string;
 
   constructor(
     private readonly redis: RedisService,
     private readonly sms: SmsService,
     private readonly config: ConfigService,
     private readonly metrics: MetricsService,
-  ) {}
+  ) {
+    this.pepper = this.config.get<string>('sms.codePepper') ?? this.config.getOrThrow<string>('jwtSecret');
+  }
 
   /**
    * 生成并发送短信验证码.
@@ -64,20 +68,16 @@ export class VerificationCodeService {
       throw new BizException(BizCode.VerificationCodeRateLimited, '短信发送过于频繁, 请稍后再试');
     }
 
-    // 2. 生成 code (避免与历史 code 撞车: 重生成 if 已有)
+    // 2. 生成 code（每次发送都重新生成，只存哈希；旧码被覆盖）
     const codeKey = REDIS_KEYS.smsCode(phone, purpose);
-
-    let code = await this.redis.get(codeKey);
-    if (!code) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const len = this.config.get('verification').smsCodeLength;
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      code = String(randomInt(0, 10 ** len)).padStart(len, '0');
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const len = this.config.get('verification').smsCodeLength;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const code = String(randomInt(0, 10 ** len)).padStart(len, '0');
 
     const ttlSec = this.config.get('verification').smsCodeTtlMin * 60;
-    await this.redis.set(codeKey, code, ttlSec);
+    await this.redis.set(codeKey, hashVerificationCode(this.pepper, code), ttlSec);
+    await this.redis.del(`verification:sms:fail:${phone}:${purpose}`);
 
     // 3. 发短信
     await this.sms.send({
@@ -102,16 +102,33 @@ export class VerificationCodeService {
   async verifyCode(phone: string, purpose: SmsPurpose, code: string): Promise<void> {
     assertChinesePhone(phone);
     const codeKey = REDIS_KEYS.smsCode(phone, purpose);
+    const failKey = `verification:sms:fail:${phone}:${purpose}`;
+    const ttlSec = this.config.get('verification').smsCodeTtlMin * 60;
+
+    const failRaw = await this.redis.get(failKey);
+    const failures = failRaw ? Number(failRaw) : 0;
+    if (failures >= 5) {
+      await this.redis.del(codeKey);
+      throw new BizException(BizCode.VerificationCodeExpired, '验证码已失效, 请重新获取');
+    }
+
     const stored = await this.redis.get(codeKey);
     if (!stored) {
       throw new BizException(BizCode.VerificationCodeExpired, '验证码已过期, 请重新获取');
     }
-    if (stored !== code) {
-      // 不删 code, 给用户重试机会 (但 TTL 自动过期)
+    if (!verifyHashedCode(this.pepper, code, stored)) {
+      const count = await this.redis.incr(failKey);
+      if (count === 1) {
+        await this.redis.expire(failKey, ttlSec);
+      }
+      if (count >= 5) {
+        await this.redis.del(codeKey);
+      }
       throw new BizException(BizCode.VerificationCodeInvalid, '验证码不正确');
     }
     // 校验通过, 删除 code (一次性)
     await this.redis.del(codeKey);
+    await this.redis.del(failKey);
   }
 
   /**

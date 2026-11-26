@@ -68,6 +68,13 @@ export class EmergencyService {
     if (!row) {
       throw new Error(`Emergency session upsert failed id=` + dto.id);
     }
+    // AF-537 P1 6.20: 高危急救会话在服务端留下可检索告警信号（只记数值与枚举，不记 notes/context）。
+    if ((dto.intensityBefore ?? 0) >= 8 || dto.phase === 'completed') {
+      this.logger.warn(
+        `[emergency_high_risk] uid=${uid} tool=${dto.toolKind} phase=${dto.phase} ` +
+          `before=${dto.intensityBefore ?? '-'} after=${dto.intensityAfter ?? '-'} stages=${dto.stagesCompleted}`,
+      );
+    }
     this.logger.debug(`upsert emergency uid=` + uid + ` id=` + dto.id + ` phase=` + dto.phase);
     return this.toDto(row);
   }

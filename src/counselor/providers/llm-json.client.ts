@@ -181,7 +181,7 @@ export class CounselorLlmJsonClient {
 
     const payload = extractJsonPayload(rawText);
     if (payload === null) {
-      this.logger.error(`[json_not_found] model=${model} tenant=${input.tenantId} user=${input.userId} ` + `raw=${rawText.slice(0, 200)}`);
+      this.logger.error(`[json_not_found] model=${model} tenant=${input.tenantId} user=${input.userId} len=${rawText.length}`);
       return {
         ok: false,
         data: null,
@@ -198,7 +198,7 @@ export class CounselorLlmJsonClient {
     } catch (err) {
       this.logger.error(
         `[json_parse_failed] model=${model} tenant=${input.tenantId} user=${input.userId} ` +
-          `err=${err instanceof Error ? err.message : String(err)} raw=${payload.slice(0, 200)}`,
+          `err=${err instanceof Error ? err.message : String(err)} len=${payload.length}`,
       );
       return {
         ok: false,

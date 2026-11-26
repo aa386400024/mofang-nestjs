@@ -67,7 +67,6 @@
     "orchestration:web": "node scripts/orchestration/open-web.mjs",
     "prepare": "husky || true",
     "lint-staged": "lint-staged",
-    "entity:sync": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts schema:sync",
     "migration:generate": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts migration:generate",
     "migration:create": "tsx node_modules/typeorm/cli.js migration:create",
     "migration:run": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts migration:run",

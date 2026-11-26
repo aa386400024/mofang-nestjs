@@ -6,12 +6,14 @@
 //     - 不写 crisis 关键词匹配 — 走 CrisisDetectorService (统一逻辑).
 //     - 不写 SSE 帧编码 — 走 NestJS @Sse() decorator (controller 层).
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import type { Repository } from 'typeorm';
 
 import { CrisisDetectorService } from './crisis-detector.service.js';
+import { ConsentService } from '../../consent/providers/consent.service.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto.js';
 import { CrisisEventEntity } from '../entities/crisis-event.entity.js';
@@ -39,6 +41,8 @@ export class LlmOrchestratorService {
     private readonly conversationRepo: Repository<LLMConversationEntity>,
     @InjectRepository(CrisisEventEntity)
     private readonly crisisRepo: Repository<CrisisEventEntity>,
+    private readonly consent: ConsentService,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -48,6 +52,11 @@ export class LlmOrchestratorService {
    * 不返回 Node Readable (那是 OpenAI SDK 类型).
    */
   async *streamChat(uid: string, dto: ChatCompletionDto): AsyncIterable<ChatCompletionChunkDto> {
+    // AF-537 P0-10: AI 对话前必须已同意当前版本隐私协议（服务端强制，不依赖客户端）。
+    if (this.config.get<{ enforceAiChat?: boolean }>('consent')?.enforceAiChat !== false) {
+      await this.consent.assertAccepted(uid, 'agreement+privacy');
+    }
+
     // 1. 服务端二级 crisis 检测 (最后一条 user message).
     const lastUserMsg = [...dto.messages].reverse().find((m) => m.role === 'user');
     const crisisResult = lastUserMsg ? this.crisisDetector.detect(lastUserMsg.content) : null;
@@ -60,7 +69,7 @@ export class LlmOrchestratorService {
     }
 
     // 3. 创建 conversation 记录 (用于 token 累计 + crisis 关联).
-    const conversationId = dto.conversationId ?? randomUUID();
+    const conversationId = await this.resolveConversationId(uid, dto.conversationId);
     await this.conversationRepo.save(
       this.conversationRepo.create({
         id: conversationId,
@@ -132,12 +141,15 @@ export class LlmOrchestratorService {
       }
 
       // 6. 更新 conversation (token + crisisEvent + endedAt).
-      await this.conversationRepo.update(conversationId, {
-        promptTokens,
-        completionTokens,
-        crisisEventId,
-        endedAt: new Date(),
-      });
+      await this.conversationRepo.update(
+        { id: conversationId, uid },
+        {
+          promptTokens,
+          completionTokens,
+          crisisEventId,
+          endedAt: new Date(),
+        },
+      );
       void finishReason;
     } catch (e) {
       this.logger.error(`streamChat failed uid=${uid} conversationId=${conversationId}: ${(e as Error).message}`);
@@ -156,7 +168,7 @@ export class LlmOrchestratorService {
     dto: ChatCompletionDto,
     crisisResult: ReturnType<CrisisDetectorService['detect']>,
   ): AsyncIterable<ChatCompletionChunkDto> {
-    const conversationId = dto.conversationId ?? randomUUID();
+    const conversationId = await this.resolveConversationId(uid, dto.conversationId);
     await this.conversationRepo.save(
       this.conversationRepo.create({
         id: conversationId,
@@ -205,10 +217,29 @@ export class LlmOrchestratorService {
       },
     };
 
-    await this.conversationRepo.update(conversationId, {
-      crisisEventId,
-      endedAt: new Date(),
-    });
+    await this.conversationRepo.update(
+      { id: conversationId, uid },
+      {
+        crisisEventId,
+        endedAt: new Date(),
+      },
+    );
+  }
+
+  /**
+   * 解析会话 id：客户端传入时必须属于当前 uid，否则拒绝（AF-537 P0-11）。
+   *
+   * 旧实现直接信任客户端 `conversationId` 并 `save`，任何人都能把对话写进别人的会话。
+   */
+  private async resolveConversationId(uid: string, provided?: string): Promise<string> {
+    if (!provided) {
+      return randomUUID();
+    }
+    const existing = await this.conversationRepo.findOne({ where: { id: provided } });
+    if (!existing || existing.uid !== uid) {
+      throw new NotFoundException('conversation not found');
+    }
+    return provided;
   }
 
   /**

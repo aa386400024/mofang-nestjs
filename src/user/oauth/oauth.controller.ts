@@ -47,15 +47,16 @@ export class OAuthController {
    */
   @Post('callback')
   @ApiOperation({ summary: 'OAuth 回调 (code 或 id_token, 业务方转发)' })
-  public async callback(@Body() body: { provider: string; code?: string; idToken?: string; state?: string }): Promise<AuthResponseDto> {
+  public async callback(@Body() body: { provider: string; code?: string; idToken?: string; state: string }): Promise<AuthResponseDto> {
     const p = this.parseProvider(body.provider);
 
-    // state 校验 (CSRF)
-    if (body.state) {
-      const ok = await this.oauth.consumeState(body.state, p);
-      if (!ok) {
-        throw new BizException(BizCode.OAuthInvalidState);
-      }
+    // AF-537 P0-8: state 强制必填并原子消费（含微信）；不能因缺省而跳过 CSRF 校验。
+    if (!body.state) {
+      throw new BizException(BizCode.OAuthInvalidState, 'state 必填');
+    }
+    const ok = await this.oauth.consumeState(body.state, p);
+    if (!ok) {
+      throw new BizException(BizCode.OAuthInvalidState);
     }
 
     let info;

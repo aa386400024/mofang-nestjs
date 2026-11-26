@@ -82,15 +82,10 @@ export class DualPuzzleController {
     description: '默契结果 (未齐返 null)',
     type: DualPuzzleResultDto,
   })
-  public async fetchResult(
-    @CurrentUser() user: { userId: string },
-    @Query('setId') setId: string,
-    @Query('partnerUserId') partnerUserId: string,
-  ): Promise<DualPuzzleResultDto | null> {
+  public async fetchResult(@CurrentUser() user: { userId: string }, @Query('setId') setId: string): Promise<DualPuzzleResultDto | null> {
     return this.service.fetchResult({
       setId,
       userId: user.userId,
-      partnerUserId,
     });
   }
 
@@ -105,7 +100,7 @@ export class DualPuzzleController {
     description: '历史题目组列表',
     type: [DualPuzzleSetDto],
   })
-  public async recent(@Query('limit') limit?: string): Promise<DualPuzzleSetDto[]> {
-    return this.service.recentSets(limit ? Math.min(50, Number.parseInt(limit, 10)) : 10);
+  public async recent(@CurrentUser() user: { userId: string }, @Query('limit') limit?: string): Promise<DualPuzzleSetDto[]> {
+    return this.service.recentSets(user.userId, limit ? Math.min(50, Number.parseInt(limit, 10)) : 10);
   }
 }

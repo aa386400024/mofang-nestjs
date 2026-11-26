@@ -40,7 +40,8 @@ async function bootstrap(): Promise<string> {
   // app.useGlobalInterceptors(app.get(HttpMetricsInterceptor));
 
   if (isProduction) {
-    app.enable('trust proxy');
+    // AF-537 P1 6.9: 只信任反代一跳，避免任意 XFF 伪造污染 req.ip / 限流键。
+    app.set('trust proxy', 1);
   }
 
   // Express Middleware
@@ -51,7 +52,8 @@ async function bootstrap(): Promise<string> {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   app.enableShutdownHooks();
-  await app.listen(process.env.PORT ?? 3000);
+  // AF-537 P1 6.9: 生产容器用 host 网络时只监听回环，避免端口直接暴露到主机网卡。
+  await app.listen(process.env.PORT ?? 3000, process.env['BIND_HOST'] ?? '0.0.0.0');
 
   return await app.getUrl();
 }
@@ -62,5 +64,9 @@ void (async (): Promise<void> => {
     NestLogger.log(url, 'Bootstrap');
   } catch (error) {
     NestLogger.error(error, 'Bootstrap');
+    // AF-537 P1 6.14: 启动失败必须让进程退出，否则容器/PM2 会误以为实例健康。
+    // 用非零 exitCode + 抛错交给 Node 终止进程，避免直接 process.exit 截断日志 flush。
+    process.exitCode = 1;
+    throw error;
   }
 })();

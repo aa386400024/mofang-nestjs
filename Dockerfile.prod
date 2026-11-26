@@ -19,6 +19,9 @@
 # ============================================================
 FROM node:26-alpine AS prod
 
+# AF-537 P1 6.21#14: 镜像内强制 production，裸 docker run 也不会加载 development 配置。
+ENV NODE_ENV=production
+
 WORKDIR /app
 
 # alpine 缺 python3/make/g++, 某些 native module 需要 (bcrypt / sharp)
@@ -39,6 +42,15 @@ RUN pnpm install --prod --frozen-lockfile
 #    .dockerignore 已排除 src/, 防止开发代码进镜像
 COPY dist ./dist
 COPY package.json ./
+
+# 运行时不需要包管理器；npm 自带的 undici / brace-expansion 会带进已知 HIGH 漏洞。
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/corepack \
+    /usr/local/bin/pnpm \
+    /usr/local/bin/pnpx
 
 # 4. 安全: 非 root 用户
 RUN addgroup -g 1001 -S nodejs && \

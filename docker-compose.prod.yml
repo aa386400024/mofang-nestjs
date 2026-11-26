@@ -24,9 +24,8 @@ services:
     container_name: mofang-nestjs-api
     restart: unless-stopped
 
-    # host 网络 = 容器内 127.0.0.1 就是 host 127.0.0.1
-    # 优点: MySQL/Redis 在 host, 直接连, 不用管 DNS / network alias
-    # 缺点: 容器端口 3001 直接绑到 host 3001 (不能用 port mapping)
+    # AF-537 P1 6.9: 保留 host 网络（宿主机 MySQL/Redis 走 127.0.0.1，改动最小），
+    # 但应用只监听回环地址，3001 不再暴露到主机网卡；对外统一走反代。
     network_mode: host
 
     env_file:
@@ -40,6 +39,8 @@ services:
       # 但显式声明防止 .env 被改
       - DB_HOST=127.0.0.1
       - REDIS_HOST=127.0.0.1
+      # 只监听回环，避免 3001 直接暴露在主机网卡上。
+      - BIND_HOST=127.0.0.1
       - PORT=3001
 
     # 标注台冻结逐字稿 (审计留档, 容器重建 / 回滚不丢; 内容已在 .gitignore, 不进版本库).

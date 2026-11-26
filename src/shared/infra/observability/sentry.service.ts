@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 
 import {
+  REQUEST_BODY_SENSITIVE_NAMES,
   SENSITIVE_CONTENT_NAMES,
-  SENSITIVE_KEY_NAMES,
   collectMatchingKeys,
   redactEventForSentry,
   redactRecord,
@@ -223,8 +223,8 @@ export class SentryService implements OnModuleInit {
     if (!this.initialized) {
       return;
     }
-    // 业务侧不要把 prompt / userInput / chat history 传进 context —— 那会把心理原文送进 Sentry.
-    const extra = context ? redactRecord(context, SENSITIVE_KEY_NAMES) : undefined;
+    // AF-537 P1 6.21#20: 心理内容字段名与凭据字段名一并脱敏，不能只遮凭据。
+    const extra = context ? redactRecord(context, REQUEST_BODY_SENSITIVE_NAMES) : undefined;
     this.warnIfContentFieldsLeak(context);
     Sentry.captureException(err, { extra });
   }
@@ -240,7 +240,7 @@ export class SentryService implements OnModuleInit {
     if (!this.initialized) {
       return;
     }
-    const extra = context ? redactRecord(context, SENSITIVE_KEY_NAMES) : undefined;
+    const extra = context ? redactRecord(context, REQUEST_BODY_SENSITIVE_NAMES) : undefined;
     this.warnIfContentFieldsLeak(context);
     Sentry.captureMessage(redactString(message), { level, extra });
   }

@@ -44,6 +44,34 @@ export const GATE_SESSION_STATE_TTL_SECONDS = 86_400;
 export const GATE_RPM_TTL_SECONDS = 120;
 
 /**
+ * 原子预占脚本（AF-537 P1 6.17）。
+ *
+ * KEYS: 1=会话计数, 2=全局分钟计数, 3=last_turn
+ * ARGV: 1=会话上限, 2=全局分钟上限, 3=会话 TTL, 4=分钟 TTL, 5=是否生效模式, 6=本轮 turn
+ *
+ * 返回 1 = 预占成功；0 = 配额已满（不做任何自增）。
+ */
+const RESERVE_SCRIPT = `
+local sessionCount = tonumber(redis.call('GET', KEYS[1]) or '0')
+local maxPerSession = tonumber(ARGV[1])
+if sessionCount >= maxPerSession then
+  return 0
+end
+if ARGV[5] == '1' then
+  local globalCount = tonumber(redis.call('GET', KEYS[2]) or '0')
+  if globalCount >= tonumber(ARGV[2]) then
+    return 0
+  end
+  redis.call('INCR', KEYS[2])
+  redis.call('EXPIRE', KEYS[2], ARGV[4])
+end
+redis.call('INCR', KEYS[1])
+redis.call('EXPIRE', KEYS[1], ARGV[3])
+redis.call('SET', KEYS[3], ARGV[6], 'EX', ARGV[3])
+return 1
+`;
+
+/**
  * 构造会话级状态 key (冷却轮次 / 会话计数).
  *
  * ⚠️ 长度前缀复合键 (与审议 trace / 熔断 key / BDI 状态仓储同一套纪律):
@@ -171,6 +199,56 @@ export class DeliberationGateQuotas {
     } catch (error) {
       this.logger.warn(`[deliberation_gate_read_failed] circuit: ${messageOf(error)}`);
       return false;
+    }
+  }
+
+  /**
+   * 原子预占一次配额（AF-537 P1 6.17）。
+   *
+   * 旧的「先 loadRuntimeState 读、再 recordRun 写」在并发下两个请求都能读到未超限，
+   * 然后各自 +1，配额被击穿。这里用一段 Lua 脚本把「判上限 + 自增 + 写 last_turn」
+   * 合成一次原子操作，读与写不再有窗口。
+   *
+   * @param sessionId 业务会话 id
+   * @param mode 模式
+   * @param turnIndex 本轮轮次
+   * @param now 当前时刻（毫秒）
+   * @param maxPerSession 会话上限
+   * @param globalRpm 全局每分钟上限
+   * @returns true = 已占到位；false = 配额已满
+   */
+  async tryReserve(
+    sessionId: string,
+    mode: GateMode,
+    turnIndex: number,
+    now: number,
+    maxPerSession: number,
+    globalRpm: number,
+  ): Promise<boolean> {
+    try {
+      const sessionCountKey = buildGateSessionKey(sessionId, mode, 'count');
+      const rpmKey = buildGateGlobalRpmKey(Math.floor(now / 60_000));
+      const lastTurnKey = buildGateSessionKey(sessionId, mode, 'last_turn');
+      const result = await this.redis
+        .getClient()
+        .eval(
+          RESERVE_SCRIPT,
+          3,
+          sessionCountKey,
+          rpmKey,
+          lastTurnKey,
+          String(maxPerSession),
+          String(globalRpm),
+          String(GATE_SESSION_STATE_TTL_SECONDS),
+          String(GATE_RPM_TTL_SECONDS),
+          mode === 'effect' ? '1' : '0',
+          String(turnIndex),
+        );
+      return Number(result) === 1;
+    } catch (error) {
+      // 配额账本不可用时沿用既有语义：不阻断审议，仅告警。
+      this.logger.warn(`[deliberation_gate_write_failed] try_reserve: ${messageOf(error)}`);
+      return true;
     }
   }
 

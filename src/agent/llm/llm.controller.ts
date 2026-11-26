@@ -12,17 +12,10 @@
 import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 
+import { StreamChatDto } from './dto/stream-chat.dto.js';
 import { LlmService } from './llm.service.js';
-import type { LlmMessage } from './llm.types.js';
 import { JwtAuthGuard } from '../../auth/guards/index.js';
 import { TenantId, UserId } from '../../common/decorators/index.js';
-
-interface StreamChatDto {
-  readonly messages: readonly LlmMessage[];
-  readonly temperature?: number;
-  readonly maxTokens?: number;
-  readonly topP?: number;
-}
 
 @Controller('agent/llm')
 @UseGuards(JwtAuthGuard)

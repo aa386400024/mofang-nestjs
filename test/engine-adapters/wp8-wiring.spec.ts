@@ -617,7 +617,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
   // ── 附加 B: 调试端点 ─────────────────────────────────────────────
   describe('附加 B · 调试端点 (错误映射 + 角色内核净化)', () => {
     /** 造一个只按脚本抛错的门面替身. */
-    function stubService(openError?: Error): { open: Mock; turn: Mock; close: Mock } {
+    function stubService(openError?: Error): { open: Mock; turn: Mock; close: Mock; resolveContext: Mock } {
       return {
         open: vi.fn(() => {
           if (openError) throw openError;
@@ -625,6 +625,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
         }),
         turn: vi.fn(),
         close: vi.fn(),
+        resolveContext: vi.fn(() => ({ tenantId: TENANT })),
       };
     }
 
@@ -701,7 +702,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const service = stubService();
       const controller = new EngineWiringController(service as unknown as EngineTurnService);
 
-      expect(controller.close({ handleId: HANDLE_ID })).toEqual({ ok: true });
+      expect(controller.close(TENANT, { handleId: HANDLE_ID })).toEqual({ ok: true });
       expect(service.close).toHaveBeenCalledWith(HANDLE_ID);
     });
 
@@ -709,7 +710,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const service = stubService();
       const controller = new EngineWiringController(service as unknown as EngineTurnService);
 
-      await controller.turn({ handleId: HANDLE_ID, userText: USER_TEXT, traceId: 'trace-1' });
+      await controller.turn(TENANT, { handleId: HANDLE_ID, userText: USER_TEXT, traceId: 'trace-1' });
 
       expect(service.turn).toHaveBeenCalledWith(HANDLE_ID, { userText: USER_TEXT, traceId: 'trace-1' });
     });

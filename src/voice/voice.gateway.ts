@@ -1030,6 +1030,11 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       return;
     }
     const send = this.sessionSender(data.sessionId);
+    // AF-537 P1 6.21#5: WS 上行 text 无长度上限 —— 网关层直接拒绝超长/空文本。
+    if (payload.type === 'user_text' && (typeof payload.text !== 'string' || payload.text.length === 0 || payload.text.length > 5000)) {
+      send({ type: 'error', error: { code: 'invalid_message', message: 'text length must be 1..5000', retryable: false } });
+      return;
+    }
     try {
       await this.voice.handleMessage(
         {

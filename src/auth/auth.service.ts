@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'node:crypto';
 
 import type { JwtPayload, JwtSign, Payload } from './auth.interface.js';
-import { User, UserService } from '../shared/user/index.js';
 
 /** 把 '15m' / '7d' 字符串转秒数 (跟 user.service.ts 保持一致). */
 function parseExpiresIn(value: string | undefined, fallback: number): number {
@@ -31,7 +31,6 @@ export class AuthService {
 
   constructor(
     private jwt: JwtService,
-    private user: UserService,
     private config: ConfigService,
   ) {
     const refreshSecret = config.get<string>('jwtRefreshSecret');
@@ -42,26 +41,13 @@ export class AuthService {
     this.refreshSecret = refreshSecret;
   }
 
-  /**
-   * Passport-Local 校验: username + password.
-   * user.password 字段在 user.service.ts 已是 bcrypt hash.
-   */
-  public async validateUser(username: string, password: string): Promise<User | null> {
-    const user = await this.user.fetch(username);
-
-    if (user?.password === password) {
-      // eslint-disable-next-line sonarjs/no-unused-vars
-      const { password: pass, ...result } = user;
-      return result;
-    }
-
-    return null;
-  }
-
   public validateRefreshToken(data: Payload, refreshToken: string): boolean {
     try {
-      const payload = this.jwt.verify<{ sub: string }>(refreshToken, { secret: this.refreshSecret });
-      return payload.sub === data.userId;
+      const payload = this.jwt.verify<{ sub: string; type?: string }>(refreshToken, {
+        secret: this.refreshSecret,
+        algorithms: ['HS256'],
+      });
+      return payload.sub === data.userId && payload.type === 'refresh';
     } catch {
       // verify() throws when the token is malformed, expired or signed with another secret.
       return false;
@@ -73,7 +59,15 @@ export class AuthService {
     // 之前没带 → payload.type === undefined → JwtAuthGuard 校验
     // `payload.type !== TokenType.Access` 永远 true → 401.
     // 跟 user.service.ts 的新签名路径保持一致 (该路径已正确).
-    const payload: JwtPayload = { sub: data.userId, username: data.username, roles: data.roles };
+    const payload: JwtPayload = {
+      sub: data.userId,
+      username: data.username,
+      roles: data.roles,
+      jti: randomUUID(),
+      type: 'access',
+      iss: 'mofang-nestjs',
+      aud: 'mofang-client',
+    };
 
     const accessExpiresSec = parseExpiresIn(
       this.config.get<string>('jwtExpiresIn'),

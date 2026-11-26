@@ -68,6 +68,29 @@ class FakeRedis {
 
   readonly eval = vi.fn(async (...args: unknown[]): Promise<number> => {
     this.evalCalls.push(args);
+    if (this.failing) throw new Error('redis down');
+    // AF-537 P1 6.17 的原子预占脚本：3 个 key + 6 个参数。
+    if (args.length === 11 && args[1] === 3) {
+      const sessionKey = String(args[2]);
+      const rpmKey = String(args[3]);
+      const lastTurnKey = String(args[4]);
+      const maxPerSession = Number(args[5]);
+      const globalRpm = Number(args[6]);
+      const ttl = String(args[7]);
+      const mode = String(args[9]);
+      const turn = String(args[10]);
+      const sessionCount = Number(this.store.get(sessionKey) ?? '0');
+      if (sessionCount >= maxPerSession) return 0;
+      if (mode === '1') {
+        const globalCount = Number(this.store.get(rpmKey) ?? '0');
+        if (globalCount >= globalRpm) return 0;
+        this.store.set(rpmKey, String(globalCount + 1));
+      }
+      this.store.set(sessionKey, String(sessionCount + 1));
+      this.store.set(lastTurnKey, turn);
+      void ttl;
+      return 1;
+    }
     return 1;
   });
 

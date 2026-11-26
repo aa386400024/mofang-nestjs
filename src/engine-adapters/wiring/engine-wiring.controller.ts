@@ -152,7 +152,9 @@ export class EngineWiringController {
    * @returns 本轮来访口语 + 内核出参 + 渲染元信息
    */
   @Post('turn')
-  async turn(@Body() body: EngineTurnDto): Promise<TurnRenderResult> {
+  async turn(@TenantId() tenantId: string, @Body() body: EngineTurnDto): Promise<TurnRenderResult> {
+    // AF-537 P1 6.21#22: handleId 必须属于当前租户，禁止跨租户操作调试会话。
+    this.assertOwned(tenantId, body.handleId);
     try {
       return await this.engine.turn(body.handleId, {
         userText: body.userText,
@@ -170,12 +172,23 @@ export class EngineWiringController {
    * @returns 固定 ok
    */
   @Post('close')
-  close(@Body() body: EngineCloseDto): { readonly ok: true } {
+  close(@TenantId() tenantId: string, @Body() body: EngineCloseDto): { readonly ok: true } {
+    this.assertOwned(tenantId, body.handleId);
     try {
       this.engine.close(body.handleId);
       return { ok: true };
     } catch (error) {
       throw mapKernelError(error);
+    }
+  }
+
+  /**
+   * 校验调试会话归属；查不到与不属于当前租户统一 404，避免枚举 handleId。
+   */
+  private assertOwned(tenantId: string, handleId: string): void {
+    const context = this.engine.resolveContext(handleId);
+    if (!context || context.tenantId !== tenantId) {
+      throw new NotFoundException('session not found');
     }
   }
 }

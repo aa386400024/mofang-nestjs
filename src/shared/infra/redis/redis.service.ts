@@ -124,6 +124,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * 原子读取并删除（Redis GETDEL）。
+   *
+   * AF-537 P0-8: OAuth state 单次消费必须原子；`get` + `del` 在并发回调下
+   * 会让同一个 state 被消费两次。
+   */
+  async getdel(key: string): Promise<string | null> {
+    return this.client.getdel(key);
+  }
+
+  /**
    * 原子"仅当不存在时"写 (SET NX [+ EX]).
    *
    * 为什么需要它 (WP65 · per-session mutex):
