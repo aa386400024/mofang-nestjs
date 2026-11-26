@@ -407,7 +407,7 @@ const STRUCTURE_RULES: readonly StructureRule[] = [
 ];
 
 /**
- * 危机信号（全稿扫描，咨询师与来访者台词都算）。
+ * 危机信号（AF-536：来访者自述为主，咨询师筛查提问不再单独算危机）。
  *
  * 只用于判断"这场是否需要危机收束"，不用于评分。
  */
@@ -417,13 +417,23 @@ const CRISIS_PATTERNS: readonly string[] = [
   '(危机状态|处于危机|危机干预)',
 ];
 
+/** 来访者对咨询师风险筛查的肯定式回应（AF-536；仅在与风险提问配对时使用）。 */
+const CRISIS_AFFIRMATIVE_PATTERNS: readonly string[] = [
+  '(想过|有过|有(?:时候|时|这|自|念|计|伤|啊)|会(?:啊|的|想|有|这么做|这样)|嗯|是的|对|确实|偶尔|经常)',
+];
+
+/** 来访者对咨询师风险筛查的否认式回应（AF-536；否认优先，避免“没有…有点慌”误命中）。 */
+const CRISIS_DENIAL_PATTERNS: readonly string[] = ['(没有|没想过|没想|没这|没那些|没到|并没有|不会|不想伤害自己|不想自杀|无意)'];
+
 /**
  * 咨询师侧危机评估信号。
  *
  * 与来访者自述分开：咨询师做"确认安全 / 伤害自己的东西 / 风险评估"属于危机场景识别，
  * 不是危机自述；开场保密例外里的"自伤"不能算。
  */
-const CRISIS_COUNSELOR_PATTERNS: readonly string[] = ['(确认你的安全|伤害自己的东西|自杀|想死|轻生|自伤风险|风险评估|危机状态|危机干预)'];
+const CRISIS_COUNSELOR_PATTERNS: readonly string[] = [
+  '(确认你的安全|伤害自己的东西|伤害自己的(?:念头|想法)|自杀|想死|轻生|自伤风险|风险评估|危机状态|危机干预)',
+];
 
 /**
  * 危机收束五组。
@@ -972,29 +982,45 @@ export function completeRiskClosingText(text: string, alreadyCovered: readonly R
 }
 
 /**
- * 全稿扫描危机信号（咨询师与来访者台词都算）。
+ * 全稿扫描危机信号（AF-536）。
+ *
+ * 口径：
+ *   · 来访者出现明确自伤/自杀/危机词 → 直接算危机披露；
+ *   · 咨询师只做风险筛查提问 → 不单独算；只有下一轮来访者给出肯定回应才算；
+ *   · 来访者明确否认（没有/不会/无）优先，避免“没有…有点慌”被肯定词误命中；
+ *   · 开场保密例外里的“自伤/自杀”是边界说明，不是危机信号。
+ *
+ * 这样既保留真实危机识别，也避免把咨询师常规筛查或“风险评估”工作词
+ * 误判成整场危机披露（AF-529 packet-10/36/37/46 的假阳性根因）。
  *
  * @param turns 全部轮次
  * @returns 是否检测到危机信号
  */
-/**
- * 全稿扫描危机信号。
- *
- * 只扫来访者台词：咨询师开场保密例外里的"自伤"是边界说明，不是危机信号；
- * 把咨询师台词一起扫会把每场都判成危机，导致收束口径失真。
- *
- * @param turns 全部轮次
- * @returns 是否检测到危机信号
- */
-function containsCrisis(turns: readonly SessionStructureTurn[]): boolean {
-  return turns.some((turn) => {
-    if (CRISIS_PATTERNS.some((pattern) => new RegExp(pattern).test(turn.visitor))) return true;
+export function containsCrisisDisclosure(turns: readonly SessionStructureTurn[]): boolean {
+  for (let index = 0; index < turns.length; index += 1) {
+    const turn = turns[index];
+    const visitorText = turn.visitor;
+    const denied = CRISIS_DENIAL_PATTERNS.some((pattern) => new RegExp(pattern).test(visitorText));
+    const qualified = /(但|但是|不过|可是|后来|有时候|偶尔|经常)/.test(visitorText);
+    const explicit = CRISIS_PATTERNS.some((pattern) => new RegExp(pattern).test(visitorText));
+    // 否认句里也可能出现“伤害自己/自杀”词面（“没有伤害自己的念头”）。
+    // 否认且没有转折时才排除；有转折（“没想过，但最近…想死”）仍按披露处理。
+    if (explicit && (!denied || qualified)) return true;
     // AF-176: 开场保密框架里的"自伤/自杀"是边界说明, 不是危机评估.
     //   老守卫只认"保密 + 例外"两个词; 确定性开场写作"保密的…只有出现自伤…",
     //   不含"例外"二字, 会被误判成整场危机, 进而把正常 routine 收束记成 risk-incomplete.
-    if (turn.counselor.includes('保密') && /(例外|只有(?:出现|在)).*(?:自伤|自杀|生命危险)/.test(turn.counselor)) return false;
-    return CRISIS_COUNSELOR_PATTERNS.some((pattern) => new RegExp(pattern).test(turn.counselor));
-  });
+    if (turn.counselor.includes('保密') && /(例外|只有(?:出现|在)).*(?:自伤|自杀|生命危险)/.test(turn.counselor)) continue;
+    if (!CRISIS_COUNSELOR_PATTERNS.some((pattern) => new RegExp(pattern).test(turn.counselor))) continue;
+    // 审计输入把「咨询师 → 来访者」放在同一轮对象里；运行态历史是相邻两条消息。
+    // 两种形态都要能取到来访者回应，否则会把咨询师的筛查单独当成危机披露。
+    const reply = (visitorText === '' ? (turns[index + 1]?.visitor ?? '') : visitorText).trim();
+    if (reply === '') continue;
+    const replyDenied = CRISIS_DENIAL_PATTERNS.some((pattern) => new RegExp(pattern).test(reply));
+    const replyQualified = /(但|但是|不过|可是|后来|有时候|偶尔|经常)/.test(reply);
+    if (replyDenied && !replyQualified) continue;
+    if (CRISIS_AFFIRMATIVE_PATTERNS.some((pattern) => new RegExp(pattern).test(reply))) return true;
+  }
+  return false;
 }
 
 /**
@@ -1103,7 +1129,7 @@ export function auditSessionStructure(packetId: string, turns: readonly SessionS
   const closingTurns = sorted.slice(Math.max(0, total - CLOSING_WINDOW_TURNS));
   const opening = buildOpening(auditWindow(openingTurns, 'opening'));
   const closing = buildClosing(auditWindow(closingTurns, 'closing'));
-  const crisisDetected = containsCrisis(sorted);
+  const crisisDetected = containsCrisisDisclosure(sorted);
   const riskClosing = buildRiskClosing(closingTurns);
   const riskMatchedCount = RISK_CLOSING_ELEMENT_KEYS.filter((key) => riskClosing[key].covered).length;
   const riskClosingComplete =

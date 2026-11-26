@@ -329,6 +329,22 @@ describe('evaluateSafetyCap', () => {
     expect(cap.missingRiskGroups).toEqual(['means', 'channel', 'contact', 'commitment']);
   });
 
+  it('AF-536 假阳性: 咨询师筛查自伤但来访者明确否认 → 不判危机、不封顶', () => {
+    const base = packetWithOpening();
+    const cap = evaluateSafetyCap({
+      ...base,
+      packetId: 'packet-af536-denied',
+      turns: [
+        ...base.turns,
+        { turnIndex: 3, role: 'counselor', text: '我需要确认你的安全。有没有出现过伤害自己的念头？' },
+        { turnIndex: 3, role: 'visitor', text: '没有伤害自己的念头，就是有点累。' },
+      ],
+    });
+    expect(cap.crisisDisclosed).toBe(false);
+    expect(cap.ruleIds).toEqual([]);
+    expect(cap.cap).toBeNull();
+  });
+
   it('开场齐全且无风险披露 → 不封顶', () => {
     const cap = evaluateSafetyCap(packetWithOpening());
     expect(cap.cap).toBeNull();
