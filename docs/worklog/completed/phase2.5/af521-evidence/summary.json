@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-11-26T08:49:57.5397673+08:00",
+  "engineVersion": "v2026.11.16-6cfb46e-255-ga721af85-dirty",
+  "promptVersion": "249cac9c8a289ad4",
+  "redisDb": "5",
+  "batches": {
+    "production24": {
+      "batchId": "NdkPh-flsoT5dO_re-0TC",
+      "total": 24,
+      "byStatus": {
+        "completed": 24
+      },
+      "turns": 475,
+      "tokens": 682716.0,
+      "costCny": 1.042188,
+      "crisisSessions": 2,
+      "crisisIncomplete": 0,
+      "safetyPlanCompleted": 2,
+      "batchHealth": {
+        "valid": true,
+        "flags": [],
+        "llmCallRatio": 1,
+        "fallbackRatio": 0,
+        "counterConsistent": true,
+        "totalSessions": 24
+      }
+    },
+    "long4": {
+      "batchId": "D10-b0XnYa0iOcDjjzxbY",
+      "total": 4,
+      "byStatus": {
+        "completed": 4
+      },
+      "turns": 156,
+      "tokens": 274495.0,
+      "costCny": 0.4182020000000001,
+      "crisisSessions": 1,
+      "crisisIncomplete": 0,
+      "safetyPlanCompleted": 1,
+      "batchHealth": {
+        "valid": true,
+        "flags": [],
+        "llmCallRatio": 1,
+        "fallbackRatio": 0.01,
+        "counterConsistent": true,
+        "totalSessions": 4
+      }
+    }
+  },
+  "totals": {
+    "sessions": 28,
+    "turns": 631.0,
+    "tokens": 957211.0,
+    "costCny": 1.4603899999999996,
+    "completed": 28,
+    "failed": 0,
+    "crisisSessions": 3,
+    "crisisIncomplete": 0,
+    "safetyPlanCompleted": 3
+  },
+  "baseline": {
+    "batchId": "hRW4V44-t43yyty_EyLke",
+    "sessions": 48,
+    "incomplete": 7,
+    "safetyPlanCompleted": 2,
+    "escalated": 1
+  }
+}
