@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-26T16:56:00.965Z",
+  "generatedAt": "2026-11-26T17:35:04.964Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -18,10 +18,10 @@ window.ORCH_SNAPSHOT = {
   },
   "tasks": [
     {
-      "taskId": "AF-559",
+      "taskId": "AF-561",
       "contextId": "phase2.5-audit-remediation",
-      "type": "fix",
-      "title": "移除来访者台词中的括号舞台说明",
+      "type": "implementation",
+      "title": "Phase2.5 出口④安全收束门 + Max TTS 并发治理 + 会员 TTS 权益口径对齐",
       "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
@@ -29,26 +29,26 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md",
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md",
         "reply": null
       },
       "manualReview": [],
       "dispatch": {
-        "taskId": "AF-559",
+        "taskId": "AF-561",
         "contextId": "phase2.5-audit-remediation",
         "channel": "gui-relay",
         "targetRole": "executor",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-26T16:56:00.868Z",
-        "leaseDeadline": "2026-11-26T17:26:00.865Z",
+        "dispatchedAt": "2026-11-26T17:35:04.867Z",
+        "leaseDeadline": "2026-11-26T18:05:04.864Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-559.json",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-561.json",
         "delivery": {
           "state": "pending",
-          "preparedAt": "2026-11-26T16:56:00.868Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-559.brief.md",
+          "preparedAt": "2026-11-26T17:35:04.867Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-561.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -2069,6 +2069,102 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-637",
+      "recordedAt": "2026-11-26T17:35:00.265Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-561",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-636",
+      "recordedAt": "2026-11-26T17:34:57.163Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-560",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-635",
+      "recordedAt": "2026-11-26T17:33:50.084Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-560",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-560-safety-tts-membership-closure"
+      ]
+    },
+    {
+      "auditId": "AUD-634",
+      "recordedAt": "2026-11-26T17:33:40.310Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-560",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-633",
+      "recordedAt": "2026-11-26T16:56:05.739Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-559",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-559-visitor-stage-direction"
+      ]
+    },
+    {
+      "auditId": "AUD-632",
+      "recordedAt": "2026-11-26T16:56:01.210Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-559",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-559",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-559.json"
+      ]
+    },
+    {
       "auditId": "AUD-631",
       "recordedAt": "2026-11-26T16:55:56.366Z",
       "actorRef": "orchestrator",
@@ -2208,125 +2304,29 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-556.json"
       ]
-    },
-    {
-      "auditId": "AUD-622",
-      "recordedAt": "2026-11-26T13:21:21.619Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-556",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-621",
-      "recordedAt": "2026-11-26T13:12:07.115Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-555",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-555-module-wiring"
-      ]
-    },
-    {
-      "auditId": "AUD-620",
-      "recordedAt": "2026-11-26T13:11:57.355Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-555",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-555",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-555.json"
-      ]
-    },
-    {
-      "auditId": "AUD-619",
-      "recordedAt": "2026-11-26T13:11:41.593Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-555",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-618",
-      "recordedAt": "2026-11-26T13:11:18.983Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-554",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-617",
-      "recordedAt": "2026-11-26T13:04:18.128Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-554",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-554-module-wiring"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 631,
+    "total": 637,
     "byResult": {
-      "allowed": 631,
+      "allowed": 637,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 630,
+      "TOOL-QUEUE-SCHEDULER": 636,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 631
+      "orchestrator": 637
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
     "tasks": [
       {
-        "taskId": "AF-559",
-        "title": "移除来访者台词中的括号舞台说明",
-        "type": "fix",
+        "taskId": "AF-561",
+        "title": "Phase2.5 出口④安全收束门 + Max TTS 并发治理 + 会员 TTS 权益口径对齐",
+        "type": "implementation",
         "status": {
           "framework": "submitted",
           "protocol": "SUBMITTED",
@@ -2339,11 +2339,11 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md"
+            "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
           }
         ]
       }
@@ -11106,6 +11106,42 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af558-tts-max-fallback-hd-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-559",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-560",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-560/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11122,14 +11158,14 @@ window.ORCH_SNAPSHOT = {
     },
     "artifacts": [
       {
-        "taskId": "AF-559",
+        "taskId": "AF-561",
         "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md"
+        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md"
       },
       {
-        "taskId": "AF-559",
+        "taskId": "AF-561",
         "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md"
+        "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
       }
     ],
     "groupId": "phase2.5-audit-remediation",
@@ -11143,5 +11179,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 495
+  "archivedCount": 497
 };

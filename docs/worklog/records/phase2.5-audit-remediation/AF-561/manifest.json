@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-561",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "backlog",
+  "createdAt": "2026-11-27T10:00:00+08:00",
+  "updatedAt": "2026-11-26T17:34:59.346Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md",
+    "sha256": "a6fb700e3311939e4acb4c94a0b1d17e3d23f89946f6c7ef36c8f2c9234f7caa",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-safety-tts-membership-closure-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
