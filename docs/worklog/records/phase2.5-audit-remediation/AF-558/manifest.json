@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-558",
   "contextId": "phase2.5-audit-remediation",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-27T00:15:00+08:00",
-  "updatedAt": "2026-11-26T16:13:09.678Z",
+  "updatedAt": "2026-11-26T16:18:11.496Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-558/task-sheet.md",
     "sha256": "d839d5410408d8fea88709ec3e5aa457024f9a274e7cd71da57a8495693bc171",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-558/receipt-RC-AF-558-1.json",
+      "sha256": "3b06aeb1d80b6179aa3d10d11a60d5885d52477b14768289b93ab8ad55a53786",
+      "receiptId": "RC-AF-558-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af558-tts-max-fallback-hd-2026-11-27.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-tts-max-fallback-hd-task-2026-11-27.md"

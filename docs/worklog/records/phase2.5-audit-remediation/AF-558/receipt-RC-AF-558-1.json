@@ -1,0 +1,165 @@
+{
+  "deliveredAt": "2026-11-27T00:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-558-1",
+    "taskId": "AF-558",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "b22876e49a2224b62c4db31a5d4136289d2952e0",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-558/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af558-tts-max-fallback-hd-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af558-tts-max-fallback-hd-2026-11-27.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-558/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-558/task-sheet.md"
+      ],
+      "modified": [
+        "src/voice/tts/runtime/tts-profile.registry.ts",
+        "src/voice/tts/runtime/tts-profile.resolver.ts",
+        "src/voice/voice.service.ts",
+        "test/voice/tts-profile-resolver.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["4eb9583d5f4e4d0ca965d69951e1626e820f9215"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/voice/tts-profile-resolver.spec.ts test/voice/tts-membership-tier.adapter.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "1.45s",
+        "note": "2 files / 14 tests passed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量",
+        "note": "tsc -p tsconfig.json --noEmit；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存 + 全量",
+        "note": "src/test/bin + scripts；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 359,
+        "machine": "同上",
+        "wallClock": "52.45s",
+        "note": "358 files passed + 1 skipped；5092 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "tsc -p tsconfig.build.json；0 error"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2298 条；schema state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS（strict）：活跃=1 归档=494 记录包=514 inbox=0"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；未动 engine-core"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run 定向 2 spec → pnpm typecheck → pnpm lint → pnpm test → pnpm build → node scripts/orchestration/cli.mjs events verify → worklog verify --strict --state-free → git diff --stat HEAD -- src/engine-core。行为验证可用 TtsProfileResolver：Max 缺豆包 key 预期 minimax-hd / effectiveQuality=hd / fallbackReason=doubao_unconfigured；运行期 fallbackProfile 预期 minimax-hd / doubao_start_failed。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-558 贯穿任务单、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取均经 CLI；实现提交未混入状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter、scope、gates、artifacts 齐全；preflight PASS files=7 covered=4"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2298 条事件；哈希链与索引投影一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执 gateResults 与交付记录同源同数字；定向 14、全量 5092/5096 与现场输出一致"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF558-01",
+        "impact": "tts-config.doctor.ts 文件头注释仍写回退 Turbo，与现行策略不一致",
+        "severity": "low",
+        "schedule": "下次触碰 TTS 配置自检文件时同步修正注释"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "Max 在决策期未配置与运行期启动失败两条路径均改为回退 minimax-hd，回退目标收敛到 registry 的 resolveTtsFallbackProfile；Free/Plus、Pro、Pro HD 运行期不降档语义保持不变；定向 14 例、全量 5092 例、typecheck、lint、build、events verify、worklog strict 全绿；engine-core 零改动；实现提交未混入状态面。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
