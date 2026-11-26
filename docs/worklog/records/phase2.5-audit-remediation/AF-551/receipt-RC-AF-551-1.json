@@ -1,0 +1,156 @@
+{
+  "deliveredAt": "2026-11-26T12:12:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-551-1",
+    "taskId": "AF-551",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "31c26d0aa6c81a4729d62307ba6204a5864a183b",
+    "dependsOn": ["AF-547"],
+    "priorTasks": ["AF-547", "AF-549", "AF-550"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-551/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af551-graphql-depth-limit-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["4245c245", "31c26d0a", "b858b300"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af549-executor-lockfile-resource-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af551-graphql-depth-limit-2026-11-26.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-548/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-548/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-549/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-549/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-549/receipt-RC-AF-549-1.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-550/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-550/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-551/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-551/task-sheet.md",
+        "src/gql/gql-options.ts",
+        "test/gql/af551-depth-limit.spec.ts"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/agent-cards/executor.json",
+        "package.json",
+        "pnpm-lock.yaml",
+        "src/gql/gql.module.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/gql",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "0.77s",
+        "note": "test/gql/af551-depth-limit.spec.ts 7 例全绿"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 12s",
+        "note": "tsc --noEmit 全绿"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 15s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 355,
+        "machine": "同上",
+        "wallClock": "46.80s",
+        "note": "354 passed | 1 skipped（355 文件），5067 passed | 4 skipped（5071 例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "AF-549 先修 executor 资源域；AF-550 因目录形态越域取消；AF-551 从 AF-549 HEAD 堆叠并强制 gateProfile=full。深度阈值 10，11 层被拒。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-551 贯穿任务单、交付记录、提交 trailer 与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / cancel 均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "状态索引未手改" },
+      { "item": "event-chain", "result": "pass", "note": "归档后 events verify 复核" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零 diff" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为堆叠起点 AF-549 HEAD；PR base 为 integrate 2414d749。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF551-01",
+        "severity": "P2",
+        "title": "GqlModule / SampleModule 仍未挂载 AppModule",
+        "impact": "深度限制与鉴权已就绪，但模块未挂载前线上不可达；挂载会新增对外路由面，需产品决策"
+      },
+      {
+        "id": "BL-AF551-02",
+        "severity": "P3",
+        "title": "R0 纯文档 PR 的 Unit 矩阵检查名缺失",
+        "impact": "风险门判 R0 时 Unit 分片 job 整体跳过，矩阵名未展开，required checks 永远 missing；本次以 gateProfile=full 绕开，治理层应修 CI 模板"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-549 之后直接实现 GraphQL 深度限制",
+        "reality": "AF-549 属纯 docs 变更被风险门判 R0，Unit 矩阵检查名缺失导致 PR 无法合并",
+        "action": "关闭 PR #268，登记堆叠任务 AF-551，声明 gateProfile=full 强制完整门禁",
+        "why": "不关保护、不伪造检查；用受支持的堆叠返修路径保留 AF-549 提交"
+      },
+      {
+        "taskSays": "AF-550 承接 GraphQL",
+        "reality": "AF-550 scope 用目录形态与资源域精确文件不匹配，claim 被 scope-domain-conflict 拒绝",
+        "action": "取消 AF-550，AF-551 改用精确路径 docs/team/agent-orchestration/agent-cards/executor.json",
+        "why": "任务单不可变，按重建口径重登记"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "深度规则真实接入 Apollo 校验链，超深、片段、内联片段、别名均被拒；依赖与 lockfile 合法落入 executor 资源域；全量闸门绿且 engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "新增 graphql-depth-limit 1.1.0 + @types/graphql-depth-limit 1.1.6，均为轻量包。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

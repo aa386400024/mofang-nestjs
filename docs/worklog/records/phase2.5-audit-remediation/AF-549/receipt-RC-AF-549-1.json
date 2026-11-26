@@ -1,0 +1,119 @@
+{
+  "deliveredAt": "2026-11-26T11:56:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-549-1",
+    "taskId": "AF-549",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "2414d749835df16fe560038fd4b1868bcf598e14",
+    "dependsOn": ["AF-547"],
+    "priorTasks": ["AF-547"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-549/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af549-executor-lockfile-resource-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["4245c245"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af549-executor-lockfile-resource-2026-11-26.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-549/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-549/task-sheet.md"
+      ],
+      "modified": ["docs/team/agent-orchestration/agent-cards/executor.json"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "约 3s",
+        "note": "运行态任务单、事件日志哈希链、索引投影全部 PASS"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "tsc --noEmit 全绿"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "AF-548 因 pnpm-lock.yaml 不在 executor 资源域被 run-once 拒绝；本任务只补资源域声明，不装依赖。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-549 贯穿任务单、交付记录、提交 trailer 与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / claim / cancel 均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "状态索引未手改" },
+      { "item": "event-chain", "result": "pass", "note": "validate 哈希链与投影一致" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零 diff" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为 AF-547 合并后的 integrate HEAD 2414d749。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF549-01",
+        "severity": "P2",
+        "title": "GraphQL 深度限制待实现",
+        "impact": "AF-548 因资源域缺口取消归档；需以新任务承接并在 scope 显式声明 pnpm-lock.yaml"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只修 executor 资源域",
+        "reality": "任务登记时 AF-548 已 ready，必须先取消才能避免调度器继续派发越域任务",
+        "action": "cancel AF-548 并登记 AF-549 前置；后续 GraphQL 用新任务承接",
+        "why": "任务单登记后不可变；不绕过 scope-domain 校验"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "资源域缺口已修复且未放宽依赖审批边界；治理面校验、类型与 lint 全绿，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增费用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

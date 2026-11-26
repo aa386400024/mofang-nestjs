@@ -1,10 +1,11 @@
-import { ApolloDriver } from '@nestjs/apollo';
+import { ApolloDriver, type ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GqlModuleOptions, GraphQLModule } from '@nestjs/graphql';
+import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Sampletable1 } from '#entity/sampledb1/index.js';
+import { withGraphqlDepthLimit } from './gql-options.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { SimpleService } from './providers/index.js';
 import { SimpleResolver } from './resolvers/index.js';
@@ -16,11 +17,9 @@ import { DateScalar } from './scalars/index.js';
 @Module({
   imports: [
     AuthModule,
-    GraphQLModule.forRootAsync({
+    GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      useFactory: (config: ConfigService) => ({
-        ...config.get<GqlModuleOptions>('graphql'),
-      }),
+      useFactory: (config: ConfigService) => withGraphqlDepthLimit(config.get<ApolloDriverConfig>('graphql')),
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([Sampletable1]),
