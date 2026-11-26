@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-529",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-26T12:10:00+08:00",
-  "updatedAt": "2026-11-26T05:20:47.374Z",
+  "updatedAt": "2026-11-26T07:27:58.211Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/task-sheet.md",
     "sha256": "78efd7a23fec107d022d8f32871f1a96f30d6192d1892052b77af1cc9b74e67f",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/receipt-RC-AF-529-1.json",
+      "sha256": "5823edd850f8c93d25aa78f530068b3eca9e6687df80bdd735109341eb53f989",
+      "receiptId": "RC-AF-529-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af529-exit4-recheck-2026-11-26.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-af529-exit4-recheck-task-2026-11-26.md"

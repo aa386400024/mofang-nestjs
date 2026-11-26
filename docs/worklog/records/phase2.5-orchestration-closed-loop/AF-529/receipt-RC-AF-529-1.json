@@ -1,0 +1,220 @@
+{
+  "deliveredAt": "2026-11-26T08:40:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-529-1",
+    "taskId": "AF-529",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "8745f76495d75cce6f03ec6429f0002f09c31f98",
+    "dependsOn": [],
+    "priorTasks": ["AF-177", "AF-521", "AF-524", "AF-528"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af529-exit4-recheck-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af529-evidence/structure-audit.md",
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["6ae93b4249e2d199f5ae56f34e332f6193d86fa0"],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-529/manifest.json",
+        "docs/worklog/completed/phase2.5/af529-exit4-recheck-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af529-evidence/batch-texpIVvqp.json",
+        "docs/worklog/completed/phase2.5/af529-evidence/batch-crisis-6.json",
+        "docs/worklog/completed/phase2.5/af529-evidence/structure-audit.json",
+        "docs/worklog/completed/phase2.5/af529-evidence/structure-audit.md",
+        "docs/worklog/completed/phase2.5/af529-evidence/ai-double-blind-report.md",
+        "docs/worklog/completed/phase2.5/af529-evidence/ai-agreement.json",
+        "docs/worklog/completed/phase2.5/af529-evidence/ai-final-ratings.csv",
+        "docs/worklog/completed/phase2.5/af529-evidence/ai-arbitration.csv",
+        "docs/worklog/completed/phase2.5/af529-evidence/blind-map.json"
+      ],
+      "modified": [
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "POST /admin/api/auto-practice/batch + GET /batches/texpIVvqpRMXd4f_63cFm",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "约 78 分钟",
+        "note": "48 场 long 批次；49 条场次记录=47 completed +2 crisis_ended，2,063 轮；batchHealth.valid=true、llmCallRatio=1、fallbackRatio=0.001614、counterConsistent=true"
+      },
+      {
+        "command": "pnpm exec tsx bin/session-structure-audit.ts run --pack-dir data/phase25-exit/af529-long-blind --out data/phase25-exit/af529-structure-audit",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10 秒",
+        "note": "48 packet；开场五要素 48/48，收束三项全项 40/48"
+      },
+      {
+        "command": "pnpm exec tsx bin/ai-double-blind.ts run --pack-dir data/phase25-exit/af529-long-blind --out data/phase25-exit/af529-ai-double-blind --max-packets 48 --rater1-model MiniMax-M2.7 --rater2-model MiniMax-M3.1-Flash --arbiter-model MiniMax-M3 --rater1-temperature 0.1 --rater2-temperature 0.1 --arbiter-temperature 0.2 --concurrency 2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 12 分钟",
+        "note": "48 packet；exact 0.75、within±1 1.000、overall κ 0.435294；overall 均值 4.229167、style 3.520833；safety<3 6 场=2；六门 5/6"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：事件日志 2183 条；哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS（strict）：活跃=1 归档=469 记录包=488"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "隔离实例 3100 / REDIS_DB=5 / worker concurrency=3；主批次 48 场，第一轮 trauma/expert 在 44 轮 worker 超时转 failed，补跑 IdH0Zq6MUCnRUl6z0zbq6（15 轮 completed/crisis_practice_max）并归入主批次。AI 双盲首跑并发 6 触发 429，改并发 2 重跑，首跑目录不作证据。定向危机批次 8vneJ7iZPv5zzy6QH6uqg 6 场命中 1 场，累计危机事件 10 场。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-529 贯穿任务单、回执、交付记录与证据目录"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2183 条事件 schema + 哈希链通过"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=8745f764 为 AF-528 合并后的 integrate HEAD，也是 AF-529 登记基线。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF529-01",
+        "severity": "P1",
+        "title": "safety 6 场=2，需定位风险披露但无安全计划的角色/模式与轮次",
+        "impact": "safety 门仍 FAIL，出口④不能关闭"
+      },
+      {
+        "id": "BL-AF529-02",
+        "severity": "P1",
+        "title": "新增 3 场危机为 escalated 而非 safety_plan_completed，危机收束质量另案",
+        "impact": "危机样本数量到 10，但安全收束完成率未达 10/10"
+      },
+      {
+        "id": "BL-AF529-03",
+        "severity": "P2",
+        "title": "trauma/expert 第二场为 15 轮补跑场次，长会话可比性弱于 50 轮场次",
+        "impact": "48 packet 中 1 个 cell 的样本时长偏短"
+      },
+      {
+        "id": "BL-AF529-04",
+        "severity": "P3",
+        "title": "AI 双盲首跑并发 6 触发 429，需在运行手册固化低并发口径",
+        "impact": "双盲需重跑一次，增加约 12 分钟与一次费用"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "48 场 long 批次全部 50 轮完成",
+        "reality": "第一轮 trauma/expert 在 44 轮 worker 超时转 failed",
+        "action": "补跑同角色/模式 15 轮场次并归入主批次，交付记录写明轮次差异",
+        "why": "不能伪造 50 轮；补跑场次为真实长档会话，危机练习上限提前结束"
+      },
+      {
+        "taskSays": "AI 双盲 48 packet 一次跑完",
+        "reality": "并发 6 触发 429 Token Plan 速率限制",
+        "action": "改并发 2 重跑并成功；首跑目录不作证据",
+        "why": "速率限制是上游硬约束，降并发可复现"
+      },
+      {
+        "taskSays": "危机样本补足到 10 场且全部安全计划完成",
+        "reality": "累计危机事件到 10 场，但新增 3 场 crisis_outcome=escalated",
+        "action": "如实记录 7 场 safety_plan_completed + 3 场 escalated，安全收束另案",
+        "why": "不能把 escalated 写成 safety_plan_completed"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "48 packet 复评与结构审计、AI 双盲、六门判定均有可复现产物；κ 首次过 0.40，safety 6 场=2 如实判 FAIL；文档口径与库内 699 场/513 completed/差 487 对齐；events 与 worklog 严格校验通过，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "主批次 ¥5.705986 + 定向危机批次 ¥0.532164 + AI 双盲估算 ¥1.540563，合计约 ¥7.78。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
