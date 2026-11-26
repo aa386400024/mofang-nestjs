@@ -25,6 +25,20 @@ Stop-Process -Id <nest-watcher-pid>,<app-pid> -Force
 
 判据：`3000` 端口无监听、进程列表不再出现旧 worktree 的 `nest start --watch` / `dist/app`。旧代码实例的 `onModuleInit` 仍会无差别标记所有 running，不能只靠新实例的租约保护。
 
+如果旧 worktree 还留着 VS Code 终端并跑过 `pnpm start:dev`，只停进程不够：终端或 IDE 会话恢复时可能再次拉起 `dist/app`。AF-527 实测停掉 PID 13352/38884 后，11:40:54 又出现 `pnpm start:dev`，11:41:22 拉起新的 `dist/app` 并监听 3000。处理方式是按进程树停掉并关闭对应终端：
+
+```powershell
+# 先找到旧 worktree 的 pnpm start:dev 父进程
+Get-CimInstance Win32_Process |
+  Where-Object { $_.CommandLine -match 'mofang-nestjs-af281r' -and $_.CommandLine -match 'start:dev' } |
+  Select-Object ProcessId,ParentProcessId,CommandLine
+
+# 按父进程整棵树停掉（会把 watcher / dist/app 一并带走）
+taskkill /PID <pnpm-start-dev-pid> /T /F
+```
+
+停完至少观察 60–90 秒，确认 `3000` 仍无监听且 `oldBackendCount=0`；不要只看一次 `Stop-Process` 的即时结果。
+
 ## 双实例队列隔离 smoke（AF-527）
 
 脚本：`scripts/validation/queue-isolation-smoke.mjs`。它在同一个 Redis DB 上启动两个独立 Worker 进程，分别用 `af527-smoke-a` / `af527-smoke-b` 前缀；生产者向两边各入 2 个 job，断言只被各自前缀消费，并检查 key 命名空间不交叉。结束后 `obliterate` smoke 队列。
