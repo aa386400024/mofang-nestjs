@@ -79,7 +79,7 @@ describe('AF-512 会员价格层级', () => {
     const max = quote({ tier: MembershipTier.Max, isFirstPurchase: true });
     const plus = quote({ tier: MembershipTier.Plus });
     expect(pro.ttsModel).toBe('hd');
-    expect(max.ttsModel).toBe('hd');
+    expect(max.ttsModel).toBe('premium');
     expect(plus.ttsModel).toBe('turbo');
   });
 });

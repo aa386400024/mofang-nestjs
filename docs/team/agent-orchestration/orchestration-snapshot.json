@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T17:16:12.292Z",
+  "generatedAt": "2026-11-26T17:46:31.097Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2027,6 +2027,102 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-639",
+      "recordedAt": "2026-11-26T17:35:13.870Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-561",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-561-safety-tts-membership-closure"
+      ]
+    },
+    {
+      "auditId": "AUD-638",
+      "recordedAt": "2026-11-26T17:35:05.176Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-561",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-561",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-561.json"
+      ]
+    },
+    {
+      "auditId": "AUD-637",
+      "recordedAt": "2026-11-26T17:35:00.265Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-561",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-636",
+      "recordedAt": "2026-11-26T17:34:57.163Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-560",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-635",
+      "recordedAt": "2026-11-26T17:33:50.084Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-560",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-560-safety-tts-membership-closure"
+      ]
+    },
+    {
+      "auditId": "AUD-634",
+      "recordedAt": "2026-11-26T17:33:40.310Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-560",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-633",
       "recordedAt": "2026-11-26T16:56:05.739Z",
       "actorRef": "orchestrator",
@@ -2166,114 +2262,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-624",
-      "recordedAt": "2026-11-26T13:21:37.266Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-556",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-556-canceled-task-notes"
-      ]
-    },
-    {
-      "auditId": "AUD-623",
-      "recordedAt": "2026-11-26T13:21:28.287Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-556",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-556",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-556.json"
-      ]
-    },
-    {
-      "auditId": "AUD-622",
-      "recordedAt": "2026-11-26T13:21:21.619Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-556",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-621",
-      "recordedAt": "2026-11-26T13:12:07.115Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-555",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-555-module-wiring"
-      ]
-    },
-    {
-      "auditId": "AUD-620",
-      "recordedAt": "2026-11-26T13:11:57.355Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-555",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-555",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-555.json"
-      ]
-    },
-    {
-      "auditId": "AUD-619",
-      "recordedAt": "2026-11-26T13:11:41.593Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-555",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 633,
+    "total": 639,
     "byResult": {
-      "allowed": 633,
+      "allowed": 639,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 632,
+      "TOOL-QUEUE-SCHEDULER": 638,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 633
+      "orchestrator": 639
     }
   },
   "protocolView": {
@@ -11055,6 +11057,38 @@
             "ref": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-560",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-561",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-561/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af560-safety-tts-membership-closure-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11079,5 +11113,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 496
+  "archivedCount": 498
 }

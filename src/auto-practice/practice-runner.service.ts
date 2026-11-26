@@ -1458,7 +1458,9 @@ function recordClosingTexts(
   // AF-176: 模型在常规轮主动请求 END 时也要把正文纳入内容门, 否则 early close
   //   永远看不到自己的 summary/takeaway/nextStep, 内容门只能误判为空。
   if (cue.forcedClose || closeRequested) closingTexts.push(text);
-  if (cue.crisisClosing && crisisWindow.escalated) crisisSafetyTexts.push(text);
+  // AF-561: 危机窗内每一轮咨询师正文都要进入安全内容门，不只 escalated 的计划轮。
+  //   否则"披露后咨询师请求收尾"能绕过风险五组，直接以 crisis_practice_close 结束。
+  if (crisisWindow.active) crisisSafetyTexts.push(text);
 }
 
 /**
@@ -1955,7 +1957,8 @@ export function decideTurn(
   }
 
   const closeAllowed = input.closeRequested && input.turnIndex >= thresholds.minTurnsBeforeClose;
-  const crisisCloseBlocked = closeAllowed && crisisWindow.active && crisisWindow.postTurns === 0;
+  // AF-561: 风险修复轮未完成时，咨询师的收尾请求也必须挡回，不能回到旧的自然收尾出口。
+  const crisisCloseBlocked = closeAllowed && crisisWindow.active && isCrisisCloseBlocked(crisisWindow);
   // AF-138: 常规收束内容门 —— 强制收束窗内模型请求 END，但三件套不齐时挡回继续，
   //   让模型用满最后几轮把 summary / takeaway / nextStep 补出来（不改变审计口径）。
   const routineCloseBlocked = isRoutineClosingBlocked(input, crisisWindow, closeAllowed);
@@ -2001,6 +2004,34 @@ export function decideTurn(
  * @param crisisStartedThisTurn 本轮是不是危机披露当轮
  * @returns 终止结论, 或 null (继续)
  */
+/**
+ * AF-561 · 危机收尾前的安全内容门.
+ *
+ * 返回:
+ * - `complete`：五组齐，可正常结束；
+ * - `repair-now`：五组缺且还没修复过 —— 标记修复待办并继续一轮；
+ * - `incomplete`：修复轮跑过仍缺 —— 以 crisis_safety_incomplete 结束。
+ */
+function gateCrisisStopSafety(input: TurnJudgementInput, crisisWindow: CrisisWindowState): 'complete' | 'repair-now' | 'incomplete' {
+  const safety = evaluateRiskClosingText(input.crisisSafetyText ?? '');
+  if (safety.complete) {
+    crisisWindow.safetyRepairPending = false;
+    crisisWindow.missingSafetyElements = [];
+    return 'complete';
+  }
+  if (crisisWindow.safetyRepairPending !== true) {
+    crisisWindow.safetyRepairPending = true;
+    crisisWindow.missingSafetyElements = safety.missing;
+    return 'repair-now';
+  }
+  return 'incomplete';
+}
+
+/** AF-561: 危机窗内哪些收尾必须被挡回一轮. */
+function isCrisisCloseBlocked(crisisWindow: CrisisWindowState): boolean {
+  return crisisWindow.postTurns === 0 || crisisWindow.safetyRepairPending === true;
+}
+
 function decideCrisisWindowStop(
   input: TurnJudgementInput,
   crisisWindow: CrisisWindowState,
@@ -2029,11 +2060,20 @@ function decideCrisisWindowStop(
     crisisWindow.postTurns >= 1 &&
     !isEscalationSafetyWindow(input, crisisWindow, thresholds)
   ) {
+    // AF-561: 危机窗收尾也必须过安全内容门。AF-529 复评里 packet-10/37 正是
+    //   "披露了风险、咨询师也请求收尾，但全稿没有任何安全计划" 却直接结束。
+    const gate = gateCrisisStopSafety(input, crisisWindow);
+    if (gate === 'repair-now') return null;
+    if (gate === 'incomplete') return { kind: 'stop', reason: 'crisis_safety_incomplete' };
     return { kind: 'stop', reason: 'crisis_practice_close' };
   }
   if (!crisisWindow.active || crisisStartedThisTurn) return null;
   if (crisisWindow.postTurns < thresholds.crisisPracticeTurns) return null;
   if (crisisWindow.postTurns > thresholds.crisisPracticeTurns) {
+    // AF-561: 计数器出口同样不能被当成"已做过安全收束"。缺五组时优先给修复轮。
+    const gate = gateCrisisStopSafety(input, crisisWindow);
+    if (gate === 'repair-now') return null;
+    if (gate === 'incomplete') return { kind: 'stop', reason: 'crisis_safety_incomplete' };
     return { kind: 'stop', reason: 'crisis_practice_max' };
   }
   // AF-392: legacy 档到达上限时不再一律硬切。

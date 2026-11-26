@@ -91,6 +91,7 @@ export enum MembershipFeature {
 export enum TtsModel {
   Turbo = 'turbo',
   Hd = 'hd',
+  Premium = 'premium',
 }
 
 /** 活动状态：草稿 / 生效 / 暂停 / 已结束。 */

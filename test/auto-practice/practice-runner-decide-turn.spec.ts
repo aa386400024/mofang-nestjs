@@ -93,7 +93,12 @@ describe('AF-133 · decideTurn · 危机窗用满不再硬切（留 1 轮风险�
     expect(state.crisisWindow.postTurns).toBe(6);
 
     // 第 7 轮 = 风险收束轮: 收束轮之后才结束.
-    const afterClosingRound = decideTurn({ ...TURN, turnIndex: 8 }, state.crisisWindow, state.stagnation, thresholds);
+    const afterClosingRound = decideTurn(
+      { ...TURN, turnIndex: 8, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
     expect(afterClosingRound).toEqual({ kind: 'stop', reason: 'crisis_practice_max' });
     expect(state.crisisWindow.postTurns).toBe(7);
   });
@@ -128,7 +133,12 @@ describe('AF-133 · decideTurn · 危机窗用满不再硬切（留 1 轮风险�
     });
     expect(closingCue.crisisClosing).toBe(true);
     // 收束轮之后 (postTurns = 5) 才结束.
-    const afterClosingRound = decideTurn({ ...TURN, turnIndex: 6 }, state.crisisWindow, state.stagnation, legacyThresholds);
+    const afterClosingRound = decideTurn(
+      { ...TURN, turnIndex: 6, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      legacyThresholds,
+    );
     expect(afterClosingRound).toEqual({ kind: 'stop', reason: 'crisis_practice_max' });
     expect(state.crisisWindow.postTurns).toBe(5);
   });
@@ -141,7 +151,12 @@ describe('AF-133 · decideTurn · 模型的收尾请求优先于危机计数器'
     const state = freshState();
     decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
 
-    const decision = decideTurn({ ...TURN, turnIndex: 2, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    const decision = decideTurn(
+      { ...TURN, turnIndex: 2, closeRequested: true, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
     expect(decision).toEqual({ kind: 'stop', reason: 'crisis_practice_close' });
   });
 
@@ -152,7 +167,12 @@ describe('AF-133 · decideTurn · 模型的收尾请求优先于危机计数器'
       decideTurn({ ...TURN, turnIndex: 1 + postTurn }, state.crisisWindow, state.stagnation, thresholds);
     }
     // 第 6 个练习轮: 计数正好到上限, 且模型请求收尾.
-    const decision = decideTurn({ ...TURN, turnIndex: 7, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    const decision = decideTurn(
+      { ...TURN, turnIndex: 7, closeRequested: true, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
     expect(decision).toEqual({ kind: 'stop', reason: 'crisis_practice_close' });
   });
 
@@ -166,8 +186,49 @@ describe('AF-133 · decideTurn · 模型的收尾请求优先于危机计数器'
     const state = freshState();
     decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
     // 第 2 轮 —— 远未到 long 档的"最早 35 轮收尾".
-    const decision = decideTurn({ ...TURN, turnIndex: 2, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    const decision = decideTurn(
+      { ...TURN, turnIndex: 2, closeRequested: true, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
     expect(decision).toEqual({ kind: 'stop', reason: 'crisis_practice_close' });
+  });
+
+  it('AF-561: 危机窗收尾缺安全五组 → 挡回收尾并进入修复轮', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    const decision = decideTurn({ ...TURN, turnIndex: 2, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    expect(decision.kind).toBe('continue');
+    expect(state.crisisWindow.safetyRepairPending).toBe(true);
+    expect((state.crisisWindow.missingSafetyElements ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('AF-561: 修复轮补齐五组后允许收尾', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    decideTurn({ ...TURN, turnIndex: 2, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    const repaired = decideTurn(
+      { ...TURN, turnIndex: 3, closeRequested: true, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(repaired).toEqual({ kind: 'stop', reason: 'crisis_practice_close' });
+    expect(state.crisisWindow.safetyRepairPending).toBe(false);
+  });
+
+  it('AF-561: 修复轮仍缺五组 → crisis_safety_incomplete，不伪装成已完成', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    decideTurn({ ...TURN, turnIndex: 2, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    const stillMissing = decideTurn(
+      { ...TURN, turnIndex: 3, closeRequested: true, crisisSafetyText: '我们下次再聊安全这件事。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(stillMissing).toEqual({ kind: 'stop', reason: 'crisis_safety_incomplete' });
   });
 
   it('非危机场: minTurnsBeforeClose 仍然生效（第 34 轮不生效 / 第 35 轮生效）', () => {
@@ -618,7 +679,8 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     counselor.generate.mockImplementation(() => {
       counselorTurn += 1;
       return Promise.resolve({
-        text: `咨询师第${counselorTurn}轮的话`,
+        // AF-561: 危机窗收尾必须先过安全内容门 —— 第 3 轮给完整五组，才允许结束。
+        text: counselorTurn >= 3 ? COMPLETE_SAFETY_TEXT : `咨询师第${counselorTurn}轮的话`,
         model: 'test-model',
         degraded: false,
         // 披露后的第一轮就请求收尾.
