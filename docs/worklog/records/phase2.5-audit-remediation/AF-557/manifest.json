@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-557",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "completed",
+  "createdAt": "2026-11-26T22:35:00+08:00",
+  "updatedAt": "2026-11-26T15:34:26.317Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-557/task-sheet.md",
+    "sha256": "d8d760f909f3f57b446eee5b66f6a75ce6ed1675cb099b303a334d0ab44e26b2",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-557/receipt-RC-AF-557-1.json",
+      "sha256": "f71ff5760f986e4efdb1fbfeb31db4cc437e1e51e3fc84e5d99ae4efa0bcb04c",
+      "receiptId": "RC-AF-557-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-557/receipt-RC-AF-557-1-03849d30.json",
+      "sha256": "03849d30fa5b142d259774df1877edb1bf22d1dc3cdc3975f87e92e98d8d1ded",
+      "receiptId": "RC-AF-557-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af557-tts-profile-routing-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-tts-profile-routing-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

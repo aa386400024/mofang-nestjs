@@ -12,6 +12,7 @@
 // AF-459: 句级事件新增可选的 `speechText` / `events`（语义韵律形态 + 事件表）.
 //   缺省 = 未启用韵律 (字段不下发), 与改前逐字一致.
 
+import type { ResolvedTtsProfile } from './runtime/tts-profile.types.js';
 import type { ProsodyEvent, ProsodyTurnPlan } from '../../shared/prosody/index.js';
 import type { VoiceDeliveryProfile } from '../../shared/voice-delivery/index.js';
 
@@ -21,6 +22,15 @@ export interface TtsOptions {
   readonly userId: string;
   /** 训练 session id, 用于连接池 key + 日志追踪. */
   readonly sessionId: string;
+  /**
+   * AF-557: 统一决策层解析出的 profile.
+   *
+   * 有值时模型/音色/端点/音频参数全部以 profile 为准; `model` / `voice` 只保留
+   * 兼容旧调用方的直传能力, 不再作为正常业务路径.
+   */
+  readonly profile?: ResolvedTtsProfile;
+  /** 上游基址覆盖; 缺省读 provider 配置. */
+  readonly baseUrl?: string;
   /**
    * 业务指定的音色 (voice_id).
    *

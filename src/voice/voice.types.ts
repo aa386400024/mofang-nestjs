@@ -451,6 +451,10 @@ export interface VoiceSessionState {
   currentGeneration: number;
   /** 当前 TTS session 句柄 (来自 TtsService.startSession). */
   ttsHandle: import('./tts/tts.types.js').TtsSessionHandle | null;
+  /**
+   * AF-557: 本场 TTS profile — 首次起 TTS 时解析并冻结, 中途会员变更不切模型.
+   */
+  ttsProfile?: import('./tts/runtime/tts-profile.types.js').ResolvedTtsProfile;
   /** 当前 LLM 流的可控 AbortController, signal 透传给 LlmService. */
   llmAbort: AbortController | null;
   /**

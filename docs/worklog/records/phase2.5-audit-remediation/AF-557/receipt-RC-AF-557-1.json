@@ -1,0 +1,235 @@
+{
+  "deliveredAt": "2026-11-26T23:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-557-1",
+    "taskId": "AF-557",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "c92f6e22f1f603fada1fd3f899d71457f9e1cb2a",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-557/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af557-tts-profile-routing-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af557-tts-profile-routing-2026-11-26.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-557/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-557/task-sheet.md",
+        "src/voice/tts/doubao-tts-client.ts",
+        "src/voice/tts/doubao-tts-protocol.ts",
+        "src/voice/tts/ports/membership-tier.port.ts",
+        "src/voice/tts/runtime/tts-config.doctor.ts",
+        "src/voice/tts/runtime/tts-membership-tier.adapter.ts",
+        "src/voice/tts/runtime/tts-profile.registry.ts",
+        "src/voice/tts/runtime/tts-profile.resolver.ts",
+        "src/voice/tts/runtime/tts-profile.types.ts",
+        "test/voice/doubao-tts-protocol.spec.ts",
+        "test/voice/tts-membership-tier.adapter.spec.ts",
+        "test/voice/tts-profile-resolver.spec.ts"
+      ],
+      "modified": [
+        ".env.example",
+        "src/admin-debug/tts/debug-tts.service.ts",
+        "src/config/envs/default.ts",
+        "src/membership/providers/membership-account.service.ts",
+        "src/voice/tts/tts-bidi-client.ts",
+        "src/voice/tts/tts.module.ts",
+        "src/voice/tts/tts.service.ts",
+        "src/voice/tts/tts.types.ts",
+        "src/voice/voice.service.ts",
+        "src/voice/voice.types.ts"
+      ],
+      "deleted": ["src/counselor/config/membership-tier-presets.ts"],
+      "deletionChecks": ["全仓无 import 引用；仅删除无引用死 preset"],
+      "commits": ["f37d1cf8a2cf1a8e290b50904e8d0b07995aa0cc"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "增量",
+        "note": "tsc -p tsconfig.json --noEmit；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存 + 全量",
+        "note": "src/test/bin + scripts；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 359,
+        "machine": "同上",
+        "wallClock": "40.49s",
+        "note": "358 files passed + 1 skipped；5096 tests：5092 passed + 4 skipped；任务收尾一次全量回归"
+      },
+      {
+        "command": "pnpm exec vitest run test/voice/tts-profile-resolver.spec.ts test/voice/doubao-tts-protocol.spec.ts test/voice/tts-membership-tier.adapter.spec.ts test/admin-debug/debug-tts.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "同上",
+        "wallClock": "2s 级",
+        "note": "4 files / 29 tests passed"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS（strict）：活跃=1 归档=493 记录包=513 inbox=0"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2291 条；schema state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "tsc -p tsconfig.build.json；0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；未动 engine-core"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm typecheck → pnpm lint → 定向 4 个 spec → pnpm test → pnpm build → node scripts/orchestration/cli.mjs events verify → node scripts/orchestration/cli.mjs worklog verify --strict --state-free → git diff --stat HEAD -- src/engine-core。豆包真实链路复现：使用专用语音 key 设置 DOUBAO_TTS_API_KEY（或 ARK_AGENT_PLAN_API_KEY），跑 Max 会员一场对练；不要用 LLM_DOUBAO_API_KEY 冒充语音 key，真实上游会 401/45000010。真实 probe：ConnectionStarted 成功，StartSession 在 plan 端点因 chat key 被 401 拒绝。应用启动冒烟：PORT=3101 node dist/app.js，TtsModule dependencies initialized；随后既有 GraphQL schema 错误阻断，与 AF-557 无关。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-557 贯穿任务单、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取均经 CLI；状态面与实现分开提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter、scope、gates、artifacts 齐全；运行态任务单 validate PASS"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2291 条事件；哈希链与索引投影一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执 gateResults 与交付记录同源同数字；测试数 4 files/29 tests、全量 5092/5096 与现场输出一致"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF557-01",
+        "impact": "Max 当前实际回退 Turbo；豆包真实音频未验收",
+        "severity": "high",
+        "schedule": "配置专用语音 key 后跑一场真实 Max 对练，确认 StartSession/TaskRequest/句级 mp3"
+      },
+      {
+        "id": "BL-AF557-02",
+        "impact": "应用全量启动被既有 GraphQL schema 错误阻断，无法做完整端到端冒烟",
+        "severity": "medium",
+        "schedule": "另开任务修 Payload/SimpleInput 空字段 schema；本单不扩围"
+      },
+      {
+        "id": "BL-AF557-03",
+        "impact": "旧 5 档 billing 仍是 Flutter 兼容层，enum/DTO/DB 列未删",
+        "severity": "medium",
+        "schedule": "Flutter 迁 v2 后另开任务删旧枚举/列"
+      },
+      {
+        "id": "BL-AF557-04",
+        "impact": "豆包无连接池，高并发 Max 场次可能打满上游",
+        "severity": "medium",
+        "schedule": "Max 放量前补连接池/限流与指标"
+      },
+      {
+        "id": "BL-AF557-05",
+        "impact": "本机 3000 端口旧进程仍加载旧 .env",
+        "severity": "low",
+        "schedule": "整进程重启后新 TTS 配置才生效"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "配置自检对象",
+        "taskSays": "配置自检覆盖 MiniMax 音色非空",
+        "reality": "自检检查 MINIMAX_API_KEY；音色可由 session/模板/profile 提供",
+        "action": "inspect 文案改为 API key；实际建连前 fail-fast",
+        "why": "key 是建连必需，音色不是全局必填"
+      },
+      {
+        "item": "会员有效档位用例位置",
+        "taskSays": "test/membership 在常规测试域",
+        "reality": "任务 scope 未包含 test/membership",
+        "action": "用例落在 test/voice/tts-membership-tier.adapter.spec.ts，仍覆盖真实 MembershipAccountService",
+        "why": "不越 scope 提交"
+      },
+      {
+        "item": "豆包回退时机",
+        "taskSays": "不可用或启动失败回退 Turbo",
+        "reality": "增加决策期未配置回退",
+        "action": "未配置在 resolver 直接回退；启动失败在 VoiceService 回退",
+        "why": "避免 Max 每轮先发失败 WS/401"
+      },
+      {
+        "item": "Pro HD 失败语义",
+        "taskSays": "只规定豆包回退",
+        "reality": "HD 也可能启动失败",
+        "action": "fallbackProfile 只允许 premium 降级，HD 原样返回失败",
+        "why": "付费 HD 不能被悄悄降成 Turbo"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "落地：统一 resolver/registry、MiniMax 与豆包传输分派、会员有效档、豆包 V3 客户端、旧死 preset 清理全部完成；证据：typecheck/lint/5092 例全量/定向 29 例/build/worklog strict/events 2291/engine-core 空均有真实退出码；范围：in-scope，状态面分离提交；契约：taskId/状态写/索引/事件链通过。条件：专用豆包语音 key 未配置，真实 StartSession/音频链路未验收，Max 当前按设计回退 Turbo；该外部依赖已登记 BL-AF557-01，不虚报豆包已可用。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
