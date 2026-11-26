@@ -1,0 +1,157 @@
+{
+  "deliveredAt": "2026-11-26T04:05:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-528-1",
+    "taskId": "AF-528",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "executor",
+    "baselineRef": "686c56194f683713d6bec20c333f267e2dce30a6",
+    "dependsOn": [],
+    "priorTasks": ["AF-527", "AF-526"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-528/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af528-af527-closeout-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "docs/runbooks/validation-environment-isolation.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["f2f980d2499bcfa9dcbe3fc9dd9fa3bc3571c8bc"],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-528/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-528/manifest.json",
+        "docs/worklog/completed/phase2.5/af528-af527-closeout-2026-11-26.md"
+      ],
+      "modified": [
+        "docs/runbooks/validation-environment-isolation.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "瞬时",
+        "note": "输出为空，内核零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：事件日志 2178 条；schema 1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：活跃=1 归档=468 记录包=487"
+      },
+      {
+        "command": "Get-NetTCPConnection -State Listen -LocalPort 3000 + Get-CimInstance Win32_Process",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "等待 90 秒后复核",
+        "note": "taskkill /PID 59692 /T /F 终止旧 worktree 进程树后，3000 无监听，oldBackendCount=0；11:41:22 自启事实与父进程链已写入补记"
+      }
+    ],
+    "reproNotes": "旧 worktree 终端自启：进程 59692 pnpm start:dev → 46524 pnpm → 60264 cmd → 10808 nest watcher → 51716 dist/app（11:41:22 监听 3000），父 shell 为 PID 42016。按 59692 进程树 taskkill 后观察 90 秒，3000 无监听且旧后端计数 0。AF-527 状态面提交 686c5619 缺失合法 Task trailer（正文为字面 \\n\\nTask: AF-527），integrate 推送 Gate 失败；本任务不重写历史，通过新提交恢复 HEAD 绿色。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-528 贯穿任务单、回执、补记与运行手册"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2178 条事件 schema + 哈希链通过"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=686c5619 为 AF-527 状态面合并后的 integrate HEAD，也是 AF-528 登记基线。"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "修正状态面提交 trailer",
+        "reality": "已合并的 686c5619 不能重写，本任务只新增合法 trailer 的提交",
+        "action": "通过新文档提交恢复 HEAD；在补记中写明 686c5619 失败原因与后续 Task none 口径",
+        "why": "integrate 受保护，禁止 force push / 重写历史"
+      },
+      {
+        "taskSays": "AF-527 已停止旧实例",
+        "reality": "停止后旧 VS Code 终端重放 pnpm start:dev，11:41:22 再次拉起 dist/app",
+        "action": "按进程树终止 59692，观察 90 秒；补记并写入运行手册",
+        "why": "原清理只停了 watcher/app，未关闭保留命令的终端会话"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "运行手册已补旧实例终端重放处置；补记记录了两个实测时间点、PID 链、3000 监听和 taskkill 后 90 秒复核 oldBackendCount=0；events 与 worklog 严格校验通过，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无 LLM 调用；仅本机进程复核与文档校验。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
