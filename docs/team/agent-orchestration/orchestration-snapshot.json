@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T10:00:52.245Z",
+  "generatedAt": "2026-11-26T10:21:09.159Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2026,6 +2026,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-598",
+      "recordedAt": "2026-11-26T10:19:16.161Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-545",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-545",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-545.json"
+      ]
+    },
+    {
       "auditId": "AUD-597",
       "recordedAt": "2026-11-26T10:00:12.407Z",
       "actorRef": "orchestrator",
@@ -2244,35 +2259,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-583",
-      "recordedAt": "2026-11-26T08:07:34.838Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-534",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-534-phase25-final-tails"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 597,
+    "total": 598,
     "byResult": {
-      "allowed": 597,
+      "allowed": 598,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 596,
+      "TOOL-QUEUE-SCHEDULER": 597,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 597
+      "orchestrator": 598
     }
   },
   "protocolView": {
@@ -10784,6 +10784,24 @@
             "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-543/delivery-record.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-545",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-545/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af545-ci-and-record-closure-2026-11-26.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -10808,5 +10826,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 481
+  "archivedCount": 482
 }
