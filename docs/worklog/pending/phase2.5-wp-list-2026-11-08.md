@@ -2,7 +2,7 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ WP-A/C/D/E/F/G/H、WP-J 系列独立单、WP-K/L/M/N、WP-N-FE 已交付；🚧 Phase2.5 仍在出口取证。2026-11-23 23:00 只读实查：`ap_practice_sessions` **491 场 / 12,848 轮 / 39 批（25 valid）**，completed **368**、stagnant 68、failed 38、crisis_ended 17；出口④ 最新正式判读仍为 AF-177 **4/6**（safety 6 场=2、κ 0.295711<0.40）；出口⑤ 距 completed 1000 场差 **632 场**，1000 场批次未启动；① 合规代码口径保持、② exam 规则层已达标（AF-086 24/24 场、257/257 条 `rule_only_skip`）、③ 成本仍为 shadow 保守上界口径。完整基线见 [Phase2.5 README §3.2.22](phase2.5-README.md#3222-2026-11-23-真实库基线重写af-389)。
+> **状态**：✅ WP-A/C/D/E/F/G/H、WP-J 系列独立单、WP-K/L/M/N、WP-N-FE 已交付；🚧 Phase2.5 仍在出口取证。2026-11-26 16:20 只读实查：`ap_practice_sessions` **699 场 / 18,195 轮 / 58 批（40 valid）**，completed **513**、crisis_ended 22、failed 96、stagnant 68；出口④ 最新判读 AF-529 48 packet **5/6**（κ 0.435294 过线，safety 6 场=2 仍 FAIL）；出口⑤ 距 completed 1000 场差 **487 场**，1000 场批次未启动；① 合规代码口径保持、② exam 规则层达标（AF-086 24/24、257/257 `rule_only_skip`）、③ 成本 AF-088 限定口径 789 轮 / 68 次审议 / ¥1.2312。完整基线见 [Phase2.5 README §3.2.23](phase2.5-README.md#3223-2026-11-26-出口④-48-packet-复评af-529)。
 > **最近核对**：2026-11-23（MySQL 只读实查，AF-389）
 > **创建日期**：2026-11-08
 
@@ -56,6 +56,8 @@ WP-B 可复现控制 + 版本锁定
 | ③ 成本可控 | WP-C    | ❌ **无审议成本证据**：当前 8 场 / 94 轮 `deliberation_mode` 全 `rule_only`；该批 `gate_decisions` 94 行全 `rule_only_skip`，审议调用 0 次；`ENGINE_DELIBERATION_ENABLED` 未配；50 分钟长会未跑。渲染侧 116,033 tokens / 0.182277 元（`cost_basis=full`）不能替代审议成本。 |
 | ④ 质量达标 | WP-E    | ❌ **未通过 / 核心指标不可判**：96 场批次已不在库；历史报告 intake 6/8（safety Δ=0.012365、zero_motion=38）；当前 8 场 intake FAIL（0.0065、zero_motion=1）；跨批诊断 `incomparable`；真实督导结构化 `dataset.json` 不存在，80% 准确率无法评测。                            |
 | ⑤ 数据积累 | WP-D    | ❌ **未达标**：当前库仅 8 场 / 94 轮（4 角色 × 2 模式 × 1 次）；1000+ 目标未达；旧 96 场不在库，不能计入当前积累。                                                                                                                                                          |
+
+> **注**：上表为 2026-11-17 历史快照，不再代表当前判定。② exam 生产入口与 ③ 审议成本已分别在 AF-086 / AF-088 收口；④ 最新为 AF-529 的 5/6（safety 仍 FAIL）；⑤ 当前 513 completed、差 487 场。以顶部状态和 [README §3.2.23](phase2.5-README.md#3223-2026-11-26-出口④-48-packet-复评af-529) 为准。
 
 ---
 
