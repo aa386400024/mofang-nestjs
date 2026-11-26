@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-536",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-26T16:20:00+08:00",
+  "updatedAt": "2026-11-26T08:50:40.821Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-536/task-sheet.md",
+    "sha256": "526aceec42339c06840871996bc229d106f0e88541ccf6313bb6f11a90a1dd88",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-536/receipt-RC-AF-536-1.json",
+      "sha256": "07214fe350d0811862e27c9567347396c458cd5e348ef48ed9b0f2a1e19fb8b3",
+      "receiptId": "RC-AF-536-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af536-safety-cap-false-positive-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af536-safety-cap-false-positive-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

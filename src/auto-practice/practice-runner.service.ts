@@ -58,11 +58,13 @@ import {
   completeOpeningText,
   completeRiskClosingText,
   completeRoutineClosingText,
+  containsCrisisDisclosure,
   evaluateRiskClosingText,
   evaluateRoutineClosingText,
   RISK_CLOSING_ELEMENT_KEYS,
   type ClosingElementKey,
   type RiskClosingElementKey,
+  type SessionStructureTurn,
 } from './metrics/session-structure-audit.js';
 import { TURN_ENGINE_PORT, type EngineTurnResult, type TurnEnginePort } from './ports/turn-engine.port.js';
 import { PracticeSessionLeaseService } from './practice-session-lease.service.js';
@@ -1517,6 +1519,25 @@ function completeFinalClosingReply(reply: CounselorReply, history: readonly Coun
 }
 
 /**
+ * AF-536 · 历史对话里是否有**来访者侧**真实危机披露.
+ *
+ * 不能直接拿 crisisWindow.active 当补齐条件：引擎可能因“扛不住/顶不住”等
+ * 压力表达开窗；若收尾轮无差别追加药刀/热线/联系家人，会产生与语境不匹配的
+ * 危机升级（AF-529 packet-09）。这里复用结构审计的同一套识别口径。
+ *
+ * @param history 会话历史
+ * @returns 是否存在来访者危机披露
+ */
+function historyHasCrisisDisclosure(history: readonly CounselorHistoryTurn[]): boolean {
+  const turns: SessionStructureTurn[] = history.map((turn, index) => ({
+    turnIndex: index + 1,
+    counselor: turn.role === 'counselor' ? turn.text : '',
+    visitor: turn.role === 'visitor' ? turn.text : '',
+  }));
+  return containsCrisisDisclosure(turns);
+}
+
+/**
  * AF-176 · 咨询师回复的结构收口（从主循环抽出，压住认知复杂度）。
  *
  * 只做三件事，且都不改评分/不改阈值：
@@ -1550,7 +1571,7 @@ function applyDeterministicStructure(
   //   连续风险收束轮最多只补真正缺的那几组.
   // AF-392: 所有档位都必须真正走到这一轮；legacy 档出口改为“多留 1 轮”，
   //   由 decideCrisisWindowStop 保证 crisisClosing cue 发出后再结束。
-  if (input.crisisWindow.active && input.cue.crisisClosing) {
+  if (input.crisisWindow.active && input.cue.crisisClosing && historyHasCrisisDisclosure(input.history)) {
     const coveredBefore = riskGroupsCoveredByHistory(input.history, input.crisisWindow.firstTurn);
     result = { ...result, text: completeRiskClosingText(result.text, coveredBefore) };
   }

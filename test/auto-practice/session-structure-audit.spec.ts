@@ -21,6 +21,7 @@ import {
   CLOSING_WINDOW_TURNS,
   completeOpeningText,
   completeRiskClosingText,
+  containsCrisisDisclosure,
   evaluateOpeningText,
   evaluateRiskClosingText,
   OPENING_WINDOW_TURNS,
@@ -329,6 +330,37 @@ describe('AF-127 · auditSessionStructure（纯函数）', () => {
     expect(audit.crisisDetected).toBe(true);
     expect(audit.closingMode).toBe('risk');
     expect(audit.riskClosingComplete).toBe(true);
+  });
+
+  it('AF-536 假阳性: 咨询师筛查自伤 + 来访者明确否认 → 不判危机', () => {
+    const turns = [
+      ...filler(21, 1),
+      turn(22, '我需要确认你的安全。有没有出现过伤害自己的念头？', '没有伤害自己的念头，就是有点累。'),
+      ...filler(23, 23),
+    ];
+    const audit = auditSessionStructure('packet-af536-denied', turns);
+    expect(audit.crisisDetected).toBe(false);
+  });
+
+  it('AF-536 假阳性: 咨询师工作词“风险评估”不算危机披露', () => {
+    const turns = [
+      ...filler(21, 1),
+      turn(22, '为评估运维缩编后的工作负荷和故障风险，需要近三个月工单量，用于形成运维风险评估表。', '我试试。'),
+      ...filler(23, 23),
+    ];
+    const audit = auditSessionStructure('packet-af536-work-risk', turns);
+    expect(audit.crisisDetected).toBe(false);
+  });
+
+  it('AF-536 真阳性: 咨询师筛查 + 来访者肯定回应“有啊，想过” → 仍判危机', () => {
+    const turns = [...filler(21, 1), turn(22, '有没有出现过伤害自己的念头？', '有啊，想过。'), ...filler(23, 23)];
+    const audit = auditSessionStructure('packet-af536-affirmed', turns);
+    expect(audit.crisisDetected).toBe(true);
+  });
+
+  it('AF-536 假阳性: 来访者只说“扛不住/顶不住”不是自伤披露', () => {
+    const turns = [...filler(36, 1), turn(37, '我们看看这周最难的时候。', '最近真的有点扛不住，感觉顶不住了。')];
+    expect(containsCrisisDisclosure(turns)).toBe(false);
   });
 
   it('⑨ 开场保密例外不误判整场危机（AF-176 确定性开场句式）', () => {
