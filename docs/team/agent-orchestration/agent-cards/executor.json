@@ -16,6 +16,7 @@
     "docker-compose.prod.yml",
     ".dockerignore",
     "package.json",
+    "pnpm-lock.yaml",
     ".github/workflows/",
     "docs/runbooks/",
     "docs/specs/",
