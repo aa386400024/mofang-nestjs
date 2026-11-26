@@ -1,0 +1,96 @@
+{
+  "deliveredAt": "2026-11-26T10:10:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-541-1",
+    "taskId": "AF-541",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "33fe92e616ae3562ca7dec029fd84cfc06f9fb3e",
+    "dependsOn": [],
+    "priorTasks": ["AF-540"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md",
+      "deliveryRecord": "docs/worklog/records/phase2.5-audit-remediation/AF-541/delivery-record.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-540/receipt-RC-AF-540-1.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-541/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-541/delivery-record.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/agent-cards/executor.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-540/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["21bfad4f", "4876f8fe"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-541 files=5 covered=1"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5 秒",
+        "note": "任务单 / Agent Card / 回执 / 索引 / 事件链全部 PASS"
+      }
+    ],
+    "reproNotes": "在 integrate 工作树登记 AF-541 并领单，修改 executor Agent Card resources，随后提交 card 与 AF-540 durable 回执，最后补交付记录。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-541 贯穿任务单、交付记录、回执与提交 trailer" },
+      { "item": "state-write", "result": "pass", "note": "register / claim 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "索引由 CLI 维护" },
+      { "item": "event-chain", "result": "pass", "note": "validate 已通过" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为 AF-536 合并后的 integrate HEAD；AF-541 为 AF-540 的资源域补丁。"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "交付记录落 docs/worklog/completed/phase2.5/",
+        "reality": "AF-541 的 scope 只含 records，completed 目录未授权",
+        "action": "交付记录落 records/AF-541/delivery-record.md，内容与格式不变",
+        "why": "不越出任务 scope 强行提交"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "executor 资源域已覆盖部署与 CI 文件，AF-540 durable 回执随本任务入库；preflight 与 validate 均 PASS，未改业务语义。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增费用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

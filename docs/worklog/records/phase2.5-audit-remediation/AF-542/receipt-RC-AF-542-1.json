@@ -1,0 +1,107 @@
+{
+  "deliveredAt": "2026-11-26T10:15:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-542-1",
+    "taskId": "AF-542",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "33fe92e616ae3562ca7dec029fd84cfc06f9fb3e",
+    "dependsOn": ["AF-540", "AF-541"],
+    "priorTasks": ["AF-540", "AF-541"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-542/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af542-deploy-ci-hardening-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-542/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-542/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af542-deploy-ci-hardening-2026-11-26.md"
+      ],
+      "modified": [
+        ".dockerignore",
+        ".github/workflows/ci.yml",
+        "Dockerfile",
+        "Dockerfile.prod",
+        "docker-compose.yml",
+        "docker-compose.prod.yml",
+        "package.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["27053151", "f054503c"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-542 files=9 covered=7；交付记录提交 PASS covered=0（工件豁免）"
+      },
+      {
+        "command": "git diff --stat HEAD~2..HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，未触碰纯层"
+      }
+    ],
+    "reproNotes": "主要修复随 AF-540 工作树完成，本任务按资源域拆分提交部署/CI 文件；静态审阅 compose 与 workflow，未在本机跑 Docker。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-542 贯穿任务单、记录、回执与提交 trailer" },
+      { "item": "state-write", "result": "pass", "note": "register / claim 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "索引由 CLI 维护" },
+      { "item": "event-chain", "result": "pass", "note": "提交后 validate 复核" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零改动" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为 AF-536 合并后的 integrate HEAD。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF542-01",
+        "severity": "P2",
+        "title": "本机无 Docker 运行时，compose 未实跑",
+        "impact": "Redis 密码/回环绑定与生产镜像环境变量只做静态核对，需在下一次部署机或 CI 实际验证"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "审计 P0/P1 部署与 CI 修复",
+        "reality": "主要改动已在 AF-540 工作树完成，仅因角色资源域拆分到本任务提交",
+        "action": "本任务只负责正确 scope 的提交与归档",
+        "why": "保持每条提交在资源域内，不越权提交"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "Redis 暴露面、生产镜像环境、构建上下文与 Trivy 阻断四项已落地；未改业务代码，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增费用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

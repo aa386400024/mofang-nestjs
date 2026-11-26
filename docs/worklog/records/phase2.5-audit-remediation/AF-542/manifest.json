@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-542",
   "contextId": "phase2.5-audit-remediation",
-  "status": "ready",
+  "status": "submitted",
   "createdAt": "2026-11-26T18:50:00+08:00",
-  "updatedAt": "2026-11-26T09:58:32.418Z",
+  "updatedAt": "2026-11-26T09:59:20.130Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-542/task-sheet.md",
     "sha256": "b7b0bd8b4a7b18cae5b7e05115511fdfae1c44397808546dbc2d68fca7c5442d",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-542/receipt-RC-AF-542-1.json",
+      "sha256": "ed37bcea140281a54171b6f40203ae8a5757c3079e45ce2c1f6cbe704a7ff9dd",
+      "receiptId": "RC-AF-542-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af542-deploy-ci-hardening-2026-11-26.md",
   "legacyPaths": [
     "docs/worklog/inbox/AF-542-deploy-ci-hardening.md"
