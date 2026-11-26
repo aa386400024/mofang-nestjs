@@ -9,15 +9,23 @@ import {
   NotFoundException,
   InternalServerErrorException,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 
 import type { Sampletable1 } from '#entity/sampledb1/index.js';
+import { Roles, RolesGuard } from '../../common/index.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 import { CreateDto, UpdateDto } from '../dto/index.js';
 import { CrudService } from '../providers/index.js';
 
 /**
- * route /test/crud/*
+ * route /crud/*
+ *
+ * AF-554: 脚手架 demo 的第二道门禁 —— 即使 ENABLE_SAMPLE_API=true 显式开启，
+ * 也必须 JWT + admin 角色才可写；生产环境模块本身不会挂载。
  */
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @Controller('crud')
 export class CrudController {
   constructor(private crud: CrudService) {}
