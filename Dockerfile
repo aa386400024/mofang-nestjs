@@ -35,6 +35,7 @@ RUN pnpm install --prod --frozen-lockfile
 # Stage 3: prod — 运行时镜像 (最小)
 # ============================================================
 FROM node:26-alpine AS prod
+ENV NODE_ENV=production
 WORKDIR /app
 
 # 安全: 用非 root 用户

@@ -100,18 +100,23 @@ services:
       - 'everysec'
       - --maxmemory
       - '256mb'
+      # AF-537 P0-4: JWT blacklist / 验证码 / 队列不能静默淘汰，内存满时写失败而不是丢数据.
       - --maxmemory-policy
-      - 'allkeys-lru'
+      - 'noeviction'
+      # AF-537 P0-4: 强制密码，禁止无密码 Redis 暴露.
+      - --requirepass
+      - '${REDIS_PASSWORD:?REDIS_PASSWORD is required}'
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     ports:
-      - '${REDIS_PORT:-6379}:6379'
+      # 仅本机可访问，不对公网暴露 6379.
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
     volumes:
       - redis-data:/data
     networks:
       - mofang-net
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
       interval: 10s
       timeout: 3s
       retries: 5

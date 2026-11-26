@@ -19,6 +19,9 @@
 # ============================================================
 FROM node:26-alpine AS prod
 
+# AF-537 P1 6.21#14: 镜像内强制 production，裸 docker run 也不会加载 development 配置。
+ENV NODE_ENV=production
+
 WORKDIR /app
 
 # alpine 缺 python3/make/g++, 某些 native module 需要 (bcrypt / sharp)
