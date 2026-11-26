@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-547",
   "contextId": "phase2.5-audit-remediation",
-  "status": "ready",
+  "status": "submitted",
   "createdAt": "2026-11-26T20:10:00+08:00",
-  "updatedAt": "2026-11-26T10:53:59.192Z",
+  "updatedAt": "2026-11-26T11:11:25.466Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-547/task-sheet.md",
     "sha256": "0270f08c765fecb99d211ffb80ff34dbc96cd33a8571023ec233acddfcc1db9c",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-547/receipt-RC-AF-547-1.json",
+      "sha256": "d9fdc08b74fb21e12f5ca6294c466f71ea8d5c9aa8a658269655471c46f5f080",
+      "receiptId": "RC-AF-547-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af547-authz-p2-hardening-2026-11-26.md",
   "legacyPaths": [
     "docs/worklog/inbox/AF-547-authz-p2-hardening.md"
