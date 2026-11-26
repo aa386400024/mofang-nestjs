@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-523",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-26T09:10:00+08:00",
-  "updatedAt": "2026-11-26T00:56:47.628Z",
+  "updatedAt": "2026-11-26T00:57:36.218Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-523/task-sheet.md",
     "sha256": "15b53fad5fd88caf15c052b964051f70e8cd6cbb007e7cc8039db7479e583c88",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-523/receipt-RC-AF-523-1.json",
+      "sha256": "b16653722d880e3fdc961638e0f52c912e370b2939f4f16ead8fff0b19c25283",
+      "receiptId": "RC-AF-523-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af521-af393-postfix-batch-2026-11-26.md",
   "legacyPaths": [
     "docs/worklog/inbox/af523-af521-evidence-intake-rescope-2026-11-26.md"
