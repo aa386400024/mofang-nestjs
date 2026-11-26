@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-559",
   "contextId": "phase2.5-audit-remediation",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-27T01:00:00+08:00",
-  "updatedAt": "2026-11-26T16:55:55.483Z",
+  "updatedAt": "2026-11-26T17:27:05.585Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md",
     "sha256": "b378d9180bf9841c795fc88332a787b43c6363bb500c3201cd75ecc962ba689e",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-559/receipt-RC-AF-559-1.json",
+      "sha256": "07a0d9015f057c3077f763b18977160d68f237c6d2a088c5ac1fc65b144ab38a",
+      "receiptId": "RC-AF-559-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-visitor-stage-direction-task-2026-11-27.md"
