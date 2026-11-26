@@ -107,6 +107,8 @@ class ConsentRepoDouble {
         this.latestLookups.push({ deviceId, consentType, appId });
         return this.latest;
       },
+      findLatestByUser: async (_userId: string, _consentType: string): Promise<ConsentRow | null> => null,
+      deleteByUser: async (_userId: string, _consentType: string): Promise<number> => 0,
       save: async (input: SaveConsentInput): Promise<ConsentRow> => {
         this.saves.push(input);
         if (this.saveFailure) {

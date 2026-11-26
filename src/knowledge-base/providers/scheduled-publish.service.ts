@@ -107,20 +107,36 @@ export class ScheduledPublishService {
    */
   async rescanDueItems(): Promise<{ rescanned: number }> {
     const now = new Date();
-    const due = await this.items
+    // AF-537 P1 6.21#16: 复合索引是 (tenant_id, scheduled_publish_at)，不带 tenant_id
+    // 的查询用不上左前缀，每 5 分钟全表扫。这里先取在办租户，再按租户走索引查询。
+    const tenantRows: { tenantId: string }[] = await this.items
       .createQueryBuilder('i')
+      .select('i.tenant_id', 'tenantId')
       .where('i.scheduled_publish_at IS NOT NULL')
       .andWhere('i.scheduled_publish_at <= :now', { now })
       .andWhere('i.status IN (:...statuses)', { statuses: ['draft', 'review'] })
-      .getMany();
-    for (const item of due) {
-      // 跟 schedule() 同 jobId 幂等, 已存在的 job 不重复 enqueue.
-      const existing = await this.queue.getJob(`kb-publish-${item.id}-${item.scheduledPublishAt!.getTime()}`);
-      if (!existing) {
-        await this.schedule(item.id, item.scheduledPublishAt!);
-        this.logger.log(`cron rescanned itemId=${item.id}, re-enqueued`);
+      .groupBy('i.tenant_id')
+      .getRawMany();
+
+    let rescanned = 0;
+    for (const { tenantId } of tenantRows) {
+      const due = await this.items
+        .createQueryBuilder('i')
+        .where('i.tenant_id = :tenantId', { tenantId })
+        .andWhere('i.scheduled_publish_at IS NOT NULL')
+        .andWhere('i.scheduled_publish_at <= :now', { now })
+        .andWhere('i.status IN (:...statuses)', { statuses: ['draft', 'review'] })
+        .getMany();
+      for (const item of due) {
+        // 跟 schedule() 同 jobId 幂等, 已存在的 job 不重复 enqueue.
+        const existing = await this.queue.getJob(`kb-publish-${item.id}-${item.scheduledPublishAt!.getTime()}`);
+        if (!existing) {
+          await this.schedule(item.id, item.scheduledPublishAt!);
+          this.logger.log(`cron rescanned itemId=${item.id}, re-enqueued`);
+        }
       }
+      rescanned += due.length;
     }
-    return { rescanned: due.length };
+    return { rescanned };
   }
 }

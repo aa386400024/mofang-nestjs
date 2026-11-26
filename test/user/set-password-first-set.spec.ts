@@ -153,7 +153,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
           { provide: PasswordResetService, useValue: { requestReset: async () => {} } },
           // JwtAuthGuard 的三个依赖.
           { provide: JwtService, useValue: { verify: () => ({ sub: UID, jti: 'jti-1', type: TokenType.Access }) } },
-          { provide: ConfigService, useValue: { get: () => 'secret' } },
+          { provide: ConfigService, useValue: { get: () => 'secret', getOrThrow: () => 'secret' } },
           // EncryptedFieldsInterceptor 的依赖 (假解密: base64 → 明文).
           {
             provide: RsaKeyService,
@@ -333,7 +333,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     it('守卫注入 request.user = { userId, username, roles } → 取 uid 用 userId', async () => {
       const guard = new JwtAuthGuard(
         { verify: () => ({ sub: UID, jti: 'jti-1', type: TokenType.Access }) } as unknown as JwtService,
-        { get: () => 'secret' } as unknown as ConfigService,
+        { get: () => 'secret', getOrThrow: () => 'secret' } as unknown as ConfigService,
         { isRevoked: async () => false } as never,
       );
       const request: { headers: Record<string, string>; cookies: Record<string, string>; user?: unknown } = {
@@ -344,12 +344,10 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
 
       await guard.canActivate(ctx);
 
-      expect(request.user).toEqual({ userId: UID, username: '', roles: [] });
-      // ⚠️ 既有事实 (本单开工前就存在, 本单**不动** guard):
-      //   request.user 里没有 `sub` 字段 —— `sub` 是 JWT payload 的字段名, 不是 request.user 的.
-      //   所以 `@CurrentUser('sub')` 在这个 guard 下取不到值 (本仓另外几个路由还这么写着).
-      expect((request.user as Record<string, unknown>)['sub']).toBeUndefined();
       expect((request.user as Record<string, unknown>)['userId']).toBe(UID);
+      // AF-537 P0-5: guard 同时暴露 payload 字段名，业务侧用 sub / jti 不再拿到 undefined。
+      expect((request.user as Record<string, unknown>)['sub']).toBe(UID);
+      expect((request.user as Record<string, unknown>)['jti']).toBe('jti-1');
     });
 
     it('CurrentUser 装饰器: 真工厂在真实 ctx 上取 userId → 拿到 uid', () => {

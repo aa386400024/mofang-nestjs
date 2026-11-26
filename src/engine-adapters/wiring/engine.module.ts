@@ -48,6 +48,7 @@ import { resolveAllianceConfig } from './alliance-config.js';
 import { NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE } from './alliance-threshold-resolver.js';
 import { resolveBdiRuntimeConfig, describeBeliefGateCoupling } from './bdi-runtime.config.js';
 import { resolveBdiStateStoreConfig } from './bdi-state-store.config.js';
+import { CachingRiskProbe } from './caching-risk-probe.js';
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
 import { resolveDeltaCapConfig } from './delta-cap.config.js';
@@ -81,11 +82,6 @@ import {
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
-import { resolveSessionSummaryConfig } from './session-summary.config.js';
-import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
-import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
-import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../../counselor/config/counselor-llm.config.js';
-import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { MetricsService } from '../../shared/infra/metrics/metrics.service.js';
 import { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
@@ -99,12 +95,17 @@ import { RISK_PROBE } from './risk/risk-probe.token.js';
 import { STUDENT_RISK_GATE, StudentRiskGateService } from './risk/student-risk-gate.js';
 import { RouterChatCaller } from './router-chat-caller.js';
 import { resolveSessionDecayConfig } from './session-decay.config.js';
+import { resolveSessionSummaryConfig } from './session-summary.config.js';
 import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
 import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
 import { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
+import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
+import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../../counselor/config/counselor-llm.config.js';
+import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import { LlmModule } from '../../llm/llm.module.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
@@ -207,11 +208,15 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
     {
       provide: RISK_PROBE,
       useFactory: (config: ConfigService, local: LocalCrisisProbe): RiskProbePort =>
-        createRiskProbe({
-          baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
-          timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
-          fallback: local,
-        }),
+        // AF-537 P1 6.16: 前置 gate / 内核判定 / 输出侧 guard 共用同一个带短 TTL 缓存的探测器，
+        // 同一轮同一段文本只打一次 PsyGUARD。
+        new CachingRiskProbe(
+          createRiskProbe({
+            baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
+            timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
+            fallback: local,
+          }),
+        ),
       inject: [ConfigService, LocalCrisisProbe],
     },
     // V2026-10-30 (WP11): PsyGUARD 服务启动自检 —— 启动时探一次 /health,

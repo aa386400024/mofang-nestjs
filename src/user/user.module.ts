@@ -10,6 +10,7 @@ import { PasswordHistory } from './entities/password-history.entity.js';
 import { Session } from './entities/session.entity.js';
 import { User } from './entities/user.entity.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { AccountErasureService } from './providers/account-erasure.service.js';
 import { AuditLogService } from './providers/audit-log.service.js';
 import { EmailVerificationService } from './providers/email-verification.service.js';
 import { JwtBlacklistService } from './providers/jwt-blacklist.service.js';
@@ -83,6 +84,7 @@ function parseExpiresIn(s: string): number {
     UserService,
     SessionService,
     AuditLogService,
+    AccountErasureService,
     JwtBlacklistService,
     PasswordHistoryService,
     EmailVerificationService,
@@ -94,6 +96,7 @@ function parseExpiresIn(s: string): number {
     UserService,
     SessionService,
     AuditLogService,
+    AccountErasureService,
     JwtBlacklistService,
     PasswordHistoryService,
     EmailVerificationService,

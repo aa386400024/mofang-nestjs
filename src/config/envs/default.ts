@@ -51,6 +51,8 @@ export const config = {
   sms: {
     enabled: process.env.SMS_ENABLED === 'true',
     provider: process.env.SMS_PROVIDER ?? 'mock', // 'mock' | 'aliyun' | 'tencent' | 'twilio'
+    // AF-537 P1 6.4: 验证码 HMAC pepper（独立于 JWT 密钥；未配置时回退 JWT 密钥）.
+    codePepper: process.env['VERIFICATION_CODE_PEPPER'],
     // @unused-read — 读进 config.sms.accessKey 但**无人消费**:
     //   短信服务 (shared/infra/sms/sms.service.ts) 只读 enabled / provider;
     //   真正接入阿里云 / 腾讯云 SDK 时才会用到凭据, 那时它才"有人消费".
@@ -147,6 +149,8 @@ export const config = {
   // 通过升级此版本号, 服务端强制客户端重弹同意 dialog (后端权威)
   consent: {
     currentVersion: process.env.CONSENT_CURRENT_VERSION ?? 'v1.0',
+    // AF-537 P0-10: AI 对话入口强制执行当前版本隐私协议；显式 `false` 才关闭（仅应急）.
+    enforceAiChat: process.env['CONSENT_ENFORCE_AI_CHAT'] !== 'false',
   },
   // V2026-10-08 治本 (AI 语音训练系统 — SPEC v0.1, Phase 1.1):
   //   - 凭证仅放服务端, 客户端用短期 OAuth token 直连 ASR (见 §9.2)

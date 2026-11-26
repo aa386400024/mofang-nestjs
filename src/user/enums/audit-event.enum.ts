@@ -79,6 +79,7 @@ export enum AuditEvent {
   UserOAuthLoginFailed = 'user_oauth_login_failed',
 
   // V2 软删
+  UserAccountDeletionRequested = 'user_account_deletion_requested',
   UserHardDeleted = 'user_hard_deleted',
 
   // Membership v2 运营 (AF-517): 活动主数据写操作必须可追溯

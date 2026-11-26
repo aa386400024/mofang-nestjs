@@ -452,8 +452,8 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
 
       const call = vi.mocked(Sentry.captureException).mock.calls[0];
       const extra = (call[1]! as unknown as { extra?: Record<string, unknown> }).extra!;
-      // extra 不遮业务内容类 —— 只提示, 由业务侧自律
-      expect(extra['body']).toBe('我想自杀');
+      // AF-537 P1 6.21#20: 心理内容字段名也必须自动遮。
+      expect(extra['body']).toBe('[REDACTED]');
       expect(extra['userId']).toBe('u1');
     });
 

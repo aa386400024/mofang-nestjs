@@ -9,6 +9,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { ConsentModule } from '../consent/consent.module.js';
 import { LlmModule } from '../llm/llm.module.js';
 import { UserModule } from '../user/user.module.js';
 
@@ -72,6 +73,7 @@ import { UnlockEvaluateCron } from './providers/unlock-evaluate.cron.js';
     TypeOrmModule.forFeature([AIProfileCache, AIUnlockStateEntity, AIEffectRecordEntity, CrisisEventEntity, LLMConversationEntity]),
     LlmModule,
     UserModule,
+    ConsentModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AIProfileController, AIRecommendController, AIUnlockController, AIEffectController, LlmChatController, RagController],

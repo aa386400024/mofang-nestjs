@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Config, Default, Objectype, Production } from './config.interface.js';
+import { validateEnv } from './env.validation.js';
 
 // V2026-11-02 ESM: __dirname 在 ESM 不可用, 用 fileURLToPath(import.meta.url) 推导.
 //   命名避开 no-underscore-dangle / naming-convention 规则.
@@ -25,6 +26,9 @@ const util = {
 };
 
 export const configuration = async (): Promise<Config> => {
+  // AF-537 P0-2 / P1-6.13: 启动即拒绝公开默认密钥与生产缺失项.
+  validateEnv(process.env);
+
   // V2026-11-02 ESM: dynamic import() 必须传完整 file:// URL.
   //   编译后 dist/config/configuration.js 与 dist/config/envs/*.js 同级,
   //   currentDirname 指向 dist/config, 路径推导跟原 CJS 一致.

@@ -61,6 +61,8 @@ export enum BizCode {
   OAuthAccountNotLinked = 13_003,
   // eslint-disable-next-line @typescript-eslint/naming-convention
   OAuthInvalidState = 13_004,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  OAuthEmailConflict = 13_005,
 
   // ====== 合规模块 / Consent (14xxx) ======
 
@@ -71,6 +73,7 @@ export enum BizCode {
   ConsentPlatformUnsupported = 14_003, // 平台不在白名单
 
   ConsentRateLimited = 14_004, // consent 记录接口被限流 (防御性)
+  ConsentRequired = 14_005, // 业务前置：未同意 / 版本过期，禁止使用需同意的能力
 
   // ====== 业务模块 (20xxx+) —「我的」Tab V2.0 二级页专用 ======
   // AI 对话历史 (26xxx)

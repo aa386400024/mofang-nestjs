@@ -75,10 +75,21 @@ export class DeliberationGateService {
     const policy = this.policyOf(input.mode);
     try {
       const runtime = await this.deps.quotas.loadRuntimeState(input.sessionId, input.mode, startedAt);
-      const result = evaluateGate({ input, runtime, policy });
+      let result = evaluateGate({ input, runtime, policy });
       if (result.decision === 'run') {
-        // 记账 (冷却轮次 / 会话次数 / 全局配额) —— 写失败也不影响本次决策.
-        await this.deps.quotas.recordRun(input.sessionId, input.mode, input.turnIndex, startedAt);
+        // AF-537 P1 6.17: 判定通过后必须先原子预占配额；预占失败说明并发下别人先占满，
+        // 本轮按配额超限处理，避免"先读后写"被并发击穿。
+        const reserved = await this.deps.quotas.tryReserve(
+          input.sessionId,
+          input.mode,
+          input.turnIndex,
+          startedAt,
+          policy.maxPerSession,
+          policy.globalRpm,
+        );
+        if (!reserved) {
+          result = { decision: 'skip', reason: 'quota_exceeded', deltaSummary: result.deltaSummary };
+        }
       }
       await this.deps.trace.record({
         sessionId: input.sessionId,

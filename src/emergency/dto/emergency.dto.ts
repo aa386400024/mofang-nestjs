@@ -4,7 +4,7 @@
 //         started_at_ms / completed_at_ms 用前端毫秒时间戳 (不二次转换).
 
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { EmergencyToolKind, SessionPhase } from '../enums/emergency.enums.js';
 
@@ -29,11 +29,15 @@ export class UpsertEmergencySessionDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(10)
   @ApiProperty({ description: '不安度前测 0..10', required: false, nullable: true, minimum: 0, maximum: 10 })
   intensityBefore!: number | null;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(10)
   @ApiProperty({ description: '不安度后测 0..10', required: false, nullable: true, minimum: 0, maximum: 10 })
   intensityAfter!: number | null;
 

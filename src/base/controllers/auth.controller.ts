@@ -7,32 +7,24 @@ import {
   HttpStatus,
   Post,
   Req,
-  Res,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
 
-import {
-  AuthService,
-  LocalLoginGuard,
-  LoginCodeService,
-  Payload,
-  AuthenticatedGuard,
-  LocalAuthGuard,
-  JwtAuthGuard,
-  JwtSign,
-  JwtVerifyGuard,
-} from '../../auth/index.js';
+import { ApiOperation } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { randomInt } from 'node:crypto';
+
+import { LoginCodeService } from '../../auth/index.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
-import { ReqUser } from '../../common/index.js';
 import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor.js';
 import { JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor.js';
 import { RsaKeyService } from '../../common/security/rsa-key.service.js';
 import { AuthStrictRateLimit } from '../../user/controllers/auth-rate-limit.decorators.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 import { UserService } from '../../user/providers/user.service.js';
 import { ResetPasswordDto } from '../dto/reset-password.dto.js';
 
@@ -78,7 +70,6 @@ export class AuthController {
   }
 
   constructor(
-    private auth: AuthService,
     private loginCodeService: LoginCodeService,
     // V1.1: 注入真 UserService (替代 shared/user mock). 包含:
     //   - findByEmail (TypeORM Repository)
@@ -93,19 +84,23 @@ export class AuthController {
   ) {}
 
   // ─── V1.1: 邮箱状态查询 (无凭证, 不需要 RSA 加密, TLS 足够) ──
+  // AF-537 P1 6.1: 严格限流；hasPassword 不再对外暴露（防 OAuth 账号侦察）。
+  @AuthStrictRateLimit()
   @Post('check-email')
   public async checkEmail(@Body('email') email: string): Promise<{ userExists: boolean; hasPassword: boolean }> {
     if (!email?.includes('@')) {
       throw new HttpException('邮箱格式错误', HttpStatus.BAD_REQUEST);
     }
+    const startedAt = Date.now();
     const user = await this.userService.findByEmail(email);
+    const elapsed = Date.now() - startedAt;
+    // 固定最小耗时 + 抖动，降低时序侧信道可区分度。
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, 80 - elapsed) + randomInt(0, 40)));
     if (!user) {
       return { userExists: false, hasPassword: false };
     }
-    return {
-      userExists: true,
-      hasPassword: !!user.passwordHash,
-    };
+    // hasPassword 属账号内部状态；已登录端需要时走 /user/me。
+    return { userExists: true, hasPassword: false };
   }
 
   // ─── V1.1: 密码登录 (走 V2 enterprise 流) ─────────────────────
@@ -128,6 +123,7 @@ export class AuthController {
    *   - 412 邮箱未验证
    */
   @UseInterceptors(EncryptedFieldsInterceptor, JwtCookieInterceptor)
+  @AuthStrictRateLimit()
   @Post('login-password')
   public async loginPassword(
     @Body() body: { email?: string; phone?: string; password: string; deviceInfo?: string },
@@ -155,11 +151,12 @@ export class AuthController {
       this.extractContext(req),
     );
 
-    const jwt = this.auth.jwtSign({
-      userId: result.user.uid,
-      username: result.user.email ?? result.user.phone ?? '',
-      roles: ['user'],
-    });
+    const jwt = {
+      access_token: result.accessToken,
+      refresh_token: result.refreshToken,
+      expiresIn: result.expiresIn,
+      refreshExpiresIn: result.refreshExpiresIn,
+    };
     return {
       success: true,
       // accessToken/refreshToken/expiresIn 触发 JwtCookieInterceptor 写 cookie
@@ -218,8 +215,12 @@ export class AuthController {
    */
   // V1.1.2: 双 interceptor — EncryptedFieldsInterceptor (请求字段解密) + JwtCookieInterceptor (响应走 cookie)
   @UseInterceptors(EncryptedFieldsInterceptor, JwtCookieInterceptor)
+  @AuthStrictRateLimit()
   @Post('verify-code')
-  public async verifyCode(@Body() body: { email: string; code: string }): Promise<{
+  public async verifyCode(
+    @Req() req: Request,
+    @Body() body: { email: string; code: string },
+  ): Promise<{
     success: boolean;
     userId: string;
     username: string;
@@ -249,20 +250,15 @@ export class AuthController {
       user.emailVerifiedAt = new Date();
     }
 
-    // 3. 生成 JWT (走 JwtCookieInterceptor 走 HttpOnly cookie, 不在 body 返回)
-    const payload: Payload = {
-      userId: user.uid,
-      username: user.email ?? body.email,
-      roles: ['user'],
-    };
-    const jwt = this.auth.jwtSign(payload);
+    // 3. 生成 JWT + session (走 JwtCookieInterceptor 写 HttpOnly cookie, 不在 body 返回)
+    const auth = await this.userService.buildAuthResponse(user, this.extractContext(req));
     return {
       success: true,
       // accessToken/refreshToken/expiresIn 字段触发 JwtCookieInterceptor 写 cookie 后从 body 移除
-      accessToken: jwt.access_token,
-      refreshToken: jwt.refresh_token,
-      expiresIn: jwt.expiresIn,
-      refreshExpiresIn: jwt.refreshExpiresIn,
+      accessToken: auth.accessToken,
+      refreshToken: auth.refreshToken,
+      expiresIn: auth.expiresIn,
+      refreshExpiresIn: auth.refreshExpiresIn,
       userId: user.uid,
       username: user.email ?? body.email,
       roles: ['user'],
@@ -333,10 +329,12 @@ export class AuthController {
    *   - 403 密码格式不够强 (V2: 强密码策略由 UserService.register 负责, 已用正则预校验)
    */
   @UseInterceptors(EncryptedFieldsInterceptor)
+  @UseGuards(JwtAuthGuard)
+  @AuthStrictRateLimit()
   @Post('set-password')
-  public async setPassword(@Body() body: { email: string; password: string }): Promise<{ success: boolean }> {
-    if (!body.email || !body.password) {
-      throw new HttpException('邮箱或密码不能为空', HttpStatus.BAD_REQUEST);
+  public async setPassword(@CurrentUser('userId') uid: string, @Body() body: { password: string }): Promise<{ success: boolean }> {
+    if (!body.password) {
+      throw new HttpException('密码不能为空', HttpStatus.BAD_REQUEST);
     }
     if (body.password.length < 8) {
       throw new HttpException('密码至少 8 位', HttpStatus.BAD_REQUEST);
@@ -346,59 +344,20 @@ export class AuthController {
       throw new HttpException('密码需包含字母和数字', HttpStatus.BAD_REQUEST);
     }
 
-    const user = await this.userService.findByEmail(body.email);
+    // AF-537 P1 6.19: 首次设密码必须基于已认证会话，禁止凭邮箱裸设（账号接管）。
+    const user = await this.userService.findByUid(uid);
     if (!user) {
-      throw new HttpException('请先完成验证码登录', HttpStatus.BAD_REQUEST);
+      throw new HttpException('账号不存在', HttpStatus.BAD_REQUEST);
     }
     if (user.passwordHash) {
       throw new HttpException('用户已设置过密码, 请用改密流程', HttpStatus.BAD_REQUEST);
     }
 
-    // V1.1 接入 V2 UserService.setInitialPassword (首次设密码专用, 走 bcrypt + 写 passwordChangedAt)
-    await this.userService.setInitialPassword(user.uid, body.password);
+    await this.userService.setInitialPassword(uid, body.password);
     return { success: true };
   }
 
-  // ─── V1.0 Passport / JWT 旧流程 (保留兼容) ──────────────────────
-  @Post('login')
-  @UseGuards(LocalLoginGuard)
-  public login(@ReqUser() user: Payload): Payload {
-    return user;
-  }
-
-  @Get('logout')
-  public logout(@Req() req: Request, @Res() res: Response): void {
-    req.logout(() => {
-      res.redirect('/');
-    });
-  }
-
-  @Get('check')
-  @UseGuards(AuthenticatedGuard)
-  public check(@ReqUser() user: Payload): Payload {
-    return user;
-  }
-
-  @UseGuards(LocalAuthGuard)
-  @Post('jwt/login')
-  public jwtLogin(@ReqUser() user: Payload): JwtSign {
-    return this.auth.jwtSign(user);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('jwt/check')
-  public jwtCheck(@ReqUser() user: Payload): Payload {
-    return user;
-  }
-
-  @UseGuards(JwtVerifyGuard)
-  @Post('jwt/refresh')
-  public jwtRefresh(@ReqUser() user: Payload, @Body('refresh_token') token?: string): JwtSign {
-    if (!token || !this.auth.validateRefreshToken(user, token)) {
-      throw new UnauthorizedException('InvalidRefreshToken');
-    }
-    return this.auth.jwtSign(user);
-  }
+  // ─── 旧 Passport / JWT 登录与 refresh 已删除，统一走 /auth/login-password、/auth/verify-code、/user/refresh ──────
 
   // ─── 私有辅助 ─────────────────────────────────────────
 
@@ -411,9 +370,7 @@ export class AuthController {
     userAgentRaw: string;
     deviceType: string;
   } {
-    const xff = req.headers['x-forwarded-for'];
-    const ipAddress =
-      (typeof xff === 'string' ? xff.split(',', 1)[0]?.trim() : undefined) ?? req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    const ipAddress = req.ip ?? req.socket.remoteAddress ?? 'unknown';
     const userAgent = req.headers['user-agent'] ?? 'unknown';
     return {
       ipAddress,

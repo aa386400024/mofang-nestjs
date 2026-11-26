@@ -64,7 +64,10 @@ export class JwtAuthGuard implements CanActivate {
     let payload: JwtPayload & { jti: string; type: string };
     try {
       payload = this.jwt.verify<JwtPayload & { jti: string; type: string }>(token, {
-        secret: this.config.get<string>('jwtSecret'),
+        secret: this.config.getOrThrow<string>('jwtSecret'),
+        algorithms: ['HS256'],
+        issuer: 'mofang-nestjs',
+        audience: 'mofang-client',
       });
     } catch {
       throw new BizException(BizCode.TokenExpired, 'token 无效或已过期');
@@ -90,10 +93,17 @@ export class JwtAuthGuard implements CanActivate {
     // 大厂 standard: JwtStrategy.validate() 返回 { userId, username, roles } 映射,
     // 这里等价于手写 Passport strategy 的 validate 输出, 让业务层拿到的 user
     // 跟 passport 默认形态一致 (上层不用关心 JWT 原始 payload 结构).
-    (request as unknown as { user: { userId: string; username: string; roles: string[] } }).user = {
+    (request as unknown as { user: Record<string, unknown> }).user = {
+      // AF-537 P0-5: business controllers read `sub` / `jti`; guard must expose the
+      // same names as the JWT payload, not only userId. Missing fields caused
+      // logout / OAuth unlink / consent binding / KB operator to silently become undefined.
+      sub: payload.sub,
+      jti: payload.jti,
       userId: payload.sub,
       username: payload.username ?? '',
       roles: payload.roles ?? [],
+      adminRole: payload.adminRole,
+      tenantId: payload.tenantId,
     };
     return true;
   }

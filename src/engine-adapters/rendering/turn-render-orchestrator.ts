@@ -2197,7 +2197,7 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: Visit
   //   prompt 也变了 —— 那就破坏了"无溢出时行为不变"这条零回归底线.
   //   没有摘要时这一行整个不出现 → prompt 逐字不变.
   if (spec.sessionSummary) {
-    lines.push(`- 此前我们聊过（背景，不要说出口）：${spec.sessionSummary}`);
+    lines.push(`- 此前我们聊过（背景，不要说出口）：${fencePromptFragment(spec.sessionSummary)}`);
   }
 
   // WP56: 跨会话长期记忆召回 (内核 WP2 的 openingContext).
@@ -2223,7 +2223,7 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: Visit
   if (spec.recall.length > 0) {
     const memories = spec.recall
       .slice(0, RECALL_PROMPT_LIMIT)
-      .map((hit) => `  - ${hit.entry.content}`)
+      .map((hit) => `  - ${fencePromptFragment(hit.entry.content)}`)
       .join('\n');
     lines.push(`- 你还记得这些事（背景，不要说出口）：\n${memories}`);
   }
@@ -2231,14 +2231,14 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: Visit
   if (spec.coreBeliefs.length > 0) {
     const statements = spec.coreBeliefs.map((belief) => belief.statement).filter((statement) => statement.length > 0);
     if (statements.length > 0) {
-      lines.push(`- 你心里坚信、不会动摇的东西：${statements.join('；')}`);
+      lines.push(`- 你心里坚信、不会动摇的东西：${statements.map(fencePromptFragment).join('；')}`);
     }
   }
   if (spec.forbiddenBehaviors.length > 0) {
-    lines.push(`- 你绝不会做的事（绝不能出现）：${spec.forbiddenBehaviors.join('、')}`);
+    lines.push(`- 你绝不会做的事（绝不能出现）：${spec.forbiddenBehaviors.map(fencePromptFragment).join('、')}`);
   }
   if (spec.trajectoryNote) {
-    lines.push(`- 你此刻正经历的事：${spec.trajectoryNote}`);
+    lines.push(`- 你此刻正经历的事：${fencePromptFragment(spec.trajectoryNote)}`);
   }
 
   // WP41: 角色"一贯的样子" (叙事逻辑风格 + 语态倾向).
@@ -2263,7 +2263,7 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: Visit
   }
   // WP-J: 台词指纹 —— 角色自由文本"说话的味道". 缺省不渲染 (零回归).
   if (spec.verbalVoice) {
-    lines.push(`你说话的味道：${spec.verbalVoice}`);
+    lines.push(`你说话的味道：${fencePromptFragment(spec.verbalVoice)}`);
   }
   lines.push(...speechRegisterPromptLines(spec));
 
@@ -2387,4 +2387,22 @@ function errorMessage(error: unknown): string {
 function cachedUsageField(usage: unknown): { readonly cachedTokens?: number } {
   const raw = (usage as { readonly cachedTokens?: unknown } | undefined)?.cachedTokens;
   return typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 ? { cachedTokens: raw } : {};
+}
+
+/**
+ * 记忆 / 摘要 / 角色自由文本进 prompt 前的围栏（AF-537 P1 6.21#21）。
+ *
+ * 这些字段可能由访客输入或 LLM 生成，直接拼进 system prompt 等于把不可信文本
+ * 提升为指令。这里去掉尖括号与换行控制，限制长度，并包进数据围栏标记。
+ */
+function fencePromptFragment(text: string): string {
+  const cleaned = Array.from(text)
+    .filter((ch) => {
+      if (ch === '<' || ch === '>') return false;
+      const code = ch.codePointAt(0) ?? 0;
+      return code >= 32 || code === 9 || code === 10;
+    })
+    .join('')
+    .slice(0, 2000);
+  return `<memory>${cleaned}</memory>`;
 }

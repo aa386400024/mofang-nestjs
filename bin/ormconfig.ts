@@ -65,6 +65,7 @@ import { InitKnowledge1700000008010 } from '../src/migration/1700000008010-InitK
 // V2026-10-12 (Phase 8.3 — Analytics 模块初始化, spec §12.5):
 //   analytics_events 表 + 2 复合 index, 跟 entity @Index 注解严格对应.
 import { InitAnalytics1700000008020 } from '../src/migration/1700000008020-InitAnalytics.js';
+// AF-537 P0-3 — 陪伴树 + 默契拼图 5 张在线表建表 migration.
 
 // V2026-09-03 — 心塑「内心世界」Tab 模块 (V4.0 §3 游戏化核心层, 6 张表)
 
@@ -293,6 +294,7 @@ import { AddVisitorFullPersonaSpeech1714900000053 } from '../src/migration/17149
 import { AddMembershipV2Tables1714900000054 } from '../src/migration/1714900000054-AddMembershipV2Tables.js';
 import { AddMembershipPromotionAndPlanGrant1714900000055 } from '../src/migration/1714900000055-AddMembershipPromotionAndPlanGrant.js';
 import { AddMembershipPromotionReservation1714900000056 } from '../src/migration/1714900000056-AddMembershipPromotionReservation.js';
+import { AddCompanionTreeAndDualPuzzleTables1714900000057 } from '../src/migration/1714900000057-AddCompanionTreeAndDualPuzzleTables.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -501,6 +503,8 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-25 AF-516 — 会员非支付闭环：活动主数据 + 年付按月发放 term。
       AddMembershipPromotionAndPlanGrant1714900000055,
       AddMembershipPromotionReservation1714900000056,
+      // AF-537 P0-3 — 陪伴树 + 默契拼图 5 张在线表.
+      AddCompanionTreeAndDualPuzzleTables1714900000057,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

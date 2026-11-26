@@ -65,9 +65,13 @@ export class CompanionTreeService {
   }
 
   /**
-   * 取最近 N 条浇水日志.
+   * 取最近 N 条浇水日志（AF-537 P0-13：必须校验树归属）。
    */
-  public async recentLogs(input: { treeId: string; limit?: number }): Promise<TreeWaterLog[]> {
+  public async recentLogs(input: { treeId: string; uid: string; limit?: number }): Promise<TreeWaterLog[]> {
+    const tree = await this.treeRepo.findOne({ where: { id: input.treeId } });
+    if (!tree || (tree.ownerAId !== input.uid && tree.ownerBId !== input.uid)) {
+      throw new NotFoundException('树不在了.');
+    }
     return this.logRepo.find({
       where: { treeId: input.treeId },
       order: { createdAt: 'DESC' },

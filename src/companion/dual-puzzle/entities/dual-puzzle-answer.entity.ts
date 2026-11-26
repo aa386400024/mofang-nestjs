@@ -11,7 +11,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
  * 反双胞胎:
  *   - 不复用 assessment/answer (那是单人测评答案, 跟双作者无关)
  */
-@Entity('Companion_dual_puzzle_answers')
+@Entity('companion_dual_puzzle_answers')
 @Index('idx_dual_puzzle_answers_set_user', ['setId', 'userId'], { unique: true })
 export class DualPuzzleAnswer {
   @PrimaryGeneratedColumn('uuid')

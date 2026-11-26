@@ -290,9 +290,7 @@ export class UserController {
     userAgentRaw: string;
     deviceType: string;
   } {
-    const xff = req.headers['x-forwarded-for'];
-    const ipAddress =
-      (typeof xff === 'string' ? xff.split(',', 1)[0]?.trim() : undefined) ?? req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    const ipAddress = req.ip ?? req.socket.remoteAddress ?? 'unknown';
     const userAgent = req.headers['user-agent'] ?? 'unknown';
     return {
       ipAddress,

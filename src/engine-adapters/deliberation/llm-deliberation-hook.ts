@@ -188,6 +188,8 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
   private readonly logger = new Logger(LlmDeliberationHook.name);
   /** 会话 id → 最近一条可用建议. */
   private readonly suggestions = new Map<string, { readonly suggestion: CachedDeliberationSuggestion; readonly at: number }>();
+  /** 正在跑审议的会话（AF-537 P1 6.15：单会话并发上限 1）。 */
+  private readonly inFlight = new Set<string>();
 
   constructor(
     private readonly modeConfig: DeliberationModeConfig,
@@ -272,6 +274,9 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
    */
   async produce(input: DeliberationProduceInput): Promise<void> {
     const { context } = input;
+    // AF-537 P1 6.15: 同一会话同时只允许一拍审议在跑，避免慢 LLM 调用堆叠拖垮会话。
+    if (this.inFlight.has(context.sessionId)) return;
+    this.inFlight.add(context.sessionId);
     try {
       if (!isLlmDeliberationActiveForSession(this.modeConfig, context.sessionId, this.resolveScenario(context.sessionId))) return;
       // WP-A 合规红线: 高风险轮次**永远不跑** LLM 审议 —— 不产建议, 下一轮回退规则 delta.
@@ -293,6 +298,8 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
       this.pruneExpired();
     } catch (error) {
       this.logger.warn(`[r9] 审议失败, 本轮不产生建议 (session=${context.sessionId}): ${messageOf(error)}`);
+    } finally {
+      this.inFlight.delete(context.sessionId);
     }
   }
 

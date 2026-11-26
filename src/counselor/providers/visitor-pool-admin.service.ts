@@ -185,6 +185,9 @@ export class VisitorPoolAdminService {
       } else {
         qb.andWhere('t.deletedAt IS NOT NULL');
       }
+    } else {
+      // AF-537 P1 6.21#2: 未指定 status 时默认不混入已软删模板。
+      qb.andWhere('t.deletedAt IS NULL');
     }
 
     if (query.cursor) {

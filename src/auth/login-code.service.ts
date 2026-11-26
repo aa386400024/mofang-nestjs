@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'node:crypto';
 
+import { hashVerificationCode, verifyHashedCode } from '../common/security/verification-code-hash.js';
 import { EmailService } from '../shared/infra/email/index.js';
 import { RedisService } from '../shared/infra/redis/index.js';
 
@@ -29,6 +30,7 @@ export class LoginCodeService {
   private readonly logger = new Logger(LoginCodeService.name);
   private readonly ttlSec: number;
   private readonly rateLimitMs: number;
+  private readonly pepper: string;
 
   constructor(
     private readonly redis: RedisService,
@@ -39,6 +41,8 @@ export class LoginCodeService {
     this.ttlSec = Number(this.config.get('sms.smsCodeTtlMin') ?? 5) * 60;
     // 防刷: 60s 内同邮箱不发第二次
     this.rateLimitMs = 60 * 1000;
+    // P1 6.4: 验证码只存 HMAC，pepper 优先走独立 env，未配置时沿用 JWT 密钥。
+    this.pepper = this.config.get<string>('sms.codePepper') ?? this.config.getOrThrow<string>('jwtSecret');
   }
 
   /**
@@ -61,9 +65,9 @@ export class LoginCodeService {
     // 生成 6 位数字
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
 
-    // 存验证码 (TTL 5min)
+    // 存验证码哈希 (TTL 5min) — 明文只出现在邮件正文。
     const codeKey = `${REDIS_KEY_PREFIX}${lower}`;
-    await this.redis.set(codeKey, code, this.ttlSec);
+    await this.redis.set(codeKey, hashVerificationCode(this.pepper, code), this.ttlSec);
 
     // 设防刷 key (rateLimitMs / 1000 = 秒, 复用 field 不写死 60).
     await this.redis.set(rateKey, Date.now().toString(), Math.floor(this.rateLimitMs / 1000));
@@ -87,17 +91,36 @@ export class LoginCodeService {
   public async verify(email: string, code: string): Promise<boolean> {
     const lower = email.toLowerCase().trim();
     const key = `${REDIS_KEY_PREFIX}${lower}`;
+    const failKey = `${REDIS_KEY_PREFIX}fail:${lower}`;
+
+    // P1 6.2: 5 次错误即作废验证码，阻断 5 分钟 TTL 内的在线爆破。
+    const failRaw = await this.redis.get(failKey);
+    const failures = failRaw ? Number(failRaw) : 0;
+    if (failures >= 5) {
+      await this.redis.del(key);
+      this.logger.warn(`[LoginCode] 失败次数超限，验证码已作废: ${lower}`);
+      return false;
+    }
+
     const stored = await this.redis.get(key);
     if (!stored) {
       this.logger.log(`[LoginCode] 验证码不存在或已过期: ${lower}`);
       return false;
     }
-    if (stored !== code) {
-      this.logger.log(`[LoginCode] 验证码不匹配: ${lower}`);
+    if (!verifyHashedCode(this.pepper, code, stored)) {
+      const count = await this.redis.incr(failKey);
+      if (count === 1) {
+        await this.redis.expire(failKey, this.ttlSec);
+      }
+      this.logger.log(`[LoginCode] 验证码不匹配 (${count}/5): ${lower}`);
+      if (count >= 5) {
+        await this.redis.del(key);
+      }
       return false;
     }
     // 验证成功, 一次性使用
     await this.redis.del(key);
+    await this.redis.del(failKey);
     return true;
   }
 

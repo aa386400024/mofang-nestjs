@@ -75,6 +75,25 @@ export class ConsentRepositoryTypeorm implements ConsentRepository {
   }
 
   /**
+   * 取该用户某协议类型的最新一条同意记录.
+   */
+  async findLatestByUser(userId: string, consentType: string): Promise<ConsentRow | null> {
+    const row = await this.repo.findOne({
+      where: { userId, consentType },
+      order: { acceptedAt: 'DESC' },
+    });
+    return row ? toRow(row) : null;
+  }
+
+  /**
+   * 撤回某用户某协议类型的全部同意记录.
+   */
+  async deleteByUser(userId: string, consentType: string): Promise<number> {
+    const result = await this.repo.delete({ userId, consentType });
+    return result.affected ?? 0;
+  }
+
+  /**
    * 写入一行 —— 带 id = 更新既有行 (幂等命中), 缺省 = 新增行 (首次写入).
    *
    * @param input 行纯对象 (service 内构造)

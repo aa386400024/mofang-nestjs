@@ -2,10 +2,8 @@ import type { INestApplication } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import session from 'express-session';
 import helmet from 'helmet';
 import { randomBytes } from 'node:crypto';
-import passport from 'passport';
 
 /**
  * 生产环境的 CSP 指令 (V2026-11-03 治本 · WP25 · 封版审查).
@@ -133,17 +131,8 @@ export function middleware(app: INestApplication): INestApplication {
   // 必须在 routes 前, JwtAuthGuard 才拿得到 req.cookies
   app.use(cookieParser());
 
-  // 4. Passport session — 仅给 /auth/* demo 路由用 (V3 删除 auth/ 时连同清理)
-  app.use(
-    session({
-      secret: resolveSessionSecret(logger),
-      resave: false,
-      saveUninitialized: true,
-      cookie: { secure: isProduction, sameSite: isProduction ? 'strict' : 'lax' },
-    }),
-  );
-  app.use(passport.initialize());
-  app.use(passport.session());
+  // 4. Passport / express-session 已移除（AF-537 P1 6.21#17）：
+  //    旧 `/auth/*` passport demo 路由已删除，鉴权统一走 JWT；不再保留 MemoryStore。
 
   return app;
 }

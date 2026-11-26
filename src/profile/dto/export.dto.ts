@@ -50,9 +50,12 @@ export class DeleteAccountDto {
 }
 
 export class DeleteAccountResponseDto {
-  @ApiProperty({ description: '删除执行状态', example: 'deleted' })
-  status!: 'deleted';
+  @ApiProperty({ description: '删除请求状态（软删 + 冷静期，cron 到期后真删）', example: 'deletion_requested' })
+  status!: 'deletion_requested';
 
-  @ApiProperty({ description: '删除时间', example: '2026-08-28T09:30:00Z' })
+  @ApiProperty({ description: '软删时间', example: '2026-08-28T09:30:00Z' })
   deletedAt!: string;
+
+  @ApiProperty({ description: '预计硬删时间（保留期后）', example: '2026-09-27T09:30:00Z' })
+  purgeAt!: string;
 }

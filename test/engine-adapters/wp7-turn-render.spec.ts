@@ -567,8 +567,8 @@ describe('WP7 · 决策→说话闭环', () => {
       const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 
       expect(systemText).toContain('- 你还记得这些事（背景，不要说出口）：');
-      expect(systemText).toContain('  - 长期记忆第1条');
-      expect(systemText).toContain('  - 长期记忆第2条');
+      expect(systemText).toContain('  - <memory>长期记忆第1条</memory>');
+      expect(systemText).toContain('  - <memory>长期记忆第2条</memory>');
     });
 
     it('recall 为空数组 → prompt 逐字不变 (零回归)', () => {
@@ -592,9 +592,9 @@ describe('WP7 · 决策→说话闭环', () => {
 
       const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 
-      expect(systemText).toContain('  - 长期记忆第1条');
-      expect(systemText).toContain('  - 长期记忆第2条');
-      expect(systemText).toContain('  - 长期记忆第3条');
+      expect(systemText).toContain('  - <memory>长期记忆第1条</memory>');
+      expect(systemText).toContain('  - <memory>长期记忆第2条</memory>');
+      expect(systemText).toContain('  - <memory>长期记忆第3条</memory>');
       expect(systemText).not.toContain('长期记忆第4条');
       expect(systemText).not.toContain('长期记忆第5条');
       // 恰好 3 个子项.
@@ -618,7 +618,7 @@ describe('WP7 · 决策→说话闭环', () => {
 
       const systemText = (buildVisitorMessages(buildSpecWithRecall(hits))[0]?.content ?? '') as string;
 
-      expect(systemText).toContain('  - 我小时候被父母抛弃过。');
+      expect(systemText).toContain('  - <memory>我小时候被父母抛弃过。</memory>');
     });
 
     it('recall 出现在系统消息里, 不掺进历史消息', () => {

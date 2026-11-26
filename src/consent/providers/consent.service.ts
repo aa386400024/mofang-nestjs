@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 import { CONSENT_REPOSITORY, type ConsentRepository } from '../domain/repositories/consent.repository.js';
 import { ConsentStatusResponseDto } from '../dto/consent-status.dto.js';
 import { RecordConsentDto } from '../dto/record-consent.dto.js';
@@ -138,6 +140,35 @@ export class ConsentService {
       needReaccept: !matched,
       currentVersion: this.currentVersion,
     };
+  }
+
+  /**
+   * 业务前置断言：用户必须已接受当前版本的目标协议，否则拒绝进入。
+   *
+   * AF-537 P0-10: consent 不能只“记录”，必须能在敏感业务入口真正拦住。
+   *
+   * @param userId 用户 uid
+   * @param consentType 协议类型（如 `agreement+privacy` / `ai_chat`）
+   * @throws BizException ConsentRequired（未同意或版本过期）
+   */
+  public async assertAccepted(userId: string, consentType: string): Promise<void> {
+    const accepted = await this.repo.findLatestByUser(userId, consentType);
+    if (!accepted || accepted.consentVersion !== this.currentVersion) {
+      throw new BizException(BizCode.ConsentRequired, `请先同意当前版本协议（${consentType} ${this.currentVersion}）`);
+    }
+  }
+
+  /**
+   * 撤回同意（用户行使撤回权）。
+   *
+   * @param userId 用户 uid
+   * @param consentType 协议类型
+   * @returns 删除的同意记录数
+   */
+  public async withdraw(userId: string, consentType: string): Promise<number> {
+    const affected = await this.repo.deleteByUser(userId, consentType);
+    this.log.log(`[withdraw] user=${userId.slice(0, 8)}... type=${consentType} rows=${affected}`);
+    return affected;
   }
 
   /**

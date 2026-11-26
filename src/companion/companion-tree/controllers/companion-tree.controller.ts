@@ -113,12 +113,13 @@ export class CompanionTreeController {
     type: [TreeWaterLog],
   })
   public async recentLogs(
-    @CurrentUser() _user: { userId: string },
+    @CurrentUser() user: { userId: string },
     @Param('treeId') treeId: string,
     @Query('limit') limit?: string,
   ): Promise<TreeWaterLog[]> {
     return this.service.recentLogs({
       treeId,
+      uid: user.userId,
       limit: limit ? Math.min(100, Number.parseInt(limit, 10)) : 30,
     });
   }

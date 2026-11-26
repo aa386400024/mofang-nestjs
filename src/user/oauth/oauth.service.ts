@@ -97,13 +97,10 @@ export class OAuthService implements OnModuleInit {
    * 校验 state, 单次使用.
    */
   async consumeState(state: string, provider: OAuthProvider): Promise<boolean> {
-    const stored = await this.redis.get(REDIS_KEYS.oauthState(state));
+    // AF-537 P0-8: GETDEL 原子消费，防同一 state 并发回调被消费两次。
+    const stored = await this.redis.getdel(REDIS_KEYS.oauthState(state));
 
-    if (!stored || stored !== provider) {
-      return false;
-    }
-    await this.redis.del(REDIS_KEYS.oauthState(state));
-    return true;
+    return Boolean(stored) && stored === provider;
   }
 
   // ========================================================================
@@ -287,16 +284,16 @@ export class OAuthService implements OnModuleInit {
       return this.userService.buildAuthResponse(user);
     }
 
-    // 2. 没绑定 → 尝试匹配 email (邮箱已验证过的优先)
+    // 2. 没绑定 → 邮箱已注册时**不自动绑定**
+    // AF-537 P0-8: 仅凭 provider 返回 emailVerified 就自动绑定，会把“邮箱相同”
+    // 当成“账号同主”，攻击者可用自己控制的 provider 邮箱接管已有账号。
+    // 大厂做法：已注册邮箱必须先登录，再由已登录会话显式 linkIdentity。
     if (info.email && info.emailVerified) {
       const user = await this.userRepo.findOne({
         where: { email: info.email, deletedAt: IsNull() },
       });
       if (user) {
-        // 自动绑定 (大厂做法: 邮箱已验证 + provider 信任 → 直接绑定)
-        await this.linkIdentity(user.uid, info);
-        this.metrics.incOAuthLogin(info.provider, 'linked');
-        return this.userService.buildAuthResponse(user);
+        throw new BizException(BizCode.OAuthEmailConflict, '该邮箱已注册，请先登录后在此账号内绑定第三方');
       }
     }
 

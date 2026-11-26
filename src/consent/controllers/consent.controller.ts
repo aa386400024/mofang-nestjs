@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
@@ -78,12 +78,22 @@ export class ConsentController {
   }
 
   /**
+   * 撤回同意（用户行使撤回权，AF-537 P0-10）。
+   */
+  @Delete(':consentType')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(204)
+  @ApiOperation({ summary: '撤回某类协议同意（需 JWT）' })
+  public async withdraw(@CurrentUser('sub') uid: string, @Param('consentType') consentType: string): Promise<void> {
+    await this.consent.withdraw(uid, consentType);
+  }
+
+  /**
    * 提取请求上下文 (IP / UA) — 与 user.controller.extractContext 风格一致.
    */
   private extractContext(req: Request): ConsentContext {
-    const xff = req.headers['x-forwarded-for'];
-    const ipAddress =
-      (typeof xff === 'string' ? xff.split(',', 1)[0]?.trim() : undefined) ?? req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    const ipAddress = req.ip ?? req.socket.remoteAddress ?? 'unknown';
     const userAgent = req.headers['user-agent'] ?? 'unknown';
     return { ipAddress, userAgent };
   }

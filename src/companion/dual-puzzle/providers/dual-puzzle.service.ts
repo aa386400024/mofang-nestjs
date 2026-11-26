@@ -122,18 +122,16 @@ export class DualPuzzleService {
   /**
    * 取结果 (双作者都答 → 算 chemistryScore).
    */
-  public async fetchResult(input: { setId: string; userId: string; partnerUserId: string }): Promise<DualPuzzleResultDto | null> {
+  public async fetchResult(input: { setId: string; userId: string }): Promise<DualPuzzleResultDto | null> {
     const set = await this.setRepo.findOne({ where: { id: input.setId } });
     if (!set) {
       throw new NotFoundException('找不到这组默契题.');
     }
 
-    const answerA = await this.answerRepo.findOne({
-      where: { setId: input.setId, userId: input.userId },
-    });
-    const answerB = await this.answerRepo.findOne({
-      where: { setId: input.setId, userId: input.partnerUserId },
-    });
+    const answers = await this.answerRepo.find({ where: { setId: input.setId } });
+    const answerA = answers.find((a) => a.userId === input.userId);
+    // AF-537 P1 6.21#7: 对手方由服务端从同组答案推导，绝不信任客户端 partnerUserId。
+    const answerB = answers.find((a) => a.userId !== input.userId);
     if (!answerA || !answerB) {
       return null;
     }
@@ -158,7 +156,7 @@ export class DualPuzzleService {
     return {
       setId: input.setId,
       userAId: input.userId,
-      userBId: input.partnerUserId,
+      userBId: answerB.userId,
       chemistryScore: score,
       perQuestionMatch,
       generatedAt: new Date(),
@@ -170,10 +168,20 @@ export class DualPuzzleService {
   /**
    * 我的作答历史 (setId 列表).
    */
-  public async recentSets(limit = 10): Promise<DualPuzzleSetDto[]> {
+  public async recentSets(uid: string, limit = 10): Promise<DualPuzzleSetDto[]> {
+    // AF-537 P1 6.21#8: “我的历史”只返回本人作答过的题目组，不再全站扫描。
+    const answers = await this.answerRepo.find({
+      where: { userId: uid },
+      order: { completedAt: 'DESC' },
+      take: limit * 3,
+    });
+    const setIds = [...new Set(answers.map((a) => a.setId))].slice(0, limit);
+    if (setIds.length === 0) {
+      return [];
+    }
     const sets = await this.setRepo.find({
+      where: { id: In(setIds) },
       order: { createdAt: 'DESC' },
-      take: limit,
     });
     // 批量取 question (避免 N+1)
     const allQuestionIds = [...new Set(sets.flatMap((s) => s.questionIds))];
