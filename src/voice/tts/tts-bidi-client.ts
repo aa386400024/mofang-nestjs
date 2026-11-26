@@ -107,6 +107,15 @@ function pickNumber(value: number | undefined, config: ConfigService, key: strin
   return value ?? envNumber(config, key, fallback);
 }
 
+/** 取第一个非空字符串; 空串/undefined 跳过. */
+function pickNonEmptyString(...values: (string | undefined)[]): string {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed !== undefined && trimmed.length > 0) return trimmed;
+  }
+  return '';
+}
+
 /** 音色优先级：会话覆盖（非空串） > env. */
 function resolveVoiceId(config: ConfigService, sessionVoice: string | undefined): string {
   const session = sessionVoice?.trim() ?? '';
@@ -188,13 +197,18 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     this.opts = opts;
     this.onClosed = onClosed;
 
-    this.baseUrl = config.getOrThrow<string>('minimax.baseUrl');
+    this.baseUrl = pickNonEmptyString(
+      opts.baseUrl,
+      opts.profile?.baseUrl,
+      config.get<string>('minimax.ttsBaseUrl'),
+      config.getOrThrow<string>('minimax.baseUrl'),
+    );
     this.apiKey = config.getOrThrow<string>('minimax.apiKey');
     // V2026-10-26 治本 (spec §任务 3 — 音色优先级放开为"可选覆盖, 缺省仍是 env"):
     //   会话级覆盖 (opts.voice, 来自握手 voiceId) > env `MINIMAX_TTS_VOICE_ID`.
     //   两者都空时仍然 fail-fast (见 connect()).
-    this.voiceId = resolveVoiceId(config, opts.voice);
-    this.model = this.resolveModel(opts.model ?? config.get<string>('minimax.ttsModel'));
+    this.voiceId = pickNonEmptyString(opts.profile?.voiceId, resolveVoiceId(config, opts.voice));
+    this.model = this.resolveModel(opts.profile?.model ?? opts.model ?? config.get<string>('minimax.ttsModel'));
     this.languageBoost = config.get<string>('minimax.ttsLanguageBoost') ?? 'Chinese';
     // AF-460: 交付档案优先；缺省回退 env，行为与 AF-459 逐字一致.
     this.speed = pickNumber(opts.delivery?.speed, config, 'minimax.ttsSpeed', 1);

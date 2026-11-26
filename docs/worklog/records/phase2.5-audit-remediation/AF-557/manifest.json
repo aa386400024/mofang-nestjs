@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-557",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "backlog",
+  "createdAt": "2026-11-26T22:35:00+08:00",
+  "updatedAt": "2026-11-26T14:33:59.343Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-557/task-sheet.md",
+    "sha256": "d8d760f909f3f57b446eee5b66f6a75ce6ed1675cb099b303a334d0ab44e26b2",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af557-tts-profile-routing-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-tts-profile-routing-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

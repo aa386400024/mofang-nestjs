@@ -23,7 +23,9 @@
 //   时间戳: 2026-10-23
 
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import { DoubaoTtsClient } from './doubao-tts-client.js';
 import { TtsBidiPoolService } from './tts-bidi-pool.service.js';
 import type { TtsOptions, TtsSessionHandle } from './tts.types.js';
 
@@ -32,20 +34,53 @@ export class TtsService implements OnModuleDestroy {
   private readonly logger = new Logger(TtsService.name);
 
   /**
-   * @param pool TTS 连接池
+   * @param pool TTS 连接池 (MiniMax bidi)
+   * @param config 全局配置 (豆包适配器读取端点/超时)
    */
-  constructor(private readonly pool: TtsBidiPoolService) {}
+  constructor(
+    private readonly pool: TtsBidiPoolService,
+    private readonly config: ConfigService,
+  ) {}
 
   /**
    * 启动 TTS session — 业务侧在用户开始一轮对话时调.
    *
+   * 分派规则:
+   * - profile=豆包 -> 每场一条双向流式 WS (暂不池化);
+   * - 其余/无 profile -> MiniMax 连接池 (兼容旧调用方).
+   *
    * @param opts 会话选项
    * @returns TTS 句柄
-   * @throws 上游握手失败 (连接池已回滚)
+   * @throws 上游握手失败 (连接池已回滚 / 豆包连接已关闭)
    */
   async startSession(opts: TtsOptions): Promise<TtsSessionHandle> {
+    if (opts.profile?.provider === 'doubao') {
+      const client = new DoubaoTtsClient(this.config, opts, opts.profile);
+      try {
+        await client.start();
+      } catch (err) {
+        client.dispose();
+        throw err;
+      }
+      this.logger.log(
+        `[start_session] session=${opts.sessionId} tenant=${opts.tenantId} user=${opts.userId} ` +
+          `provider=doubao profile=${opts.profile.profileId} voice=${opts.profile.voiceId}`,
+      );
+      return {
+        sessionId: opts.sessionId,
+        events: client,
+        sendText: (text: string) => client.sendText(text),
+        cancel: () => client.cancel(),
+        finish: () => client.finish(),
+        dispose: () => client.dispose(),
+      };
+    }
+
     const lease = await this.pool.acquire(opts);
-    this.logger.log(`[start_session] session=${opts.sessionId} tenant=${opts.tenantId} user=${opts.userId} lease=${lease.id}`);
+    this.logger.log(
+      `[start_session] session=${opts.sessionId} tenant=${opts.tenantId} user=${opts.userId} ` +
+        `provider=minimax lease=${lease.id} profile=${opts.profile?.profileId ?? 'legacy'}`,
+    );
 
     const client = lease.client;
     return {

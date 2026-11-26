@@ -57,6 +57,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
+import { TtsProfileResolver } from './tts/runtime/tts-profile.resolver.js';
 import { TtsService } from './tts/tts.service.js';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types.js';
 import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge.js';
@@ -315,6 +316,13 @@ export class VoiceService {
      *   所以缺席时打一条 warn (启动日志里能看见), 而不是静默放过.
      */
     @Optional() private readonly limits?: VoiceSessionLimitsService,
+    /**
+     * AF-557: TTS 统一决策层.
+     *
+     * 为什么 @Optional: 大量既有单测直接 new VoiceService(...); 不装配时保持
+     * 旧路径（直传 model/voice），装配后业务链路才走会员档位/profile。
+     */
+    @Optional() private readonly ttsProfiles?: TtsProfileResolver,
   ) {
     this.ttsVoiceId = config.get<string>('minimax.ttsVoiceId') ?? '';
     this.ttsModel = config.get<string>('minimax.ttsModel') ?? 'speech-2.8-turbo';
@@ -1618,10 +1626,12 @@ export class VoiceService {
     prosody: ProsodyTurnPlan,
     delivery: VoiceDeliveryProfile,
   ): Promise<TtsSessionHandle | null> {
-    // 治本: 音色没配就是**配置错误** —— 绝不能拿未核实的占位音色 (mandarin_female_001) 顶替,
-    // 那会合成出"能播但不像人"的音频, 排查成本远高于现在就失败.
     const voiceId = this.resolveSessionVoice(state.meta);
-    if (voiceId.length === 0) {
+    // AF-557: 有统一决策层时, 音色由 resolver 按 provider 归一; 空 voice 不再直接判死,
+    // 因为豆包/MiniMax 都可能有 profile 默认音色.
+    if (!this.ttsProfiles && voiceId.length === 0) {
+      // 治本: 音色没配就是**配置错误** —— 绝不能拿未核实的占位音色 (mandarin_female_001) 顶替,
+      // 那会合成出"能播但不像人"的音频, 排查成本远高于现在就失败.
       this.logger.error('[tts] TTS 音色未配置, 本轮不出声');
       send({
         type: 'error',
@@ -1629,15 +1639,37 @@ export class VoiceService {
       });
       return null;
     }
+
+    const resolveInput = {
+      userId: state.meta.userId,
+      voiceHint: voiceId,
+      voiceSource: voiceId.length > 0 ? ('session' as const) : undefined,
+    };
+
+    let profile = state.ttsProfile;
+    if (this.ttsProfiles && !profile) {
+      try {
+        profile = await this.ttsProfiles.resolve(resolveInput);
+        // 首轮解析后冻结: 本场中途会员变更不切模型/音色.
+        state.ttsProfile = profile;
+      } catch (err) {
+        this.logger.error(`[tts] profile resolve failed: ${err instanceof Error ? err.message : String(err)}`);
+        send({
+          type: 'error',
+          error: { code: 'tts_profile_invalid', message: 'TTS 档位解析失败', retryable: false },
+        });
+        return null;
+      }
+    }
+
     const ttsOptions: TtsOptions = {
       tenantId: state.meta.tenantId,
       userId: state.meta.userId,
       sessionId: state.meta.sessionId,
-      // V2026-10-26 治本 (spec §任务 3 — 音色优先级放开为"可选覆盖, 缺省仍是 env"):
-      //   握手 voiceId > 模板绑定音色 (若有) > env `MINIMAX_TTS_VOICE_ID`.
-      //   不传 voiceId 时行为与改前**完全一致** (还是那条 env 音色).
-      voice: voiceId,
-      model: this.ttsModel,
+      // 统一决策层有值时, 模型/音色/端点全部以 profile 为准; 没有时保持旧行为.
+      ...(profile
+        ? { profile, baseUrl: profile.baseUrl, model: profile.model, voice: profile.voiceId }
+        : { voice: voiceId, model: this.ttsModel }),
       // AF-459: 韵律计划随会话下发；level=off 时客户端行为与改前逐字一致.
       prosody,
       // AF-460: 交付档案（情绪/语速/音量/音调）随会话下发.
@@ -1647,6 +1679,24 @@ export class VoiceService {
       return await this.tts.startSession(ttsOptions);
     } catch (err) {
       this.logger.error(`[user_text] TTS startSession failed: ${err instanceof Error ? err.message : String(err)}`);
+      // AF-557: 只有豆包(Max)运行期失败才允许回退 Turbo; Pro HD 失败不能悄悄降档.
+      if (profile && this.ttsProfiles && profile.profileId === 'doubao-seed-2.0') {
+        const fallback = this.ttsProfiles.fallbackProfile(profile, resolveInput);
+        state.ttsProfile = fallback;
+        try {
+          return await this.tts.startSession({
+            ...ttsOptions,
+            profile: fallback,
+            baseUrl: fallback.baseUrl,
+            model: fallback.model,
+            voice: fallback.voiceId,
+          });
+        } catch (fallbackErr) {
+          this.logger.error(
+            `[user_text] TTS fallback startSession failed: ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`,
+          );
+        }
+      }
       send({
         type: 'error',
         error: { code: 'tts_start_failed', message: 'TTS 启动失败', retryable: true },

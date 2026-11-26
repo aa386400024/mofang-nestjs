@@ -8,6 +8,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 
 import { BUILTIN_CHARACTER_SEEDS } from '../../engine-adapters/wiring/character/builtin-character-registry.js';
+import { getTtsProfileDefinition } from '../../voice/tts/runtime/tts-profile.registry.js';
 import { DebugSessionService } from '../debug-session.service.js';
 import { AdminDebugTtsRenderEntity } from './admin-debug-tts-render.entity.js';
 import {
@@ -240,7 +241,12 @@ export class DebugTtsService {
    */
   private resolveVoiceId(provider: DebugTtsProvider, voiceIdOverride?: string): string {
     if (provider === 'doubao-seed-tts-2.0') {
-      return firstNonEmpty(voiceIdOverride, this.config.get<string>('ARK_AGENT_PLAN_TTS_SPEAKER'), 'zh_female_vv_uranus_bigtts');
+      return firstNonEmpty(
+        voiceIdOverride,
+        this.config.get<string>('doubao.ttsVoiceId'),
+        this.config.get<string>('ARK_AGENT_PLAN_TTS_SPEAKER'),
+        'zh_female_vv_uranus_bigtts',
+      );
     }
     return normalizeMiniMaxVoiceId(
       firstNonEmpty(
@@ -385,7 +391,7 @@ export class DebugTtsService {
     preview: DebugTtsSpeechPreview,
     voiceIdOverride?: string,
   ): { voiceId: string; input: TtsSynthesisInput } {
-    const apiKey = this.config.get<string>('ARK_AGENT_PLAN_API_KEY')?.trim() ?? '';
+    const apiKey = this.config.get<string>('doubao.ttsApiKey')?.trim() ?? '';
     if (apiKey.length === 0) throw new ServiceUnavailableException('豆包 Agent Plan API key 未配置');
     const voiceId = this.resolveVoiceId('doubao-seed-tts-2.0', voiceIdOverride);
     const profile = preview.delivery;
@@ -429,13 +435,18 @@ export class DebugTtsService {
         text: preview.ttsText,
         voiceId,
         emotion: mapMiniMaxEmotion(profile.emotion),
-        model: provider === 'minimax-hd' ? 'speech-2.8-hd' : 'speech-2.8-turbo',
+        // AF-557: 模型名来自 TTS registry, 不再在调试服务里硬编码.
+        model: getTtsProfileDefinition(provider === 'minimax-hd' ? 'minimax-hd' : 'minimax-turbo').model,
         speed: profile.speed,
         volume: profile.volume,
         pitch: profile.pitch,
         sampleRate: 24_000,
         apiKey,
-        baseUrl: firstNonEmpty(this.config.get<string>('minimax.baseUrl'), 'https://api.minimax.cn'),
+        baseUrl: firstNonEmpty(
+          this.config.get<string>('minimax.ttsBaseUrl'),
+          this.config.get<string>('minimax.baseUrl'),
+          'https://api.minimax.cn',
+        ),
       },
     };
   }

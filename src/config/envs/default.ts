@@ -168,6 +168,7 @@ export const config = {
     //   模型: 官方枚举只有 turbo / hd 后缀, 旧的 `speech-2.8` **不存在** (必然 2013).
     //   音色: 旧的 `mandarin_female_001` 是未核实占位值, **不得当可用值上线** ——
     //     因此这里不给默认值: 未配置时上层 fail-fast 报错, 不用占位音色顶替.
+    ttsBaseUrl: process.env['MINIMAX_TTS_BASE_URL'] ?? 'https://api.minimax.cn',
     ttsModel: process.env.MINIMAX_TTS_MODEL ?? 'speech-2.8-turbo',
     ttsVoiceId: process.env.MINIMAX_TTS_VOICE_ID ?? '',
     ttsLanguageBoost: process.env.MINIMAX_TTS_LANGUAGE_BOOST ?? 'Chinese',
@@ -211,6 +212,18 @@ export const config = {
     //   所以它走一个**更短**的超时, 与 REST 端点的 15s 分开.
     voicesCheckTimeoutMs: Number(process.env.MINIMAX_VOICES_CHECK_TIMEOUT_MS ?? 3000),
     voicesCacheTtlMs: Number(process.env.MINIMAX_VOICES_CACHE_TTL_MS ?? 600_000),
+  },
+  // AF-557: 豆包语音合成 2.0 双向流式 — 与 MiniMax 并列的第二个 TTS provider.
+  //   `ttsApiKey` 优先用专用 DOUBAO_TTS_API_KEY; 未配置时回落到 Agent Plan key。
+  //   普通方舟 chat key（LLM_DOUBAO_API_KEY）不能用于语音 plan 端点，不能冒充语音 key。
+  //   `ttsWsUrl` 必须是双向流式地址; 若误填 HTTP unary, resolver 会归一成 /bidirection.
+  doubao: {
+    ttsApiKey: process.env['DOUBAO_TTS_API_KEY'] ?? process.env['ARK_AGENT_PLAN_API_KEY'],
+    ttsWsUrl: process.env['DOUBAO_TTS_WS_URL'] ?? 'wss://openspeech.bytedance.com/api/v3/plan/tts/bidirection',
+    ttsVoiceId: process.env['DOUBAO_TTS_VOICE_ID'] ?? process.env['ARK_AGENT_PLAN_TTS_SPEAKER'] ?? 'zh_female_vv_uranus_bigtts',
+    ttsResourceId: process.env['DOUBAO_TTS_RESOURCE_ID'] ?? 'seed-tts-2.0',
+    ttsTimeoutMs: Number(process.env['DOUBAO_TTS_TIMEOUT_MS'] ?? 30_000),
+    ttsMaxTextChars: Number(process.env['DOUBAO_TTS_MAX_TEXT_CHARS'] ?? 200),
   },
   // V2026-10-23 治本 (微技能自由练习 — 端点级运营参数):
   //   练习域的限流阈值独立于全站默认限流 (全局是 IP 级 60 次/分钟),

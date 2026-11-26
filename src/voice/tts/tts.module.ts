@@ -13,11 +13,24 @@
 
 import { Module } from '@nestjs/common';
 
+import { MEMBERSHIP_TIER_PORT } from './ports/membership-tier.port.js';
+import { TtsConfigDoctor } from './runtime/tts-config.doctor.js';
+import { TtsMembershipTierAdapter } from './runtime/tts-membership-tier.adapter.js';
+import { TtsProfileResolver } from './runtime/tts-profile.resolver.js';
 import { TtsBidiPoolService } from './tts-bidi-pool.service.js';
 import { TtsService } from './tts.service.js';
+import { MembershipModule } from '../../membership/membership.module.js';
 
 @Module({
-  providers: [TtsService, TtsBidiPoolService],
-  exports: [TtsService, TtsBidiPoolService],
+  imports: [MembershipModule],
+  providers: [
+    TtsService,
+    TtsBidiPoolService,
+    TtsProfileResolver,
+    TtsConfigDoctor,
+    TtsMembershipTierAdapter,
+    { provide: MEMBERSHIP_TIER_PORT, useExisting: TtsMembershipTierAdapter },
+  ],
+  exports: [TtsService, TtsBidiPoolService, TtsProfileResolver],
 })
 export class TtsModule {}

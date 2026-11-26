@@ -59,6 +59,19 @@ export class MembershipAccountService {
     return this.toSnapshot(membership);
   }
 
+  /**
+   * 读取有效档位（语音/权益等下游只读入口）。
+   *
+   * 与 `getOverview().entitlements` 共用同一判定：仅 Active/Trial/Grace 且周期未到期
+   * 才返回付费档，其余统一 Free。`periodEnd` 是订阅周期权威截止时间，缺失时才回落到
+   * 旧 `expiresAt`，避免旧字段先行过期导致付费档被误降。
+   */
+  async getEffectiveTier(uid: string, now: Date = new Date()): Promise<MembershipTier> {
+    await this.planGrantService?.refreshForUid(uid, now);
+    const membership = await this.ensureAccount(uid, now);
+    return this.resolveEffectiveTier(membership, now);
+  }
+
   /** 会员总览：账号 + 配额 + 权益 + 可售档位/加包 + 最近订单。 */
   async getOverview(uid: string, now: Date = new Date()): Promise<MembershipOverview> {
     await this.planGrantService?.refreshForUid(uid, now);
@@ -310,7 +323,9 @@ export class MembershipAccountService {
     if (![MembershipStatus.Active, MembershipStatus.Trial, MembershipStatus.Grace].includes(membership.status)) {
       return false;
     }
-    return membership.expiresAt === null || membership.expiresAt.getTime() > now.getTime();
+    // periodEnd 是 v2 订阅周期权威字段；老数据可能只有 expiresAt，按“有 periodEnd 以它为准”回落。
+    const endsAt = membership.periodEnd ?? membership.expiresAt;
+    return !endsAt || endsAt.getTime() > now.getTime();
   }
 
   private parseTier(planId: string): MembershipTier {
