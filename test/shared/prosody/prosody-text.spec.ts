@@ -3,13 +3,13 @@ import { ProsodyStreamSanitizer, renderMiniMaxText, stripProsodyMarkers } from '
 
 describe('AF-459 · prosody text', () => {
   describe('stripProsodyMarkers', () => {
-    it('剥掉语义标记、厂商停顿与白名单语气词', () => {
+    it('剥掉语义标记、厂商停顿、白名单语气词与中文舞台说明', () => {
       const raw = '嗯，[pause:0.4]我最近<#0.3#>（叹气）(sighs)睡不好。';
-      expect(stripProsodyMarkers(raw)).toBe('嗯，我最近（叹气）睡不好。');
+      expect(stripProsodyMarkers(raw)).toBe('嗯，我最近睡不好。');
     });
 
-    it('普通圆括号内容不被误删', () => {
-      const raw = '他说（其实我也不确定）就走了。';
+    it('普通半角圆括号内容不被误删（全角括号按 AF-559 契约剥离）', () => {
+      const raw = '他说(其实我也不确定)就走了。';
       expect(stripProsodyMarkers(raw)).toBe(raw);
     });
   });
@@ -77,6 +77,19 @@ describe('AF-459 · prosody text', () => {
     it('未闭合的残片在轮末丢弃，不拼进正文', () => {
       const sanitizer = new ProsodyStreamSanitizer();
       expect(sanitizer.feed('我最近[pause:0.3')).toBe('我最近');
+      expect(sanitizer.flush()).toBe('');
+    });
+
+    it('AF-559: 跨 chunk 的中文全角括号舞台说明不漏到 display / TTS', () => {
+      const sanitizer = new ProsodyStreamSanitizer();
+      expect(sanitizer.feed('（声音很')).toBe('');
+      expect(sanitizer.feed('轻）我就是睡不着。')).toBe('我就是睡不着。');
+      expect(sanitizer.flush()).toBe('');
+    });
+
+    it('AF-559: 完整括号舞台说明在同一 chunk 内也被剥离', () => {
+      const sanitizer = new ProsodyStreamSanitizer();
+      expect(sanitizer.feed('（停顿）不然呢？')).toBe('不然呢？');
       expect(sanitizer.flush()).toBe('');
     });
 

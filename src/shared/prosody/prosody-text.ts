@@ -9,6 +9,8 @@
 // 标签可能被拆成 `[pa` + `use:0.5]` 两段。逐 chunk 正则替换会漏掉半个标签、把
 // `use:0.5]` 当正文念出来。所以按"未闭合的 [ / ( 先扣在缓冲里"处理.
 
+import { stripVisitorStageDirections } from '../realism/visitor-stage-direction.js';
+
 /** MiniMax 语气词白名单（官方文档；白名单外的会被当普通文字念出来）. */
 const MINIMAX_VOICE_MARKERS = new Set([
   'laughs',
@@ -67,6 +69,9 @@ export function stripProsodyMarkers(text: string): string {
   let out = text.replaceAll(VENDOR_PAUSE, '');
   out = out.replaceAll(ANY_BRACKET_TAG, '');
   out = out.replaceAll(/\(([a-z][a-z-]{1,20})\)/g, (whole, word: string) => (MINIMAX_VOICE_MARKERS.has(word) ? '' : whole));
+  // AF-559: 中文全角括号舞台说明（（停顿）（声音很轻））不属语义标记，但同样不能进
+  //   display / TTS. 放在最后统一投影，避免与上方标签清洗互相干扰.
+  out = stripVisitorStageDirections(out);
   // 不做 trim：流式场景下 chunk 边界的空格是正文的一部分（英文单词会被拼掉）.
   return out.replaceAll(/[ \t]{2,}/g, ' ');
 }
@@ -241,9 +246,9 @@ export class ProsodyStreamSanitizer {
 function findHoldStart(text: string): number {
   const bracket = lastUnclosed(text, '[', ']');
   const paren = lastUnclosed(text, '(', ')');
-  if (bracket === -1) return paren;
-  if (paren === -1) return bracket;
-  return Math.min(bracket, paren);
+  const fullwidthParen = lastUnclosed(text, '（', '）');
+  const candidates = [bracket, paren, fullwidthParen].filter((at) => at !== -1);
+  return candidates.length === 0 ? -1 : Math.min(...candidates);
 }
 
 /**

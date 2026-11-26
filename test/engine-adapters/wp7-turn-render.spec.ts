@@ -298,6 +298,15 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(result.intention?.strategy).toBe('recounting');
     });
 
+    it('AF-559: 渲染文本里的括号舞台说明在 reply 出口剥离', async () => {
+      const renderer = new StubRenderer({ ok: true, text: '（声音很轻）我就是睡不着。', fallbackUsed: false });
+      const { orchestrator } = buildOrchestrator({ renderer });
+
+      const result = await orchestrator.turn(HANDLE_ID, { userText: USER_TEXT });
+
+      expect(result.reply).toBe('我就是睡不着。');
+    });
+
     it('内核出参逐字透传 (快照 / 轨迹 / 安全 / 开场上下文)', async () => {
       const output = buildOutput({
         turnIndex: 3,
