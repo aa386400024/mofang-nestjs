@@ -137,7 +137,7 @@ import {
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { buildEncounterVisitorBlock, resolveEncounter, type EncounterInput } from '../../shared/encounter/encounter-scene.js';
-import { buildVisitorRealismPromptBlock, type VisitorRealismProfile } from '../../shared/realism/index.js';
+import { buildVisitorRealismPromptBlock, stripVisitorStageDirections, type VisitorRealismProfile } from '../../shared/realism/index.js';
 import { SEED_V5_VISITOR_CONSTRAINTS, type VisitorPromptVariant } from '../../shared/realism/visitor-prompt-variants.js';
 import { renderSpeechRegisterBlock } from '../../shared/speech-register/index.js';
 import type { ModelClassifierContextPort } from '../cognition/model-event-classifier.js';
@@ -1261,7 +1261,9 @@ export class TurnRenderOrchestrator {
   private async renderSafely(spec: RenderSpec): Promise<NormalizedRender> {
     try {
       const result = await this.deps.renderer.render(spec);
-      const text = (result?.text ?? '').trim();
+      // AF-559: 来访者台词里的括号舞台说明在门面出口统一剥离；display/tts 是硬契约，
+      //   不能依赖渲染适配器的 promptVariant 开关（默认 shared 时原实现会原样透传）。
+      const text = stripVisitorStageDirections((result?.text ?? '').trim());
       if (!text) {
         warn('[turn] 渲染结果为空, 降级为中性兜底句');
         return this.degradedRender();
@@ -1313,7 +1315,9 @@ export class TurnRenderOrchestrator {
     }
     try {
       const outcome = await renderer.streamRender(spec, handlers);
-      const text = (outcome?.text ?? '').trim();
+      // AF-559: 流式最终返回也要投影；已发出的 delta 在在线语音链路由
+      //   ProsodyStreamSanitizer 扣留未闭合全角括号，门面这里保证最终 reply 干净.
+      const text = stripVisitorStageDirections((outcome?.text ?? '').trim());
       if (!text) {
         warn('[turnStream] 流式渲染结果为空, 降级为中性兜底句');
         return this.degradedRender();

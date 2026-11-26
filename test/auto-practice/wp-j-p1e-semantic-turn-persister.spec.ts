@@ -79,6 +79,22 @@ describe('WP-J P1e Phase2 · 来访者语义落库', () => {
     expect(row['visitorTtsText']).toBe('(sighs)我最近有点累<#0.5#>。');
   });
 
+  it('AF-559: 中文全角括号舞台说明在 display / tts / semanticJson 落库前剥离', async () => {
+    const repo = stubRepo();
+    const persister = new SemanticTurnPersister(repo as never);
+
+    await persister.persistVisitorTurn({
+      practiceSessionId: 'sess_1',
+      turnIndex: 2,
+      rawVisitorText: '（声音很轻）我就是睡不着。[pause:0.3]',
+    });
+
+    const row = written(repo);
+    expect(row['visitorDisplayText']).toBe('我就是睡不着。');
+    expect(row['visitorTtsText']).not.toContain('声音很轻');
+    expect(row['visitorSemanticJson']).not.toContain('声音很轻');
+  });
+
   it('③ Level 1: 标记被纠正 → 级别落 1, 语义仍然可用', async () => {
     const repo = stubRepo();
     const persister = new SemanticTurnPersister(repo as never);

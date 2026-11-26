@@ -31,6 +31,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import type { Repository } from 'typeorm';
 
+import { stripVisitorStageDirections } from '../../shared/realism/visitor-stage-direction.js';
 import { MiniMaxTtsAdapter } from '../adapters/minimax-tts-adapter.js';
 import { PracticeTurn } from '../entities/practice-turn.entity.js';
 import { SemanticTagParser } from '../utils/semantic-tag-parser.js';
@@ -82,7 +83,10 @@ export class SemanticTurnPersister {
    * @param args 场次 id / 轮次 / 原始回复文本
    */
   async persistVisitorTurn(args: PersistVisitorTurnArgs): Promise<void> {
-    const parsed = this.parser.parse(args.rawVisitorText);
+    // AF-559: 落库前再投一次舞台说明，避免上游（旧 shared 变体 / 场景开场句）
+    //   绕过渲染适配器时把「（停顿）」写进 display / tts 两列.
+    const rawVisitorText = stripVisitorStageDirections(args.rawVisitorText);
+    const parsed = this.parser.parse(rawVisitorText);
     // baseVoiceParams 传空对象: 角色基线 (语速/音调) 本批不接 ——
     //   批量的角色参数还没定口径, 传 {} = 用 TTS 默认值, 不编数据.
     const rendered = this.adapter.render(parsed.turn, { baseVoiceParams: {} });

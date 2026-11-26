@@ -1,0 +1,191 @@
+{
+  "deliveredAt": "2026-11-27T01:08:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-559-1",
+    "taskId": "AF-559",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "d19fd56a8f567c72d59d551d6bc2c556b04fce2a",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af559-visitor-stage-direction-2026-11-27.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-559/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-559/task-sheet.md"
+      ],
+      "modified": [
+        "src/shared/realism/visitor-stage-direction.ts",
+        "src/shared/prosody/prosody-text.ts",
+        "src/auto-practice/semantic/semantic-turn.persister.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "test/shared/realism/af281-visitor-stage-direction.spec.ts",
+        "test/shared/prosody/prosody-text.spec.ts",
+        "test/auto-practice/wp-j-p1e-semantic-turn-persister.spec.ts",
+        "test/engine-adapters/wp7-turn-render.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/wp7-turn-render.spec.ts test/shared/realism/af281-visitor-stage-direction.spec.ts test/shared/prosody/prosody-text.spec.ts test/auto-practice/wp-j-p1e-semantic-turn-persister.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "1.38s",
+        "note": "4 files / 80 tests passed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量",
+        "note": "tsc -p tsconfig.json --noEmit；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存 + 全量",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 359,
+        "machine": "同上",
+        "wallClock": "43.22s",
+        "note": "358 files passed + 1 skipped；5098 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "tsc -p tsconfig.build.json；0 error"
+      },
+      {
+        "command": "pnpm exec tsx .tmp-af559-regression.ts（真实库只读回归，脚本已删除）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "最近 9 场 284 轮：105 轮 display 命中括号，投影后残留括号 0"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2303 条；schema state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS（strict）：活跃=1 归档=495 记录包=515 inbox=0"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；未动 engine-core"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run 定向 4 spec → pnpm typecheck → pnpm lint → pnpm test → pnpm build → 真实库只读回归 → events verify → worklog verify --strict --state-free → git diff --stat HEAD -- src/engine-core。行为验证：把「（声音很轻）我就是睡不着。」喂给 stripVisitorStageDirections 预期「我就是睡不着。」；流式按「（声音很」+「轻）我就是睡不着。」两 chunk 喂 ProsodyStreamSanitizer，第一段为空、第二段只出「我就是睡不着。」。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-559 贯穿任务单、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取均经 CLI；状态面与实现分两个提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter、scope、gates、artifacts 齐全；preflight 通过"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2303 条事件；哈希链与索引投影一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执 gateResults 与交付记录同源同数字；定向 80、全量 5098/5102 与现场输出一致"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF559-01",
+        "impact": "场景种子 openingLine 仍含「（停顿）」示例；若开场句绕过渲染适配器，UI 开场展示仍可能带括号（落库已由 persister 兜底）",
+        "severity": "medium",
+        "schedule": "下一任务统一场景开场句投影与种子清理"
+      },
+      {
+        "id": "BL-AF559-02",
+        "impact": "历史 1,397 轮 display 含括号，未批量回洗",
+        "severity": "low",
+        "schedule": "按旧批次展示需求另案评估"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "只剥离句首/句末或含线索的括号，普通括号不误删",
+        "reality": "实现为中文全角括号一律剥离；半角括号保留线索判断",
+        "action": "按真实回归结果选择更窄的硬契约，并在交付记录与任务单偏差说明中写明",
+        "why": "真实回归 8 个残留字符串为单字/长旁白，线索枚举无法稳定收敛；display/tts 契约本身禁止任何括号"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "门面出站、在线语音流式清洗、非在线语义落库三处统一投影；真实 284 轮回归残留括号 0；定向 80 例、全量 5098 例、typecheck、lint、build、events verify、worklog strict 全绿；engine-core 零改动；状态面与实现分提交。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
