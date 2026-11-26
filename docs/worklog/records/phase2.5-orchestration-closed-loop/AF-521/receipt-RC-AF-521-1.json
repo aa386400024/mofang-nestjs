@@ -1,0 +1,239 @@
+{
+  "deliveredAt": "2026-11-26T08:55:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-521-1",
+    "taskId": "AF-521",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "orchestrator",
+    "baselineRef": "a721af85e6fcd69d0d295da0c7cfae541da2a414",
+    "dependsOn": [],
+    "priorTasks": ["AF-393", "AF-389"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-521/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af521-af393-postfix-batch-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af521-evidence/summary.json",
+        "docs/worklog/completed/phase2.5/af521-evidence/batch-24.json",
+        "docs/worklog/completed/phase2.5/af521-evidence/batch-4.json"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-521/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af521-af393-postfix-batch-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af521-evidence/summary.json",
+        "docs/worklog/completed/phase2.5/af521-evidence/batch-24.json",
+        "docs/worklog/completed/phase2.5/af521-evidence/batch-4.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30s",
+        "note": "tsc -p tsconfig.build.json 成功；仅 pnpm node>=26 engine 警告"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35s",
+        "note": "eslint 带缓存全量通过，无 error/warning 输出"
+      },
+      {
+        "command": "git diff --stat HEAD -- src test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，无源码/测试改动"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，内核零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：事件日志 2142 条，schema 1.0.0，哈希链与索引投影一致"
+      },
+      {
+        "command": "GET /admin/api/auto-practice/batches/NdkPh-flsoT5dO_re-0TC",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "批次约 26 分钟",
+        "note": "24 场全部 completed；475 轮；valid=true；llmCallRatio=1；fallbackRatio=0；crisis 2 场，均 safety_plan_completed，incomplete=0"
+      },
+      {
+        "command": "GET /admin/api/auto-practice/batches/D10-b0XnYa0iOcDjjzxbY",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "批次约 19 分钟",
+        "note": "4 场全部 completed；156 轮；valid=true；llmCallRatio=1；fallbackRatio=0.01；crisis 1 场 safety_plan_completed，incomplete=0"
+      }
+    ],
+    "reproNotes": "批次由 POST /admin/api/auto-practice/batch 发起，本地实例以 REDIS_DB=5 隔离运行；只读查询批次与场次接口导出证据。失败批次 PMadjESNE1eTnDFLrhXkS / lW_Jqz9Slzm1j__QSBIws 为共享 DB0 远端 worker 抢单产物，已排除；不可作为产品结论。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-521 贯穿任务单、回执、交付记录与证据目录"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI，未手改索引或事件日志"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index urn 1.2.0，events verify 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2142 条事件 schema + 哈希链通过"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=a721af85 为 AF-521 任务单登记时 HEAD；代码基线 integrate=100ca2dd，工作树状态提交 a721af85 为父。"
+    },
+    "backlogItems": [
+      {
+        "id": "AF521-B1-crisis-sample-size",
+        "impact": "本批仅 3 场危机样本，不能据此关闭历史 7 场 incomplete 的修复验证",
+        "suggestion": "针对 grief intermediate/expert、general cold/intermediate、workplace cold/expert、self_worth expert 各跑 3 repeats，或做种子受控危机批次，目标 ≥10 场危机样本"
+      },
+      {
+        "id": "AF521-B2-shared-redis-queue",
+        "impact": "REDIS_DB=0 与远端实例共用，远端 127.0.0.1 的 bullmq:auto-practice worker 会抢走本地 job 并报“引擎调试面板接口未启用”",
+        "suggestion": "单独立项做 BullMQ 队列命名空间/DB 隔离；本地批次固定 REDIS_DB=5，BullMQ prefix 不读 REDIS_KEY_PREFIX"
+      },
+      {
+        "id": "AF521-B3-shared-mysql-recovery",
+        "impact": "共享 MySQL 上远端实例启动恢复会把本地 running 长会话标为“进程重启中断”",
+        "suggestion": "1000 场出口⑤前做环境级 DB 隔离或会话租约保护；BullMQ 重试可恢复，但不能依赖"
+      },
+      {
+        "id": "AF521-B4-af517-index-pointer",
+        "impact": "本地 worklog verify --strict --state-free 仍报 AF-517 taskSheet 指向 transport/tasks/AF-517.json",
+        "suggestion": "后续状态同步时修正 index artifacts.taskSheet 指针，不手改事件链"
+      },
+      {
+        "id": "AF521-B5-local-env-default",
+        "impact": "本地实例需手工注入 REDIS_DB=5，直接重启会回 DB0 再次被远端 worker 抢单",
+        "suggestion": "把开发环境队列隔离做成显式配置能力（代码/环境模板），不依赖每次手工 env"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [
+      "危机样本仅 3 场；如需对外宣称 AF-393 修复闭环，需补 B1 的定向批次或真人复核"
+    ],
+    "deviationTable": [
+      {
+        "taskSays": "不改环境配置",
+        "reality": "DB0 与远端 worker 共用，首批 24 场被远端抢走 22 场",
+        "action": "启动进程时注入 REDIS_DB=5 与 ENGINE_DEBUG_CHAT_ENABLED=true，未修改 .env",
+        "why": "必须隔离运行态才能取得有效批次证据"
+      },
+      {
+        "taskSays": "只跑 24+4 两批",
+        "reality": "DB0 上的 PMadjESNE1eTnDFLrhXkS 与 lW_Jqz9Slzm1j__QSBIws 失败",
+        "action": "两批全部排除，结论只用 DB5 的 NdkPh-flsoT5dO_re-0TC 与 D10-b0XnYa0iOcDjjzxbY",
+        "why": "失败原因是共享队列串环境，不是产品行为；失败批次 ID 保留作环境证据"
+      },
+      {
+        "taskSays": "证据落 data/phase25-exit/",
+        "reality": "data/phase25-exit/ 被 .gitignore 忽略，无法随 PR 入库",
+        "action": "原始副本保留在 data，同时复制到 docs/worklog/completed/phase2.5/af521-evidence/",
+        "why": "需要可入库的 durable 证据副本"
+      },
+      {
+        "taskSays": "未要求全量测试",
+        "reality": "本单无源码改动，全量测试不提供新信息",
+        "action": "只跑 build / typecheck / lint / events verify，不跑 pnpm test",
+        "why": "按仓库闸门口径，全量测试只在源码任务收尾跑"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "当前 HEAD 构建实例上 24 场生产批次与 4 场 long 批次全部 terminal，batchHealth 均 valid=true；3 场危机样本全部 safety_plan_completed，incomplete=0；无源码改动，闸门与事件链通过。样本量不足与共享队列/DB 风险已登记 backlog，不冒充已关闭。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "LLM 成本合计 ¥1.46039（24 场 ¥1.042188 + 4 场 ¥0.418202），957,211 tokens。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
