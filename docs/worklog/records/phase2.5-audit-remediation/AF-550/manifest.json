@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-550",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "backlog",
+  "createdAt": "2026-11-26T19:45:00+08:00",
+  "updatedAt": "2026-11-26T12:02:18.725Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-550/task-sheet.md",
+    "sha256": "f8cce4f2088241935366645dea83e2e0344a0fe10022ebed294f76ebdba95be6",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af550-graphql-depth-limit-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-550-graphql-depth-limit.md"
+  ],
+  "tombstone": null
+}
