@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-524",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-26T09:22:00+08:00",
+  "updatedAt": "2026-11-26T02:00:52.192Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-524/task-sheet.md",
+    "sha256": "15f32bb4022d4e3d17828aa6e1e314f0f5d94b4454792445c1d38438525b8749",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-524/receipt-RC-AF-524-1.json",
+      "sha256": "18fe2cf6424082b9c7c98cb9540c38c7e05950f15c6729d98d192e76d2fb3c68",
+      "receiptId": "RC-AF-524-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af524-crisis-replication-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af524-crisis-replication-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

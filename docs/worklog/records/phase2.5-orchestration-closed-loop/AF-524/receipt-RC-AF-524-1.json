@@ -1,0 +1,230 @@
+{
+  "deliveredAt": "2026-11-26T02:00:14.136Z",
+  "payload": {
+    "receiptId": "RC-AF-524-1",
+    "taskId": "AF-524",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "orchestrator",
+    "baselineRef": "9451eb71c3d5d84214857f594400044caa256b66",
+    "dependsOn": [],
+    "priorTasks": ["AF-393", "AF-521"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-524/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af524-crisis-replication-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af524-evidence/summary.json",
+        "docs/worklog/completed/phase2.5/af524-evidence/batch-r1.json",
+        "docs/worklog/completed/phase2.5/af524-evidence/batch-r2.json"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-524/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af524-crisis-replication-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af524-evidence/summary.json",
+        "docs/worklog/completed/phase2.5/af524-evidence/batch-r1.json",
+        "docs/worklog/completed/phase2.5/af524-evidence/batch-r2.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30s",
+        "note": "tsc -p tsconfig.build.json 成功；仅 pnpm node>=26 engine 警告"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35s",
+        "note": "eslint 带缓存全量通过，无 error/warning 输出"
+      },
+      {
+        "command": "git diff --stat HEAD -- src test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，无源码/测试改动"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，内核零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：事件日志 2159 条，schema 1.0.0，哈希链与索引投影一致"
+      },
+      {
+        "command": "POST /admin/api/auto-practice/batch × 8 + GET /admin/api/auto-practice/batches/:id × 8",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "两轮合计约 38 分钟",
+        "note": "42/42 completed；828 轮；1,188,927 tokens；¥1.821132；8/8 valid=true；危机活跃 4 场全部 safety_plan_completed；incomplete=0"
+      }
+    ],
+    "reproNotes": "本地实例 PID 47520，REDIS_DB=5、ENGINE_DEBUG_CHAT_ENABLED=true、NODE_ENV=development；批次通过 POST /admin/api/auto-practice/batch 发起，每轮 4 个子批次，两轮共 8 个 batchId。原始证据在 data/phase25-exit/af524-crisis-replication/，durable 副本在 docs/worklog/completed/phase2.5/af524-evidence/。09:25 左右 af281r 的 nest start --watch 重启，其启动恢复把一场 running 会话短暂标记 interrupted，最终 completed 20 轮；已停止旧 worktree 进程 49608/58748。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-524 贯穿任务单、回执、交付记录与证据目录"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index urn 1.2.0；events verify 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2159 条事件 schema + 哈希链通过"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=9451eb71 为任务登记时 integrate HEAD；任务分支登记提交为 945b38d3。运行实例 engineVersion 为 v2026.11.16-6cfb46e-256-g945b38d3-dirty，dirty 来自未提交状态面，src/test 相对 HEAD 零 diff。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF524-01-crisis-sample-size",
+        "impact": "两轮 42 场仅 4 场危机活跃，低于 10 场目标；不能据此关闭历史 7 场 incomplete 的修复验证",
+        "suggestion": "另立高危语料/受控种子批次补到 ≥10 场危机；不接受用重复跑凑样本，也不得把未复现写成已闭环"
+      },
+      {
+        "id": "BL-AF524-02-shared-mysql-recovery",
+        "impact": "af281r 重启时共享 MySQL 启动恢复把 AF-524 一场 running 会话短暂标记为 interrupted；本次最终恢复完成，但风险已再次现场复现",
+        "suggestion": "1000 场出口⑤前做实例归属/会话租约保护，或环境级数据库隔离"
+      },
+      {
+        "id": "BL-AF524-03-shared-redis-queue",
+        "impact": "BullMQ queue prefix 固定为 bullmq，本地批次仍依赖手工 REDIS_DB=5 隔离",
+        "suggestion": "单独立项做队列命名空间隔离，不依赖每次手工环境变量"
+      },
+      {
+        "id": "BL-AF524-04-engine-version-dirty",
+        "impact": "任务登记提交 945b38d3 与未提交状态面使 engineVersion 带 -dirty，批次与代码基线存在文字歧义",
+        "suggestion": "后续批次在干净工作树构建，或在批次证据中固定源码树 SHA 与 dirty 原因"
+      }
+    ],
+    "openQuestions": [
+      "是否以高危机语料继续补到 10 场危机样本；本单已完成追加一轮，未继续扩样"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "危机活跃样本达到 10 场",
+        "reality": "两轮 42 场仅 4 场危机活跃",
+        "action": "按任务单“追加一轮后仍不足则按实际结果判定”收口，报告 4/42 并登记 BL-AF524-01",
+        "why": "定向组合危机发生率约 9.5%，继续重复跑属于凑样本；不能伪造 10 场"
+      },
+      {
+        "taskSays": "当前 HEAD 构建实例",
+        "reality": "运行实例 engineVersion 为 v2026.11.16-6cfb46e-256-g945b38d3-dirty",
+        "action": "保留真实版本并在报告中说明 945b38d3 是任务登记提交，src/test 零 diff",
+        "why": "代码基线未变，但登记提交与未提交状态面使版本字符串带 dirty"
+      },
+      {
+        "taskSays": "不改环境配置",
+        "reality": "未改 .env，但启动进程注入 REDIS_DB=5 与 ENGINE_DEBUG_CHAT_ENABLED=true",
+        "action": "记录为运行态注入，任务结束后停止实例",
+        "why": "避免共享 Redis DB0 的远端 worker 抢单"
+      },
+      {
+        "taskSays": "证据落 data/phase25-exit/",
+        "reality": "data/ 被 .gitignore 忽略",
+        "action": "原始副本留在 data，同时复制 durable 副本到 docs/worklog/completed/phase2.5/af524-evidence/",
+        "why": "交付证据需要随 PR 入库"
+      },
+      {
+        "taskSays": "未要求全量测试",
+        "reality": "本单无源码改动",
+        "action": "只跑 build / typecheck / lint / events verify，不跑 pnpm test",
+        "why": "按仓库口径全量测试只在源码任务收尾跑"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "42/42 completed、8/8 batchHealth valid、4 场危机全部 safety_plan_completed、incomplete=0，AF-393 修复路径未再复现 crisis_practice_max + incomplete；但危机样本 4 场低于 10 场目标，不能把未复现写成历史 7 场已闭环，故按实际结果 conditional-pass，遗留已编号。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "LLM 成本合计 ¥1.821132，1,188,927 tokens，42 场 828 轮。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
