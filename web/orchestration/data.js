@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-26T10:21:09.159Z",
+  "generatedAt": "2026-11-26T10:29:42.163Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2027,6 +2027,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-599",
+      "recordedAt": "2026-11-26T10:28:45.748Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-546",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-546",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-546.json"
+      ]
+    },
+    {
       "auditId": "AUD-598",
       "recordedAt": "2026-11-26T10:19:16.161Z",
       "actorRef": "orchestrator",
@@ -2243,37 +2258,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-535.json"
       ]
-    },
-    {
-      "auditId": "AUD-584",
-      "recordedAt": "2026-11-26T08:17:42.343Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-535",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 598,
+    "total": 599,
     "byResult": {
-      "allowed": 598,
+      "allowed": 599,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 597,
+      "TOOL-QUEUE-SCHEDULER": 598,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 598
+      "orchestrator": 599
     }
   },
   "protocolView": {
@@ -10796,11 +10794,29 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-545/task-sheet.md"
+            "ref": "docs/worklog/records/legacy/AF-545/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af545-ci-and-record-closure-2026-11-26.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-546",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-546/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af546-runtime-image-npm-strip-2026-11-26.md"
           }
         ]
       }
@@ -10827,5 +10843,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 482
+  "archivedCount": 483
 };
