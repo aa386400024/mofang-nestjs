@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-11-26T11:27:15.2867843+08:00",
+  "processes": [
+    {
+      "ProcessId": 46400,
+      "ParentProcessId": 4716,
+      "Name": "node.exe",
+      "CommandLine": "node   \"D:\\work\\Project\\backend\\mofang-nestjs-af281r\\admin-dashboard\\node_modules\\.bin\\\\..\\vite\\bin\\vite.js\" ",
+      "CreationDate": "2026-11-26T09:15:47.871836+08:00"
+    }
+  ],
+  "ports": [],
+  "oldBackendCount": 0
+}

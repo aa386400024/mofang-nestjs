@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "runId": "mwwzqj5a",
+  "queue": "af527-smoke",
+  "prefixes": {
+    "a": "af527-smoke-a",
+    "b": "af527-smoke-b"
+  },
+  "consumed": {
+    "a": [
+      "A1",
+      "A2"
+    ],
+    "b": [
+      "B1",
+      "B2"
+    ]
+  },
+  "keyCounts": {
+    "a": 5,
+    "b": 5
+  },
+  "redis": {
+    "host": "117.72.30.78",
+    "port": 6379,
+    "db": 5
+  },
+  "workers": {
+    "a": 57396,
+    "b": 59940
+  },
+  "checkedAt": "2026-11-26T03:26:28.554Z"
+}

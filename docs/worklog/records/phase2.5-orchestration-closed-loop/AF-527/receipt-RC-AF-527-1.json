@@ -1,0 +1,208 @@
+{
+  "deliveredAt": "2026-11-26T03:28:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-527-1",
+    "taskId": "AF-527",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "40986c804f35c4520fbee769cac2228ca093898c",
+    "dependsOn": [],
+    "priorTasks": ["AF-526", "AF-524"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-527/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af527-validation-boundaries-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "scripts/validation/queue-isolation-smoke.mjs",
+        "docs/worklog/completed/phase2.5/af527-evidence/process-before.json",
+        "docs/worklog/completed/phase2.5/af527-evidence/process-after.json",
+        "docs/worklog/completed/phase2.5/af527-evidence/queue-smoke.json",
+        "docs/worklog/completed/phase2.5/af527-evidence/queue-smoke-cleanup.json"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-527/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-527/manifest.json",
+        "docs/worklog/completed/phase2.5/af527-validation-boundaries-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af527-evidence/process-before.json",
+        "docs/worklog/completed/phase2.5/af527-evidence/process-after.json",
+        "docs/worklog/completed/phase2.5/af527-evidence/queue-smoke.json",
+        "docs/worklog/completed/phase2.5/af527-evidence/queue-smoke-cleanup.json",
+        "scripts/validation/queue-isolation-smoke.mjs"
+      ],
+      "modified": [
+        "docs/runbooks/validation-environment-isolation.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 12s",
+        "note": "dist/shared/infra/queue/bullmq-prefix.js 存在，smoke 从构建产物导入解析器"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "eslint 覆盖 src/test/bin 与 scripts/**/*.mjs，0 error / 0 warning"
+      },
+      {
+        "command": "node scripts/validation/queue-isolation-smoke.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "REDIS_DB=5；两个独立 Worker 进程，A 消费 A1/A2，B 消费 B1/B2，keyCounts A=5 B=5，无交叉"
+      },
+      {
+        "command": "Redis SCAN af527-smoke-a:* / af527-smoke-b:*",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "smoke 结束后两套前缀 key 均为 0，队列已 obliterate"
+      },
+      {
+        "command": "Get-CimInstance Win32_Process + Get-NetTCPConnection",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "停止 13352/38884 后 oldBackendCount=0、3000 无监听；仅保留无关的 af281r admin-dashboard vite 46400"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，内核零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：事件日志 2173 条；schema 1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：活跃=1 归档=467 记录包=486"
+      }
+    ],
+    "reproNotes": "旧实例证据 process-before.json 记录 13352 nest watcher、38884 dist/app（3000）、46400 vite；af281r practice-queue.service.ts 仍有 prefix='bullmq'。停止 13352/38884 后 process-after.json 的 oldBackendCount=0。smoke 用 .env 的 REDIS_HOST/PORT/PASSWORD，REDIS_DB=5，BULLMQ_PREFIX=af527-smoke-a/b；两个 Worker 为独立 node 子进程，生产者为同一脚本主进程；结束后复查 key 为 0。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-527 贯穿任务单、回执、交付记录与证据目录"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2173 条事件 schema + 哈希链通过"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=40986c80 为 AF-526 合并后的 integrate HEAD，也是 AF-527 登记基线。"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "是否另立任务做完整 Nest 双实例 smoke（PORT 隔离、启动清理日志、HTTP 健康检查）；本次只覆盖 BullMQ 命名空间与消费隔离"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "真实双实例队列隔离 smoke",
+        "reality": "两个独立 Node Worker 进程跑真实 Redis + BullMQ，不是两个完整 Nest 应用",
+        "action": "交付脚本与真实消费断言，并在运行手册写明覆盖边界",
+        "why": "避免启动完整应用引入共享 MySQL 启动清理、HTTP 端口和额外业务副作用；队列前缀与消费隔离已被真实验证"
+      },
+      {
+        "taskSays": "清理旧工作树实例",
+        "reality": "保留 af281r/admin-dashboard 的 vite PID 46400",
+        "action": "只停后端 watcher 13352 与 app 38884，前端进程保留",
+        "why": "vite 不消费 BullMQ、不参与启动恢复，不属于旧代码实例风险面"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "旧后端实例已停止且 3000 无监听；同一 Redis DB5 上两个独立 Worker 以不同前缀各自消费，A/B 无交叉，key 命名空间无交叉且清理为 0；lint/build/events/worklog 全绿，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无 LLM 调用；仅本地构建、lint 与 smoke 开销。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "checkedAt": "2026-11-26T03:26:55.000Z",
+  "redis": { "host": "117.72.30.78", "port": 6379, "db": 5 },
+  "prefixAKeys": 0,
+  "prefixBKeys": 0,
+  "note": "smoke 结束后复查 af527-smoke-a:* / af527-smoke-b:*，均已 obliterate"
+}
