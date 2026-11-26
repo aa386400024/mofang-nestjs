@@ -11,6 +11,17 @@ export function hashVerificationCode(pepper: string, code: string): string {
 }
 
 /**
+ * 把手机号等 PII 标识转成不可逆 Redis key 片段（AF-547）。
+ *
+ * Redis key 会被 MONITOR / 慢查询日志 / 备份 / 低权限运维组件看到，明文手机号
+ * 属于隐私红线。这里用同一 HMAC pepper 生成稳定、不可逆的 32 字节十六进制摘要，
+ * 保证同一手机号仍映射到同一 key，同时不暴露原值。
+ */
+export function hashOpaqueIdentifier(pepper: string, value: string): string {
+  return createHmac('sha256', pepper).update(value.trim()).digest('hex');
+}
+
+/**
  * 常量时间比较验证码哈希。
  */
 export function verifyHashedCode(pepper: string, code: string, storedHash: string): boolean {

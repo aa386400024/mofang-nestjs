@@ -1,8 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { Roles } from '../../common/decorators/roles.decorator.js';
-import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
@@ -57,9 +55,8 @@ import { SelfcareRecordService } from '../providers/selfcare-record.service.js';
  */
 @ApiTags('Profile-Companion')
 @Controller('profile')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@Roles('companion')
 export class CompanionController {
   constructor(
     private readonly record: CompanionRecordService,

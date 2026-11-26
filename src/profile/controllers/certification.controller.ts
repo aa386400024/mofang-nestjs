@@ -1,8 +1,6 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { Roles } from '../../common/decorators/roles.decorator.js';
-import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
@@ -17,15 +15,15 @@ import { CertificationService } from '../providers/certification.service.js';
  *   POST /profile/certification  - 提交实名认证
  *
  * 大厂做法:
- *   - @Roles('companion') + RolesGuard 兜底 (V2.0 简化: 仅靠 @RolesGuard)
+ *   - JwtAuthGuard 负责身份认证；"陪伴者"是产品业务身份，不是 RBAC 系统角色，
+ *     不能拿 users.admin_role 体系的 RolesGuard 判断（AF-547 修正）。
  *   - 业务校验放 service (大厂: controller 薄, service 厚)
  *   - 提交后 audit log (V3 接)
  */
 @ApiTags('Profile-Certification')
 @Controller('profile/certification')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@Roles('companion')
 export class CertificationController {
   constructor(private readonly cert: CertificationService) {}
 

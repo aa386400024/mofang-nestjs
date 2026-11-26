@@ -2,13 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'node:crypto';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Raw, Repository } from 'typeorm';
 
 import { JwtBlacklistService } from './jwt-blacklist.service.js';
 import { PasswordHistoryService } from './password-history.service.js';
 import { SessionService } from './session.service.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { normalizeEmail } from '../../common/security/email-normalize.js';
 import { EmailService } from '../../shared/infra/email/index.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
@@ -59,26 +60,51 @@ export class PasswordResetService {
    * 邮箱不存在时也"假装"成功 (防用户枚举).
    */
   async requestReset(email: string): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { email, deletedAt: IsNull() } });
+    const normalizedEmail = normalizeEmail(email);
+    const user = await this.userRepo.findOne({
+      where: {
+        email: Raw((alias) => `LOWER(${alias}) = :email`, { email: normalizedEmail }),
+        deletedAt: IsNull(),
+      },
+    });
     if (!user) {
       // 防枚举: 假装发, 但不真发
-      this.logger.log(`password reset requested for non-existent email: ${this.mask(email)}`);
+      this.logger.log(`password reset requested for non-existent email: ${this.mask(normalizedEmail)}`);
       return;
     }
 
     const token = randomBytes(32).toString('base64url');
     const ttlSec = this.config.get('verification').passwordResetTokenTtlMin * 60;
-    await this.redis.set(REDIS_KEYS.passwordReset(token), user.uid, ttlSec);
-    await this.redis.set(REDIS_KEYS.passwordResetByUid(user.uid), token, ttlSec);
+    const lockKey = `auth:password-reset:lock:${user.uid}`;
 
-    await this.email.send({
-      to: email,
-      subject: '重置您的密码 - Mofang',
-      html: this.renderTemplate(token, ttlSec / 60),
-    });
+    // 并发申请只允许一个请求写 token，避免两个 token 同时有效。
+    if (!(await this.redis.setnx(lockKey, '1', 10))) {
+      this.logger.log(`password reset request coalesced: uid=${user.uid}`);
+      return;
+    }
+
+    try {
+      // AF-547: 重复申请必须让旧链接立刻失效，否则用户邮箱里会同时存在多个
+      // 有效 token，任意一个泄露都能重置密码。先原子清理旧 token，再写新 token。
+      const previousToken = await this.redis.getdel(REDIS_KEYS.passwordResetByUid(user.uid));
+      if (previousToken) {
+        await this.redis.del(REDIS_KEYS.passwordReset(previousToken));
+      }
+
+      await this.redis.set(REDIS_KEYS.passwordReset(token), user.uid, ttlSec);
+      await this.redis.set(REDIS_KEYS.passwordResetByUid(user.uid), token, ttlSec);
+
+      await this.email.send({
+        to: normalizedEmail,
+        subject: '重置您的密码 - Mofang',
+        html: this.renderTemplate(token, ttlSec / 60),
+      });
+    } finally {
+      await this.redis.del(lockKey);
+    }
 
     this.metrics.incAuthPasswordReset('requested');
-    this.logger.log(`password reset requested: uid=${user.uid} email=${this.mask(email)}`);
+    this.logger.log(`password reset requested: uid=${user.uid} email=${this.mask(normalizedEmail)}`);
   }
 
   /**
@@ -86,7 +112,8 @@ export class PasswordResetService {
    * @throws BizException(VerificationCodeInvalid) token 无效
    */
   async verifyToken(token: string): Promise<string> {
-    const uid = await this.redis.get(REDIS_KEYS.passwordReset(token));
+    // AF-547: GETDEL 原子消费，两个并发请求只有一个能拿到 uid，杜绝 token 重放。
+    const uid = await this.redis.getdel(REDIS_KEYS.passwordReset(token));
     if (!uid) {
       throw new BizException(BizCode.VerificationCodeInvalid, '重置链接无效或已过期');
     }

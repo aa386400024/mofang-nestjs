@@ -1,0 +1,190 @@
+{
+  "deliveredAt": "2026-11-26T11:14:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-547-1",
+    "taskId": "AF-547",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "ef2a341b58f64527cba6966b6fd7a52ccb2b9675",
+    "dependsOn": ["AF-540"],
+    "priorTasks": ["AF-540", "AF-545", "AF-546"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-547/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af547-authz-p2-hardening-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["62ecbae2"],
+      "added": [
+        "bin/dev-token.mjs",
+        "docs/worklog/completed/phase2.5/af547-authz-p2-hardening-2026-11-26.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-547/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-547/task-sheet.md",
+        "src/common/security/email-normalize.ts",
+        "src/common/security/image-signature.ts",
+        "test/user/af547-authz-hardening.spec.ts"
+      ],
+      "modified": [
+        "docs/runbooks/local-setup.md",
+        "package.json",
+        "src/common/security/cookie-token.ts",
+        "src/common/security/verification-code-hash.ts",
+        "src/gql/gql.module.ts",
+        "src/gql/resolvers/simple.resolver.ts",
+        "src/profile/controllers/certification.controller.ts",
+        "src/profile/controllers/companion.controller.ts",
+        "src/profile/profile.module.ts",
+        "src/profile/providers/profile.service.ts",
+        "src/sample/controllers/sample.controller.ts",
+        "src/user/dto/login.dto.ts",
+        "src/user/providers/password-reset.service.ts",
+        "src/user/providers/user.service.ts",
+        "src/user/providers/verification-code.service.ts",
+        "test/base/wp25-security-hardening.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "约 12s",
+        "note": "tsc --noEmit 全绿"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 15s",
+        "note": "src/test/bin TS + scripts mjs 规则全绿"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 354,
+        "machine": "同上",
+        "wallClock": "34.53s",
+        "note": "353 passed | 1 skipped（354 文件），5060 passed | 4 skipped（5064 例）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，纯层未触碰"
+      },
+      {
+        "command": "pnpm dev:token -- --uid test-uid --json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "token payload 含 sub/username/roles/jti/type/iss/aud/tenantId"
+      },
+      {
+        "command": "NODE_ENV=production pnpm dev:token -- --uid test-uid",
+        "exitCode": 1,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "按设计拒绝签发，输出“拒绝在 NODE_ENV=production 下签发调试 token”"
+      }
+    ],
+    "reproNotes": "本机 Node v22.23.2 低于 package.json engines >=26，pnpm 仅告警；全部闸门以 exit code 与真实输出为准。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-547 贯穿任务单、交付记录、回执与提交 trailer" },
+      { "item": "state-write", "result": "pass", "note": "register / run-once claim / archive 均经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "状态索引未手改" },
+      { "item": "event-chain", "result": "pass", "note": "归档后 events verify 复核" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零 diff" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef = ef2a341b，任务分支自该 integrate HEAD 切出。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF547-01",
+        "severity": "P2",
+        "title": "GqlModule / SampleModule 仍未挂载 AppModule",
+        "impact": "本次只补静态鉴权；重新挂载会改变对外路由面，需单独产品决策"
+      },
+      {
+        "id": "BL-AF547-02",
+        "severity": "P3",
+        "title": "GraphQL 查询深度限制未实现",
+        "impact": "仓库无 graphql-depth-limit 依赖且任务单禁止新增依赖；当前模块未挂载，暂无线上风险"
+      },
+      {
+        "id": "BL-AF547-03",
+        "severity": "P3",
+        "title": "PasswordResetService 无 controller 调用方",
+        "impact": "实际重置走 LoginCodeService + UserService；本次只修风险，未决定删除"
+      },
+      {
+        "id": "BL-AF547-04",
+        "severity": "P3",
+        "title": "历史大小写混合邮箱未做数据回填",
+        "impact": "查询侧用 LOWER() 兼容；若未来加函数索引需单独 migration"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "JWT access token 带角色声明",
+        "reality": "签发路径同时服务 access / refresh",
+        "action": "抽出 buildTokenClaims()，两条 token 共用同一 claim",
+        "why": "避免两条路径再次漂移；refresh 只用于换发，不扩大权限面"
+      },
+      {
+        "taskSays": "头像上传校验真实文件魔数",
+        "reality": "仅校验仍可能保留伪造后缀落盘",
+        "action": "落盘后缀直接由魔数决定，忽略 originalname / MIME",
+        "why": "从根上消除 polyglot 文件伪装成图片"
+      },
+      {
+        "taskSays": "任务单未写 GraphQL 深度限制",
+        "reality": "审查项提到无深度限制",
+        "action": "未实现，登记 BL-AF547-02",
+        "why": "无既有依赖，任务单禁止新增依赖；模块当前未挂载"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "6 条真实缺陷已修复并有单测覆盖；2 条未挂载模块的静态风险已加防护并如实登记残留；engine-core 零 diff，三道闸门全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增费用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

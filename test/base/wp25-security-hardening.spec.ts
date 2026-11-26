@@ -272,12 +272,12 @@ describe('WP25 · ④ 头像上传失败不泄漏底层报错原文', () => {
     return { repo, saved };
   }
 
-  /** 造一个假的 multipart 文件. */
+  /** 造一个假的 multipart 文件（文件头必须是真实 PNG 魔数，AF-547 起校验魔数）。 */
   function buildFile(): Express.Multer.File {
     return {
       originalname: 'avatar.png',
-      buffer: Buffer.from('fake-bytes'),
-      size: 10,
+      buffer: Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('fake-bytes')]),
+      size: 20,
     } as unknown as Express.Multer.File;
   }
 

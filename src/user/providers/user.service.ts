@@ -4,10 +4,11 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Raw, Repository } from 'typeorm';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { normalizeEmail } from '../../common/security/email-normalize.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
@@ -32,6 +33,42 @@ import { UserState, isLoginAllowed } from '../user.state.js';
  */
 function progressiveLoginDelayMs(failedCount: number): number {
   return Math.min(1200, Math.max(0, failedCount) * 100);
+}
+
+/**
+ * AF-547: 统一 access/refresh token claims。
+ *
+ * 之前 buildAuthResponse 漏了 `username` / `roles`，导致 JwtAuthGuard 注入的
+ * username 恒为空、RolesGuard 的 @Roles 永远不命中。这里让两条签发路径共用
+ * 同一份 claim 构造，避免以后再次漂移。
+ */
+export function buildTokenClaims(
+  user: Pick<User, 'uid' | 'phone' | 'email' | 'adminRole' | 'tenantId'>,
+  jti: string,
+  type: TokenType,
+): {
+  sub: string;
+  username: string;
+  roles: string[];
+  jti: string;
+  type: TokenType;
+  adminRole?: 'editor' | 'reviewer' | 'admin';
+  tenantId: string;
+  iss: string;
+  aud: string;
+} {
+  const adminRole = user.adminRole;
+  return {
+    sub: user.uid,
+    username: user.phone ?? user.email ?? user.uid,
+    roles: adminRole ? ['user', adminRole] : ['user'],
+    jti,
+    type,
+    ...(adminRole ? { adminRole } : {}),
+    tenantId: user.tenantId || user.uid,
+    iss: 'mofang-nestjs',
+    aud: 'mofang-client',
+  };
 }
 
 import { AuditLogService } from './audit-log.service.js';
@@ -109,7 +146,7 @@ export class UserService {
       }
     }
     if (dto.email) {
-      const exist = await this.userRepo.findOne({ where: { email: dto.email, deletedAt: IsNull() } });
+      const exist = await this.findByEmail(dto.email);
       if (exist) {
         throw new BizException(BizCode.UserAlreadyExists, '该邮箱已注册');
       }
@@ -118,7 +155,7 @@ export class UserService {
     const passwordHash = await hashPassword(dto.password);
     const user = this.userRepo.create({
       phone: dto.phone ?? null,
-      email: dto.email ?? null,
+      email: dto.email ? normalizeEmail(dto.email) : null,
       passwordHash,
       state: UserState.Active, // V2: 注册即 Active, 但邮箱未验证不能登录 (login() 检查)
       emailVerifiedAt: null,
@@ -353,7 +390,11 @@ export class UserService {
    */
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepo.findOne({
-      where: { email: email.toLowerCase().trim(), deletedAt: IsNull() },
+      // LOWER() 兼容历史遗留的大小写混合邮箱；新写入统一 normalizeEmail。
+      where: {
+        email: Raw((alias) => `LOWER(${alias}) = :email`, { email: normalizeEmail(email) }),
+        deletedAt: IsNull(),
+      },
     });
   }
 
@@ -610,7 +651,7 @@ export class UserService {
    * 重发验证邮件 (防用户枚举: 邮箱不存在时静默成功).
    */
   async resendVerification(email: string): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { email, deletedAt: IsNull() } });
+    const user = await this.findByEmail(email);
     if (!user) {
       // 防枚举: 不告诉用户邮箱不存在
       return;
@@ -634,7 +675,7 @@ export class UserService {
       return this.userRepo.findOne({ where: { phone: dto.phone, deletedAt: IsNull() } });
     }
     if (dto.email) {
-      return this.userRepo.findOne({ where: { email: dto.email, deletedAt: IsNull() } });
+      return this.findByEmail(dto.email);
     }
     return null;
   }
@@ -694,30 +735,16 @@ export class UserService {
     const adminRole = user.adminRole;
     const tenantId = user.tenantId || user.uid;
 
-    const accessToken = this.jwt.sign(
-      {
-        sub: user.uid,
-        jti: accessJti,
-        type: TokenType.Access,
-        adminRole,
-        tenantId,
-        iss: 'mofang-nestjs',
-        aud: 'mofang-client',
-      },
-      { secret: this.config.getOrThrow<string>('jwtSecret'), expiresIn: accessExpiresSec, algorithm: 'HS256' },
-    );
-    const refreshToken = this.jwt.sign(
-      {
-        sub: user.uid,
-        jti: refreshJti,
-        type: TokenType.Refresh,
-        adminRole,
-        tenantId,
-        iss: 'mofang-nestjs',
-        aud: 'mofang-client',
-      },
-      { secret: this.config.getOrThrow<string>('jwtRefreshSecret'), expiresIn: refreshExpiresSec, algorithm: 'HS256' },
-    );
+    const accessToken = this.jwt.sign(buildTokenClaims(user, accessJti, TokenType.Access), {
+      secret: this.config.getOrThrow<string>('jwtSecret'),
+      expiresIn: accessExpiresSec,
+      algorithm: 'HS256',
+    });
+    const refreshToken = this.jwt.sign(buildTokenClaims(user, refreshJti, TokenType.Refresh), {
+      secret: this.config.getOrThrow<string>('jwtRefreshSecret'),
+      expiresIn: refreshExpiresSec,
+      algorithm: 'HS256',
+    });
 
     const session = await this.sessionService.create({
       userId: user.uid,
