@@ -18,6 +18,7 @@ import {
   DOUBAO_VOICE_PREFIXES,
   getTtsProfileDefinition,
   MINIMAX_TO_DOUBAO_VOICE,
+  resolveTtsFallbackProfile,
   TTS_FALLBACK_PROFILE,
   TTS_PROFILE_DEFINITIONS,
   TTS_QUALITY_PROFILE,
@@ -94,7 +95,7 @@ export class TtsProfileResolver {
   }
 
   /**
-   * 运行期失败回退: 只允许 premium -> minimax-turbo.
+   * 运行期失败回退: 只允许 premium -> minimax-hd.
    *
    * @param failed 已失败 profile
    * @param input 原解析输入
@@ -104,9 +105,10 @@ export class TtsProfileResolver {
     // 只有 premium(豆包) 有降级契约; HD 启动失败不能悄悄降成 Turbo.
     if (failed.profileId !== 'doubao-seed-2.0') return failed;
 
-    const fallbackDefinition = getTtsProfileDefinition(TTS_FALLBACK_PROFILE);
+    const fallbackProfileId = resolveTtsFallbackProfile(failed.profileId);
+    const fallbackDefinition = getTtsProfileDefinition(fallbackProfileId);
     this.logger.warn(
-      `[tts_profile_fallback] from=${failed.profileId} to=${TTS_FALLBACK_PROFILE} ` +
+      `[tts_profile_fallback] from=${failed.profileId} to=${fallbackProfileId} ` +
         `tier=${failed.accessTier} reason=doubao_start_failed user=${input.userId}`,
     );
     return this.build(
@@ -191,9 +193,10 @@ export class TtsProfileResolver {
     requestedQuality: VoiceQualityClass,
     reason: NonNullable<ResolvedTtsProfile['fallbackReason']>,
   ): ResolvedTtsProfile {
-    const fallback = getTtsProfileDefinition(TTS_FALLBACK_PROFILE);
+    const fallbackProfileId = resolveTtsFallbackProfile(failed.id);
+    const fallback = getTtsProfileDefinition(fallbackProfileId);
     this.logger.warn(
-      `[tts_profile_fallback] from=${failed.id} to=${TTS_FALLBACK_PROFILE} tier=${accessTier} ` + `reason=${reason} user=${input.userId}`,
+      `[tts_profile_fallback] from=${failed.id} to=${fallbackProfileId} tier=${accessTier} ` + `reason=${reason} user=${input.userId}`,
     );
     return this.build(fallback, accessTier, input, requestedQuality, fallback.quality, failed.id, reason);
   }

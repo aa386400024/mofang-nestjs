@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T15:27:28.963Z",
+  "generatedAt": "2026-11-26T16:18:25.172Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2027,6 +2027,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-630",
+      "recordedAt": "2026-11-26T16:13:24.370Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-558",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-558-tts-max-fallback-hd"
+      ]
+    },
+    {
+      "auditId": "AUD-629",
+      "recordedAt": "2026-11-26T16:13:15.734Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-558",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-558",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-558.json"
+      ]
+    },
+    {
+      "auditId": "AUD-628",
+      "recordedAt": "2026-11-26T16:13:10.613Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-558",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-627",
       "recordedAt": "2026-11-26T14:34:17.422Z",
       "actorRef": "orchestrator",
@@ -2213,71 +2260,20 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-554.json"
       ]
-    },
-    {
-      "auditId": "AUD-615",
-      "recordedAt": "2026-11-26T13:03:58.963Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-554",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-614",
-      "recordedAt": "2026-11-26T13:03:42.588Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-553",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-613",
-      "recordedAt": "2026-11-26T13:03:19.361Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-553",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 627,
+    "total": 630,
     "byResult": {
-      "allowed": 627,
+      "allowed": 630,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 626,
+      "TOOL-QUEUE-SCHEDULER": 629,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 627
+      "orchestrator": 630
     }
   },
   "protocolView": {
@@ -11023,6 +11019,24 @@
             "ref": "docs/worklog/completed/phase2.5/af557-tts-profile-routing-2026-11-26.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-558",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-558/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af558-tts-max-fallback-hd-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11047,5 +11061,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 494
+  "archivedCount": 495
 }

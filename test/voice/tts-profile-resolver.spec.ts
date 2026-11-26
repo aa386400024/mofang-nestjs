@@ -61,12 +61,12 @@ describe('TtsProfileResolver', () => {
     expect(profile.effectiveQuality).toBe('premium');
   });
 
-  it('Max 缺豆包 key 时回退 minimax-turbo，并带 fallback 元数据', async () => {
+  it('Max 缺豆包 key 时回退 minimax-hd，并带 fallback 元数据', async () => {
     const profile = await resolver('max', MINIMAX_CONFIG).resolve({ userId: 'u1' });
-    expect(profile.profileId).toBe('minimax-turbo');
+    expect(profile.profileId).toBe('minimax-hd');
     expect(profile.fallbackFrom).toBe('doubao-seed-2.0');
     expect(profile.fallbackReason).toBe('doubao_unconfigured');
-    expect(profile.effectiveQuality).toBe('standard');
+    expect(profile.effectiveQuality).toBe('hd');
     expect(profile.requestedQuality).toBe('premium');
   });
 
@@ -80,7 +80,7 @@ describe('TtsProfileResolver', () => {
     expect(profile.accessTier).toBe('free');
   });
 
-  it('运行期豆包失败可显式回退 Turbo', async () => {
+  it('运行期豆包失败可显式回退 HD', async () => {
     const r = resolver('max', {
       ...MINIMAX_CONFIG,
       doubao: {
@@ -91,17 +91,17 @@ describe('TtsProfileResolver', () => {
     });
     const profile = await r.resolve({ userId: 'u1', voiceHint: 'Chinese (Mandarin)_Warm_Girl' });
     const fallback = r.fallbackProfile(profile, { userId: 'u1', voiceHint: 'Chinese (Mandarin)_Warm_Girl' });
-    expect(fallback.profileId).toBe('minimax-turbo');
+    expect(fallback.profileId).toBe('minimax-hd');
     expect(fallback.fallbackReason).toBe('doubao_start_failed');
     expect(fallback.voiceId).toBe('Chinese (Mandarin)_Warm_Girl');
   });
 
-  it('Max 只有普通方舟 chat key 时视为豆包未配置，直接回退 Turbo', async () => {
+  it('Max 只有普通方舟 chat key 时视为豆包未配置，直接回退 HD', async () => {
     const profile = await resolver('max', {
       ...MINIMAX_CONFIG,
       doubao: { llmApiKey: 'chat-key-cannot-speak', ttsWsUrl: 'wss://openspeech.bytedance.com/api/v3/plan/tts/bidirection' },
     }).resolve({ userId: 'u1' });
-    expect(profile.profileId).toBe('minimax-turbo');
+    expect(profile.profileId).toBe('minimax-hd');
     expect(profile.fallbackReason).toBe('doubao_unconfigured');
   });
 
