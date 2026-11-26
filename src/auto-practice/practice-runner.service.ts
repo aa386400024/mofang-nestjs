@@ -41,7 +41,7 @@ import { Inject, Injectable, Logger, Optional, type OnModuleInit } from '@nestjs
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
-import type { Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 
 import { AUTO_PRACTICE_EVENTS, type AutoPracticeSessionEndPayload, type AutoPracticeSessionStartPayload } from './auto-practice.events.js';
 import { AutoPracticeGateway } from './auto-practice.gateway.js';
@@ -65,6 +65,7 @@ import {
   type RiskClosingElementKey,
 } from './metrics/session-structure-audit.js';
 import { TURN_ENGINE_PORT, type EngineTurnResult, type TurnEnginePort } from './ports/turn-engine.port.js';
+import { PracticeSessionLeaseService } from './practice-session-lease.service.js';
 import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
 import {
   LEGACY_SESSION_PROFILE,
@@ -291,6 +292,9 @@ export class PracticeRunnerService implements OnModuleInit {
     //   为什么 optional: 既有单测直接 new runner，不注入装配层；缺它时模型列写 NULL,
     //   但绝不能因为"可观测字段取不到"就让对练本身开不起来.
     @Optional() private readonly renderConfigFactory?: RenderConfigFactory,
+    // AF-526: 会话租约 (optional) —— 既有单测直接 new runner, 不注入这个服务;
+    //   缺省时启动清理跳过 (绝不退回"全表标记"), 对练本身照常跑.
+    @Optional() private readonly lease?: PracticeSessionLeaseService,
   ) {}
 
   /**
@@ -298,24 +302,121 @@ export class PracticeRunnerService implements OnModuleInit {
    *
    * 循环跑在本进程里, 进程重启/崩溃会带走它, 但 DB 里 status 仍是 running ——
    * 前端会一直显示一个永远不动、也永远不会结束的幽灵场次, 看起来像"又卡了".
-   * 单实例部署下, 启动瞬间还留在 running 的必然是上次进程留下的.
+   *
+   * ⚠️ AF-526: 共享 MySQL 下不能"看到 running 就标 failed" ——
+   *   其他实例可能正在跑. 只有**没有活跃 Redis 租约**的行才是孤儿.
+   *   无法确认租约 (Redis 故障 / 未注入租约服务) 时跳过本轮清理, 不拿误伤换干净.
    */
   async onModuleInit(): Promise<void> {
     // ⚠️ 缺配置 → 成本按默认单价算 (数字还是对的, 但不是运营配的价) —— 说出来, 别静默.
     if (!this.config) {
       this.logger.warn('[auto_practice] 未注入 ConfigService — 成本按默认单价估算 (LLM_PRICE_*)');
     }
+    if (!this.lease) {
+      this.logger.warn('[auto_practice] 未注入会话租约服务 — 跳过启动清理, 避免误标其他实例的 running 场次');
+      return;
+    }
     try {
       const stale = await this.sessionRepo.find({ where: { status: 'running' }, select: { id: true } });
       if (stale.length === 0) return;
+
+      const orphanIds: string[] = [];
+      for (const row of stale) {
+        if (await this.lease.hasActiveLease(row.id)) {
+          continue;
+        }
+        orphanIds.push(row.id);
+      }
+      if (orphanIds.length === 0) {
+        this.logger.log(`[auto_practice] 启动清理: ${stale.length} 个 running 场次均持有租约, 跳过`);
+        return;
+      }
+
       await this.sessionRepo.update(
-        { status: 'running' },
+        { id: In(orphanIds), status: 'running' },
         { status: 'failed', exitReason: 'interrupted', errorMessage: '进程重启中断', finishedAt: new Date() },
       );
-      this.logger.warn(`[auto_practice] 启动清理 ${stale.length} 个孤儿 running 场次 (标记 failed/interrupted)`);
+      this.logger.warn(`[auto_practice] 启动清理 ${orphanIds.length} 个无租约孤儿 running 场次 (标记 failed/interrupted)`);
     } catch (error) {
-      this.logger.warn(`[auto_practice] 清理孤儿场次失败: ${errorName(error)}`);
+      this.logger.warn(`[auto_practice] 清理孤儿场次失败, 已跳过本轮 (不误标 running): ${errorName(error)}`);
     }
+  }
+
+  /**
+   * AF-526: 抢会话租约；抢不到就落 failed 行并关引擎会话，绝不在无租约状态下落 running 行.
+   *
+   * 未注入租约服务 (既有单测直接 new runner) 时返回 no-op guard —— 保持单测可跑.
+   */
+  private async acquireLeaseOrFail(
+    input: RunPracticeInput,
+    practiceSessionId: string,
+    debugSessionId: string,
+    maxTurns: number,
+  ): Promise<{ failed: false; release: () => Promise<void> } | { failed: true; result: RunPracticeResult }> {
+    if (!this.lease) {
+      return { failed: false, release: async () => {} };
+    }
+
+    let acquired = false;
+    try {
+      acquired = await this.lease.acquire(practiceSessionId);
+    } catch (error) {
+      this.logger.error(`[auto_practice] 获取会话租约失败 session=${practiceSessionId}: ${errorName(error)}`);
+      return this.leaseFailureResult(input, practiceSessionId, debugSessionId, maxTurns, '获取会话租约失败');
+    }
+
+    if (!acquired) {
+      this.logger.warn(`[auto_practice] 会话租约已被其他进程持有 session=${practiceSessionId}, 拒绝重复运行`);
+      return this.leaseFailureResult(input, practiceSessionId, debugSessionId, maxTurns, '会话租约已被其他进程持有');
+    }
+
+    return {
+      failed: false,
+      release: () => this.lease!.release(practiceSessionId),
+    };
+  }
+
+  /** 租约失败时收尾: 关引擎会话 + 落 failed 行 + 返回结果摘要. */
+  private async leaseFailureResult(
+    input: RunPracticeInput,
+    practiceSessionId: string,
+    debugSessionId: string,
+    maxTurns: number,
+    errorMessage: string,
+  ): Promise<{ failed: true; result: RunPracticeResult }> {
+    try {
+      this.engine.close(debugSessionId);
+    } catch (error) {
+      this.logger.warn(`[auto_practice] 租约失败后关引擎会话失败 session=${practiceSessionId}: ${errorName(error)}`);
+    }
+    await this.persistSession(practiceSessionId, {
+      debugSessionId,
+      characterSlug: input.characterSlug,
+      counselorModeId: input.counselorMode.id,
+      status: 'failed',
+      maxTurns,
+      ...toEncounterColumns(input.encounter),
+      turnCount: 0,
+      crisisEnded: 0,
+      exitReason: 'lease_unavailable',
+      batchId: input.batchId ?? null,
+      errorMessage,
+      finishedAt: new Date(),
+      promptVersion: this.fingerprintService.resolvePromptVersionOnly(),
+    });
+    return {
+      failed: true,
+      result: {
+        practiceSessionId,
+        debugSessionId,
+        status: 'failed',
+        exitReason: 'lease_unavailable',
+        turnCount: 0,
+        crisisEnded: false,
+        crisisOutcome: 'none',
+        metrics: emptyMetrics(),
+      },
+    };
   }
 
   /**
@@ -359,163 +460,173 @@ export class PracticeRunnerService implements OnModuleInit {
     }
     debugSessionId = openResult.debugSessionId;
 
-    // ② 生成推理环境指纹 (WP-B) + 落库 running 行.
-    const fingerprint = await this.buildFingerprintAndPersist(input, practiceSessionId, debugSessionId, scenarioType, maxTurns);
-
-    // ③ 推 session_start (带指纹).
-    const startPayload: AutoPracticeSessionStartPayload = {
-      practiceSessionId,
-      debugSessionId,
-      characterSlug: input.characterSlug,
-      counselorModeId: input.counselorMode.id,
-      maxTurns,
-      fingerprint,
-    };
-    this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionStart, startPayload);
-
-    const history: CounselorHistoryTurn[] = [];
-
-    let loopResult: {
-      status: PracticeSessionStatus;
-      exitReason: string;
-      crisisEnded: number;
-      crisisOutcome: PracticeCrisisOutcome;
-      turnCount: number;
-      degradedTurns: number;
-      counselorDegradedTurns: number;
-      visitorDegradedTurns: number;
-      renderFallbackTurns: number;
-      llmCallTurns: number;
-      metrics: PracticeRunMetrics;
-    };
-    try {
-      loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history, usage, profile);
-    } catch (error) {
-      loopResult = {
-        status: 'failed',
-        exitReason: 'error',
-        crisisEnded: 0,
-        crisisOutcome: 'none',
-        turnCount: 0,
-        degradedTurns: 0,
-        counselorDegradedTurns: 0,
-        visitorDegradedTurns: 0,
-        // WP-J P1d: 循环抛异常 → 计数按 0 落库 (与既有 degraded_turns 同口径:
-        //   异常路径拿不到循环内的局部计数, 不拿"部分值"冒充整场口径).
-        renderFallbackTurns: 0,
-        llmCallTurns: 0,
-        metrics: emptyMetrics(),
-      };
-      errorMessage = errorName(error);
-      this.logger.error(`[auto_practice] 对练循环异常 session=${practiceSessionId}: ${errorMessage}`);
-    } finally {
-      try {
-        this.engine.close(debugSessionId);
-      } catch (error) {
-        this.logger.warn(`[auto_practice] 关引擎会话失败 session=${practiceSessionId}: ${errorName(error)}`);
-      }
+    // ② AF-526: 先抢会话租约, 再落 running 行 —— 启动清理只认"无租约"的 running 行.
+    const leaseGuard = await this.acquireLeaseOrFail(input, practiceSessionId, debugSessionId, maxTurns);
+    if (leaseGuard.failed) {
+      return leaseGuard.result;
     }
 
-    status = loopResult.status;
-    exitReason = loopResult.exitReason;
-    crisisEnded = loopResult.crisisEnded;
-    crisisOutcome = loopResult.crisisOutcome;
-    turnCount = loopResult.turnCount;
-    degradedTurns = loopResult.degradedTurns;
-    counselorDegradedTurns = loopResult.counselorDegradedTurns;
-    visitorDegradedTurns = loopResult.visitorDegradedTurns;
-    // WP-J P1d: 批次有效性门禁的两列 (访客侧口径).
-    const renderFallbackTurns = loopResult.renderFallbackTurns;
-    const llmCallTurns = loopResult.llmCallTurns;
-    const metrics = loopResult.metrics;
+    try {
+      // ③ 生成推理环境指纹 (WP-B) + 落库 running 行.
+      const fingerprint = await this.buildFingerprintAndPersist(input, practiceSessionId, debugSessionId, scenarioType, maxTurns);
 
-    // ⑥ 结算 token / 成本 (WP-F Step 0).
-    //   口径跟正式训练**完全同一套**: 同一个 `estimateSessionCost()` + 同一张定价表,
-    //   单位是**人民币元** —— 不搞美元字段、不搞汇率 (WP-F 任务单 §6 硬约束).
-    //   ⚠️ failed 的场次也算钱: 跑了几轮就烧了几轮的钱, 不能因为异常就不记.
-    const usageTotals: SessionUsageTotals = {
-      turnCount: usage.turnCount,
-      promptTokens: usage.promptTokens,
-      completionTokens: usage.completionTokens,
-      totalTokens: usage.promptTokens + usage.completionTokens,
-      reasoningTokens: usage.reasoningTokens,
-      // 整场 promptTokens 都是 0 = 上游没报输入侧 → 成本口径如实落成 output_only (下界),
-      // 不拿 0 冒充"输入侧免费" (与 `aggregateSessionCost` 同款纪律).
-      promptTokensAvailable: usage.promptTokens > 0,
-    };
-    const cost = estimateSessionCost(usageTotals, this.resolveCostPricing());
+      // ④ 推 session_start (带指纹).
+      const startPayload: AutoPracticeSessionStartPayload = {
+        practiceSessionId,
+        debugSessionId,
+        characterSlug: input.characterSlug,
+        counselorModeId: input.counselorMode.id,
+        maxTurns,
+        fingerprint,
+      };
+      this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionStart, startPayload);
 
-    // ⑦ 更新终态 (含 token / 成本 / 成本口径).
-    await this.updateSessionResult(practiceSessionId, {
-      status,
-      exitReason,
-      turnCount,
-      crisisEnded,
-      crisisOutcome,
-      errorMessage,
-      degradedTurns,
-      promptTokens: usageTotals.promptTokens,
-      completionTokens: usageTotals.completionTokens,
-      reasoningTokens: usageTotals.reasoningTokens,
-      totalTokens: usageTotals.totalTokens,
-      totalCostCny: cost.estimatedCostCny,
-      costBasis: cost.costBasis,
-      // WP-J P1b: 危机练习窗指标落库 (布尔量转 0/1, 跟 crisis_ended 同口径).
-      //   ⚠️ 失败路径走的是 emptyMetrics() —— 这里写进去的是 0 / null / 0 / 0 / null / 0,
-      //      语义是"这场没测到危机指标", **不是** undefined.
-      crisisPracticed: metrics.crisisPracticed ? 1 : 0,
-      crisisFirstTurn: metrics.crisisFirstTurn,
-      crisisPostTurns: metrics.crisisPostTurns,
-      crisisPeakLevel: metrics.crisisPeakLevel,
-      crisisCategory: metrics.crisisCategory,
-      crisisEscalated: metrics.crisisEscalated ? 1 : 0,
-      // WP-J P1d: 渲染兜底 / 真实调用两列落库 (批次有效性门禁靠它们判合格).
-      //   ⚠️ 这两列此前**建了但没人写** → 批次健康服务永远算出 llmCallRatio=0,
-      //     于是任何批次都被判 `LLM_CALL_RATIO_LOW` + `FALLBACK_RATIO_UNKNOWN` 不合格.
-      renderFallbackTurns,
-      llmCallTurns,
-      // WP-J P1d: 两侧降级拆分列落库 (WP-H 改动 5 建了, 此前同样没人写).
-      //   `degraded_turns` 仍是两侧合计 (口径不变), 这两列给出"哪一侧降的".
-      counselorDegradedTurns,
-      visitorDegradedTurns,
-    });
+      const history: CounselorHistoryTurn[] = [];
 
-    // ⑧ 推 session_end.
-    const endPayload: AutoPracticeSessionEndPayload = {
-      practiceSessionId,
-      status,
-      exitReason,
-      turnCount,
-      crisisEnded: crisisEnded === 1,
-      crisisOutcome,
-      // WP-J: 危机练习窗与语义回响指标 (纯数字/枚举).
-      //   ⚠️ WS 契约里这两个是 **boolean** (跟库里那两列的 0/1 不是一回事):
-      //   WS 面向前端实时渲染, 库里面向查询与统计 —— 两套载体, 两套表示.
-      crisisPracticed: metrics.crisisPracticed,
-      crisisPostTurns: metrics.crisisPostTurns,
-      // WP-J P1b: 补齐剩下的 4 个危机字段 (与库列同源, 不另算一套).
-      crisisFirstTurn: metrics.crisisFirstTurn,
-      crisisPeakLevel: metrics.crisisPeakLevel,
-      crisisCategory: metrics.crisisCategory,
-      crisisEscalated: metrics.crisisEscalated,
-    };
-    this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionEnd, endPayload);
+      let loopResult: {
+        status: PracticeSessionStatus;
+        exitReason: string;
+        crisisEnded: number;
+        crisisOutcome: PracticeCrisisOutcome;
+        turnCount: number;
+        degradedTurns: number;
+        counselorDegradedTurns: number;
+        visitorDegradedTurns: number;
+        renderFallbackTurns: number;
+        llmCallTurns: number;
+        metrics: PracticeRunMetrics;
+      };
+      try {
+        loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history, usage, profile);
+      } catch (error) {
+        loopResult = {
+          status: 'failed',
+          exitReason: 'error',
+          crisisEnded: 0,
+          crisisOutcome: 'none',
+          turnCount: 0,
+          degradedTurns: 0,
+          counselorDegradedTurns: 0,
+          visitorDegradedTurns: 0,
+          // WP-J P1d: 循环抛异常 → 计数按 0 落库 (与既有 degraded_turns 同口径:
+          //   异常路径拿不到循环内的局部计数, 不拿"部分值"冒充整场口径).
+          renderFallbackTurns: 0,
+          llmCallTurns: 0,
+          metrics: emptyMetrics(),
+        };
+        errorMessage = errorName(error);
+        this.logger.error(`[auto_practice] 对练循环异常 session=${practiceSessionId}: ${errorMessage}`);
+      } finally {
+        try {
+          this.engine.close(debugSessionId);
+        } catch (error) {
+          this.logger.warn(`[auto_practice] 关引擎会话失败 session=${practiceSessionId}: ${errorName(error)}`);
+        }
+      }
 
-    this.logger.log(
-      `[auto_practice] 对练结束 session=${practiceSessionId} status=${status} turns=${turnCount} reason=${exitReason}` +
-        ` semantic_echo=${metrics.counselorSemanticEchoTurns} crisis=${metrics.crisisPracticed ? 1 : 0}` +
-        `${metrics.crisisPracticed ? `/post=${metrics.crisisPostTurns}/peak=${metrics.crisisPeakLevel}` : ''}`,
-    );
-    return {
-      practiceSessionId,
-      debugSessionId,
-      status,
-      exitReason,
-      turnCount,
-      crisisEnded: crisisEnded === 1,
-      crisisOutcome,
-      metrics,
-    };
+      status = loopResult.status;
+      exitReason = loopResult.exitReason;
+      crisisEnded = loopResult.crisisEnded;
+      crisisOutcome = loopResult.crisisOutcome;
+      turnCount = loopResult.turnCount;
+      degradedTurns = loopResult.degradedTurns;
+      counselorDegradedTurns = loopResult.counselorDegradedTurns;
+      visitorDegradedTurns = loopResult.visitorDegradedTurns;
+      // WP-J P1d: 批次有效性门禁的两列 (访客侧口径).
+      const renderFallbackTurns = loopResult.renderFallbackTurns;
+      const llmCallTurns = loopResult.llmCallTurns;
+      const metrics = loopResult.metrics;
+
+      // ⑥ 结算 token / 成本 (WP-F Step 0).
+      //   口径跟正式训练**完全同一套**: 同一个 `estimateSessionCost()` + 同一张定价表,
+      //   单位是**人民币元** —— 不搞美元字段、不搞汇率 (WP-F 任务单 §6 硬约束).
+      //   ⚠️ failed 的场次也算钱: 跑了几轮就烧了几轮的钱, 不能因为异常就不记.
+      const usageTotals: SessionUsageTotals = {
+        turnCount: usage.turnCount,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+        totalTokens: usage.promptTokens + usage.completionTokens,
+        reasoningTokens: usage.reasoningTokens,
+        // 整场 promptTokens 都是 0 = 上游没报输入侧 → 成本口径如实落成 output_only (下界),
+        // 不拿 0 冒充"输入侧免费" (与 `aggregateSessionCost` 同款纪律).
+        promptTokensAvailable: usage.promptTokens > 0,
+      };
+      const cost = estimateSessionCost(usageTotals, this.resolveCostPricing());
+
+      // ⑦ 更新终态 (含 token / 成本 / 成本口径).
+      await this.updateSessionResult(practiceSessionId, {
+        status,
+        exitReason,
+        turnCount,
+        crisisEnded,
+        crisisOutcome,
+        errorMessage,
+        degradedTurns,
+        promptTokens: usageTotals.promptTokens,
+        completionTokens: usageTotals.completionTokens,
+        reasoningTokens: usageTotals.reasoningTokens,
+        totalTokens: usageTotals.totalTokens,
+        totalCostCny: cost.estimatedCostCny,
+        costBasis: cost.costBasis,
+        // WP-J P1b: 危机练习窗指标落库 (布尔量转 0/1, 跟 crisis_ended 同口径).
+        //   ⚠️ 失败路径走的是 emptyMetrics() —— 这里写进去的是 0 / null / 0 / 0 / null / 0,
+        //      语义是"这场没测到危机指标", **不是** undefined.
+        crisisPracticed: metrics.crisisPracticed ? 1 : 0,
+        crisisFirstTurn: metrics.crisisFirstTurn,
+        crisisPostTurns: metrics.crisisPostTurns,
+        crisisPeakLevel: metrics.crisisPeakLevel,
+        crisisCategory: metrics.crisisCategory,
+        crisisEscalated: metrics.crisisEscalated ? 1 : 0,
+        // WP-J P1d: 渲染兜底 / 真实调用两列落库 (批次有效性门禁靠它们判合格).
+        //   ⚠️ 这两列此前**建了但没人写** → 批次健康服务永远算出 llmCallRatio=0,
+        //     于是任何批次都被判 `LLM_CALL_RATIO_LOW` + `FALLBACK_RATIO_UNKNOWN` 不合格.
+        renderFallbackTurns,
+        llmCallTurns,
+        // WP-J P1d: 两侧降级拆分列落库 (WP-H 改动 5 建了, 此前同样没人写).
+        //   `degraded_turns` 仍是两侧合计 (口径不变), 这两列给出"哪一侧降的".
+        counselorDegradedTurns,
+        visitorDegradedTurns,
+      });
+
+      // ⑧ 推 session_end.
+      const endPayload: AutoPracticeSessionEndPayload = {
+        practiceSessionId,
+        status,
+        exitReason,
+        turnCount,
+        crisisEnded: crisisEnded === 1,
+        crisisOutcome,
+        // WP-J: 危机练习窗与语义回响指标 (纯数字/枚举).
+        //   ⚠️ WS 契约里这两个是 **boolean** (跟库里那两列的 0/1 不是一回事):
+        //   WS 面向前端实时渲染, 库里面向查询与统计 —— 两套载体, 两套表示.
+        crisisPracticed: metrics.crisisPracticed,
+        crisisPostTurns: metrics.crisisPostTurns,
+        // WP-J P1b: 补齐剩下的 4 个危机字段 (与库列同源, 不另算一套).
+        crisisFirstTurn: metrics.crisisFirstTurn,
+        crisisPeakLevel: metrics.crisisPeakLevel,
+        crisisCategory: metrics.crisisCategory,
+        crisisEscalated: metrics.crisisEscalated,
+      };
+      this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionEnd, endPayload);
+
+      this.logger.log(
+        `[auto_practice] 对练结束 session=${practiceSessionId} status=${status} turns=${turnCount} reason=${exitReason}` +
+          ` semantic_echo=${metrics.counselorSemanticEchoTurns} crisis=${metrics.crisisPracticed ? 1 : 0}` +
+          `${metrics.crisisPracticed ? `/post=${metrics.crisisPostTurns}/peak=${metrics.crisisPeakLevel}` : ''}`,
+      );
+      return {
+        practiceSessionId,
+        debugSessionId,
+        status,
+        exitReason,
+        turnCount,
+        crisisEnded: crisisEnded === 1,
+        crisisOutcome,
+        metrics,
+      };
+    } finally {
+      await leaseGuard.release();
+    }
   }
 
   /**

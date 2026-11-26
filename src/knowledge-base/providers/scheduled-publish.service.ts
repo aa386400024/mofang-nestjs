@@ -21,6 +21,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import type { Repository } from 'typeorm';
 
+import { resolveBullPrefix } from '../../shared/infra/queue/bullmq-prefix.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
@@ -44,7 +45,7 @@ export class ScheduledPublishService {
     const connection = this.redis.getBullClient();
     this.queue = new Queue<{ itemId: string }>(ScheduledPublishService.QUEUE_NAME, {
       connection,
-      prefix: 'bullmq',
+      prefix: resolveBullPrefix(),
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: 'exponential', delay: 1000 },

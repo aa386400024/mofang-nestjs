@@ -27,6 +27,7 @@ import { type Job, Queue, Worker } from 'bullmq';
 
 import { SupervisorService } from './supervisor.service.js';
 import type { RunReportInput } from './supervisor.types.js';
+import { resolveBullPrefix } from '../../shared/infra/queue/bullmq-prefix.js';
 import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
 
@@ -43,8 +44,8 @@ export class SupervisorProcessor implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     const connection = this.redis.getBullClient();
-    // BullMQ key namespace (跟 ioredis 的 keyPrefix 配合, 最终 key: {ioredisPrefix}:{bullPrefix}:{queueName}:...)
-    const bullPrefix = 'bullmq';
+    // BullMQ key namespace (AF-526: 统一解析入口, 不再写死).
+    const bullPrefix = resolveBullPrefix();
 
     this.queue = new Queue<RunReportInput>(QUEUE_NAMES.supervisor, {
       connection,

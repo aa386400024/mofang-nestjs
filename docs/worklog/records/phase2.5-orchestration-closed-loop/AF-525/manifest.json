@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-525",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-26T10:25:00+08:00",
+  "updatedAt": "2026-11-26T02:25:36.121Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-525/task-sheet.md",
+    "sha256": "690f0a871e370cecbff9f212a9d191c15c0cba56eceafd65dbaf56f8497eac59",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af525-environment-isolation-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af525-environment-isolation-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

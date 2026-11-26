@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-526",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-26T10:25:00+08:00",
+  "updatedAt": "2026-11-26T02:42:52.739Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-526/task-sheet.md",
+    "sha256": "bb2362a62562712ba0af4f20337d5b37bbe5befbf2b5653793a4b5d7e6514b6a",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-526/receipt-RC-AF-526-1.json",
+      "sha256": "4f84b4dcc50aac6104f8926f6026ea02040af693b5d838f090c64b87622b72eb",
+      "receiptId": "RC-AF-526-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af526-environment-isolation-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af526-environment-isolation-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

@@ -27,6 +27,7 @@ import { type Job, Queue, Worker } from 'bullmq';
 
 import { classifySupervisionFailure } from './supervision-failure.js';
 import { SupervisionService } from './supervision.service.js';
+import { resolveBullPrefix } from '../../shared/infra/queue/bullmq-prefix.js';
 import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
 import { SessionType } from '../enums/session-type.enum.js';
@@ -60,7 +61,7 @@ export class CounselorSupervisionProcessor implements OnModuleInit, OnModuleDest
 
   async onModuleInit(): Promise<void> {
     const connection = this.redis.getBullClient();
-    const bullPrefix = 'bullmq';
+    const bullPrefix = resolveBullPrefix();
 
     this.queue = new Queue<CounselorSupervisionJobData>(QUEUE_NAMES.counselorSupervision, {
       connection,

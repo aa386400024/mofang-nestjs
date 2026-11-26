@@ -8,7 +8,7 @@
  *   - namespace: 业务域 (blacklist / queue / verification / ratelimit / cache)
  *   - identifier: 业务 ID (jti / phone / token)
  *
- * 注意: BullMQ 自带 key 前缀 (bull:{queueName}:...), 跟这里解耦.
+ * 注意: BullMQ 自带 key 前缀, 跟这里解耦; 队列命名空间见 `shared/infra/queue/bullmq-prefix.ts`.
  */
 export const REDIS_KEYS = {
   /** JWT 黑名单 — {jti} */
@@ -31,6 +31,13 @@ export const REDIS_KEYS = {
   accountLock: (uid: string): string => `auth:lock:${uid}`,
   /** OAuth state 防 CSRF — {state} */
   oauthState: (state: string): string => `oauth:state:${state}`,
+  /**
+   * AF-526: 自动对练会话租约 — {practiceSessionId}.
+   *
+   * 只有持有该 key 的进程才能把场次标记为 running 并在崩溃后被识别为"仍活着";
+   * 启动清理只回收没有租约的孤儿行. 业务连接会自动拼 REDIS_KEY_PREFIX.
+   */
+  practiceLease: (practiceSessionId: string): string => `practice:lease:${practiceSessionId}`,
 } as const;
 
 /**

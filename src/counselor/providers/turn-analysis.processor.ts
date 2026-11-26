@@ -29,6 +29,7 @@ import { type Job, Queue, Worker } from 'bullmq';
 
 import { CounselorUiPreferenceService } from './counselor-ui-preference.service.js';
 import { TurnAnalysisService } from './turn-analysis.service.js';
+import { resolveBullPrefix } from '../../shared/infra/queue/bullmq-prefix.js';
 import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
 import { CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum.js';
@@ -65,7 +66,7 @@ export class TurnAnalysisProcessor implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     const connection = this.redis.getBullClient();
-    const bullPrefix = 'bullmq';
+    const bullPrefix = resolveBullPrefix();
 
     this.queue = new Queue<TurnAnalysisJobData>(QUEUE_NAMES.counselorTurnAnalysis, {
       connection,

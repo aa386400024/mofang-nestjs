@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2161,
+    "lastEventSeq": 2170,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -4169,6 +4169,24 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af524-crisis-replication-2026-11-26.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-525",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-525/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af525-environment-isolation-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-526",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-526/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af526-environment-isolation-2026-11-26.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -4229,6 +4247,7 @@
     "AF-448": "scope 重签发 → AF-449",
     "AF-453": "scope 重签发 → AF-454",
     "AF-501": "scope 重签发 → AF-502",
-    "AF-478": "补登历史已完成任务以解除 AF-481 依赖"
+    "AF-478": "补登历史已完成任务以解除 AF-481 依赖",
+    "AF-525": "scope 重签发 → AF-526"
   }
 }
