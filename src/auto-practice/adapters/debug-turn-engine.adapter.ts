@@ -62,6 +62,9 @@ export class DebugTurnEngineAdapter implements TurnEnginePort {
 
   /** @inheritdoc */
   close(debugSessionId: string): void {
-    this.debugSession.closeSession(debugSessionId);
+    // 端口契约保持同步；服务内部已 await 落盘，这里只需兜住异步异常，避免悬浮 Promise.
+    void this.debugSession.closeSession(debugSessionId).catch((error: unknown) => {
+      this.logger.warn(`[debug_chat] 调试会话关闭失败 session=${debugSessionId}: ${String(error)}`);
+    });
   }
 }

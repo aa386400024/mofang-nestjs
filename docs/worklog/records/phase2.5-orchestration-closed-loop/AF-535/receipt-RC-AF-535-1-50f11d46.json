@@ -1,0 +1,233 @@
+{
+  "deliveredAt": "2026-11-26T08:25:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-535-1",
+    "taskId": "AF-535",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "ed6a2f43a8e8a65916d55505578d550f1f943131",
+    "dependsOn": [],
+    "priorTasks": ["AF-534", "AF-533"],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-535/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af535-acceptance-remediation-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af534-phase25-final-tails-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af533-phase25-final-tails-2026-11-26.md",
+        "docs/specs/active/membership-system-v2.0.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "admin-dashboard/src/api/membership-promotion.ts",
+        "admin-dashboard/src/views/MembershipPromotions.vue",
+        "docs/specs/active/membership-system-v2.0.md",
+        "docs/worklog/completed/phase2.5/af534-phase25-final-tails-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af533-phase25-final-tails-2026-11-26.md",
+        "docs/worklog/completed/phase2.5/af535-acceptance-remediation-2026-11-26.md"
+      ],
+      "modified": [
+        "admin-dashboard/src/App.vue",
+        "admin-dashboard/src/api/client.ts",
+        "admin-dashboard/src/i18n/locales/en.ts",
+        "admin-dashboard/src/i18n/locales/zh-CN.ts",
+        "admin-dashboard/src/router/index.ts",
+        "docs/team/agent-orchestration/agent-cards/executor.json",
+        "src/membership/providers/membership-order.service.ts",
+        "test/membership/membership-order.service.spec.ts"
+      ],
+      "deleted": [
+        "docs/worklog/completed/phase2.5/af531-debug-close-session-2026-11-26.md"
+      ],
+      "deletionChecks": [
+        "af531 交付记录随调试改动 cherry-pick 带入 AF-534 分支；已有 af534/af535 记录，删除旧文件避免张冠李戴"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "约 40 秒",
+        "note": "eslint --cache 双配置均 exit 0"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 50 秒",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "40.14 秒",
+        "note": "352 passed / 1 skipped（353 文件）；5046 passed / 4 skipped（5050 例）"
+      },
+      {
+        "command": "pnpm exec vitest run test/membership/membership-order.service.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5 秒",
+        "note": "8 例通过，含部分退款 fail-closed 用例"
+      },
+      {
+        "command": "pnpm --dir admin-dashboard type-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 35 秒",
+        "note": "vue-tsc --build 0 error"
+      },
+      {
+        "command": "pnpm --dir admin-dashboard build-only",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "7.47 秒",
+        "note": "vite build 成功，MembershipPromotions chunk 已产出"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "补 AF-533 取消说明后 PASS（strict）：活跃=0 归档=472 记录包=490"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "AF-534 被 rejected 后按“已归档任务返修需新任务”登记 AF-535，从 AF-534 提交链续做；4 个提交统一 Task: AF-535 trailer，代码未改。先补 AF-533 取消说明再跑 worklog strict，已 PASS。全量闸门在 AF-534 实现后运行，AF-535 仅重写提交信息与补文档，未重跑业务测试。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-535 贯穿任务单、回执、交付记录与全部 4 个提交 trailer"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / claim 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "提交后 events verify 复核"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=ed6a2f43 为 AF-534 回执提交后的 HEAD，也是 AF-535 登记时的 HEAD；任务链从该点续做。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF535-01",
+        "severity": "P2",
+        "title": "按比例退款与退款审批流未实现，当前仅整单全额退款或人工处理",
+        "impact": "运营遇到部分退款只能人工，权益与预占按整单撤销"
+      },
+      {
+        "id": "BL-AF535-02",
+        "severity": "P2",
+        "title": "后台会员活动页未做浏览器端到端验证",
+        "impact": "登录态、401 重试与真实后端联调需人工点验"
+      },
+      {
+        "id": "BL-AF535-03",
+        "severity": "P2",
+        "title": "调试关闭落盘失败仅告警不重试，无对账任务",
+        "impact": "MySQL 持续不可用时关闭成功但会话可能停留未完成状态"
+      },
+      {
+        "id": "BL-AF535-04",
+        "severity": "P3",
+        "title": "AF-533/AF-534 遗留本地与远程任务分支未清理",
+        "impact": "分支残留，不影响 integrate"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-534 完成并归档",
+        "reality": "AF-534 因 AF-533 缺失计划工件在验收阶段被 rejected",
+        "action": "补 AF-533 取消说明，登记 AF-535 承接并重走验收",
+        "why": "已归档 rejected 任务不能原地恢复，按返修新任务规则处理"
+      },
+      {
+        "taskSays": "AF-534 提交 Task: AF-534",
+        "reality": "AF-534 已归档，PR 链需要活跃任务",
+        "action": "rebase 把 4 个提交 trailer 统一改为 Task: AF-535",
+        "why": "避免 PR 混入任务链之外的任务提交；代码内容不变"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-533 记录补齐后 worklog strict PASS；AF-534 四块交付与闸门证据完整保留；任务链尾注统一、scope 内无越界、engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增 LLM 费用。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": []
+  }
+}

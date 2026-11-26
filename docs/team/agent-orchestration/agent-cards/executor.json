@@ -11,6 +11,7 @@
     "admin-dashboard/",
     "docker/",
     "docs/runbooks/",
+    "docs/specs/",
     ".env.example",
     "docs/team/agent-orchestration/agent-cards/executor.json",
     "docs/worklog/pending/",

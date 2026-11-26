@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-535",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-26T16:35:00+08:00",
+  "updatedAt": "2026-11-26T08:30:27.299Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-535/task-sheet.md",
+    "sha256": "1fff667d4a74d4d875254f5182f94c1f995750b336d8dacef11dd03e2f6b25e3",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-535/receipt-RC-AF-535-1.json",
+      "sha256": "0b0328d07d93c4f39c61a16edaa28731911f9f534d15abb1c3abbd057a2c9c23",
+      "receiptId": "RC-AF-535-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-535/receipt-RC-AF-535-1-e5bc3e5b.json",
+      "sha256": "e5bc3e5b995220b2b15e45ccbe3a1d34db2712aa417b9694b451910efb8727b6",
+      "receiptId": "RC-AF-535-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-535/receipt-RC-AF-535-1-50f11d46.json",
+      "sha256": "50f11d46f3e462897bb851da5025bc196e6decd28f156434aad63fc2b41a07ec",
+      "receiptId": "RC-AF-535-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af535-acceptance-remediation-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/phase2.5-af535-acceptance-remediation-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

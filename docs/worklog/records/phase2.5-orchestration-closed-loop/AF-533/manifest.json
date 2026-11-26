@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-533",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-26T16:20:00+08:00",
+  "updatedAt": "2026-11-26T08:05:04.076Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-533/task-sheet.md",
+    "sha256": "7e7e1ddd35856c365953642ffc86d0f26d7436430c5a1afc3cc145e8c6a4f3af",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af533-phase25-final-tails-2026-11-26.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af533-final-tails-task-2026-11-26.md"
+  ],
+  "tombstone": null
+}

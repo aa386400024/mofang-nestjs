@@ -244,7 +244,10 @@ export class MembershipOrderService {
   }
 
   /**
-   * 退款：7 天内未使用全额、已使用按剩余天数比例由业务侧计算后传入 refundAmountCents。
+   * 退款：目前只支持订单全额退款。
+   *
+   * 部分退款没有按比例回收权益的产品与财务口径，直接 fail-closed 拒绝，
+   * 避免“退部分钱却把订单置为终态并收回全部权益”的错误语义。
    * 同一事务内完成订单状态、会员回退、term 终止、未使用 lot 收回、活动兑换撤销、预算预占释放。
    */
   async refund(uid: string, orderId: string, refundAmountCents: number, now: Date = new Date()): Promise<MembershipOrderSummary> {
@@ -258,6 +261,9 @@ export class MembershipOrderService {
       if (!locked) throw new MembershipOrderError('订单不存在');
       if (locked.status !== MembershipOrderStatus.Paid) throw new MembershipOrderError(`订单状态 ${locked.status} 不可退款`);
       if (refundAmountCents > locked.amountCents) throw new MembershipOrderError('退款金额不能超过订单金额');
+      if (refundAmountCents < locked.amountCents) {
+        throw new MembershipOrderError('部分退款暂不支持：请按订单全额退款或走人工审批');
+      }
 
       locked.status = MembershipOrderStatus.Refunded;
       locked.paidAt = locked.paidAt ?? now;

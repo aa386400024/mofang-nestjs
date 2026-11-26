@@ -18,6 +18,7 @@ const AutoPractice = () => import('@/views/AutoPractice.vue')
 const EvalReports = () => import('@/views/EvalReports.vue')
 const BatchRegression = () => import('@/views/BatchRegression.vue')
 const AnnotationTool = () => import('@/views/AnnotationTool.vue')
+const MembershipPromotions = () => import('@/views/MembershipPromotions.vue')
 const Login = () => import('@/views/Login.vue')
 
 const router = createRouter({
@@ -41,6 +42,7 @@ const router = createRouter({
     { path: '/eval-reports', component: EvalReports },
     { path: '/batch-regression', component: BatchRegression },
     { path: '/quality/annotation', component: AnnotationTool },
+    { path: '/membership/promotions', component: MembershipPromotions },
   ],
 })
 

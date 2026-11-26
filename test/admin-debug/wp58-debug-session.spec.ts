@@ -705,7 +705,7 @@ describe('WP58 · 引擎调试面板', () => {
       const created = await service.createSession(KNOWN_SLUG);
       expect(service.size()).toBe(1);
 
-      service.closeSession(created.sessionId);
+      await service.closeSession(created.sessionId);
 
       expect(service.size()).toBe(0);
       expect(engine.closed).toEqual([`handle-${created.sessionId}`]);
@@ -715,11 +715,11 @@ describe('WP58 · 引擎调试面板', () => {
       });
     });
 
-    it('不存在的 debugSessionId → 404', () => {
+    it('不存在的 debugSessionId → 404', async () => {
       const { service } = buildService();
-      expect(() => service.closeSession('debug_not_exist')).toThrow(BizException);
+      await expect(service.closeSession('debug_not_exist')).rejects.toThrow(BizException);
       try {
-        service.closeSession('debug_not_exist');
+        await service.closeSession('debug_not_exist');
       } catch (error) {
         expect((error as BizException).code).toBe(BizCode.ResourceNotFound);
       }
@@ -807,7 +807,7 @@ describe('WP58 · 引擎调试面板', () => {
       const created = await service.createSession(KNOWN_SLUG);
       engine.queue.push(makeTurnResult(makeSnapshot(), 1));
       await service.runTurn(created.sessionId, COUNSELOR_TEXT);
-      service.closeSession(created.sessionId);
+      await service.closeSession(created.sessionId);
 
       expect(logs.length).toBeGreaterThan(0);
       const joined = logs.join('\n');

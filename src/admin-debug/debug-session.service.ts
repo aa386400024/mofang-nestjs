@@ -669,7 +669,7 @@ export class DebugSessionService {
    * @param debugSessionId 调试会话 id
    * @throws BizException 开关关闭 (403) / 会话不存在 (404)
    */
-  closeSession(debugSessionId: string): void {
+  async closeSession(debugSessionId: string): Promise<void> {
     this.assertEnabled();
     const state = this.sessions.get(debugSessionId);
     if (!state) {
@@ -684,10 +684,13 @@ export class DebugSessionService {
       this.logger.warn(`[debug_chat] 调试会话关闭内核句柄失败 session=${debugSessionId}: ${errorName(error)}`);
     }
     // 标记文件为已完成 (V2026-11-05 持久化).
-    // fire-and-forget: 关会话是同步接口, 不该为了一个文件标记去 await.
-    void this.store.markCompleted(debugSessionId).catch((error: unknown) => {
+    // 关闭接口返回前必须落盘: 否则调用方看到"已关闭"时文件仍是 active,
+    // 测试与进程退出会出现时序窗口 (AF-531). 落盘失败只告警, 不把关闭失败化.
+    try {
+      await this.store.markCompleted(debugSessionId);
+    } catch (error) {
       this.logger.warn(`[debug_chat] 调试会话落盘标记失败 session=${debugSessionId}: ${errorName(error)}`);
-    });
+    }
     this.logger.log(`[debug_chat] 调试会话已关闭 session=${debugSessionId}`);
   }
 

@@ -31,6 +31,7 @@ export default {
     batchRegression: 'Batch Regression',
     evalReports: 'Eval Reports',
     annotation: 'Annotation',
+    membershipPromotions: 'Membership Promotions',
     groupOverview: 'Overview',
     groupTraining: 'Training',
     groupMonitor: 'Monitoring',

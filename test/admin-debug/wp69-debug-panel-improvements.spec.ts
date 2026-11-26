@@ -155,7 +155,7 @@ describe('WP69 · 调试面板小改进', () => {
 
       expect((await service.listPersistedSessions())[0]?.active).toBe(true);
 
-      service.closeSession(created.sessionId);
+      await service.closeSession(created.sessionId);
 
       expect((await service.listPersistedSessions())[0]?.active).toBe(false);
     });
