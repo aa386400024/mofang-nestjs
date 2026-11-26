@@ -4,10 +4,67 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2208,
+    "lastEventSeq": 2224,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-541",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-26T09:56:33.453Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-audit-remediation",
+      "title": "扩充 executor 资源域以覆盖部署与 CI 文件",
+      "type": "implementation",
+      "baselineRef": "33fe92e616ae3562ca7dec029fd84cfc06f9fb3e",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-540"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.1"
+      ],
+      "createdAt": "2026-11-26T09:56:28.539Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "docs/team/agent-orchestration/agent-cards/executor.json",
+          "docs/worklog/records"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm orchestration:preflight",
+          "check": "PASS",
+          "threshold": "exit 0"
+        }
+      ],
+      "successCriteria": [
+        "executor 资源域覆盖 Dockerfile / compose / .dockerignore / package.json / CI workflow"
+      ],
+      "plannedArtifacts": [],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -4248,6 +4305,42 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-536/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af536-safety-cap-false-positive-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-537",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-537/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-538",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-538/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af538-audit-p0-p1-remediation-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-539",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-539/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af539-audit-p0-p1-remediation-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-540",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-540/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af540-audit-p0-p1-remediation-2026-11-26.md",
         "reply": null
       }
     }
