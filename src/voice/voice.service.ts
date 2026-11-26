@@ -1679,7 +1679,7 @@ export class VoiceService {
       return await this.tts.startSession(ttsOptions);
     } catch (err) {
       this.logger.error(`[user_text] TTS startSession failed: ${err instanceof Error ? err.message : String(err)}`);
-      // AF-557: 只有豆包(Max)运行期失败才允许回退 Turbo; Pro HD 失败不能悄悄降档.
+      // AF-557/AF-558: 只有豆包(Max)运行期失败才允许回退 HD; Pro HD 失败不能悄悄降档.
       if (profile && this.ttsProfiles && profile.profileId === 'doubao-seed-2.0') {
         const fallback = this.ttsProfiles.fallbackProfile(profile, resolveInput);
         state.ttsProfile = fallback;

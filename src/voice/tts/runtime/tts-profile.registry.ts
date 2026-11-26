@@ -67,15 +67,27 @@ export const TTS_TIER_QUALITY: Readonly<Record<TtsAccessTier, VoiceQualityClass>
   max: 'premium',
 };
 
-/** 质量类 -> 首选 profile; premium 未就绪时由 resolver 回退 standard. */
+/** 质量类 -> 首选 profile; premium 未就绪时由 resolver 回退 hd. */
 export const TTS_QUALITY_PROFILE: Readonly<Record<VoiceQualityClass, TtsProfileId>> = {
   standard: 'minimax-turbo',
   hd: 'minimax-hd',
   premium: 'doubao-seed-2.0',
 };
 
-/** 豆包不可用/启动失败时的唯一回退目标. */
+/** 豆包不可用/启动失败时的回退目标: Max 只降一档到 HD, 不直落 Turbo. */
+export const TTS_PREMIUM_FALLBACK_PROFILE: TtsProfileId = 'minimax-hd';
+
+/** 标准档回退目标 (Free/Plus/Pro 的最终兜底). */
 export const TTS_FALLBACK_PROFILE: TtsProfileId = 'minimax-turbo';
+
+/**
+ * 按失败 profile 取回退目标 — 回退阶梯的唯一事实源.
+ *
+ * premium(豆包) -> hd; 其余非标准档 -> standard。resolver 不自行拼 profile 字符串。
+ */
+export function resolveTtsFallbackProfile(profileId: TtsProfileId): TtsProfileId {
+  return profileId === 'doubao-seed-2.0' ? TTS_PREMIUM_FALLBACK_PROFILE : TTS_FALLBACK_PROFILE;
+}
 
 /**
  * 跨厂商音色映射 — MiniMax 官方中文系统音色 -> 豆包 2.0 音色.
