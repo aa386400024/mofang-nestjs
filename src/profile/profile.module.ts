@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { RolesGuard } from '../common/guards/roles.guard.js';
 import { MembershipModule } from '../membership/membership.module.js';
 import { UserModule } from '../user/user.module.js';
 
@@ -41,7 +40,8 @@ import { User } from '../user/entities/user.entity.js';
  * 设计:
  *   - 11 entity 全部通过 TypeOrmModule.forFeature 注册 (V2026-08-28 +2: privacy_authorizations 走这里)
  *   - 依赖 UserModule 拿 JwtAuthGuard (复用 user 模块鉴权, 不重复造轮子)
- *   - 复用 CommonModule 的 RolesGuard (双角色 endpoint 角色校验)
+ *   - 业务身份（成长用户 / 陪伴者）由客户端角色切换 + service 业务规则处理，
+ *     不复用 admin RBAC 的 RolesGuard（AF-547）
  *   - 12 service 全部导出 (V3 业务扩展可直接复用, 不用重新 import entity)
  *
  * V2026-08-28 增强:
@@ -88,7 +88,6 @@ import { User } from '../user/entities/user.entity.js';
     ConsentService,
     ExportService,
     PrivacyAuthorizationService,
-    RolesGuard,
   ],
   exports: [
     ProfileService,

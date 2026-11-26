@@ -8,6 +8,8 @@ import { SimpleInput, SimpleArgs } from '../dto/index.js';
 import { Simple, Payload } from '../models/index.js';
 import { SimpleService } from '../providers/index.js';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @Resolver(() => Simple)
 export class SimpleResolver {
   constructor(
@@ -16,8 +18,6 @@ export class SimpleResolver {
   ) {}
 
   @Query(() => Payload)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('test')
   public user(@ReqUser() user: Payload): Payload {
     this.logger.info('user');
 

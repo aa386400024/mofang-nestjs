@@ -85,6 +85,7 @@
     "start": "node dist/app.js",
     "start:dev": "nest start --watch",
     "start:win": "node scripts/ensure-utf8.cjs && nest start --watch",
+    "dev:token": "node bin/dev-token.mjs",
     "test:smoke": "node scripts/smoke-test.cjs && node -e \"import('node:fs').then(fs=>fs.writeFileSync('.smoke-last', new Date().toISOString()))\"",
     "smoke:iw": "pnpm build && node scripts/smoke-inner-world.cjs && node -e \"import('node:fs').then(fs=>fs.writeFileSync('.smoke-iw-last', new Date().toISOString()))\"",
     "deploy:tested": "node scripts/deploy-tested.cjs",

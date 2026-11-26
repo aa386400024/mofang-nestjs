@@ -11,11 +11,12 @@ import { randomUUID } from 'node:crypto';
 
 import { promises as fs } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
-import { join, extname } from 'node:path';
+import { join } from 'node:path';
 import type { Repository } from 'typeorm';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { detectImageExtension } from '../../common/security/image-signature.js';
 
 import { ProfileDto, UpdateProfileDto, UploadAvatarResponseDto } from '../dto/profile.dto.js';
 import { UserProfile } from '../entities/user-profile.entity.js';
@@ -147,9 +148,12 @@ export class ProfileService {
     const publicBase = stripQuotes(stripTrailingSlash(publicBaseRaw));
 
     const avatarDir = join(storageDir, 'avatar');
-    const ext = (extname(file.originalname) || '.jpg').toLowerCase();
-    // 防 path traversal: 只接受白名单后缀
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
+    // AF-547: 文件名后缀由真实文件头决定，不信任 originalname / MIME。
+    // 这样 polyglot 文件（.jpg 外壳 + HTML/JS 内容）不会被当作图片落盘。
+    const safeExt = detectImageExtension(file.buffer);
+    if (!safeExt) {
+      throw new BizException(BizCode.InvalidParameter, '头像格式不支持，仅支持 JPG/PNG/WebP');
+    }
     const fileName = `${randomUUID()}${safeExt}`;
     const fullPath = join(avatarDir, fileName);
 

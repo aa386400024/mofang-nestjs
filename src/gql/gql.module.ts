@@ -5,6 +5,7 @@ import { GqlModuleOptions, GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Sampletable1 } from '#entity/sampledb1/index.js';
+import { AuthModule } from '../auth/auth.module.js';
 import { SimpleService } from './providers/index.js';
 import { SimpleResolver } from './resolvers/index.js';
 import { DateScalar } from './scalars/index.js';
@@ -14,6 +15,7 @@ import { DateScalar } from './scalars/index.js';
  */
 @Module({
   imports: [
+    AuthModule,
     GraphQLModule.forRootAsync({
       driver: ApolloDriver,
       useFactory: (config: ConfigService) => ({

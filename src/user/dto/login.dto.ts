@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
 
@@ -24,6 +24,7 @@ export class LoginDto {
   @ApiProperty({ description: '邮箱 (跟 phone 二选一)', example: 'user@example.com', required: false })
   @IsOptional()
   @IsString()
+  @IsEmail()
   email?: string;
 
   @ApiProperty({ description: '密码 (强密码, 8+ 位 + 大小写 + 数字)', example: 'MyP@ssw0rd' })

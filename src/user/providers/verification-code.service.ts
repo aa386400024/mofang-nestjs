@@ -4,7 +4,7 @@ import { randomInt } from 'node:crypto';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
-import { hashVerificationCode, verifyHashedCode } from '../../common/security/verification-code-hash.js';
+import { hashOpaqueIdentifier, hashVerificationCode, verifyHashedCode } from '../../common/security/verification-code-hash.js';
 import { assertChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
@@ -54,11 +54,12 @@ export class VerificationCodeService {
    */
   async sendCode(phone: string, purpose: SmsPurpose): Promise<void> {
     assertChinesePhone(phone);
+    const subjectKey = this.subjectKey(phone);
 
     // 1. 限流检查 (滑动窗口, 每小时最多 N 条)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const rateLimit = this.config.get('verification').smsRateLimitPerHour;
-    const rateKey = REDIS_KEYS.smsRateLimit(phone);
+    const rateKey = REDIS_KEYS.smsRateLimit(subjectKey);
     const now = Date.now();
     // eslint-disable-next-line sonarjs/pseudo-random
     await this.redis.slidingWindowAdd(rateKey, `${now}-${Math.random()}`, now, 3600);
@@ -69,7 +70,7 @@ export class VerificationCodeService {
     }
 
     // 2. 生成 code（每次发送都重新生成，只存哈希；旧码被覆盖）
-    const codeKey = REDIS_KEYS.smsCode(phone, purpose);
+    const codeKey = REDIS_KEYS.smsCode(subjectKey, purpose);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const len = this.config.get('verification').smsCodeLength;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -77,7 +78,7 @@ export class VerificationCodeService {
 
     const ttlSec = this.config.get('verification').smsCodeTtlMin * 60;
     await this.redis.set(codeKey, hashVerificationCode(this.pepper, code), ttlSec);
-    await this.redis.del(`verification:sms:fail:${phone}:${purpose}`);
+    await this.redis.del(`verification:sms:fail:${subjectKey}:${purpose}`);
 
     // 3. 发短信
     await this.sms.send({
@@ -101,8 +102,9 @@ export class VerificationCodeService {
    */
   async verifyCode(phone: string, purpose: SmsPurpose, code: string): Promise<void> {
     assertChinesePhone(phone);
-    const codeKey = REDIS_KEYS.smsCode(phone, purpose);
-    const failKey = `verification:sms:fail:${phone}:${purpose}`;
+    const subjectKey = this.subjectKey(phone);
+    const codeKey = REDIS_KEYS.smsCode(subjectKey, purpose);
+    const failKey = `verification:sms:fail:${subjectKey}:${purpose}`;
     const ttlSec = this.config.get('verification').smsCodeTtlMin * 60;
 
     const failRaw = await this.redis.get(failKey);
@@ -137,5 +139,13 @@ export class VerificationCodeService {
    */
   private mask(phone: string): string {
     return `${phone.slice(0, 3)}****${phone.slice(7)}`;
+  }
+
+  /**
+   * Redis key 里只出现不可逆摘要，不出现明文手机号（隐私红线）。
+   * 同一手机号 + 同一 pepper 稳定映射，限流与验证码仍能复用同一 key。
+   */
+  private subjectKey(phone: string): string {
+    return hashOpaqueIdentifier(this.pepper, phone);
   }
 }

@@ -5,13 +5,14 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { Sampletable1 } from '#entity/sampledb1/index.js';
 import { Roles, RolesGuard, ConfigService } from '../../common/index.js';
 import { FoobarService } from '../../shared/foobar/index.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 import { SampleDto } from '../dto/index.js';
 import { DatabaseService } from '../providers/index.js';
 
 /**
  * route /test/sample/*
  */
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('sample')
 export class SampleController {
   constructor(

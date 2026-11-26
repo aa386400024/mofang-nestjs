@@ -9,7 +9,7 @@
  *
  * 命名:
  *   - access_token: 短期 (15min), 用于 Authorization header
- *   - refresh_token: 长期 (7d), 仅用于 /auth/refresh 接口
+ *   - refresh_token: 长期 (7d), 仅用于 POST /user/refresh 接口
  *
  * SameSite=Lax:
  *   - 默认 (大厂 recommended) — 允许 GET 跨站访问, 但 POST/PUT/DELETE 不带
@@ -17,7 +17,7 @@
  *
  * Path 分隔:
  *   - access_token path=/ — 所有 endpoint 都能用
- *   - refresh_token path=/auth — 仅 refresh 接口能用 (最小权限)
+ *   - refresh_token path=/user — 仅 /user/* 下刷新/登出等端点可用 (最小权限)
  */
 export const COOKIE_NAMES = {
   ACCESS_TOKEN: 'access_token',
@@ -26,7 +26,9 @@ export const COOKIE_NAMES = {
 
 export const COOKIE_PATHS = {
   ACCESS: '/',
-  REFRESH: '/auth',
+  // 真实刷新端点是 POST /user/refresh。Cookie Path 必须覆盖 /user，
+  // 否则浏览器不会把 refresh_token 带到刷新请求上（V1.1.2 配置错误）。
+  REFRESH: '/user',
 } as const;
 
 /** V1.1.2: cookie 安全配置 (跟 cookie options 一起塞). */

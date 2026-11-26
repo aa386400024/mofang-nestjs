@@ -111,6 +111,30 @@ curl -X POST http://localhost:3000/user/resend-verification \
   -d '{"email":"test@example.com"}'
 ```
 
+### 6.1 本地调试 access token（仅非生产）
+
+跑受保护端点时不必先走登录 + 邮件验证码。`dev:token` 读取本机 `.env` 的
+`JWT_SECRET`，按 `UserService.buildAuthResponse()` 同款 claim 签发短期 access token：
+
+```bash
+# 普通用户（uid 换成数据库里的真实 uid）
+TOKEN=$(pnpm dev:token -- --uid <uid>)
+
+# 管理端 RBAC 调试
+TOKEN=$(pnpm dev:token -- --uid <uid> --admin-role admin --ttl 900)
+
+# 连本地服务
+curl http://localhost:3000/user/me -H "Authorization: Bearer $TOKEN"
+```
+
+安全边界：`NODE_ENV=production` 直接拒绝；脚本不新增 HTTP 端点，不打印 secret。
+Windows PowerShell 取 token：
+
+```powershell
+$token = pnpm dev:token -- --uid <uid>
+curl http://localhost:3000/user/me -H "Authorization: Bearer $token"
+```
+
 ## 7. 部署到生产
 
 ### 7.1 服务器清单
