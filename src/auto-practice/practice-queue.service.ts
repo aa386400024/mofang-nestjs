@@ -29,6 +29,7 @@ import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
 import type { SessionProfileName } from './session-profile.js';
 import type { EncounterInput } from '../shared/encounter/encounter-scene.js';
+import { resolveBullPrefix } from '../shared/infra/queue/bullmq-prefix.js';
 import { QUEUE_NAMES } from '../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
 
@@ -149,9 +150,10 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
   /** @inheritdoc */
   async onModuleInit(): Promise<void> {
     const connection = this.redis.getBullClient();
+    const bullPrefix = resolveBullPrefix();
     this.queue = new Queue<AutoPracticeJobData>(QUEUE_NAMES.autoPractice, {
       connection,
-      prefix: 'bullmq',
+      prefix: bullPrefix,
       defaultJobOptions: {
         attempts: 2,
         backoff: { type: 'exponential', delay: 2000 },
@@ -161,7 +163,7 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
     });
     this.worker = new Worker<AutoPracticeJobData>(QUEUE_NAMES.autoPractice, async (job) => this.processJob(job), {
       connection,
-      prefix: 'bullmq',
+      prefix: bullPrefix,
       concurrency: this.concurrency,
     });
     this.worker.on('failed', (job, err) => {

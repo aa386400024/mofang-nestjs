@@ -42,6 +42,7 @@ import { TURN_ENGINE_PORT } from './ports/turn-engine.port.js';
 import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
+import { PracticeSessionLeaseService } from './practice-session-lease.service.js';
 import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
 
 @Module({
@@ -69,6 +70,7 @@ import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
     CounselorAgentService,
     InferenceFingerprintService,
     PracticeRunnerService,
+    PracticeSessionLeaseService,
     PracticeQueueService,
     // V2026-11-10 (WP-H 改动 6/9 + 新增 12): 批次指标聚合 / 有效性门禁 / 逐字稿索引.
     PracticeBatchHealthService,

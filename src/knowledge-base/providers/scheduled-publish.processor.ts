@@ -18,6 +18,7 @@ import { KnowledgeService } from './knowledge.service.js';
 import { ScheduledPublishService } from './scheduled-publish.service.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { resolveBullPrefix } from '../../shared/infra/queue/bullmq-prefix.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
@@ -37,7 +38,7 @@ export class ScheduledPublishProcessor implements OnModuleInit, OnModuleDestroy 
     const connection = this.redis.getBullClient();
     this.worker = new Worker<{ itemId: string }>(ScheduledPublishService.QUEUE_NAME, async (job) => this.processJob(job), {
       connection,
-      prefix: 'bullmq',
+      prefix: resolveBullPrefix(),
       concurrency: 5,
     });
     this.worker.on('failed', (job, err) => {

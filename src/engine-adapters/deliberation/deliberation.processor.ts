@@ -86,6 +86,7 @@ import {
   type DeliberationShadowInput,
   type DeliberationShadowPort,
 } from './llm-deliberation.service.js';
+import { resolveBullPrefix } from '../../shared/infra/queue/bullmq-prefix.js';
 import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
 
@@ -313,7 +314,7 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
 
   async onModuleInit(): Promise<void> {
     const connection = this.redis.getBullClient();
-    const bullPrefix = 'bullmq';
+    const bullPrefix = resolveBullPrefix();
 
     this.queue = new Queue<DeliberationShadowInput>(QUEUE_NAMES.deliberation, {
       connection,

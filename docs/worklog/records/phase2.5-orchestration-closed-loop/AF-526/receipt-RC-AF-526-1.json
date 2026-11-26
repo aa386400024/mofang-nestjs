@@ -1,0 +1,226 @@
+{
+  "deliveredAt": "2026-11-26T02:43:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-526-1",
+    "taskId": "AF-526",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "9d700bf865db82a782d2be337688c52489f0f48e",
+    "dependsOn": [],
+    "priorTasks": ["AF-525", "AF-524", "AF-521"],
+    "policyRefs": ["conventions.md#1.3", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-526/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af526-environment-isolation-2026-11-26.md",
+      "reply": null,
+      "others": [
+        "docs/runbooks/validation-environment-isolation.md",
+        "src/shared/infra/queue/bullmq-prefix.ts",
+        "src/auto-practice/practice-session-lease.service.ts"
+      ]
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-525/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-525/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-526/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-526/manifest.json",
+        "docs/worklog/completed/phase2.5/af526-environment-isolation-2026-11-26.md",
+        "docs/runbooks/validation-environment-isolation.md",
+        "src/shared/infra/queue/bullmq-prefix.ts",
+        "src/auto-practice/practice-session-lease.service.ts",
+        "test/shared/infra/queue/bullmq-prefix.spec.ts",
+        "test/auto-practice/practice-session-lease.spec.ts",
+        "test/auto-practice/practice-lease-cleanup.spec.ts"
+      ],
+      "modified": [
+        ".env.example",
+        "src/agent/supervisor/supervisor.processor.ts",
+        "src/auto-practice/auto-practice.module.ts",
+        "src/auto-practice/practice-queue.service.ts",
+        "src/auto-practice/practice-runner.service.ts",
+        "src/counselor/providers/counselor-supervision.processor.ts",
+        "src/counselor/providers/turn-analysis.processor.ts",
+        "src/engine-adapters/deliberation/deliberation.processor.ts",
+        "src/knowledge-base/providers/scheduled-publish.processor.ts",
+        "src/knowledge-base/providers/scheduled-publish.service.ts",
+        "src/shared/infra/queue/audit-log.processor.ts",
+        "src/shared/infra/redis/redis.constants.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm build",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 12s",
+        "note": "tsc -p tsconfig.build.json 成功；仅 pnpm node>=26 engine 警告"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "tsc -p tsconfig.json --noEmit 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "eslint 带缓存全量通过，无 error/warning 输出"
+      },
+      {
+        "command": "pnpm exec vitest run test/shared/infra/queue/bullmq-prefix.spec.ts test/auto-practice/practice-session-lease.spec.ts test/auto-practice/practice-lease-cleanup.spec.ts test/engine-adapters/wp65-deliberation-queue.spec.ts test/engine-adapters/wp66-deliberation-retry.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 5,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "5 文件 56 用例全绿；含既有 BullMQ prefix='bullmq' 断言兼容"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 353,
+        "machine": "同上",
+        "wallClock": "约 52s",
+        "note": "352 passed / 1 skipped；5045 passed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，内核零改动"
+      },
+      {
+        "command": "node --input-type=module -e \"import('./dist/shared/infra/queue/bullmq-prefix.js').then(m => console.log(m.resolveBullPrefix()))\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "NODE_ENV=development REDIS_DB=5 → bullmq:dev:5:DESKTOP-E3EVQ9P:186f0d61"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS：事件日志 2168 条；schema 1.0.0；哈希链与索引投影一致"
+      }
+    ],
+    "reproNotes": "任务分支 task/AF-526-environment-isolation。前缀解析单测用注入 env/cwd/host 验证显式覆盖、prod/test/Vitest 兼容、dev 隔离与同工作树稳定；租约单测用内存 Redis 替身验证 SET NX、owner-safe release/refresh 与心跳；runner 清理单测验证 active 跳过、orphan 标记、未注入跳过、Redis 故障不误标、抢不到租约不落 running。未做真实双实例 smoke，运行手册给出双实例自检命令。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-526 贯穿任务单、回执、交付记录；AF-525 因角色域冲突已 canceled 并重签发"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / reissue 均经 CLI；状态面未手改"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "task-state-index urn 1.2.0；events verify 投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "2168 条事件 schema + 哈希链通过"
+      },
+      {
+        "item": "receipt-groups",
+        "result": "pass",
+        "note": "gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组齐全"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零改动"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=9d700bf 为 AF-526 登记时 integrate HEAD；AF-526 由 AF-525 重签发，代码与测试全部落在 AF-526。"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "是否补一次真实双实例 smoke（两个不同 BULLMQ_PREFIX + 不同 PORT）作为下一批次的启动前检查；本单只做单测与构建产物解析 smoke"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务以 orchestrator 登记并领单",
+        "reality": "AF-525 在 run-once 报 scope-domain-conflict，orchestrator 资源域不含 src/test",
+        "action": "未改代码，按框架规则 reissue 为 AF-526（executor）；AF-525 canceled 归档，priorTasks 指向 AF-525",
+        "why": "角色资源域不匹配，继续派发会被门禁拦下"
+      },
+      {
+        "taskSays": "任务单 artifacts.path 指向 AF-525 交付记录",
+        "reality": "AF-526 任务单复制自 AF-525，正文标题与 artifacts.path 残留 af525 字样",
+        "action": "任务单登记后不可变，不回改；实际交付记录用 af526-environment-isolation-2026-11-26.md，并在交付记录 §3 说明",
+        "why": "避免改动已登记任务单造成哈希不一致"
+      },
+      {
+        "taskSays": "单测覆盖前缀与租约行为",
+        "reality": "未启动两个真实实例做队列隔离 smoke",
+        "action": "用构建产物解析 smoke + 单测覆盖；运行手册给出双实例自检命令",
+        "why": "本单不跑新批次，避免额外实例与 Redis 写入；双实例 smoke 留作下一批启动前检查"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "14 处 Queue/Worker 构造全部收敛到单一前缀解析入口，production/test 保持 bullmq、development 按 DB + 主机 + 工作树隔离；runner 启动清理只回收无租约 running，抢不到租约不落 running 行；目标测试 56 例、全量测试 5045 例、build/typecheck/lint 全绿，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增 LLM 调用；仅本地编译 / 单测 / 全量测试开销。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

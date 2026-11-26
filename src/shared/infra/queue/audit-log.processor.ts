@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Worker, type Job, Queue } from 'bullmq';
 import type { Repository } from 'typeorm';
 
+import { resolveBullPrefix } from './bullmq-prefix.js';
 import { AuditLog } from '../../../user/entities/audit-log.entity.js';
 import { AuditEvent } from '../../../user/enums/audit-event.enum.js';
 import { RedisService } from '../redis/index.js';
@@ -55,8 +56,8 @@ export class AuditLogProcessor implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     const connection = this.redis.getBullClient();
-    // BullMQ key namespace (跟 ioredis 的 keyPrefix 配合, 最终 key: {ioredisPrefix}:{bullPrefix}:{queueName}:...)
-    const bullPrefix = 'bullmq';
+    // BullMQ key namespace (AF-526: 统一解析入口, 不再写死).
+    const bullPrefix = resolveBullPrefix();
 
     this.queue = new Queue<AuditLogJobData>(QUEUE_NAMES.auditLog, {
       connection,
