@@ -31,6 +31,7 @@ export default {
     batchRegression: '批次回归',
     evalReports: '评测报告',
     annotation: '标注台',
+    membershipPromotions: '会员活动',
     groupOverview: '概览',
     groupTraining: '训练',
     groupMonitor: '监控',

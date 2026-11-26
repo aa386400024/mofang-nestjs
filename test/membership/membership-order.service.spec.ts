@@ -202,6 +202,20 @@ describe('AF-512 会员订单', () => {
     );
   });
 
+  it('部分退款直接拒绝：订单与权益不变化', async () => {
+    const { service, orderRepo, accountService, planGrantService, reservationService } = createService();
+    const paid = order({ status: MembershipOrderStatus.Paid, amountCents: 6800 });
+    orderRepo.findOne.mockResolvedValue(paid);
+
+    await expect(service.refund('u-1', 'o-1', 3000)).rejects.toThrow('部分退款');
+
+    expect(paid.status).toBe(MembershipOrderStatus.Paid);
+    expect(orderRepo.save).not.toHaveBeenCalled();
+    expect(accountService.markOrderRefunded).not.toHaveBeenCalled();
+    expect(planGrantService.cancelTermForOrder).not.toHaveBeenCalled();
+    expect(reservationService.release).not.toHaveBeenCalled();
+  });
+
   it('退款金额超出订单金额直接拒绝', async () => {
     const { service, orderRepo } = createService();
     orderRepo.findOne.mockResolvedValue(order({ status: MembershipOrderStatus.Paid, amountCents: 6800 }));

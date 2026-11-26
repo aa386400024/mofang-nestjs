@@ -183,8 +183,8 @@ export class DebugSessionController {
    * @returns 关闭确认
    */
   @Delete('session/:id')
-  closeSession(@Param('id') id: string): { readonly sessionId: string; readonly closed: boolean } {
-    this.service.closeSession(id);
+  async closeSession(@Param('id') id: string): Promise<{ readonly sessionId: string; readonly closed: boolean }> {
+    await this.service.closeSession(id);
     return { sessionId: id, closed: true };
   }
 

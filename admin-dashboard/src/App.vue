@@ -85,6 +85,7 @@ const menuOptions = computed<MenuOption[]>(() => [
       { label: t('nav.batchRegression'), key: '/batch-regression' },
       { label: t('nav.evalReports'), key: '/eval-reports' },
       { label: t('nav.annotation'), key: '/quality/annotation' },
+      { label: t('nav.membershipPromotions'), key: '/membership/promotions' },
     ],
   },
   {
@@ -123,6 +124,7 @@ const allPages = computed(() => [
   { name: t('nav.batchRegression'), path: '/batch-regression', keywords: 'batch regression 批次 回归 对比 历史 效果' },
   { name: t('nav.evalReports'), path: '/eval-reports', keywords: 'eval reports 评测 报告 质量' },
   { name: t('nav.annotation'), path: '/quality/annotation', keywords: 'annotation 标注 锚点 质量 人工' },
+  { name: t('nav.membershipPromotions'), path: '/membership/promotions', keywords: 'membership promotion 会员 活动 价格 预算 优惠' },
   { name: t('nav.psyguard'), path: '/psyguard', keywords: 'psyguard 监控 安全 风险 危机' },
   { name: t('nav.cost'), path: '/cost', keywords: 'cost 成本 token 消耗 费用' },
   { name: t('nav.deliberationStats'), path: '/deliberation-stats', keywords: 'deliberation 审议 统计 闸门' },

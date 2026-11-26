@@ -128,6 +128,10 @@ const put  = <T>(path: string, body: unknown) => request<T>('PUT', path, body)
 const patch = <T>(path: string, body: unknown) => request<T>('PATCH', path, body)
 const del  = <T>(path: string) => request<T>('DELETE', path)
 
+/** 供按域拆分的 API 模块复用同一套鉴权 / 401 重试 / 错误语义（AF-534）。 */
+export const http = { get, post, put, patch, del }
+
+
 // ─── 真实 API 端点 ───
 
 export const api = {

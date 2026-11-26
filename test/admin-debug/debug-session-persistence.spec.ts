@@ -572,7 +572,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       engine.queue.push(makeTurnResult(1));
       await service.runTurn(created.sessionId, '第一句');
 
-      service.closeSession(created.sessionId);
+      await service.closeSession(created.sessionId);
       await waitFor(async () => (await store.get(created.sessionId))?.status === 'completed');
       expect((await store.get(created.sessionId))?.status).toBe('completed');
 
