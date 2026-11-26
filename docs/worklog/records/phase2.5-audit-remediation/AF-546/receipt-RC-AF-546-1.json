@@ -1,0 +1,99 @@
+{
+  "deliveredAt": "2026-11-26T11:46:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-546-1",
+    "taskId": "AF-546",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "157f4bcba218d21b55908c5f4bdeda2d7d2406d7",
+    "dependsOn": ["AF-545"],
+    "priorTasks": ["AF-540", "AF-542", "AF-545"],
+    "policyRefs": ["conventions.md#1.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-546/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af546-runtime-image-npm-strip-2026-11-26.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-546/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-546/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af546-runtime-image-npm-strip-2026-11-26.md"
+      ],
+      "modified": ["Dockerfile", "Dockerfile.prod"],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["e66abfbb"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-546 files=5 covered=2"
+      },
+      {
+        "command": "git diff --stat HEAD~1..HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空，未触碰纯层"
+      }
+    ],
+    "reproNotes": "本机无 Docker，未本地构建镜像；改动仅删除运行时包管理器目录，CI Build 的 Trivy 复扫为准。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-546 贯穿任务单、记录、回执与提交 trailer" },
+      { "item": "state-write", "result": "pass", "note": "register / claim 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "索引由 CLI 维护" },
+      { "item": "event-chain", "result": "pass", "note": "完成后 events verify 复核" },
+      { "item": "receipt-groups", "result": "pass", "note": "六组 + verdictRationale 齐全" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零改动" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 为 AF-545 修复后的 HEAD。"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF546-01",
+        "severity": "P3",
+        "title": "镜像运行时未本地实跑",
+        "impact": "npm 清理后启动仅依赖 node + dist；需 CI Build 与部署机首次启动确认 healthcheck"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "剥离 npm 自带高危依赖",
+        "reality": "Trivy 报的 6 个 HIGH 全在 npm 全局 node_modules，不在应用依赖",
+        "action": "删除运行时 npm/corepack/pnpm，业务依赖不动",
+        "why": "运行镜像不需要包管理器，删目录比放宽阈值更彻底"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "移除 npm 全局树后，undici / brace-expansion 两个来源从根上消失；未改业务依赖与扫描阈值。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "无新增费用。"
+  },
+  "scaffold": {
+    "requiredGroups": ["gateResults", "scopeCheck", "contractChecks", "backlogItems", "deviationTable", "reviewVerdict"],
+    "placeholders": []
+  }
+}

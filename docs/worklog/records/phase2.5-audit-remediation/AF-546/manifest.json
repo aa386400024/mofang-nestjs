@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-546",
   "contextId": "phase2.5-audit-remediation",
-  "status": "ready",
+  "status": "submitted",
   "createdAt": "2026-11-26T19:40:00+08:00",
-  "updatedAt": "2026-11-26T10:28:40.663Z",
+  "updatedAt": "2026-11-26T10:29:28.731Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-546/task-sheet.md",
     "sha256": "6691e7a215a801f1bf52624432bf549628e0e98549c63d835f29c4a1bc18f1a8",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-546/receipt-RC-AF-546-1.json",
+      "sha256": "ff777f138757005bf9cdadf9639deffbb2f84307252c260312387b2175f5d00c",
+      "receiptId": "RC-AF-546-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af546-runtime-image-npm-strip-2026-11-26.md",
   "legacyPaths": [
     "docs/worklog/inbox/AF-546-runtime-image-npm-strip.md"
