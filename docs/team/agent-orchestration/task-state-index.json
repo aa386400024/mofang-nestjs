@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2269,
+    "lastEventSeq": 2288,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -4383,6 +4383,42 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-552/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af552-canceled-task-notes-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-553",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-553/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af553-module-wiring-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-554",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-554/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af554-module-wiring-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-555",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-555/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af555-module-wiring-2026-11-26.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-556",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-556/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af556-canceled-task-notes-2026-11-26.md",
         "reply": null
       }
     }
