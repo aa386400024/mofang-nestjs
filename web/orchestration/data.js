@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-26T09:56:33.544Z",
+  "generatedAt": "2026-11-26T10:00:52.245Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-541",
-      "contextId": "phase2.5-audit-remediation",
-      "type": "implementation",
-      "title": "扩充 executor 资源域以覆盖部署与 CI 文件",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-541",
-        "contextId": "phase2.5-audit-remediation",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-26T09:56:33.456Z",
-        "leaseDeadline": "2026-11-26T10:26:33.453Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-541.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-26T09:56:33.456Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-541.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1935,6 +1894,13 @@ window.ORCH_SNAPSHOT = {
         "scripts/eval/",
         "admin-dashboard/",
         "docker/",
+        "Dockerfile",
+        "Dockerfile.prod",
+        "docker-compose.yml",
+        "docker-compose.prod.yml",
+        ".dockerignore",
+        "package.json",
+        ".github/workflows/",
         "docs/runbooks/",
         "docs/specs/",
         ".env.example",
@@ -2060,6 +2026,51 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-597",
+      "recordedAt": "2026-11-26T10:00:12.407Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-543",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-543",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-543.json"
+      ]
+    },
+    {
+      "auditId": "AUD-596",
+      "recordedAt": "2026-11-26T09:58:37.550Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-542",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-542",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-542.json"
+      ]
+    },
+    {
+      "auditId": "AUD-595",
+      "recordedAt": "2026-11-26T09:56:33.745Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-541",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-541",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-541.json"
+      ]
+    },
     {
       "auditId": "AUD-594",
       "recordedAt": "2026-11-26T09:52:39.981Z",
@@ -2249,93 +2260,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-534-phase25-final-tails"
       ]
-    },
-    {
-      "auditId": "AUD-582",
-      "recordedAt": "2026-11-26T08:07:28.272Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-534",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-534",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-534.json"
-      ]
-    },
-    {
-      "auditId": "AUD-581",
-      "recordedAt": "2026-11-26T08:07:22.162Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-533:AF-534",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-580",
-      "recordedAt": "2026-11-26T08:05:13.640Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-533",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-533-phase25-final-tails"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 594,
+    "total": 597,
     "byResult": {
-      "allowed": 594,
+      "allowed": 597,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 593,
+      "TOOL-QUEUE-SCHEDULER": 596,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 594
+      "orchestrator": 597
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-541",
-        "title": "扩充 executor 资源域以覆盖部署与 CI 文件",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-audit-remediation",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -10788,6 +10731,60 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af540-audit-p0-p1-remediation-2026-11-26.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-541",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-541/delivery-record.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-542",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-542/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af542-deploy-ci-hardening-2026-11-26.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-543",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-543/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-543/delivery-record.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -10802,17 +10799,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-541",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-541/task-sheet.md"
-      }
-    ],
-    "groupId": "phase2.5-audit-remediation",
-    "groupIds": [
-      "phase2.5-audit-remediation"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -10820,5 +10809,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 478
+  "archivedCount": 481
 };
