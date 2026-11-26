@@ -27,11 +27,13 @@ import { ConfigService } from '@nestjs/config';
 
 import { DoubaoTtsClient } from './doubao-tts-client.js';
 import { TtsBidiPoolService } from './tts-bidi-pool.service.js';
+import { TtsSessionLimiter } from './tts-session-limiter.js';
 import type { TtsOptions, TtsSessionHandle } from './tts.types.js';
 
 @Injectable()
 export class TtsService implements OnModuleDestroy {
   private readonly logger = new Logger(TtsService.name);
+  private readonly doubaoLimiter: TtsSessionLimiter;
 
   /**
    * @param pool TTS 连接池 (MiniMax bidi)
@@ -40,7 +42,15 @@ export class TtsService implements OnModuleDestroy {
   constructor(
     private readonly pool: TtsBidiPoolService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    // AF-561: 豆包 premium 也必须受并发闸门保护，不能每场无上限直连上游。
+    //   容量/排队超时复用 bidi 连接池既有运营参数（MINIMAX_TTS_MAX_CONNECTIONS /
+    //   MINIMAX_TTS_ACQUIRE_TIMEOUT_MS），避免新增未登记 env 键。
+    this.doubaoLimiter = new TtsSessionLimiter(
+      this.config.get<number>('minimax.ttsMaxConnections') ?? 8,
+      this.config.get<number>('minimax.ttsAcquireTimeoutMs') ?? 10_000,
+    );
+  }
 
   /**
    * 启动 TTS session — 业务侧在用户开始一轮对话时调.
@@ -55,16 +65,26 @@ export class TtsService implements OnModuleDestroy {
    */
   async startSession(opts: TtsOptions): Promise<TtsSessionHandle> {
     if (opts.profile?.provider === 'doubao') {
+      // AF-561: 先拿并发槽位再建连；满员排队，超时 fail-fast，不无限打上游。
+      const lease = await this.doubaoLimiter.acquire(`doubao:${opts.sessionId}`);
+      let released = false;
+      const releaseOnce = (): void => {
+        if (released) return;
+        released = true;
+        this.doubaoLimiter.release(lease.id);
+      };
       const client = new DoubaoTtsClient(this.config, opts, opts.profile);
       try {
         await client.start();
       } catch (err) {
         client.dispose();
+        releaseOnce();
         throw err;
       }
       this.logger.log(
         `[start_session] session=${opts.sessionId} tenant=${opts.tenantId} user=${opts.userId} ` +
-          `provider=doubao profile=${opts.profile.profileId} voice=${opts.profile.voiceId}`,
+          `provider=doubao profile=${opts.profile.profileId} voice=${opts.profile.voiceId} ` +
+          `active=${this.doubaoLimiter.stats().active}/${this.doubaoLimiter.stats().max}`,
       );
       return {
         sessionId: opts.sessionId,
@@ -72,7 +92,10 @@ export class TtsService implements OnModuleDestroy {
         sendText: (text: string) => client.sendText(text),
         cancel: () => client.cancel(),
         finish: () => client.finish(),
-        dispose: () => client.dispose(),
+        dispose: () => {
+          client.dispose();
+          releaseOnce();
+        },
       };
     }
 
@@ -97,6 +120,7 @@ export class TtsService implements OnModuleDestroy {
    * 进程退出时关闭所有连接.
    */
   async onModuleDestroy(): Promise<void> {
+    this.doubaoLimiter.shutdown();
     await this.pool.shutdown();
   }
 }

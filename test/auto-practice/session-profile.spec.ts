@@ -319,6 +319,8 @@ describe('AF-091 · decideTurn 的阈值入参', () => {
         visitorText: '我今晚先找姐姐过来陪我',
         visitorHistory: [],
         counselorText: '我们把安全计划写下来。',
+        crisisSafetyText:
+          '我们一起把药收起来放到够不着的地方；心理援助热线 12356、120、急诊都可以打；现在就联系家人，让朋友过来陪着你；不要独处；我们一起做安全计划，你答应我今晚不伤害自己。',
         lastCounselorText: '',
       },
       long.crisisWindow,

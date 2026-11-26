@@ -111,7 +111,7 @@ export const MEMBERSHIP_PLANS: Readonly<Record<MembershipTier, MembershipPlanDef
     annualFloorPriceCents: 328_000,
     monthlyMinutes: 1000,
     newUserBonusMinutes: 0,
-    ttsModel: TtsModel.Hd,
+    ttsModel: TtsModel.Premium,
     concurrentSessions: 1,
     textDailyLimit: 400,
     features: [
