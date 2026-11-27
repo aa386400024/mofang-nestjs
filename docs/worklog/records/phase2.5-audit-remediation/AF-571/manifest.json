@@ -4,7 +4,7 @@
   "contextId": "phase2.5-audit-remediation",
   "status": "submitted",
   "createdAt": "2026-11-27T12:20:00+08:00",
-  "updatedAt": "2026-11-27T05:27:40.162Z",
+  "updatedAt": "2026-11-27T05:28:58.595Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-571/task-sheet.md",
     "sha256": "fce9bd219d2b1a69963daf1c92b4d15c3d75062f60b9eeccaad19c2888fc29e2",
@@ -20,6 +20,11 @@
       "path": "docs/worklog/records/phase2.5-audit-remediation/AF-571/receipt-RC-AF-571-1-4c6e352d.json",
       "sha256": "4c6e352d0dd78ece314fc31bd67bae7b1d96442652bc7b57122d5d76f4f88e09",
       "receiptId": "RC-AF-571-1"
+    },
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-571/receipt-RC-AF-571-2.json",
+      "sha256": "945689ce761079d25a4508d2bae2a8a69bf1981b7edcc9b8e1d3f2b1231ca369",
+      "receiptId": "RC-AF-571-2"
     }
   ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md",
