@@ -20,6 +20,7 @@ import {
   validateTaskSheet,
   validateToolDir,
   validateProtocolView,
+  validateReceiptSchema,
   resolveValidationOutcome,
 } from '../validator.mjs';
 import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
@@ -1083,6 +1084,30 @@ describe('AF-009 交接契约校验与构造器', () => {
 
     const badFinal = validReceipt({ finalStatus: 'running' });
     expect(validateReceiptHandover(badFinal).errors.join(' ')).toMatch('finalStatus');
+  });
+
+  it('AF-579：已归档旧回执的字符串 deletionChecks 走兼容视图，活动任务同结构仍拒绝', async () => {
+    const legacy = validReceipt({
+      taskId: 'AF-534',
+      changedFiles: {
+        added: [],
+        modified: ['scripts/orchestration/transport.mjs'],
+        deleted: [],
+        deletionChecks: ['旧口径字符串核对说明'],
+      },
+    });
+    const snapshot = JSON.stringify(legacy);
+
+    const archived = await validateReceiptSchema(legacy, { archived: true });
+    expect(archived).toMatchObject({ ok: true, errors: [] });
+    const active = await validateReceiptSchema(legacy, { archived: false });
+    expect(active.ok).toBe(false);
+    const activeErrors = active.errors.map((error) => `${error.instancePath} ${error.message}`).join(' ');
+    expect(activeErrors).toMatch('deletionChecks');
+    expect(activeErrors).toMatch('must be object');
+
+    // 兼容只构造校验视图，不得改动调用方对象。
+    expect(JSON.stringify(legacy)).toBe(snapshot);
   });
 
   it('AF-043-I1：回执 changedFiles.commits 合法通过；非法 SHA 被拦截', () => {
