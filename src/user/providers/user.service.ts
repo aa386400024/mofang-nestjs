@@ -12,7 +12,7 @@ import { normalizeEmail } from '../../common/security/email-normalize.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
-import { hashPassword, verifyPassword } from '../../shared/infra/security/password-hasher.js';
+import { hashPassword, hasUsablePasswordHash, verifyPassword } from '../../shared/infra/security/password-hasher.js';
 
 import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto.js';
 import { LoginDto } from '../dto/login.dto.js';
@@ -272,7 +272,17 @@ export class UserService {
       throw new BizException(BizCode.EmailNotVerified, '请先验证邮箱');
     }
 
-    // 4. 密码校验
+    // 4. 无可用本地密码（验证码注册的空 hash / OAuth 占位值）：
+    //    对外仍是统一 InvalidCredentials，不能暴露“该邮箱未设密码”；
+    //    对内不计失败、不锁定，避免把从未设过密码的账号锁死。
+    //    延迟按“一次失败”口径补齐，减少与真实错密码的时序差。
+    if (!hasUsablePasswordHash(user.passwordHash)) {
+      this.metrics.incAuthLoginAttempt('failed');
+      await sleep(progressiveLoginDelayMs(user.failedLoginCount + 1));
+      return fail('password_not_set');
+    }
+
+    // 5. 密码校验
     const ok = await verifyPassword(dto.password, user.passwordHash);
     if (!ok) {
       this.metrics.incAuthLoginAttempt('failed');
@@ -283,7 +293,7 @@ export class UserService {
       return fail('bad_password');
     }
 
-    // 5. 改密周期检查 (V2 新规, 90 天强制改密)
+    // 6. 改密周期检查 (V2 新规, 90 天强制改密)
     const passwordExpired = this.passwordHistory.isPasswordExpired(user);
     if (passwordExpired) {
       this.metrics.incAuthLoginAttempt('expired_password');
@@ -291,7 +301,7 @@ export class UserService {
       await this.userRepo.save(user);
     }
 
-    // 6. 登录成功: 重置失败计数 + 更新最后登录时间
+    // 7. 登录成功: 重置失败计数 + 更新最后登录时间
     user.failedLoginCount = 0;
     user.lockedUntil = null;
     user.lastLoginAt = new Date();
@@ -447,7 +457,7 @@ export class UserService {
     if (!user) {
       throw new BizException(BizCode.UserNotFound, '用户不存在');
     }
-    if (user.passwordHash) {
+    if (hasUsablePasswordHash(user.passwordHash)) {
       throw new BizException(BizCode.InvalidParameter, '用户已有密码, 请用改密流程');
     }
     user.passwordHash = await hashPassword(password);
