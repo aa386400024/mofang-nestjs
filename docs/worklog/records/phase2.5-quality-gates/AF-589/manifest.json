@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-589",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-28T05:40:00+08:00",
+  "updatedAt": "2026-11-27T21:55:02.629Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-589/task-sheet.md",
+    "sha256": "1b798aa33a644f80a83adc4e39aa5276aa3167a06c905fc40b971ba450d243f9",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-589/receipt-RC-AF-589-1.json",
+      "sha256": "32273378597231b0f0cc4171a1f1f60098bccf4dd984366307042105056792e8",
+      "receiptId": "RC-AF-589-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af589-account-erasure-relation-columns-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af589-account-erasure-relation-columns-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
