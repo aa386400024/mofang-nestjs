@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T15:30:00.983Z",
+  "generatedAt": "2026-11-27T16:20:29.982Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2048,6 +2048,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-696",
+      "recordedAt": "2026-11-27T15:57:38.072Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-582",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-582-test-timeout-budget"
+      ]
+    },
+    {
+      "auditId": "AUD-695",
+      "recordedAt": "2026-11-27T15:57:33.402Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-582",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-582",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-582.json"
+      ]
+    },
+    {
+      "auditId": "AUD-694",
+      "recordedAt": "2026-11-27T15:57:23.414Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-582",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-693",
       "recordedAt": "2026-11-27T14:43:53.782Z",
       "actorRef": "orchestrator",
@@ -2234,67 +2281,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-681",
-      "recordedAt": "2026-11-27T10:53:44.542Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-577",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-577-delivery-record-backfill"
-      ]
-    },
-    {
-      "auditId": "AUD-680",
-      "recordedAt": "2026-11-27T10:53:25.755Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-577",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-577",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-577.json"
-      ]
-    },
-    {
-      "auditId": "AUD-679",
-      "recordedAt": "2026-11-27T10:53:01.038Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-577",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 693,
+    "total": 696,
     "byResult": {
-      "allowed": 693,
+      "allowed": 696,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 692,
+      "TOOL-QUEUE-SCHEDULER": 695,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 693
+      "orchestrator": 696
     }
   },
   "protocolView": {
@@ -11472,6 +11472,24 @@
             "ref": "docs/worklog/completed/phase2.5/af581-counselor-degraded-gate-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-582",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-582/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af582-test-timeout-budget-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11496,5 +11514,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 518
+  "archivedCount": 519
 }

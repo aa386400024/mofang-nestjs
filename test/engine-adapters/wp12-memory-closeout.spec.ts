@@ -803,7 +803,8 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     expect(transcript[0]?.text).toBe('最近睡不好。');
     expect(transcript[1]?.role).toBe(ChatRole.VISITOR);
     expect(transcript[1]?.text).toBe('有多久了？');
-  });
+    // 单跑实测 8.8s；全量 363 文件并行时会被 CPU 争用放大到 30s 以上。60s 是 6 倍余量，仍是挂起探测器。
+  }, 60_000);
 
   it('引擎副本为空 → 不覆盖 (拿空去覆盖会抹掉已落库的逐字稿)', async () => {
     const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
