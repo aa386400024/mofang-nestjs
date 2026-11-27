@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-578",
+  "contextId": "phase2.5-admin-dashboard-alignment",
+  "status": "backlog",
+  "createdAt": "2026-11-27T19:33:21+08:00",
+  "updatedAt": "2026-11-27T11:34:03.085Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-578/task-sheet.md",
+    "sha256": "b49265731de41a1e1e5b2cafd9df44dc0af9fd3ea6ad51e77c463e766d25119b",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af578-admin-dashboard-bdi-state-panel-declaration-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af578-admin-dashboard-bdi-state-panel-declaration-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
