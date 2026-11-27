@@ -1,0 +1,151 @@
+{
+  "deliveredAt": "2026-11-27T18:58:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-577-1",
+    "taskId": "AF-577",
+    "contextId": "phase2.5-toolchain",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "900b0414967666f3f33e924dfe202800dcf3b22f",
+    "dependsOn": [],
+    "policyRefs": [
+      "docs/team/conventions.md",
+      "docs/team/agent-orchestration/README.md"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af577-af576-delivery-record-backfill-2026-11-27.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af577-af576-delivery-record-backfill-2026-11-27.md"
+      ],
+      "modified": [
+        "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs validate --only-sheet --sheet docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "[SUMMARY] sheet=PASS global=FAIL exit=0；global FAIL 为全仓既有项，单 sheet 结论独立"
+      },
+      {
+        "command": "$env:ORCH_STATE_FREE='1'; node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS；写记录时 活跃=1 归档=513 记录包=533 inbox=0；本任务归档后为 活跃=0 归档=514 记录包=533"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS；事件日志 2399 条，哈希链与索引投影一致"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 纯层零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无输出；无空白错误"
+      }
+    ],
+    "reproNotes": "复跑顺序：node scripts/orchestration/cli.mjs validate --only-sheet --sheet docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md → node scripts/orchestration/cli.mjs worklog verify --strict --state-free → node scripts/orchestration/cli.mjs events verify → git diff --stat HEAD -- src/engine-core。文档改动只涉及 AF-576 交付记录与 AF-577 交付记录，未改代码、状态索引与事件日志。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-577 贯穿任务单、交付记录、回执与状态索引；提交标题含 AF-577"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / receipt freeze / archive 全部经 CLI；未手改索引与 journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 task-sheet schema；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-577 生命周期事件由 CLI 写入；events verify 校验哈希链与索引投影"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff；未改业务层、数据库、admin-dashboard"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=orchestrator 与 docs/worklog/、docs/team/agent-orchestration/ 资源域匹配"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；AF-576 记录保留归档前 gate 实测值并追加终态复核值，不篡改历史命令结果"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "把 AF-576 交付记录的 worklog 数字从 活跃=1 归档=512 更新为 活跃=0 归档=513",
+        "reality": "直接替换会让当时实际执行的命令看起来产生过不同的结果",
+        "action": "保留归档前真实值，并在同一行追加“合并后终态复核”值；新增独立终态复核小节说明 0/513/2396",
+        "why": "既修正终态证据，又不改写历史命令结果，保持证据可审计"
+      },
+      {
+        "taskSays": "本任务只做文档回填",
+        "reality": "状态锚点是本机权威状态，合并后仍保留归档前旧索引",
+        "action": "已按 merge SHA 刷新本机锚点；交付记录只写事实，不改仓库状态面",
+        "why": "本机运行态问题不能污染仓库提交与远端状态面"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-576 交付记录已补齐合并后终态数字与复核事实；本单仅改两份文档，engine-core 零 diff，工作日志严格校验与事件链校验通过，范围无越界。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地编排 CLI 与文件读取，无付费 LLM/TTS/API 调用。"
+  }
+}

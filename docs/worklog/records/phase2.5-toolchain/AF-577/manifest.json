@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-577",
+  "contextId": "phase2.5-toolchain",
+  "status": "completed",
+  "createdAt": "2026-11-27T18:52:35+08:00",
+  "updatedAt": "2026-11-27T11:02:16.772Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md",
+    "sha256": "87c4b0d3ce5182d6bc44318c1f66232d623d48e8e7e43310d653937db26533f9",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-toolchain/AF-577/receipt-RC-AF-577-1.json",
+      "sha256": "1959acf6863e15c74bd31a07006c46f447d7404fc12eafb817f88deb839827b1",
+      "receiptId": "RC-AF-577-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af577-af576-delivery-record-backfill-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af577-af576-delivery-record-backfill-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
