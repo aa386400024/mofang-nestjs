@@ -1,10 +1,15 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
+import { DeleteAccountDto } from '../../src/profile/dto/export.dto.js';
 import { buildExportArchive, buildSingleFileZip, crc32 } from '../../src/profile/providers/export-archive.js';
 import { ExportService } from '../../src/profile/providers/export.service.js';
 import type { UserDataExportPayload } from '../../src/profile/providers/user-data-export.collector.js';
+import { AuditEvent } from '../../src/user/enums/audit-event.enum.js';
+import { UserState } from '../../src/user/user.state.js';
 
 /** 最小导出载荷（真实采集器在 collector 单测里覆盖）. */
 function samplePayload(): UserDataExportPayload {
@@ -70,6 +75,42 @@ function buildService() {
   return { service, redis, collector, audit };
 }
 
+/** 删除账户路径：用户仓储、会话、JWT、OAuth 全部用可断言的桩. */
+function buildDeletionService(options: { user?: Record<string, unknown> | null; retentionDays?: number } = {}) {
+  const user =
+    options.user === undefined
+      ? {
+          uid: 'uid-del',
+          state: UserState.Active,
+          deletedAt: null,
+          passwordHash: 'bcrypt-hash',
+          phone: '13800000000',
+          email: 'del@example.com',
+          emailVerifiedAt: new Date('2026-01-01T00:00:00Z'),
+          phoneVerifiedAt: new Date('2026-01-01T00:00:00Z'),
+        }
+      : options.user;
+  const oauthDelete = vi.fn(async () => ({ affected: 1 }));
+  const repo = {
+    findOne: vi.fn(async () => user),
+    save: vi.fn(async (row: unknown) => row),
+    manager: { getRepository: vi.fn(() => ({ delete: oauthDelete })) },
+  };
+  const sessions = { revokeAllByUserId: vi.fn(async () => ['session-1', 'session-2']) };
+  const blacklist = { revokeMany: vi.fn(async () => {}) };
+  const audit = { log: vi.fn(async () => ({})) };
+  const service = new ExportService(
+    repo as never,
+    sessions as never,
+    blacklist as never,
+    audit as never,
+    { collect: vi.fn() } as never,
+    fakeRedis() as never,
+    { get: vi.fn(() => options.retentionDays ?? 30) } as never,
+  );
+  return { service, repo, sessions, blacklist, audit, oauthDelete };
+}
+
 describe('Phase4 WP29 · 用户数据导出纵切', () => {
   it('导出完成态返回任务、下载地址与真实字节数，并写审计', async () => {
     const { service, redis, audit } = buildService();
@@ -126,6 +167,86 @@ describe('Phase4 WP29 · 用户数据导出纵切', () => {
     expect(file.fileName.endsWith('.zip')).toBe(true);
     expect(file.body.subarray(0, 4).toString('hex')).toBe('504b0304');
     expect(file.body.subarray(-22).readUInt32LE(0)).toBe(101_010_256);
+  });
+});
+
+describe('Phase4 WP29 · 删除账户纵切', () => {
+  const confirmation = { confirmation: '确认删除', reason: '不想继续使用' };
+
+  it('软删账号、撤销会话 / JWT、解绑 OAuth 并写审计', async () => {
+    const { service, repo, sessions, blacklist, audit, oauthDelete } = buildDeletionService();
+
+    const response = await service.deleteAccount('uid-del', confirmation);
+
+    expect(response.status).toBe('deletion_requested');
+    expect(new Date(response.deletedAt).getTime()).toBeLessThanOrEqual(Date.now());
+    const purgeAt = new Date(response.purgeAt).getTime();
+    expect(purgeAt - new Date(response.deletedAt).getTime()).toBe(30 * 24 * 60 * 60 * 1000);
+
+    const saved = repo.save.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(saved).toMatchObject({
+      uid: 'uid-del',
+      state: UserState.Deleted,
+      passwordHash: '!DELETED!',
+      phone: null,
+      email: null,
+      emailVerifiedAt: null,
+      phoneVerifiedAt: null,
+    });
+    expect(saved['deletedAt']).toBeInstanceOf(Date);
+
+    expect(sessions.revokeAllByUserId).toHaveBeenCalledWith('uid-del');
+    expect(blacklist.revokeMany).toHaveBeenCalledWith(['session-1', 'session-2']);
+    expect(oauthDelete).toHaveBeenCalledWith({ userId: 'uid-del' });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'uid-del',
+        event: AuditEvent.UserAccountDeletionRequested,
+        metadata: expect.objectContaining({ reason: '不想继续使用', sessionsRevoked: 2, retentionDays: 30 }),
+        isSuccess: true,
+      }),
+    );
+  });
+
+  it('二次确认不匹配 → InvalidParameter，且不触碰账号与会话', async () => {
+    const { service, repo, sessions, blacklist, oauthDelete } = buildDeletionService();
+
+    await expect(service.deleteAccount('uid-del', { confirmation: '删除' })).rejects.toMatchObject({
+      code: BizCode.InvalidParameter,
+    });
+    await expect(service.deleteAccount('uid-del', { confirmation: '删除' })).rejects.toBeInstanceOf(BizException);
+    expect(repo.findOne).not.toHaveBeenCalled();
+    expect(repo.save).not.toHaveBeenCalled();
+    expect(sessions.revokeAllByUserId).not.toHaveBeenCalled();
+    expect(blacklist.revokeMany).not.toHaveBeenCalled();
+    expect(oauthDelete).not.toHaveBeenCalled();
+  });
+
+  it('用户不存在或已软删 → 404，不做任何写入', async () => {
+    const { service, repo, sessions } = buildDeletionService({ user: null });
+
+    await expect(service.deleteAccount('uid-del', confirmation)).rejects.toMatchObject({ status: 404 });
+    expect(repo.save).not.toHaveBeenCalled();
+    expect(sessions.revokeAllByUserId).not.toHaveBeenCalled();
+  });
+
+  it('自定义 retentionDays 决定 purgeAt', async () => {
+    const { service } = buildDeletionService({ retentionDays: 7 });
+
+    const response = await service.deleteAccount('uid-del', confirmation);
+    const delta = new Date(response.purgeAt).getTime() - new Date(response.deletedAt).getTime();
+    expect(delta).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('DeleteAccountDto 拒绝缺失或非字符串的 confirmation', async () => {
+    const missing = await validate(plainToInstance(DeleteAccountDto, {}));
+    expect(missing.some((error) => error.property === 'confirmation')).toBe(true);
+
+    const nonString = await validate(plainToInstance(DeleteAccountDto, { confirmation: 123 }));
+    expect(nonString.some((error) => error.property === 'confirmation')).toBe(true);
+
+    const valid = await validate(plainToInstance(DeleteAccountDto, confirmation));
+    expect(valid).toHaveLength(0);
   });
 });
 

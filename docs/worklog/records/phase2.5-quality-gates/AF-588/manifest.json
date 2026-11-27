@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-588",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-28T05:15:00+08:00",
+  "updatedAt": "2026-11-27T21:30:38.554Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-588/task-sheet.md",
+    "sha256": "45cee3d79369e5c3ec890895fa8992217757446d522b86aea07b374d2d7f1577",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-588/receipt-RC-AF-588-1.json",
+      "sha256": "c37cc1a6392f33a8e71fa37ca9c45e5d5da403951f38a9c9d3eb7cade468afe2",
+      "receiptId": "RC-AF-588-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af588-delete-account-contract-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af588-delete-account-contract-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}

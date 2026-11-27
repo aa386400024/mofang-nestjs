@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 /**
  * 数据导出请求 DTO — V2.0 §Tab4 隐私与数据安全.
@@ -39,15 +39,18 @@ export class ExportTaskDto {
  * 删除账户请求 DTO — V2.0 §Tab4 一键删除.
  *
  * 设计要点:
- *   - 二次确认由前端负责 (alertDialog)
- *   - 后端做最终校验 (密码 / 验证码 V3)
- *   - 真实删除走 7 天 cooldown, V2.0 占位直接 hard delete
+ *   - 二次确认由前端 dialog 触发, 后端仍校验字面值, 不信任前端
+ *   - 删除立即软删并撤销会话 / JWT / OAuth, 冷静期到期后由 cron 全量擦除
  */
 export class DeleteAccountDto {
   @ApiProperty({ description: '二次确认字符串, 必须是 "确认删除"', example: '确认删除' })
+  @IsString()
+  @IsNotEmpty()
   confirmation!: string;
 
   @ApiProperty({ description: '原因 (可选)', required: false })
+  @IsOptional()
+  @IsString()
   reason?: string;
 }
 
