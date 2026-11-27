@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-572",
+  "contextId": "phase2.5-toolchain",
+  "status": "backlog",
+  "createdAt": "2026-11-27T12:20:00+08:00",
+  "updatedAt": "2026-11-27T05:45:55.045Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-toolchain/AF-572/task-sheet.md",
+    "sha256": "f8ae62c740e2474ea34904a73eaf409bc3a1adc251b6bbfb3789e8fec5347251",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "",
+  "legacyPaths": [
+    "docs/worklog/inbox/af572-quality-scripts-lint-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}

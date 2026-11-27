@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2372,
+    "lastEventSeq": 2391,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -4556,6 +4556,42 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-572",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-572/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af572-quality-scripts-lint-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-573",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-573/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-574",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-575",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -4618,6 +4654,7 @@
     "AF-501": "scope 重签发 → AF-502",
     "AF-478": "补登历史已完成任务以解除 AF-481 依赖",
     "AF-525": "scope 重签发 → AF-526",
-    "AF-533": "scope 重签发 → AF-534"
+    "AF-533": "scope 重签发 → AF-534",
+    "AF-572": "scope 重签发 → AF-573"
   }
 }

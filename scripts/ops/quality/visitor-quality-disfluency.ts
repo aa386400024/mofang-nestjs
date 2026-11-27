@@ -231,24 +231,22 @@ export function compareWithSeedRanges(batch: BatchDisfluencySummary): SeedCompar
  */
 export function renderD7Report(batch: BatchDisfluencySummary, options: { readonly sessions: number }): string {
   const lines: string[] = [];
-  lines.push('');
-  lines.push('[D7] 不流利分布（Phase3 P1 · 观测对照，不接门禁）');
-  lines.push(`  有效场次 ${options.sessions} / 纳入轮次 ${batch.turns}`);
-  lines.push(`  events_per_turn      ${batch.eventsPerTurn.toFixed(4)}   (批次合计口径 · 与 P0 快照同源)`);
-  lines.push(`  event_turn_rate      ${batch.eventTurnRate.toFixed(4)}`);
-  lines.push(`  density_per100       ${batch.densityPer100Chars.toFixed(4)}`);
-  lines.push(`  filler_per_turn      ${batch.perTurn.filler.toFixed(4)}`);
-  lines.push(`  pause_per_turn       ${batch.perTurn.pause.toFixed(4)}`);
-  lines.push(`  repair_per_turn      ${batch.perTurn.repair.toFixed(4)}`);
-  lines.push(`  repetition_per_turn  ${batch.perTurn.repetition.toFixed(4)}`);
-  lines.push(`  trailoff_per_turn    ${batch.perTurn.trailoff.toFixed(4)}`);
   lines.push(
+    '',
+    '[D7] 不流利分布（Phase3 P1 · 观测对照，不接门禁）',
+    `  有效场次 ${options.sessions} / 纳入轮次 ${batch.turns}`,
+    `  events_per_turn      ${batch.eventsPerTurn.toFixed(4)}   (批次合计口径 · 与 P0 快照同源)`,
+    `  event_turn_rate      ${batch.eventTurnRate.toFixed(4)}`,
+    `  density_per100       ${batch.densityPer100Chars.toFixed(4)}`,
+    `  filler_per_turn      ${batch.perTurn.filler.toFixed(4)}`,
+    `  pause_per_turn       ${batch.perTurn.pause.toFixed(4)}`,
+    `  repair_per_turn      ${batch.perTurn.repair.toFixed(4)}`,
+    `  repetition_per_turn  ${batch.perTurn.repetition.toFixed(4)}`,
+    `  trailoff_per_turn    ${batch.perTurn.trailoff.toFixed(4)}`,
     `  跨场均值 (参考) events_per_turn ${batch.meanEventsPerTurn.toFixed(4)} / event_turn_rate ${batch.meanEventTurnRate.toFixed(4)} / density_per100 ${batch.meanDensityPer100Chars.toFixed(4)}`,
-  );
-  lines.push(
     `  六类事件合计 filler ${batch.typeCounts.filler} / pause ${batch.typeCounts.pause} / repetition ${batch.typeCounts.repetition} / repair ${batch.typeCounts.repair} / trailoff ${batch.typeCounts.trailoff} / elongation ${batch.typeCounts.elongation}`,
+    '  种子区间对照 (工程种子值 · P2 才接判据 · 只观测不判定):',
   );
-  lines.push('  种子区间对照 (工程种子值 · P2 才接判据 · 只观测不判定):');
   for (const row of compareWithSeedRanges(batch)) {
     lines.push(
       `    ${row.metric}  种子区间 ${row.seedLabel}  实测 ${row.measured.toFixed(4)}  ${row.inside ? '落在区间内' : '落在区间外'}`,

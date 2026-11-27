@@ -1,0 +1,176 @@
+{
+  "deliveredAt": "2026-11-27T16:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-574-1",
+    "taskId": "AF-574",
+    "contextId": "phase2.5-toolchain",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "cf830014158bff0547eb05d0aa3e6ce8b8234409",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-573",
+      "AF-572"
+    ],
+    "policyRefs": [
+      "docs/team/conventions.md",
+      "docs/team/agent-orchestration/README.md"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "aed982305f788ade7a65ddd5c55e9de275f5bfc6",
+        "20c81c921af55744c9af0a8a016072322d39b09e",
+        "9cb997f1ef34028eb5dbfbbab749c2ae5063bc42",
+        "8353dba3f0c5a2254a68f1ac589b3ffd2cec6ada"
+      ],
+      "added": [
+        "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
+        "docs/worklog/records/phase2.5-toolchain/AF-574/manifest.json",
+        "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md"
+      ],
+      "modified": [
+        "package.json",
+        "scripts/ops/quality/af086-exam-double-run.ts",
+        "scripts/ops/quality/af448-scripted-corpus.ts",
+        "scripts/ops/quality/g4-lexicon-substring-overlap-evidence.ts",
+        "scripts/ops/quality/i11-accessibility-reconciliation.ts",
+        "scripts/ops/quality/visitor-quality-audit.ts",
+        "scripts/ops/quality/visitor-quality-disfluency.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec eslint \"scripts/ops/quality/**/*.ts\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 14,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "14 个 quality TS 文件 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "全仓 lint 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "分钟级",
+        "note": "tsc --noEmit 0 error"
+      },
+      {
+        "command": "pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 363,
+        "machine": "同上",
+        "wallClock": "3586.86s",
+        "note": "362 passed / 1 skipped 文件，5143 passed / 4 skipped 用例，0 失败；标准并发 pnpm test 的 4 例冷启动超时已在隔离与串行复跑中排除"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec eslint \"scripts/ops/quality/**/*.ts\" → pnpm lint → pnpm typecheck → pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism → git diff --stat HEAD -- src/engine-core。关键断言：14 文件 0 error / 0 warning；全量 5143 passed / 4 skipped / 0 failed；engine-core 零 diff。AF-573 实现提交 aed98230 已落地。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-574 贯穿任务单、交付记录、回执与状态索引；priorTasks 指向 AF-573/AF-572"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI；未手改索引与 journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-573 rejected/archived 与 AF-574 流转均由 CLI 写入"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "实现改动落在 scripts/ops/quality 与 package.json；记录落在 AF-573/AF-574 包与 completed"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与 AF-574 交付记录同源；测试计数与退出码来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF574-01",
+        "impact": "本机 363 并发 worker 下，af073-batch-report-cli 4 个 spawnSync CLI 用例与 wp12 / crud.service 重型 hook 会触及 30s/10s 超时；标准 pnpm test 间歇红，串行与隔离复跑均通过",
+        "severity": "medium",
+        "schedule": "另立测试基础设施任务：评估提高 CLI 超时或在本地/CI 固定 maxWorkers，不改断言"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-573 回执为 conditional-pass",
+        "reality": "编排器按门禁判 rejected 并归档；AF-573 任务已终态，不能原地改回执",
+        "action": "登记 AF-574 返修验收任务，在 AF-573 提交基础上重出 passed 回执",
+        "why": "终态任务不可改，返修任务保留完整审计链"
+      },
+      {
+        "taskSays": "历史门禁口径为 pnpm test",
+        "reality": "标准并发本机 4 例冷启动超时；全量串行 0 失败",
+        "action": "AF-574 测试闸门显式写为 --no-file-parallelism 全量串行，回执记录真实命令",
+        "why": "不改 test/ 超时，也不伪造 pnpm test exit 0；用可复现的全量通过证据验收"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-573 已完成 quality TS 脚本 lint 清零与闸门覆盖，AF-574 在同一代码树复跑 lint/typecheck 均 0 error，全量 5143 用例串行 0 失败，engine-core 零 diff；标准并发下的 4 例失败已定位为本机冷启动抖动并登记遗留。实现提交 aed98230 与返修记录提交 8353dba3 均已落地，验收通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "未调用付费 LLM/TTS；仅本地 ESLint / tsc / vitest 与编排 CLI，无额外 API 消耗。"
+  }
+}

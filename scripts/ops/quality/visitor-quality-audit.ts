@@ -24,14 +24,6 @@ import path from 'node:path';
 
 // WP-J P1d · #4: 词表与打标逻辑抽到纯模块 —— 脚本末尾是 `await main()`, 直接 import 会跑整场审计,
 //   单测没法 import 本文件. 口径与实现仍然同源 (脚本用的就是这套词表).
-import { anxiousDimensionsOf, labelOf, type AnxiousChannelHits, type BehaviorLabel } from './visitor-quality-lexicon.js';
-
-// Phase3 P1 (文字层真人度 · 审计基线 · 口径同源迁移, 蓝图 §6 P1 · 遗留 L-1):
-//   ⚠️ 隐私分层 (蓝图 §5.2.3): analyzer 是**唯一接触台词原文**的模块,
-//      本脚本是 IO 层离线工具 —— 它的合法调用方; 纯计算层不得 import analyzer.
-//   词表 / 归一化口径全部来自 P0 纯模块: 脚本内私有 FILLERS 与 normalize 已废弃.
-import { analyzeDisfluency } from '../../../src/auto-practice/metrics/disfluency-analyzer.js';
-import { normalizeForLength, type DisfluencyMetrics } from '../../../src/auto-practice/metrics/disfluency-lexicon.js';
 import {
   aggregateDisfluencyBatch,
   batchIdOf,
@@ -41,6 +33,14 @@ import {
   type BatchDisfluencySummary,
   type SessionDisfluencySummary,
 } from './visitor-quality-disfluency.js';
+import { anxiousDimensionsOf, labelOf, type AnxiousChannelHits, type BehaviorLabel } from './visitor-quality-lexicon.js';
+
+// Phase3 P1 (文字层真人度 · 审计基线 · 口径同源迁移, 蓝图 §6 P1 · 遗留 L-1):
+//   ⚠️ 隐私分层 (蓝图 §5.2.3): analyzer 是**唯一接触台词原文**的模块,
+//      本脚本是 IO 层离线工具 —— 它的合法调用方; 纯计算层不得 import analyzer.
+//   词表 / 归一化口径全部来自 P0 纯模块: 脚本内私有 FILLERS 与 normalize 已废弃.
+import { analyzeDisfluency } from '../../../src/auto-practice/metrics/disfluency-analyzer.js';
+import { normalizeForLength, type DisfluencyMetrics } from '../../../src/auto-practice/metrics/disfluency-lexicon.js';
 
 /** 逐字稿消息. */
 interface TranscriptMessage {

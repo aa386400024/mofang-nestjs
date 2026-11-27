@@ -1,0 +1,167 @@
+{
+  "deliveredAt": "2026-11-27T16:40:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-575-1",
+    "taskId": "AF-575",
+    "contextId": "phase2.5-toolchain",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "2ba07843ab04e8a44d266e996da875e4c7f5730e",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-574",
+      "AF-573",
+      "AF-572"
+    ],
+    "policyRefs": [
+      "docs/team/conventions.md",
+      "docs/team/agent-orchestration/README.md"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": [
+        "aed982305f788ade7a65ddd5c55e9de275f5bfc6",
+        "20c81c921af55744c9af0a8a016072322d39b09e",
+        "9cb997f1ef34028eb5dbfbbab749c2ae5063bc42",
+        "8353dba3f0c5a2254a68f1ac589b3ffd2cec6ada",
+        "5d6503337d3eb536fb9e004710cc16ac311006c0",
+        "35fe2284ae92e727ec08fdfb784fc13ba385f149"
+      ],
+      "added": [
+        "docs/worklog/records/phase2.5-toolchain/AF-572/task-sheet.md",
+        "docs/worklog/records/phase2.5-toolchain/AF-572/manifest.json",
+        "docs/worklog/records/phase2.5-toolchain/AF-573/task-sheet.md",
+        "docs/worklog/records/phase2.5-toolchain/AF-573/manifest.json",
+        "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
+        "docs/worklog/records/phase2.5-toolchain/AF-574/manifest.json",
+        "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md",
+        "docs/worklog/records/phase2.5-toolchain/AF-575/manifest.json",
+        "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md",
+        "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+        "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md"
+      ],
+      "modified": [
+        "package.json",
+        "scripts/ops/quality/af086-exam-double-run.ts",
+        "scripts/ops/quality/af448-scripted-corpus.ts",
+        "scripts/ops/quality/g4-lexicon-substring-overlap-evidence.ts",
+        "scripts/ops/quality/i11-accessibility-reconciliation.ts",
+        "scripts/ops/quality/visitor-quality-audit.ts",
+        "scripts/ops/quality/visitor-quality-disfluency.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec eslint \"scripts/ops/quality/**/*.ts\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 14,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "14 个 quality TS 文件 0 error / 0 warning；基线 185 errors / 4 warnings"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "全仓 lint 0 error；lint/lint:fix 已覆盖 scripts/ops/quality/**/*.ts"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "分钟级",
+        "note": "tsc --noEmit 0 error；未新增类型工程"
+      },
+      {
+        "command": "pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 363,
+        "machine": "同上",
+        "wallClock": "3586.86s",
+        "note": "362 passed / 1 skipped 文件，5143 passed / 4 skipped 用例，0 失败；测试闸门按任务单显式串行执行"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec eslint \"scripts/ops/quality/**/*.ts\" → pnpm lint → pnpm typecheck → pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism → git diff --stat HEAD -- src/engine-core。关键断言：14 文件 0 error / 0 warning；全量 5143 passed / 4 skipped / 0 failed；engine-core 零 diff。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-575 贯穿任务单、交付记录、回执与状态索引；priorTasks 指向 AF-574/573/572"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI；未手改索引与 journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 与回执七组字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-572/573/574/575 流转均由 CLI 写入事件链"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "回执声明 commit 的文件全部落在 AF-575 scope；AF-572/573/574/575 记录包均在册"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与 AF-575 交付记录同源；lint 与测试计数来自真实命令输出"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "quality lint 闸门覆盖已落地且 14 文件 0 error / 0 warning；lint、typecheck、全量串行测试与 engine-core 边界全部通过；AF-572/573/574/575 记录包全部在 scope，机读护栏越域问题已消除。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "未调用付费 LLM/TTS；仅本地 ESLint / tsc / vitest 与编排 CLI，无额外 API 消耗。"
+  }
+}

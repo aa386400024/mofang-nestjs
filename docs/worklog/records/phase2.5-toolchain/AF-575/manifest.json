@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-575",
+  "contextId": "phase2.5-toolchain",
+  "status": "submitted",
+  "createdAt": "2026-11-27T16:35:00+08:00",
+  "updatedAt": "2026-11-27T08:10:50.291Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md",
+    "sha256": "f24147f0e19979c5c8c2d16bd09636faa0068e287301b99f12962a83e00ee1d1",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-toolchain/AF-575/receipt-RC-AF-575-1.json",
+      "sha256": "1b2d5b579dece4271c1d612043bb3f8df51b9a186f86c6d23327990dc84d6b41",
+      "receiptId": "RC-AF-575-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af575-quality-scripts-lint-rework-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}

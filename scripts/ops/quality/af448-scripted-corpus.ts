@@ -23,9 +23,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { KERNEL_REF } from '../../../src/engine-adapters/observability/kernel-fingerprint.js';
 import { RuleBasedClassifier, aggregateTurnDelta } from '../../../src/engine-core/index.js';
 import type { CounselorEventKind } from '../../../src/engine-core/index.js';
-import { KERNEL_REF } from '../../../src/engine-adapters/observability/kernel-fingerprint.js';
 
 /** 剧本轮：咨询师台词 + 来访回应（来访文本只入档，不参与规则分类）。 */
 interface ScriptedTurn {
@@ -297,8 +297,10 @@ export function generateScriptedCorpus(options: GenerateOptions) {
       for (const event of events) {
         perOperator[event.kind] = (perOperator[event.kind] ?? 0) + 1;
       }
-      messages.push({ role: 'counselor', text: turn.counselor, turnIndex, ts: now });
-      messages.push({ role: 'visitor', text: turn.visitor, turnIndex, ts: now });
+      messages.push(
+        { role: 'counselor', text: turn.counselor, turnIndex, ts: now },
+        { role: 'visitor', text: turn.visitor, turnIndex, ts: now },
+      );
       traces.push({
         turnIndex,
         deltaDetail: { events: events.map((event) => event.kind), ...delta },
@@ -341,10 +343,11 @@ export function generateScriptedCorpus(options: GenerateOptions) {
 const argv = process.argv.slice(2);
 const apply = argv.includes('--apply');
 const dirFlag = argv.indexOf('--dir');
-const dir = dirFlag >= 0 ? argv[dirFlag + 1] : 'data/debug-sessions';
+const dir = dirFlag === -1 ? 'data/debug-sessions' : argv[dirFlag + 1];
 
 if (argv.includes('--help') || argv.includes('-h')) {
   console.log('用法：tsx scripts/ops/quality/af448-scripted-corpus.ts [--apply] [--dir <目录>]');
+  // eslint-disable-next-line unicorn/no-process-exit -- CLI 脚本帮助分支需立即以 0 退出
   process.exit(0);
 }
 

@@ -305,20 +305,34 @@ export function parseArgs(argv: readonly string[]): Options {
   let maxHorizon = DEFAULT_MAX_HORIZON;
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === '--dir') {
-      dir = argv[index + 1] ?? dir;
-      index += 1;
-    } else if (token === '--out') {
-      out = argv[index + 1] ?? null;
-      index += 1;
-    } else if (token === '--min-samples') {
-      const parsed = Number(argv[index + 1]);
-      if (Number.isFinite(parsed) && parsed > 0) minSamples = Math.floor(parsed);
-      index += 1;
-    } else if (token === '--max-horizon') {
-      const parsed = Number(argv[index + 1]);
-      if (Number.isFinite(parsed) && parsed > 0) maxHorizon = Math.floor(parsed);
-      index += 1;
+    switch (token) {
+      case '--dir': {
+        dir = argv[index + 1] ?? dir;
+        index += 1;
+
+        break;
+      }
+      case '--out': {
+        out = argv[index + 1] ?? null;
+        index += 1;
+
+        break;
+      }
+      case '--min-samples': {
+        const parsed = Number(argv[index + 1]);
+        if (Number.isFinite(parsed) && parsed > 0) minSamples = Math.floor(parsed);
+        index += 1;
+
+        break;
+      }
+      case '--max-horizon': {
+        const parsed = Number(argv[index + 1]);
+        if (Number.isFinite(parsed) && parsed > 0) maxHorizon = Math.floor(parsed);
+        index += 1;
+
+        break;
+      }
+      // No default
     }
   }
   return { dir, out, minSamples, maxHorizon };
@@ -353,7 +367,7 @@ function clamp01(value: number): number {
  */
 function median(values: readonly number[]): number | null {
   if (values.length === 0) return null;
-  const sorted = [...values].sort((left, right) => left - right);
+  const sorted = values.toSorted((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[middle] ?? null;
   const low = sorted[middle - 1];
@@ -371,7 +385,7 @@ function median(values: readonly number[]): number | null {
  */
 function quantile(values: readonly number[], q: number): number | null {
   if (values.length === 0) return null;
-  const sorted = [...values].sort((left, right) => left - right);
+  const sorted = values.toSorted((left, right) => left - right);
   const position = (sorted.length - 1) * q;
   const lower = Math.floor(position);
   const upper = Math.ceil(position);
@@ -431,6 +445,31 @@ function projectTrace(trace: ArchiveTrace): SessionPoint | null {
  * @param session 归档会话
  * @returns 对账结果 (无有效轮 → null)
  */
+function blockerOf(allianceShort: boolean, depthShort: boolean): SessionReconciliation['blocker'] {
+  if (allianceShort && depthShort) return 'both';
+  if (allianceShort) return 'alliance';
+  if (depthShort) return 'depth';
+  return 'none';
+}
+
+function firstReachTurnOf(points: readonly SessionPoint[]): number | null {
+  for (const point of points) {
+    if (point.reachable) return point.turnIndex;
+  }
+  return null;
+}
+
+function countActiveTurns(points: readonly SessionPoint[]): number {
+  let activeTurns = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    if (!previous || !current) continue;
+    if (current.trust !== previous.trust || current.safety !== previous.safety || current.depth !== previous.depth) activeTurns += 1;
+  }
+  return activeTurns;
+}
+
 export function reconcileSession(dir: string, session: ArchiveSession): SessionReconciliation | null {
   const slug = (session.characterSlug ?? '').trim();
   const label = (session.characterLabel ?? '').trim();
@@ -449,31 +488,16 @@ export function reconcileSession(dir: string, session: ArchiveSession): SessionR
   if (points.length === 0) return null;
   points.sort((left, right) => left.turnIndex - right.turnIndex);
   const first = points[0];
-  const last = points[points.length - 1];
+  const last = points.at(-1);
   if (!first || !last) return null;
-  let firstReachTurn: number | null = null;
-  for (const point of points) {
-    if (point.reachable) {
-      firstReachTurn = point.turnIndex;
-      break;
-    }
-  }
+  const firstReachTurn = firstReachTurnOf(points);
   const allianceGap = Math.max(0, OPEN_THRESHOLD - last.gate);
   const depthGap = Math.max(0, last.depth - OPEN_DEPTH_THRESHOLD);
-  const allianceShort = allianceGap > 0;
-  const depthShort = depthGap > 0;
-  const blocker: SessionReconciliation['blocker'] =
-    allianceShort && depthShort ? 'both' : allianceShort ? 'alliance' : depthShort ? 'depth' : 'none';
+  const blocker = blockerOf(allianceGap > 0, depthGap > 0);
   const degradedTurns = points.filter((point) => point.degradedRound).length;
   const degradedSession = degradedTurns === points.length;
   const span = Math.max(1, points.length - 1);
-  let activeTurns = 0;
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const current = points[index];
-    if (!previous || !current) continue;
-    if (current.trust !== previous.trust || current.safety !== previous.safety || current.depth !== previous.depth) activeTurns += 1;
-  }
+  const activeTurns = countActiveTurns(points);
   return {
     dir,
     characterSlug: slug,
@@ -592,26 +616,19 @@ function unsupportedDimensions(start: SessionPoint, step: DeltaStats): string[] 
  * @param slow 最慢轮次
  * @returns 12 轮档 / 40 轮档结论
  */
+function tierLabel(fast: number, slow: number | null, limit: number, crossLabel: string): string {
+  if (fast > limit) return '不可达';
+  if (slow === null) return '可达 (仅快侧; 慢侧超视界)';
+  if (slow <= limit) return '可达';
+  return crossLabel;
+}
+
 export function classifyTier(fast: number | null, slow: number | null): TierVerdict {
   if (fast === null) return { tier12: '不可达', tier40: '不可达' };
   // 慢侧 = null → 慢侧超出外推视界: **不能用它把快侧也一起判死** ——
   //   快侧仍是有效信息 (「最快多少轮能到」), 但不能当稳健结论.
-  const tier12 =
-    fast <= TIER_12
-      ? slow === null
-        ? '可达 (仅快侧; 慢侧超视界)'
-        : slow <= TIER_12
-          ? '可达'
-          : '跨档 (12 轮档内可达, 之后不可达)'
-      : '不可达';
-  const tier40 =
-    fast <= TIER_40
-      ? slow === null
-        ? '可达 (仅快侧; 慢侧超视界)'
-        : slow <= TIER_40
-          ? '可达'
-          : '跨档 (40 轮档内可达, 之后不可达)'
-      : '不可达';
+  const tier12 = tierLabel(fast, slow, TIER_12, '跨档 (12 轮档内可达, 之后不可达)');
+  const tier40 = tierLabel(fast, slow, TIER_40, '跨档 (40 轮档内可达, 之后不可达)');
   return { tier12, tier40 };
 }
 
@@ -642,6 +659,7 @@ export function compareWithLedger(ledgerRounds: number | null, extrapolated: num
  * @param dir 目录
  * @returns 会话列表 (带批次目录名) + 跳过计数
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity -- 归档目录遍历、格式校验与跳过披露需在同一只读函数内统一计数
 function readArchiveSessions(dir: string): {
   readonly records: readonly { dir: string; session: ArchiveSession }[];
   readonly stats: ReadStats;
@@ -717,7 +735,7 @@ export function aggregateByDir(records: readonly SessionReconciliation[]): Group
   }
   const perDir: GroupAggregate[] = [];
   for (const [key, bucket] of groups) {
-    perDir.push(summarizeGroup(key.split('||')[0] ?? '', bucket));
+    perDir.push(summarizeGroup(key.split('||', 1)[0] ?? '', bucket));
   }
   perDir.sort((left, right) => (left.dir + left.characterSlug).localeCompare(right.dir + right.characterSlug));
   return perDir;
@@ -749,15 +767,22 @@ export function aggregateByCharacter(records: readonly SessionReconciliation[]):
  * @param records 对账结果
  * @returns 聚合
  */
+function ratio(numerator: number, denominator: number): number {
+  return denominator === 0 ? 0 : numerator / denominator;
+}
+
+function meanOf(values: readonly number[]): number {
+  return values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function summarizeGroup(dir: string, records: readonly SessionReconciliation[]): GroupAggregate {
   const first = records[0];
   const sessions = records.length;
   const degradedSessions = records.filter((record) => record.degradedSession).length;
   const reached = records.filter((record) => record.firstReachTurn !== null);
-  const reachTurns = reached.map((record) => record.firstReachTurn ?? 0).sort((left, right) => left - right);
+  const reachTurns = reached.map((record) => record.firstReachTurn ?? 0).toSorted((left, right) => left - right);
   const unreached = records.filter((record) => record.firstReachTurn === null);
-  const mean = (values: readonly number[]): number =>
-    values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+  const mean = meanOf;
   return {
     dir,
     characterSlug: first?.characterSlug ?? '',
@@ -765,10 +790,10 @@ function summarizeGroup(dir: string, records: readonly SessionReconciliation[]):
     sessions,
     degradedSessions,
     reachedSessions: reached.length,
-    reachRate: sessions === 0 ? 0 : reached.length / sessions,
+    reachRate: ratio(reached.length, sessions),
     reachTurnMin: reachTurns.length === 0 ? null : (reachTurns[0] ?? null),
     reachTurnMedian: median(reachTurns),
-    reachTurnMax: reachTurns.length === 0 ? null : (reachTurns[reachTurns.length - 1] ?? null),
+    reachTurnMax: reachTurns.length === 0 ? null : (reachTurns.at(-1) ?? null),
     lastTrustMean: mean(records.map((record) => record.last.trust)),
     lastSafetyMean: mean(records.map((record) => record.last.safety)),
     lastBondMean: mean(records.map((record) => record.last.bond)),
@@ -901,6 +926,34 @@ function resolveNetRateSource(
  * @param options 参数
  * @returns 外推结论
  */
+interface SimulationBatch {
+  readonly median: number[];
+  readonly fast: number[];
+  readonly slow: number[];
+  readonly unsupported: number;
+  readonly horizon: number;
+}
+
+function simulateBatch(records: readonly SessionReconciliation[], stats: DeltaStats, maxHorizon: number): SimulationBatch {
+  const result: SimulationBatch = { median: [], fast: [], slow: [], unsupported: 0, horizon: 0 };
+  for (const record of records) {
+    const middle = simulate(record.last, variantStats(stats, 'median'), maxHorizon);
+    const fast = simulate(record.last, variantStats(stats, 'p75'), maxHorizon);
+    const slow = simulate(record.last, variantStats(stats, 'p25'), maxHorizon);
+    if (middle.unsupported.length > 0) result.unsupported += 1;
+    else if (middle.rounds === null) result.horizon += 1;
+    if (middle.rounds !== null) result.median.push(middle.rounds);
+    if (fast.rounds !== null) result.fast.push(fast.rounds);
+    if (slow.rounds !== null) result.slow.push(slow.rounds);
+  }
+  return result;
+}
+
+function statusOf(roundsMedian: number | null, unsupported: number): Extrapolation['status'] {
+  if (roundsMedian !== null) return 'reachable';
+  return unsupported > 0 ? 'unreachable-direction' : 'unreachable-horizon';
+}
+
 export function extrapolateCharacter(
   slug: string,
   records: readonly SessionReconciliation[],
@@ -979,23 +1032,9 @@ export function extrapolateCharacter(
   }
   const degradedReference = computeDeltaStats(pairs.filter((pair) => pair.degraded));
   const notes: string[] = [];
-  const roundsMedianList: number[] = [];
-  const roundsFastList: number[] = [];
-  const roundsSlowList: number[] = [];
-  let unsupportedCount = 0;
-  let horizonCount = 0;
-  for (const record of unreached) {
-    const middle = simulate(record.last, variantStats(stats, 'median'), options.maxHorizon);
-    const fast = simulate(record.last, variantStats(stats, 'p75'), options.maxHorizon);
-    const slow = simulate(record.last, variantStats(stats, 'p25'), options.maxHorizon);
-    if (middle.unsupported.length > 0) unsupportedCount += 1;
-    else if (middle.rounds === null) horizonCount += 1;
-    if (middle.rounds !== null) roundsMedianList.push(middle.rounds);
-    if (fast.rounds !== null) roundsFastList.push(fast.rounds);
-    if (slow.rounds !== null) roundsSlowList.push(slow.rounds);
-  }
-  if (unsupportedCount > 0) notes.push('增量方向不支持的未触达场次 ' + unsupportedCount + ' 场');
-  if (horizonCount > 0) notes.push('超出外推视界 ' + options.maxHorizon + ' 轮的场次 ' + horizonCount + ' 场');
+  const mainBatch = simulateBatch(unreached, stats, options.maxHorizon);
+  if (mainBatch.unsupported > 0) notes.push('增量方向不支持的未触达场次 ' + mainBatch.unsupported + ' 场');
+  if (mainBatch.horizon > 0) notes.push('超出外推视界 ' + options.maxHorizon + ' 轮的场次 ' + mainBatch.horizon + ' 场');
   if (degradedReference !== null) {
     notes.push(
       '退化轮差分参考 (不进主增量): Δtrust=' +
@@ -1006,11 +1045,10 @@ export function extrapolateCharacter(
         degradedReference.depthMedian.toFixed(4),
     );
   }
-  const roundsMedian = median(roundsMedianList);
-  const roundsFast = median(roundsFastList);
-  const roundsSlow = median(roundsSlowList);
-  const status: Extrapolation['status'] =
-    roundsMedian === null ? (unsupportedCount > 0 ? 'unreachable-direction' : 'unreachable-horizon') : 'reachable';
+  const roundsMedian = median(mainBatch.median);
+  const roundsFast = median(mainBatch.fast);
+  const roundsSlow = median(mainBatch.slow);
+  const status = statusOf(roundsMedian, mainBatch.unsupported);
   // 补充口径 · 会话净变化率 (线性速率) —— 主口径的相邻轮差分中位在「零膨胀」分布下会恒为 0,
   //   这条用「整场净变化 / 有效轮数」估速率, 与台账 I-09 线性外推同量纲, 可直接对照.
   const netSource = resolveNetRateSource(slug, records, allRecords, options.minSamples);
@@ -1020,27 +1058,13 @@ export function extrapolateCharacter(
   let netRoundsFast: number | null = null;
   let netRoundsSlow: number | null = null;
   if (netStats !== null) {
-    const netMiddleList: number[] = [];
-    const netFastList: number[] = [];
-    const netSlowList: number[] = [];
-    let netUnsupported = 0;
-    let netHorizon = 0;
-    for (const record of unreached) {
-      const middle = simulate(record.last, variantStats(netStats, 'median'), options.maxHorizon);
-      const fast = simulate(record.last, variantStats(netStats, 'p75'), options.maxHorizon);
-      const slow = simulate(record.last, variantStats(netStats, 'p25'), options.maxHorizon);
-      if (middle.unsupported.length > 0) netUnsupported += 1;
-      else if (middle.rounds === null) netHorizon += 1;
-      if (middle.rounds !== null) netMiddleList.push(middle.rounds);
-      if (fast.rounds !== null) netFastList.push(fast.rounds);
-      if (slow.rounds !== null) netSlowList.push(slow.rounds);
-    }
-    netRoundsMedian = median(netMiddleList);
-    netRoundsFast = median(netFastList);
-    netRoundsSlow = median(netSlowList);
-    netStatus = netRoundsMedian === null ? (netUnsupported > 0 ? 'unreachable-direction' : 'unreachable-horizon') : 'reachable';
-    if (netUnsupported > 0) notes.push('补充口径: 增量方向不支持的未触达场次 ' + netUnsupported + ' 场');
-    if (netHorizon > 0) notes.push('补充口径: 超出外推视界 ' + options.maxHorizon + ' 轮的场次 ' + netHorizon + ' 场');
+    const netBatch = simulateBatch(unreached, netStats, options.maxHorizon);
+    netRoundsMedian = median(netBatch.median);
+    netRoundsFast = median(netBatch.fast);
+    netRoundsSlow = median(netBatch.slow);
+    netStatus = statusOf(netRoundsMedian, netBatch.unsupported);
+    if (netBatch.unsupported > 0) notes.push('补充口径: 增量方向不支持的未触达场次 ' + netBatch.unsupported + ' 场');
+    if (netBatch.horizon > 0) notes.push('补充口径: 超出外推视界 ' + options.maxHorizon + ' 轮的场次 ' + netBatch.horizon + ' 场');
   }
   return {
     characterSlug: slug,
@@ -1102,8 +1126,7 @@ function fmt(value: number | null, digits = 3): string {
  * @param rows 表体
  */
 function pushTable(lines: string[], headers: readonly string[], rows: readonly (readonly string[])[]): void {
-  lines.push('| ' + headers.join(' | ') + ' |');
-  lines.push('| ' + headers.map(() => '---').join(' | ') + ' |');
+  lines.push('| ' + headers.join(' | ') + ' |', '| ' + headers.map(() => '---').join(' | ') + ' |');
   for (const row of rows) lines.push('| ' + row.join(' | ') + ' |');
   lines.push('');
 }
@@ -1114,6 +1137,85 @@ function pushTable(lines: string[], headers: readonly string[], rows: readonly (
  * @param input 取证输入
  * @returns Markdown 行数组
  */
+function statusTextOf(status: Extrapolation['status'] | undefined, roundsMedian: number | null | undefined): string {
+  switch (status) {
+    case 'unreachable-direction':
+      return '不可达 (增量方向不支持)';
+    case 'unreachable-horizon':
+      return '不可达 (超出外推视界)';
+    case 'insufficient-sample':
+      return '样本不足 (不出结论)';
+    case 'reached-in-sequence':
+      return '序列内已全部触达';
+    default:
+      return fmt(roundsMedian ?? null, 0);
+  }
+}
+
+function ledgerRoundsText(ledger: (typeof LEDGER_TABLE)[number] | undefined): string {
+  return ledger?.rounds === null || ledger === undefined ? 'n/a' : String(ledger.rounds);
+}
+
+function reachTurnsText(group: GroupAggregate): string {
+  return fmt(group.reachTurnMin, 0) + ' / ' + fmt(group.reachTurnMedian, 0) + ' / ' + fmt(group.reachTurnMax, 0);
+}
+
+function buildLedgerRows(
+  perCharacter: readonly GroupAggregate[],
+  extrapolations: readonly Extrapolation[],
+  maxHorizon: number,
+): string[][] {
+  // eslint-disable-next-line complexity -- 单角色一行十列对照，扁平取值链不拆成中间函数
+  return perCharacter.map((group) => {
+    const ledger = LEDGER_TABLE.find((row) => row.characterSlug === group.characterSlug);
+    const extrapolation = extrapolations.find((item) => item.characterSlug === group.characterSlug);
+    const range = formatRange(extrapolation?.roundsFast ?? null, extrapolation?.roundsSlow ?? null, maxHorizon);
+    const net = extrapolation?.net;
+    const netRange = formatRange(net?.roundsFast ?? null, net?.roundsSlow ?? null, maxHorizon);
+    return [
+      group.characterLabel,
+      ledgerRoundsText(ledger),
+      statusTextOf(extrapolation?.status, extrapolation?.roundsMedian),
+      range,
+      statusTextOf(net?.status, net?.roundsMedian),
+      netRange,
+      reachTurnsText(group),
+      (group.reachRate * 100).toFixed(1) + '%',
+      compareWithLedger(ledger?.rounds ?? null, extrapolation?.roundsMedian ?? null),
+      compareWithLedger(ledger?.rounds ?? null, net?.roundsMedian ?? null),
+    ];
+  });
+}
+
+function buildExtrapolationRows(
+  perCharacter: readonly GroupAggregate[],
+  extrapolations: readonly Extrapolation[],
+  maxHorizon: number,
+): string[][] {
+  // eslint-disable-next-line complexity -- 单角色一行九列外推对照，扁平取值链不拆成中间函数
+  return perCharacter.map((group) => {
+    const extrapolation = extrapolations.find((item) => item.characterSlug === group.characterSlug);
+    const net = extrapolation?.net;
+    const netVerdict = classifyTier(net?.roundsFast ?? null, net?.roundsSlow ?? null);
+    const range = formatRange(extrapolation?.roundsFast ?? null, extrapolation?.roundsSlow ?? null, maxHorizon);
+    const netRange = formatRange(net?.roundsFast ?? null, net?.roundsSlow ?? null, maxHorizon);
+    const sampleCount = extrapolation?.stats === null || extrapolation === undefined ? 'n/a' : String(extrapolation.stats.count);
+    const activeRate =
+      extrapolation?.activeTurnRate === null || extrapolation === undefined ? 'n/a' : (extrapolation.activeTurnRate * 100).toFixed(1) + '%';
+    return [
+      group.characterLabel,
+      range,
+      netRange,
+      netVerdict.tier12,
+      netVerdict.tier40,
+      extrapolation?.sourceLabel ?? 'n/a',
+      sampleCount,
+      String(extrapolation?.degradedSampleCount ?? 0),
+      activeRate,
+    ];
+  });
+}
+
 function buildReport(input: {
   readonly options: Options;
   readonly stats: ReadStats;
@@ -1124,12 +1226,12 @@ function buildReport(input: {
 }): string[] {
   const lines: string[] = [];
   const { options, stats, records, perDir, perCharacter, extrapolations } = input;
-  lines.push('=== I-11 方向 3 · 探索门槛可达性离线对账 ===');
-  lines.push('归档目录   ' + options.dir);
-  lines.push('门槛       open=' + OPEN_THRESHOLD + ' / openDepth=' + OPEN_DEPTH_THRESHOLD + ' (真相源 alliance-config.ts)');
-  lines.push('样本下限   ' + options.minSamples + ' 个有效差分 | 外推视界 ' + options.maxHorizon + ' 轮');
-  lines.push('场次       ' + records.length + ' 场 | 有效轮次 ' + records.reduce((sum, record) => sum + record.turns, 0));
   lines.push(
+    '=== I-11 方向 3 · 探索门槛可达性离线对账 ===',
+    '归档目录   ' + options.dir,
+    '门槛       open=' + OPEN_THRESHOLD + ' / openDepth=' + OPEN_DEPTH_THRESHOLD + ' (真相源 alliance-config.ts)',
+    '样本下限   ' + options.minSamples + ' 个有效差分 | 外推视界 ' + options.maxHorizon + ' 轮',
+    '场次       ' + records.length + ' 场 | 有效轮次 ' + records.reduce((sum, record) => sum + record.turns, 0),
     '跳过披露   非 JSON 文件 ' +
       stats.nonJson +
       ' | 解析失败 ' +
@@ -1140,9 +1242,9 @@ function buildReport(input: {
       stats.missingTraces +
       ' | 根目录散落文件 ' +
       stats.looseFiles,
+    '',
+    '-- 表 A · 逐场实测对账 (角色 × 批次目录) --',
   );
-  lines.push('');
-  lines.push('-- 表 A · 逐场实测对账 (角色 × 批次目录) --');
   pushTable(
     lines,
     [
@@ -1242,9 +1344,9 @@ function buildReport(input: {
   );
   lines.push(
     'A = 任务单主口径 (相邻轮差分中位); B = 补充口径 (整场净变化 / 有效轮数). 归档样本的相邻轮差分高度零膨胀 → A 的中位常为 0 → A 恒判「方向不支持」, 这是**方法退化**, 不是临床不可达结论.',
+    '',
+    '-- 表 C · 实测 / 外推 / 台账 三列对照 (外推列 = 非实测) --',
   );
-  lines.push('');
-  lines.push('-- 表 C · 实测 / 外推 / 台账 三列对照 (外推列 = 非实测) --');
   pushTable(
     lines,
     [
@@ -1259,46 +1361,7 @@ function buildReport(input: {
       '偏差方向与量级 (A)',
       '偏差方向与量级 (B)',
     ],
-    perCharacter.map((group) => {
-      const slug = group.characterSlug;
-      const ledger = LEDGER_TABLE.find((row) => row.characterSlug === slug);
-      const extrapolation = extrapolations.find((item) => item.characterSlug === slug);
-      const range = formatRange(extrapolation?.roundsFast ?? null, extrapolation?.roundsSlow ?? null, options.maxHorizon);
-      const statusText =
-        extrapolation?.status === 'unreachable-direction'
-          ? '不可达 (增量方向不支持)'
-          : extrapolation?.status === 'unreachable-horizon'
-            ? '不可达 (超出外推视界)'
-            : extrapolation?.status === 'insufficient-sample'
-              ? '样本不足 (不出结论)'
-              : extrapolation?.status === 'reached-in-sequence'
-                ? '序列内已全部触达'
-                : fmt(extrapolation?.roundsMedian ?? null, 0);
-      const net = extrapolation?.net;
-      const netRange = formatRange(net?.roundsFast ?? null, net?.roundsSlow ?? null, options.maxHorizon);
-      const netStatusText =
-        net?.status === 'unreachable-direction'
-          ? '不可达 (增量方向不支持)'
-          : net?.status === 'unreachable-horizon'
-            ? '不可达 (超出外推视界)'
-            : net?.status === 'insufficient-sample'
-              ? '样本不足 (不出结论)'
-              : net?.status === 'reached-in-sequence'
-                ? '序列内已全部触达'
-                : fmt(net?.roundsMedian ?? null, 0);
-      return [
-        group.characterLabel,
-        ledger?.rounds === null || ledger === undefined ? 'n/a' : String(ledger.rounds),
-        statusText,
-        range,
-        netStatusText,
-        netRange,
-        fmt(group.reachTurnMin, 0) + ' / ' + fmt(group.reachTurnMedian, 0) + ' / ' + fmt(group.reachTurnMax, 0),
-        (group.reachRate * 100).toFixed(1) + '%',
-        compareWithLedger(ledger?.rounds ?? null, extrapolation?.roundsMedian ?? null),
-        compareWithLedger(ledger?.rounds ?? null, net?.roundsMedian ?? null),
-      ];
-    }),
+    buildLedgerRows(perCharacter, extrapolations, options.maxHorizon),
   );
   lines.push('-- 表 D · 档位归类 (沿用 C5-1 分层, 不新建阈值, 不进判据表/门禁/verdict) --');
   pushTable(
@@ -1314,27 +1377,7 @@ function buildReport(input: {
       '退化轮差分样本数',
       '活跃轮占比 (三维有变化的轮次占比)',
     ],
-    perCharacter.map((group) => {
-      const extrapolation = extrapolations.find((item) => item.characterSlug === group.characterSlug);
-      const verdict = classifyTier(extrapolation?.roundsFast ?? null, extrapolation?.roundsSlow ?? null);
-      const net = extrapolation?.net;
-      const netVerdict = classifyTier(net?.roundsFast ?? null, net?.roundsSlow ?? null);
-      const range = formatRange(extrapolation?.roundsFast ?? null, extrapolation?.roundsSlow ?? null, options.maxHorizon);
-      const netRange = formatRange(net?.roundsFast ?? null, net?.roundsSlow ?? null, options.maxHorizon);
-      return [
-        group.characterLabel,
-        range,
-        netRange,
-        netVerdict.tier12,
-        netVerdict.tier40,
-        extrapolation?.sourceLabel ?? 'n/a',
-        extrapolation?.stats === null || extrapolation === undefined ? 'n/a' : String(extrapolation.stats.count),
-        String(extrapolation?.degradedSampleCount ?? 0),
-        extrapolation?.activeTurnRate === null || extrapolation === undefined
-          ? 'n/a'
-          : (extrapolation.activeTurnRate * 100).toFixed(1) + '%',
-      ];
-    }),
+    buildExtrapolationRows(perCharacter, extrapolations, options.maxHorizon),
   );
   lines.push('-- 表 E · 增量样本明细 (主增量 = 非退化轮差分) --');
   pushTable(
@@ -1370,10 +1413,12 @@ function buildReport(input: {
       ];
     }),
   );
-  lines.push('-- 外推假设 (结论只在这些假设下成立) --');
-  lines.push('恒定增量速率 / 无阻抗反弹 / 无危机-破裂态 / 无跨会话衰减 / 无事件类型结构变化 / 状态 clamp [0,1].');
-  lines.push('外推是模型估算, 不是实测 —— 不得与实测列混排解读.');
-  lines.push('');
+  lines.push(
+    '-- 外推假设 (结论只在这些假设下成立) --',
+    '恒定增量速率 / 无阻抗反弹 / 无危机-破裂态 / 无跨会话衰减 / 无事件类型结构变化 / 状态 clamp [0,1].',
+    '外推是模型估算, 不是实测 —— 不得与实测列混排解读.',
+    '',
+  );
   return lines;
 }
 

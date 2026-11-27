@@ -20,13 +20,12 @@
  *   corepack pnpm exec tsx scripts/ops/quality/af086-exam-double-run.ts --batch1 <id> --batch2 <id>
  */
 
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import process from 'node:process';
-
 import 'dotenv/config';
 import { createConnection, type RowDataPacket } from 'mysql2/promise';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
 
 type BatchStatus = 'running' | 'completed' | 'crisis_ended' | 'stagnant' | 'failed' | 'canceled';
 
@@ -36,7 +35,7 @@ interface BatchProgress {
   byStatus: Record<string, number>;
   engineVersion: string | null;
   promptVersion: string | null;
-  sessions: Array<{
+  sessions: {
     id: string;
     characterSlug: string;
     counselorModeId: string;
@@ -45,7 +44,7 @@ interface BatchProgress {
     exitReason: string | null;
     engineVersion: string | null;
     promptVersion: string | null;
-  }>;
+  }[];
 }
 
 interface SessionRow {
@@ -132,7 +131,7 @@ interface EvidenceReport {
   sessions: Record<string, SessionEvidence>;
   groups: GroupComparison[];
   gates: GateSummary;
-  checks: Array<{ name: string; passed: boolean; detail: string }>;
+  checks: { name: string; passed: boolean; detail: string }[];
   verdict: 'pass' | 'fail';
 }
 
@@ -162,7 +161,7 @@ function parseArgs(argv: string[]): Map<string, string> {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toNumber(value: unknown): number {
@@ -174,8 +173,8 @@ function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');
 }
 
-function readJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, 'utf8')) as unknown;
+function readJson(filePath: string): unknown {
+  return JSON.parse(readFileSync(filePath, 'utf8')) as unknown;
 }
 
 function extractTraces(parsed: unknown): { scenarioType: string | null; traces: TraceShape[] } {
@@ -212,8 +211,8 @@ function stableJson(value: unknown): string {
 
 function sameRecord(a: Record<string, number> | null, b: Record<string, number> | null): boolean {
   if (a === null || b === null) return a === b;
-  const keysA = Object.keys(a).sort();
-  const keysB = Object.keys(b).sort();
+  const keysA = Object.keys(a).toSorted();
+  const keysB = Object.keys(b).toSorted();
   if (keysA.length !== keysB.length) return false;
   for (const key of keysA) {
     if (a[key] !== b[key]) return false;
@@ -233,7 +232,7 @@ class HttpClient {
       headers: {
         authorization: this.authorization,
         'content-type': 'application/json',
-        ...(init?.headers ?? {}),
+        ...init?.headers,
       },
     });
     const text = await response.text();
@@ -360,10 +359,10 @@ function buildSessionEvidence(row: SessionRow, storeDir: string): SessionEvidenc
     finalBdi: null,
     transcriptHash: '',
   };
-  const path = join(storeDir, `${row.debug_session_id}.json`);
-  if (!existsSync(path)) return { ...base, error: 'transcript_missing' };
+  const tracePath = path.join(storeDir, `${row.debug_session_id}.json`);
+  if (!existsSync(tracePath)) return { ...base, error: 'transcript_missing' };
   try {
-    const parsed = readJson(path);
+    const parsed = readJson(tracePath);
     const { scenarioType, traces } = extractTraces(parsed);
     return {
       ...base,
@@ -371,7 +370,7 @@ function buildSessionEvidence(row: SessionRow, storeDir: string): SessionEvidenc
       traceCount: traces.length,
       strategySequence: traces.map((trace) => trace.strategy),
       eventTagSequence: traces.map((trace) => trace.eventTags.join(',')),
-      finalBdi: traces.length === 0 ? null : traces[traces.length - 1]!.bdiSnapshot,
+      finalBdi: traces.length === 0 ? null : traces.at(-1)!.bdiSnapshot,
       transcriptHash: sha256(stableJson(traces)),
     };
   } catch (error) {
@@ -422,6 +421,63 @@ function compareGroups(sessions: SessionEvidence[]): GroupComparison[] {
   return comparisons;
 }
 
+function buildChecks(
+  progress1: BatchProgress,
+  progress2: BatchProgress,
+  sessions: SessionEvidence[],
+  gates: GateSummary,
+  comparisons: GroupComparison[],
+  expected: number,
+): EvidenceReport['checks'] {
+  const runningUndefined = progress1.byStatus['running'] === undefined && progress2.byStatus['running'] === undefined;
+  const failedUndefined = progress1.byStatus['failed'] === undefined && progress2.byStatus['failed'] === undefined;
+  const checks: EvidenceReport['checks'] = [];
+  checks.push(
+    {
+      name: 'two_batches_completed',
+      passed: progress1.total === expected && progress2.total === expected && runningUndefined && failedUndefined,
+      detail: `batch1=${progress1.total}/${expected} ${stableJson(progress1.byStatus)}; batch2=${progress2.total}/${expected} ${stableJson(progress2.byStatus)}`,
+    },
+    {
+      name: 'all_scenario_exam',
+      passed: sessions.length === expected * 2 && sessions.every((session) => session.scenarioType === 'exam'),
+      detail: `sessions=${sessions.length}, exam=${sessions.filter((session) => session.scenarioType === 'exam').length}`,
+    },
+    {
+      name: 'all_rule_only',
+      passed: sessions.length > 0 && sessions.every((session) => session.deliberationMode === 'rule_only'),
+      detail: `rule_only=${sessions.filter((session) => session.deliberationMode === 'rule_only').length}/${sessions.length}`,
+    },
+    {
+      name: 'gates_rule_only_skip',
+      passed:
+        gates.total > 0 &&
+        gates.byMode['rule_only'] === gates.total &&
+        gates.byReason['rule_only_skip'] === gates.total &&
+        gates.byDecision['skip'] === gates.total,
+      detail: stableJson({ total: gates.total, byMode: gates.byMode, byDecision: gates.byDecision, byReason: gates.byReason }),
+    },
+    {
+      name: 'llm_calls_are_render_only',
+      passed: sessions.length > 0 && sessions.every((session) => session.llmCallTurns >= 0),
+      detail: `llmCalls=${sessions.reduce((sum, session) => sum + session.llmCallTurns, 0)}（咨询师/来访者渲染调用；审议侧见 gates 全 rule_only_skip）`,
+    },
+    {
+      name: 'group_fingerprints_equal',
+      passed:
+        comparisons.length === DEFAULT_BODY.characterSlugs.length * DEFAULT_BODY.counselorModeIds.length &&
+        comparisons.every((comparison) => comparison.fingerprintEqual && comparison.deliberationModeEqual),
+      detail: `groups=${comparisons.length}, fingerprintEqual=${comparisons.filter((comparison) => comparison.fingerprintEqual).length}`,
+    },
+    {
+      name: 'rule_layer_divergence_observed',
+      passed: true,
+      detail: `strategySeqEqual=${comparisons.filter((comparison) => comparison.strategySequenceEqual).length}/${comparisons.length}; finalBdiEqual=${comparisons.filter((comparison) => comparison.finalBdiEqual).length}/${comparisons.length}; 规则层差异只记录，回归判定以 WP-K 批次指标为准`,
+    },
+  );
+  return checks;
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const baseUrl = args.get('base-url') ?? 'http://127.0.0.1:3100';
@@ -454,47 +510,12 @@ async function main(): Promise<void> {
   const progress2 = await waitBatch(client, batch2, expected, 45 * 60 * 1000);
 
   const rows = await loadSessions([batch1, batch2]);
-  const storeDir = resolve(process.env['ADMIN_DEBUG_SESSION_DIR'] ?? 'data/debug-sessions');
+  const storeDir = path.resolve(process.env['ADMIN_DEBUG_SESSION_DIR'] ?? 'data/debug-sessions');
   const sessions = rows.map((row) => buildSessionEvidence(row, storeDir));
   const comparisons = compareGroups(sessions);
   const gates = await loadGateSummary(rows.map((row) => row.debug_session_id));
 
-  const checks: EvidenceReport['checks'] = [];
-  checks.push({
-    name: 'two_batches_completed',
-    passed: progress1.total === expected && progress2.total === expected && progress1.byStatus['running'] === undefined && progress2.byStatus['running'] === undefined && progress1.byStatus['failed'] === undefined && progress2.byStatus['failed'] === undefined,
-    detail: `batch1=${progress1.total}/${expected} ${stableJson(progress1.byStatus)}; batch2=${progress2.total}/${expected} ${stableJson(progress2.byStatus)}`,
-  });
-  checks.push({
-    name: 'all_scenario_exam',
-    passed: sessions.length === expected * 2 && sessions.every((session) => session.scenarioType === 'exam'),
-    detail: `sessions=${sessions.length}, exam=${sessions.filter((session) => session.scenarioType === 'exam').length}`,
-  });
-  checks.push({
-    name: 'all_rule_only',
-    passed: sessions.length > 0 && sessions.every((session) => session.deliberationMode === 'rule_only'),
-    detail: `rule_only=${sessions.filter((session) => session.deliberationMode === 'rule_only').length}/${sessions.length}`,
-  });
-  checks.push({
-    name: 'gates_rule_only_skip',
-    passed: gates.total > 0 && gates.byMode['rule_only'] === gates.total && gates.byReason['rule_only_skip'] === gates.total && gates.byDecision['skip'] === gates.total,
-    detail: stableJson({ total: gates.total, byMode: gates.byMode, byDecision: gates.byDecision, byReason: gates.byReason }),
-  });
-  checks.push({
-    name: 'llm_calls_are_render_only',
-    passed: sessions.length > 0 && sessions.every((session) => session.llmCallTurns >= 0),
-    detail: `llmCalls=${sessions.reduce((sum, session) => sum + session.llmCallTurns, 0)}（咨询师/来访者渲染调用；审议侧见 gates 全 rule_only_skip）`,
-  });
-  checks.push({
-    name: 'group_fingerprints_equal',
-    passed: comparisons.length === DEFAULT_BODY.characterSlugs.length * DEFAULT_BODY.counselorModeIds.length && comparisons.every((comparison) => comparison.fingerprintEqual && comparison.deliberationModeEqual),
-    detail: `groups=${comparisons.length}, fingerprintEqual=${comparisons.filter((comparison) => comparison.fingerprintEqual).length}`,
-  });
-  checks.push({
-    name: 'rule_layer_divergence_observed',
-    passed: true,
-    detail: `strategySeqEqual=${comparisons.filter((comparison) => comparison.strategySequenceEqual).length}/${comparisons.length}; finalBdiEqual=${comparisons.filter((comparison) => comparison.finalBdiEqual).length}/${comparisons.length}; 规则层差异只记录，回归判定以 WP-K 批次指标为准`,
-  });
+  const checks = buildChecks(progress1, progress2, sessions, gates, comparisons, expected);
 
   const report: EvidenceReport = {
     generatedAt: new Date().toISOString(),
@@ -509,9 +530,9 @@ async function main(): Promise<void> {
     verdict: checks.every((check) => check.passed) ? 'pass' : 'fail',
   };
 
-  const outDir = resolve(args.get('out') ?? 'data/batch-reports');
+  const outDir = path.resolve(args.get('out') ?? 'data/batch-reports');
   mkdirSync(outDir, { recursive: true });
-  const outPath = join(outDir, `af086-exam-double-run-${new Date().toISOString().slice(0, 10)}.json`);
+  const outPath = path.join(outDir, `af086-exam-double-run-${new Date().toISOString().slice(0, 10)}.json`);
   writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 
   process.stdout.write(`${JSON.stringify({ verdict: report.verdict, batch1, batch2, checks, outPath }, null, 2)}\n`);
@@ -519,6 +540,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`[af086] ${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+  process.stderr.write(`[af086] ${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
   process.exitCode = 1;
 });
