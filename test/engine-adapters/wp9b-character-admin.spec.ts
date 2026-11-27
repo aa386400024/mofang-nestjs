@@ -209,6 +209,16 @@ describe('WP9-B · 角色资产池管理端 (CRUD / 上下架 / 过审)', () => 
       const created = await service.create(buildCreateDto({ auditStatus: 'approved' }));
       expect(created.auditStatus).toBe('approved');
     });
+
+    it('创建时可写入角色级不流利配置，出参与落库一致', async () => {
+      const { service, repo } = buildHarness();
+      const created = await service.create(buildCreateDto({ auditStatus: 'approved', disfluencyLevel: 'heavy', disfluencyDensity: 1 }));
+
+      expect(created.disfluencyLevel).toBe('heavy');
+      expect(created.disfluencyDensity).toBe(1);
+      expect(repo.rows[0]?.disfluencyLevel).toBe('heavy');
+      expect(repo.rows[0]?.disfluencyDensity).toBe(1);
+    });
   });
 
   describe('⑩ 查询', () => {
@@ -260,6 +270,28 @@ describe('WP9-B · 角色资产池管理端 (CRUD / 上下架 / 过审)', () => 
         code: BizCode.ResourceNotFound,
       });
     });
+
+    it('不流利配置可改、可保留、可用 null 清空', async () => {
+      const { service } = buildHarness();
+      await service.create(buildCreateDto({ disfluencyLevel: 'heavy', disfluencyDensity: 1 }));
+
+      const changed = await service.update(TEMPLATE_ID, {
+        disfluencyLevel: 'light',
+        disfluencyDensity: 0.2,
+      });
+      expect(changed.disfluencyLevel).toBe('light');
+      expect(changed.disfluencyDensity).toBeCloseTo(0.2);
+
+      // 只改别的字段 → 不流利配置原样保留.
+      const untouched = await service.update(TEMPLATE_ID, { displayName: '再改名' });
+      expect(untouched.disfluencyLevel).toBe('light');
+      expect(untouched.disfluencyDensity).toBeCloseTo(0.2);
+
+      // 显式 null = 清空回未标定，不是 undefined 覆盖.
+      const cleared = await service.update(TEMPLATE_ID, { disfluencyLevel: null, disfluencyDensity: null });
+      expect(cleared.disfluencyLevel).toBeNull();
+      expect(cleared.disfluencyDensity).toBeNull();
+    });
   });
 
   describe('⑩ 上下架 / 过审 与引擎命中的联动', () => {
@@ -281,6 +313,15 @@ describe('WP9-B · 角色资产池管理端 (CRUD / 上下架 / 过审)', () => 
       expect(resolved?.characterProfile.coreBeliefs.length ?? 0).toBeGreaterThan(0);
       expect(resolved?.characterProfile.baseline?.trust).toBeCloseTo(0.28);
       expect(resolved?.displayName).toBe('试角色');
+    });
+
+    it('管理端写入的不流利配置会进 resolver 的侧通道 (approved 后)', async () => {
+      const { service, resolver } = buildHarness();
+      await service.create(buildCreateDto({ auditStatus: 'approved', disfluencyLevel: 'light', disfluencyDensity: 0.2 }));
+
+      const resolved = await resolver.resolve({ templateId: TEMPLATE_ID });
+      expect(resolved?.disfluencyLevel).toBe('light');
+      expect(resolved?.disfluencyDensity).toBeCloseTo(0.2);
     });
 
     it('下架 (enabled=false) → 下一场即回退中性', async () => {

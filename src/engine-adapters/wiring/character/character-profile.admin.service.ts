@@ -160,6 +160,9 @@ export class CharacterProfileAdminService {
       enabled: input.enabled ?? true,
       // AF-462: 语域指纹可空; 缺省 = 未标定 = 不渲染 (零回归).
       speechRegister: input.speechRegister ?? null,
+      // AF-584: 角色级不流利配置可空; 缺省 = 角色没表态 = 走通用配额 (零回归).
+      disfluencyLevel: input.disfluencyLevel ?? null,
+      disfluencyDensity: input.disfluencyDensity ?? null,
       version: 1,
       // WP38: semver 初值 1.0.0 (缺省三列也是 1/0/0 —— 这里显式写, 不靠 DB DEFAULT 兜底).
       versionMajor: 1,
@@ -381,6 +384,8 @@ function toAdminDto(row: CharacterProfileEntity): CharacterProfileAdminDto {
     auditStatus: row.auditStatus,
     enabled: row.enabled,
     speechRegister: row.speechRegister,
+    disfluencyLevel: row.disfluencyLevel,
+    disfluencyDensity: row.disfluencyDensity,
     version: row.version,
     versionMajor: row.versionMajor,
     versionMinor: row.versionMinor,
@@ -423,6 +428,22 @@ function applyContentUpdates(row: CharacterProfileEntity, input: UpdateCharacter
   if (input.auditStatus !== undefined) row.auditStatus = input.auditStatus;
   if (input.enabled !== undefined) row.enabled = input.enabled;
   if (input.speechRegister !== undefined) row.speechRegister = input.speechRegister;
+  applyDisfluencyUpdates(row, input);
+}
+
+/**
+ * 不流利配置两列的就地拷贝 (AF-585 · 从 applyContentUpdates 里抽出来).
+ *
+ * 为什么要抽: 主函数已经在 lint complexity 上限附近, 再加两个"在场才拷"分支就
+ * 越界. 归档为独立函数后语义更清楚: undefined = 不改; null = 显式清空.
+ *
+ * @param row 角色行 (就地改)
+ * @param input 编辑入参
+ */
+function applyDisfluencyUpdates(row: CharacterProfileEntity, input: UpdateCharacterProfileDto): void {
+  // AF-584: undefined = 不改; null = 显式清空回未标定; 合法值 = 覆盖.
+  if (input.disfluencyLevel !== undefined) row.disfluencyLevel = input.disfluencyLevel;
+  if (input.disfluencyDensity !== undefined) row.disfluencyDensity = input.disfluencyDensity;
 }
 
 /**
