@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-580",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-27T20:20:00+08:00",
-  "updatedAt": "2026-11-27T12:08:06.506Z",
+  "updatedAt": "2026-11-27T12:11:35.919Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-580/task-sheet.md",
     "sha256": "30dba3600cd997551853041bdf4442012de3286d05ff93912dd95f829c122104",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-580/receipt-RC-AF-580-1.json",
+      "sha256": "5ecc5ad5c7a61dd8accf4a3dae980f62c6441c5ead4f7995d1f187d337b956c9",
+      "receiptId": "RC-AF-580-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af580-improvement-ledger-cleanup-2026-11-27.md",
   "legacyPaths": [
     "docs/worklog/pending/af580-improvement-ledger-cleanup-task-2026-11-27.md"
