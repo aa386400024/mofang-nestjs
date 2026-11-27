@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-582",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-27T23:55:00+08:00",
+  "updatedAt": "2026-11-27T16:20:01.979Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-582/task-sheet.md",
+    "sha256": "68369a89da57019d69ad1a16a139b3f6619a627a6ee546e2b9a7dd21e9a3d1ba",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-582/receipt-RC-AF-582-1.json",
+      "sha256": "a1c8aa9b3e41387cc8ce78b0ce965e91640277059d8cb18254a5ec9ada991988",
+      "receiptId": "RC-AF-582-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af582-test-timeout-budget-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af582-test-timeout-budget-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}

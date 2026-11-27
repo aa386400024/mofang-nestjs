@@ -1,0 +1,178 @@
+{
+  "deliveredAt": "2026-11-28T00:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-582-1",
+    "taskId": "AF-582",
+    "contextId": "phase2.5-quality-gates",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "db586a05db0f68d0c092628ee73585f8f5e9d63f",
+    "dependsOn": [],
+    "priorTasks": ["AF-073", "AF-581"],
+    "policyRefs": ["docs/team/conventions.md#1.3", "docs/team/conventions.md#5.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-582/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af582-test-timeout-budget-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af582-test-timeout-budget-2026-11-27.md",
+        "docs/worklog/records/phase2.5-quality-gates/AF-582/task-sheet.md"
+      ],
+      "modified": [
+        "test/auto-practice/af073-batch-report-cli.spec.ts",
+        "test/engine-adapters/wp12-memory-closeout.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af073-batch-report-cli.spec.ts test/engine-adapters/wp12-memory-closeout.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "72.99s",
+        "note": "44 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error，无 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "714.55s",
+        "note": "5153 passed / 0 failed / 4 skipped，362 文件通过 + 1 跳过（共 363）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "2426 条事件；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "全仓机读校验全 PASS"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "活跃=1 归档=518 记录包=538 inbox=0"
+      }
+    ],
+    "reproNotes": "定向：pnpm exec vitest run test/auto-practice/af073-batch-report-cli.spec.ts test/engine-adapters/wp12-memory-closeout.spec.ts；全量：pnpm test（日志 %TEMP%\\af582-test.log）。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-582 贯穿任务单、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务登记/提级/领单/分支均经 CLI；未手改 journal / index"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 task-sheet schema；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-582 生命周期事件由 CLI 写入，events verify 2426 条一致"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "仅改两个测试文件的超时预算与注释，未越界到全局 vitest 配置或业务代码"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff；未新增依赖"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录与回执的预算值、实测值与闸门数字一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "是否评估 vitest isolate:false 以进一步降低全量启动开销"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "两个定向文件 44 例全绿，全量 5153 例 0 失败，typecheck / lint 0 error，engine-core 零 diff；超时预算显式化后全量门恢复可信红灯语义，成功标准全部满足。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、类型检查、lint 与 CLI 校验，无付费 LLM/TTS/API 调用。"
+  }
+}
