@@ -22,6 +22,7 @@ import { BizException } from '../../common/exceptions/biz.exception.js';
 import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor.js';
 import { JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor.js';
 import { RsaKeyService } from '../../common/security/rsa-key.service.js';
+import { hasUsablePasswordHash } from '../../shared/infra/security/password-hasher.js';
 import { AuthStrictRateLimit } from '../../user/controllers/auth-rate-limit.decorators.js';
 import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
@@ -173,6 +174,9 @@ export class AuthController {
 
   // ─── V1.0: 发送 6 位邮箱验证码 (保留作为 fallback) ─────────────
   // send-code 只发邮件, body 字段是 email (非凭证), 不需要 RSA 加密
+  // AF-570: 发送验证码是高成本、可被邮件轰炸的敏感端点，补与 check-email 同档的 5 req/min/IP；
+  //   LoginCodeService 内部仍保留同邮箱 60 秒冷却，两层限流职责不同，不能互相替代。
+  @AuthStrictRateLimit()
   @Post('send-code')
   public async sendCode(@Body('email') email: string): Promise<{ success: boolean; message: string; sentAt: string }> {
     if (!email?.includes('@')) {
@@ -262,7 +266,7 @@ export class AuthController {
       userId: user.uid,
       username: user.email ?? body.email,
       roles: ['user'],
-      hasPassword: !!user.passwordHash,
+      hasPassword: hasUsablePasswordHash(user.passwordHash),
     };
   }
 
@@ -349,7 +353,7 @@ export class AuthController {
     if (!user) {
       throw new HttpException('账号不存在', HttpStatus.BAD_REQUEST);
     }
-    if (user.passwordHash) {
+    if (hasUsablePasswordHash(user.passwordHash)) {
       throw new HttpException('用户已设置过密码, 请用改密流程', HttpStatus.BAD_REQUEST);
     }
 

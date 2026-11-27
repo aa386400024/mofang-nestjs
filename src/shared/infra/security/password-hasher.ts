@@ -16,9 +16,29 @@ export async function hashPassword(plain: string): Promise<string> {
   return argon2Hash(plain, ARGON2_OPTIONS);
 }
 
+/**
+ * 是否存在可用于本地密码登录的密码哈希。
+ *
+ * `password_hash` 是非 nullable 字段，历史上用两种方式表示“没有本地密码”：
+ *   - 验证码注册用户：空字符串 `''`
+ *   - OAuth 用户：`!OAUTH_NO_PASSWORD!` 这类 `!` 前缀占位值
+ *
+ * 两者都不能参与 argon2 校验，也不能被 `!!passwordHash` 当成“已设密码”。
+ * 统一从这里判定，避免 verify-code / set-password / login 各自解释。
+ */
+export function hasUsablePasswordHash(stored: string | null | undefined): boolean {
+  // 只认 argon2 PHC 结构（本仓已移除 bcrypt；OAuth 占位与空值都不匹配）。
+  return typeof stored === 'string' && /^\$argon2(?:id|i|d)\$/.test(stored);
+}
+
 export async function verifyPassword(plain: string, stored: string): Promise<boolean> {
-  if (!stored) return false;
-  return argon2Verify(stored, plain);
+  // 空值 / 占位值 / 损坏哈希一律 fail-closed：不能登录，也不能把 400/500 暴露成账号状态信号。
+  if (!hasUsablePasswordHash(stored)) return false;
+  try {
+    return await argon2Verify(stored, plain);
+  } catch {
+    return false;
+  }
 }
 
 /** OAuth 用户占位哈希 (不能用于登录). */

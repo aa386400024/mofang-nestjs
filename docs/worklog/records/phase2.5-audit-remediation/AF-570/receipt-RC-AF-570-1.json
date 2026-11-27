@@ -1,0 +1,163 @@
+{
+  "deliveredAt": "2026-11-27T11:56:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-570-1",
+    "taskId": "AF-570",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "4f421229482c8cfbe09840aaaf2a011dc1e5284c",
+    "dependsOn": [],
+    "priorTasks": [],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-570/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af570-auth-password-semantics-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af570-auth-password-semantics-2026-11-27.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-570/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-570/task-sheet.md",
+        "test/user/af570-auth-password-semantics.spec.ts"
+      ],
+      "modified": [
+        "src/base/controllers/auth.controller.ts",
+        "src/shared/infra/security/password-hasher.ts",
+        "src/user/providers/user.service.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["e003bf5f"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "全量",
+        "note": "tsc -p tsconfig.json --noEmit 通过，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；唯一 warning 是 pnpm 对 node>=26 的环境提示，非代码问题"
+      },
+      {
+        "command": "pnpm exec vitest run test/user/af570-auth-password-semantics.spec.ts test/user/set-password-first-set.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "同上",
+        "wallClock": "5.80s",
+        "note": "2 files / 42 tests passed；覆盖可用密码语义、send-code 5/min 元数据、verify-code 响应、OAuth 占位首次设密码、无密码登录不计数不锁定、真实错密码行为不变"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 363,
+        "machine": "同上",
+        "wallClock": "49.10s",
+        "note": "362 files passed + 1 skipped；5143 tests passed + 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2363 条事件；schema / 哈希链 / 索引投影一致"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run test/user/af570-auth-password-semantics.spec.ts test/user/set-password-first-set.spec.ts → pnpm typecheck → pnpm lint → pnpm test → git diff --stat HEAD -- src/engine-core → node scripts/orchestration/cli.mjs events verify。关键断言：send-code 路由元数据 THROTTLER:LIMITdefault=5 / TTLdefault=60000；OAuth 占位账号 verify-code.hasPassword=false；无密码账号 login 抛 11_002 且 failedLoginCount/lockedUntil 不变。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-570 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；状态面生成物未混入实现提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 2363 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "commit-domain",
+        "result": "pass",
+        "note": "实现提交 e003bf5f 仅含 AF-570 scope 内代码、测试、任务单与交付记录；状态面未混提"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；测试数字、闸门结果、事件条数均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF570-01",
+        "impact": "前端密码页仍需把所有 login-password 401 统一为中性引导，并保留验证码登录入口；后端刻意不返回“未设密码”可枚举业务码",
+        "severity": "medium",
+        "schedule": "前端 Flutter 仓库排期；后端契约已稳定，不阻断发版"
+      },
+      {
+        "id": "BL-AF570-02",
+        "impact": "send-code 新增 5 req/min/IP 后，校园网/企业 NAT 可能比旧口径更早触发限流；邮箱 60 秒冷却仍保留",
+        "severity": "low",
+        "schedule": "上线后观察 429 来源；若 NAT 误伤，调 IP 档而不是取消端点限流"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "四个认证不一致均以最小根因修复：send-code 补 5/min/IP 且保留邮箱 60 秒冷却；密码可用性统一为 argon2 PHC 判定，OAuth 占位不再被误判；verify-code 与 set-password 语义一致；login-password 对无密码账号仍统一 11_002，但不计数、不锁定、不抛 500。未新增可枚举业务码，未改 check-email、前端、engine-core 或数据库 schema。lint/typecheck 0 error、定向 42 例与全量 5143 例通过、engine-core 零 diff、events verify 2363 条通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "未调用付费 LLM/TTS；仅本地测试与静态检查，无额外 API 消耗。"
+  }
+}
