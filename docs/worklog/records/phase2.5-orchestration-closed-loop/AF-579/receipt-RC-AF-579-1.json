@@ -1,0 +1,150 @@
+{
+  "deliveredAt": "2026-11-27T20:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-579-1",
+    "taskId": "AF-579",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "57ca6616354f8b92f34eb3277bbe39415207a5f1",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-578"
+    ],
+    "policyRefs": [
+      "docs/team/conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-579/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md"
+      ],
+      "modified": [
+        "scripts/orchestration/validator.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 284,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "4.06s",
+        "note": "284 passed / 0 failed；新增 AF-579 用例覆盖归档放行与活动任务拒绝"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "无 FAIL；AF-534/535/557 三份旧回执均 PASS"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2409,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "2409 条事件；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "含 scripts/**/*.{mjs,cjs} 脚本层 eslint，0 error"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 纯层零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs → node scripts/orchestration/cli.mjs validate → node scripts/orchestration/cli.mjs events verify → pnpm lint → git diff --stat HEAD -- src/engine-core。三份历史回执未修改，git status 中无 records 变更。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-579 贯穿任务单、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch 均经 CLI；未手改索引与 journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 task-sheet schema；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-579 生命周期事件由 CLI 写入，events verify 2409 条一致"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "scope 仅 scripts/orchestration 与 worklog 文档，未越界到业务代码或框架契约"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff；未改业务层、数据库与部署配置"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执、交付记录与任务单同源；实际 diff 为 3 个 scripts 文件加 1 份交付记录，与任务单成功判据一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "全仓 validate 已恢复全 PASS；兼容逻辑只作用于已归档任务且不改写冻结回执，活动任务旧结构仍由单测证明会被拒绝；engine-core 零 diff，范围与任务单一致。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、lint、CLI 校验，无付费 LLM/TTS/API 调用。"
+  }
+}
