@@ -47,6 +47,7 @@ import type { CharacterProfileSnapshot } from './character-profile-version.entit
 import type { CharacterAuditStatus } from './character-profile.entity.js';
 import type { CharacterVersionBump, CharacterVersionChangeType } from './character-version.js';
 import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import { DISFLUENCY_LEVELS, type DisfluencyLevel } from '../../../shared/realism/index.js';
 import type { SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /** 允许的依恋风格 (与内核 AttachmentStyle 同一取值域). */
@@ -265,6 +266,27 @@ export class CreateCharacterProfileDto {
   @IsOptional()
   @IsObject()
   speechRegister?: SpeechRegister;
+
+  @ApiPropertyOptional({
+    description: '角色级不流利档位 (AF-584, 可空); NULL = 角色没表态, 沿用 role/state 通用配额',
+    enum: DISFLUENCY_LEVELS,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsIn(DISFLUENCY_LEVELS)
+  disfluencyLevel?: DisfluencyLevel | null;
+
+  @ApiPropertyOptional({
+    description: '角色级不流利密度 [0,1] (AF-584, 可空); NULL / 0.5 = 不修正',
+    minimum: 0,
+    maximum: 1,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  disfluencyDensity?: number | null;
 }
 
 /**
@@ -343,6 +365,16 @@ export class CharacterProfileAdminDto {
 
   @ApiProperty({ description: '语域指纹 (AF-462, 未标定为 null)', type: Object, nullable: true })
   speechRegister!: SpeechRegister | null;
+
+  @ApiProperty({
+    description: '角色级不流利档位 (AF-584, 未标定为 null)',
+    enum: DISFLUENCY_LEVELS,
+    nullable: true,
+  })
+  disfluencyLevel!: DisfluencyLevel | null;
+
+  @ApiProperty({ description: '角色级不流利密度 [0,1] (AF-584, 未标定为 null)', nullable: true })
+  disfluencyDensity!: number | null;
 
   @ApiProperty({ description: '内容版本号 (内容变更即递增)' })
   version!: number;

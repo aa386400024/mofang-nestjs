@@ -1,0 +1,191 @@
+{
+  "deliveredAt": "2026-11-28T03:58:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-585-1",
+    "taskId": "AF-585",
+    "contextId": "phase2.5-quality-gates",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "c9888d8b7423a23f7d8f8aeb7a8b9cdd332f33fc",
+    "dependsOn": ["AF-584"],
+    "priorTasks": ["AF-584"],
+    "policyRefs": ["docs/team/conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-585/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af585-admin-disfluency-fields-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["1c807e256b4d6b78554d1c31faadebb207b8d1b2"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af585-admin-disfluency-fields-2026-11-28.md",
+        "docs/worklog/records/phase2.5-quality-gates/AF-585/task-sheet.md"
+      ],
+      "modified": [
+        "src/engine-adapters/wiring/character/character-profile.admin.service.ts",
+        "src/engine-adapters/wiring/character/character-profile.dto.ts",
+        "src/shared/realism/index.ts",
+        "src/shared/realism/visitor-realism-profile.ts",
+        "test/engine-adapters/wp9b-character-admin.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/wp9b-character-admin.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "17.59s",
+        "note": "16 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 90s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 363,
+        "machine": "同上",
+        "wallClock": "739.24s",
+        "note": "362 files passed + 1 skipped；5163 passed / 0 failed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "任务单与回执机读校验 PASS"
+      }
+    ],
+    "reproNotes": "复核：pnpm exec vitest run test/engine-adapters/wp9b-character-admin.spec.ts；pnpm typecheck；pnpm lint；pnpm test；git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-585 贯穿任务单、分支、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态只经 CLI 写入；实现提交与状态面提交分离"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 schema；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "生命周期事件由 CLI 写入，validate 显示索引投影一致"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改 shared/realism 类型源、character DTO/admin service 与单测，未越出 executor 资源域"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "single-source-enum",
+        "result": "pass",
+        "note": "档位常量只在 shared/realism 定义一次，DTO 的 IsIn 与 Swagger enum 均引用同一常量"
+      },
+      {
+        "item": "null-semantics",
+        "result": "pass",
+        "note": "undefined 保留原值、null 清空、合法值覆盖三种语义有单测"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 6 条 successCriteria 均落在交付记录、测试与门禁证据；前端展示按非目标保留"
+    },
+    "backlogItems": [
+      {
+        "id": "IM-065",
+        "impact": "角色级档位/密度数值仍未标定；本单只提供管理端录入能力，真实批次分布回填仍待执行",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "admin-dashboard 前端是否展示两字段，需产品/前端另立任务决定"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务单把 admin-dashboard 前端列为非目标",
+        "reality": "只改后端 DTO 与 admin service，前端表单未动",
+        "action": "管理接口已可读写两字段，前端展示另立任务",
+        "why": "遵守任务单边界，避免扩大前端改动面"
+      },
+      {
+        "taskSays": "任务单要求不新增 migration",
+        "reality": "两列已由 AF-584 的 0058 migration 创建",
+        "action": "本单只消费既有列，无 DDL 改动",
+        "why": "避免重复建列与迁移漂移"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "管理端新建/编辑 DTO、出参与 CRUD 映射已完整接通 AF-584 两列；undefined 保留、null 清空、合法值覆盖三种语义均有单测；approved 后 resolver 侧通道能拿到配置；定向 16 例、全量 5163 例全绿，typecheck/lint 零错，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与编排校验，无付费 API 调用。"
+  }
+}

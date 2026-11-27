@@ -25,19 +25,21 @@ import {
 export type RealismMode = 'off' | 'audit' | 'active';
 
 /**
- * 角色级不流利档位 (Phase3 P3): 角色天生更顺 / 更磕巴的基线倾向.
+ * 角色级不流利档位全集 (Phase3 P3): 角色天生更顺 / 更磕巴的基线倾向.
  *
  * - none   = 不主动加不流利痕迹 (仍受风险轮归零约束)
  * - light  = 只保留一次短停顿/半截话级别的痕迹
  * - natural = 沿用 AF-204 的角色 + 状态配额 (缺省档)
  * - heavy  = 在角色底色上再放宽一档, 但仍受 4 处硬上限约束
  */
-export type DisfluencyLevel = 'none' | 'light' | 'natural' | 'heavy';
+export const DISFLUENCY_LEVELS = ['none', 'light', 'natural', 'heavy'] as const;
+
+export type DisfluencyLevel = (typeof DISFLUENCY_LEVELS)[number];
 
 /** 只认四个显式值；未配置 / 拼错 / 空串 → undefined (= 角色没表态). */
 export function parseDisfluencyLevel(raw?: string | null): DisfluencyLevel | undefined {
-  if (raw === 'none' || raw === 'light' || raw === 'natural' || raw === 'heavy') return raw;
-  return undefined;
+  if (raw === null || raw === undefined) return undefined;
+  return (DISFLUENCY_LEVELS as readonly string[]).includes(raw) ? (raw as DisfluencyLevel) : undefined;
 }
 
 /** 只认三个显式值；未配置 / 拼错 / 空串一律回落 off。 */
