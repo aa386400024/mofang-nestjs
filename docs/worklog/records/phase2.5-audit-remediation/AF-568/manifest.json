@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-568",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "canceled",
+  "createdAt": "2026-11-27T11:05:00+08:00",
+  "updatedAt": "2026-11-27T04:04:00.146Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-568/task-sheet.md",
+    "sha256": "e1722c2628e628681e69ad4394b9c6b3b0d1b8fb3dd1d3326f8c75ed90d951d4",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af568-safety-ai-blind-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
