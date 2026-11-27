@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T01:48:52.408Z",
+  "generatedAt": "2026-11-27T01:58:22.379Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,46 +49,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-26T18:31:59.971Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-564.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-567",
-      "contextId": "phase2.5-audit-remediation",
-      "type": "fix",
-      "title": "dev 接口三问题：fragment limit DTO / quote 背景图假域名 / 构建与 DI 核对",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-567",
-        "contextId": "phase2.5-audit-remediation",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-27T01:48:52.297Z",
-        "leaseDeadline": "2026-11-27T02:18:52.293Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-567.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-27T01:48:52.297Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-567.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -2109,6 +2069,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-657",
+      "recordedAt": "2026-11-27T01:48:56.775Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-567",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-567-dev-api-fixes"
+      ]
+    },
+    {
+      "auditId": "AUD-656",
+      "recordedAt": "2026-11-27T01:48:52.609Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-567",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-567",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-567.json"
+      ]
+    },
+    {
       "auditId": "AUD-655",
       "recordedAt": "2026-11-27T01:48:42.819Z",
       "actorRef": "orchestrator",
@@ -2314,52 +2304,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-642",
-      "recordedAt": "2026-11-26T18:00:24.012Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-562",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-641",
-      "recordedAt": "2026-11-26T17:59:56.907Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-562",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-562-exit5-1000-batch"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 655,
+    "total": 657,
     "byResult": {
-      "allowed": 655,
+      "allowed": 657,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 654,
+      "TOOL-QUEUE-SCHEDULER": 656,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 655
+      "orchestrator": 657
     }
   },
   "protocolView": {
@@ -2388,30 +2346,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-567",
-        "title": "dev 接口三问题：fragment limit DTO / quote 背景图假域名 / 构建与 DI 核对",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-audit-remediation",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md"
           }
         ]
       }
@@ -11300,6 +11234,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-567",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11324,16 +11276,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-564",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
-      },
-      {
-        "taskId": "AF-567",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md"
-      },
-      {
-        "taskId": "AF-567",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md"
       }
     ],
     "groupId": "phase2.5-audit-remediation",
@@ -11347,5 +11289,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 502
+  "archivedCount": 503
 };
