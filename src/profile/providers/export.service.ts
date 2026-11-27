@@ -1,10 +1,15 @@
-import { Injectable, Logger, NotImplementedException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
+
+import { buildExportArchive } from './export-archive.js';
+import { UserDataExportCollector } from './user-data-export.collector.js';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
 import { OAuthIdentity } from '../../user/entities/oauth-identity.entity.js';
 import { User } from '../../user/entities/user.entity.js';
 import { AuditEvent } from '../../user/enums/audit-event.enum.js';
@@ -14,6 +19,35 @@ import { SessionService } from '../../user/providers/session.service.js';
 import { UserState } from '../../user/user.state.js';
 
 import { DeleteAccountDto, DeleteAccountResponseDto, ExportDataDto, ExportTaskDto } from '../dto/export.dto.js';
+
+/** 导出任务与数据在 Redis 的 TTL —— 契约是 24h 后过期. */
+export const EXPORT_TASK_TTL_SECONDS = 24 * 60 * 60;
+
+/** 同一用户两次导出之间的最短间隔（秒）. */
+export const EXPORT_MIN_INTERVAL_SECONDS = 60;
+
+const TASK_KEY_PREFIX = 'profile:export:task:';
+const DATA_KEY_PREFIX = 'profile:export:data:';
+const LOCK_KEY_PREFIX = 'profile:export:lock:';
+
+/** Redis 里的任务元数据. */
+interface ExportTaskRecord {
+  taskId: string;
+  uid: string;
+  status: 'completed';
+  createdAt: string;
+  completedAt: string;
+  sizeBytes: number;
+  contentType: string;
+  fileName: string;
+}
+
+/** 下载时返回的字节流信息. */
+export interface ExportDownload {
+  contentType: string;
+  fileName: string;
+  body: Buffer;
+}
 
 /**
  * 数据导出 + 一键删除服务 — V2.0 §Tab4 隐私与数据安全.
@@ -37,23 +71,104 @@ export class ExportService {
     private readonly sessions: SessionService,
     private readonly blacklist: JwtBlacklistService,
     private readonly auditLog: AuditLogService,
+    private readonly exportCollector: UserDataExportCollector,
+    private readonly redis: RedisService,
     config: ConfigService,
   ) {
     this.retentionDays = config.get<number>('softDelete.retentionDays') ?? 30;
   }
 
   /**
-   * 导出我的数据 — 真实导出尚未上线，明确 501，不返回假任务。
+   * 导出我的数据 — 同步采集 + 生成 JSON/ZIP，任务元数据与文件进 Redis 24h.
+   *
+   * 为什么同步生成: 当前纵切只覆盖 profile 域（10 张表），数据量在校内可控；
+   * 先给出**真实可用**的导出，不假装 BullMQ 异步。等对话/记忆纳入后再切异步.
+   *
+   * @param uid 用户 id
+   * @param dto 导出格式
+   * @returns 已完成的任务状态 + 下载地址
    */
-  async exportData(_uid: string, _dto: ExportDataDto): Promise<ExportTaskDto> {
-    throw new NotImplementedException('数据导出功能尚未上线');
+  async exportData(uid: string, dto: ExportDataDto): Promise<ExportTaskDto> {
+    const lockKey = `${LOCK_KEY_PREFIX}${uid}`;
+    const locked = await this.redis.setnx(lockKey, '1', EXPORT_MIN_INTERVAL_SECONDS);
+    if (!locked) {
+      throw new BizException(BizCode.RateLimited, `导出过于频繁，请 ${EXPORT_MIN_INTERVAL_SECONDS}s 后再试`);
+    }
+
+    const payload = await this.exportCollector.collect(uid);
+    const archive = buildExportArchive(dto.format ?? 'json', payload);
+    const taskId = randomUUID();
+    const now = new Date();
+    const record: ExportTaskRecord = {
+      taskId,
+      uid,
+      status: 'completed',
+      createdAt: now.toISOString(),
+      completedAt: now.toISOString(),
+      sizeBytes: archive.buffer.length,
+      contentType: archive.contentType,
+      fileName: archive.fileName,
+    };
+
+    await this.redis.set(`${TASK_KEY_PREFIX}${taskId}`, JSON.stringify(record), EXPORT_TASK_TTL_SECONDS);
+    await this.redis.set(`${DATA_KEY_PREFIX}${taskId}`, archive.buffer.toString('base64'), EXPORT_TASK_TTL_SECONDS);
+    await this.auditLog.log({
+      userId: uid,
+      event: AuditEvent.UserDataExportRequested,
+      metadata: { taskId, format: dto.format ?? 'json', sizeBytes: record.sizeBytes },
+      isSuccess: true,
+    });
+    this.logger.log(`[export] uid=${uid} taskId=${taskId} format=${dto.format ?? 'json'} size=${record.sizeBytes}`);
+    return ExportService.toTaskDto(record);
   }
 
   /**
-   * 取导出任务状态 — 真实导出尚未上线，明确 501。
+   * 查询导出任务状态 — 只允许任务所有者读取.
    */
-  async getExportTask(_uid: string, _taskId: string): Promise<ExportTaskDto> {
-    throw new NotImplementedException('数据导出功能尚未上线');
+  async getExportTask(uid: string, taskId: string): Promise<ExportTaskDto> {
+    const record = await this.readTask(uid, taskId);
+    return ExportService.toTaskDto(record);
+  }
+
+  /**
+   * 下载导出文件 — 只允许任务所有者读取；过期 / 不存在统一 404，不泄露任务存在性.
+   */
+  async getExportDownload(uid: string, taskId: string): Promise<ExportDownload> {
+    const record = await this.readTask(uid, taskId);
+    const encoded = await this.redis.get(`${DATA_KEY_PREFIX}${taskId}`);
+    if (!encoded) throw new NotFoundException('导出文件不存在或已过期');
+    return {
+      contentType: record.contentType,
+      fileName: record.fileName,
+      body: Buffer.from(encoded, 'base64'),
+    };
+  }
+
+  /** 读任务元数据 + 所有者校验. */
+  private async readTask(uid: string, taskId: string): Promise<ExportTaskRecord> {
+    if (!/^[0-9a-f-]{36}$/.test(taskId)) throw new NotFoundException('导出任务不存在');
+    const raw = await this.redis.get(`${TASK_KEY_PREFIX}${taskId}`);
+    if (!raw) throw new NotFoundException('导出任务不存在或已过期');
+    let record: ExportTaskRecord;
+    try {
+      record = JSON.parse(raw) as ExportTaskRecord;
+    } catch {
+      throw new NotFoundException('导出任务不存在或已过期');
+    }
+    if (record.uid !== uid) throw new NotFoundException('导出任务不存在或已过期');
+    return record;
+  }
+
+  /** 元数据 → 对客 DTO. */
+  private static toTaskDto(record: ExportTaskRecord): ExportTaskDto {
+    return {
+      taskId: record.taskId,
+      status: record.status,
+      createdAt: record.createdAt,
+      completedAt: record.completedAt,
+      downloadUrl: `/profile/me/export/${record.taskId}/download`,
+      sizeBytes: record.sizeBytes,
+    };
   }
 
   /**

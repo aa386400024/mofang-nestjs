@@ -1,16 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsIn, IsOptional } from 'class-validator';
 
 /**
  * 数据导出请求 DTO — V2.0 §Tab4 隐私与数据安全.
  *
- * 设计要点:
- *   - 数据导出走异步任务 (BullMQ), 前端轮询任务状态
- *   - 任务结果 = 一份加密 ZIP, 24h 后过期
- *   - V2.0 占位: 不真做导出, 只记录"用户请求了导出" + 返回任务 id
+ * Phase4 WP29 纵切:
+ *   - 同步生成 JSON / 单文件 ZIP，任务与文件进 Redis，24h 过期
+ *   - 对话原文 / 记忆等心理内容尚未纳入，文件内 scope 明示
  */
 export class ExportDataDto {
-  @ApiProperty({ description: '导出格式', enum: ['json', 'zip'], default: 'zip' })
-  format!: 'json' | 'zip';
+  @ApiProperty({ description: '导出格式', enum: ['json', 'zip'], default: 'json' })
+  @IsOptional()
+  @IsIn(['json', 'zip'])
+  format?: 'json' | 'zip';
 }
 
 export class ExportTaskDto {
@@ -26,7 +28,7 @@ export class ExportTaskDto {
   @ApiProperty({ description: '完成时间', nullable: true })
   completedAt!: string | null;
 
-  @ApiProperty({ description: '下载 URL (完成后才有, 24h 有效)', nullable: true })
+  @ApiProperty({ description: '下载 URL (完成后才有, 相对路径, 24h 有效)', nullable: true, example: '/profile/me/export/task/download' })
   downloadUrl!: string | null;
 
   @ApiProperty({ description: '文件大小 (字节)', nullable: true })
