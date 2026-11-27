@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T10:53:00.999Z",
+  "generatedAt": "2026-11-27T10:53:25.514Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 1,
-    "submitted": 0,
+    "ready": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -22,7 +22,7 @@ window.ORCH_SNAPSHOT = {
       "contextId": "phase2.5-toolchain",
       "type": "documentation",
       "title": "AF-576 交付记录终态回填与合并后状态复核",
-      "status": "ready",
+      "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
       "attemptCount": 0,
@@ -34,7 +34,18 @@ window.ORCH_SNAPSHOT = {
         "reply": null
       },
       "manualReview": [],
-      "dispatch": null
+      "dispatch": {
+        "taskId": "AF-577",
+        "contextId": "phase2.5-toolchain",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-27T10:53:25.266Z",
+        "leaseDeadline": "2026-11-27T11:23:25.263Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-577.json"
+      }
     }
   ],
   "deadLetters": [],
@@ -2069,6 +2080,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-679",
+      "recordedAt": "2026-11-27T10:53:01.038Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-577",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-678",
       "recordedAt": "2026-11-27T08:54:57.390Z",
       "actorRef": "orchestrator",
@@ -2289,35 +2317,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-664",
-      "recordedAt": "2026-11-27T03:48:38.412Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-570",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-570-auth-password-semantics"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 678,
+    "total": 679,
     "byResult": {
-      "allowed": 678,
+      "allowed": 679,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 677,
+      "TOOL-QUEUE-SCHEDULER": 678,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 678
+      "orchestrator": 679
     }
   },
   "protocolView": {
@@ -2328,9 +2341,9 @@ window.ORCH_SNAPSHOT = {
         "title": "AF-576 交付记录终态回填与合并后状态复核",
         "type": "documentation",
         "status": {
-          "framework": "ready",
-          "protocol": null,
-          "stage": "orchestration"
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
         },
         "groupId": "phase2.5-toolchain",
         "requiredSkills": [],
