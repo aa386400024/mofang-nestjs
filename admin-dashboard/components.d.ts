@@ -15,6 +15,7 @@ declare module 'vue' {
     BatchScaleChart: typeof import('./src/components/BatchScaleChart.vue')['default']
     BatchSnapshotPanel: typeof import('./src/components/BatchSnapshotPanel.vue')['default']
     BatchTrendChart: typeof import('./src/components/BatchTrendChart.vue')['default']
+    BdiStatePanel: typeof import('./src/components/BdiStatePanel.vue')['default']
     BdiTrajectoryChart: typeof import('./src/components/BdiTrajectoryChart.vue')['default']
     CompareDeltaChart: typeof import('./src/components/CompareDeltaChart.vue')['default']
     CompareReportCard: typeof import('./src/components/CompareReportCard.vue')['default']
