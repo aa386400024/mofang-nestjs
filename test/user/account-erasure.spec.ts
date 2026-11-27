@@ -41,13 +41,16 @@ describe('AF-587 账号硬擦除归属列覆盖', () => {
         table('feature_flags', ['name']),
         table('payments', ['uid', 'user_id']),
         table('companion_records', ['companion_uid', 'companion_to_uid']),
+        table('tree_water_logs', ['actor_user_id']),
+        table('companion_trees', ['owner_a_id', 'owner_b_id']),
+        table('drift_bottle_entries', ['picked_by_user_id']),
       ],
       queries,
     );
 
     const deletedTables = await service.erase('uid-1');
 
-    expect(deletedTables).toBe(5);
+    expect(deletedTables).toBe(8);
     expect(queries.map((query) => query.sql)).toEqual([
       'DELETE FROM `user_profiles` WHERE `uid` = ?',
       'DELETE FROM `sessions` WHERE `user_id` = ?',
@@ -57,6 +60,10 @@ describe('AF-587 账号硬擦除归属列覆盖', () => {
       'DELETE FROM `payments` WHERE `user_id` = ?',
       'DELETE FROM `companion_records` WHERE `companion_uid` = ?',
       'DELETE FROM `companion_records` WHERE `companion_to_uid` = ?',
+      'DELETE FROM `tree_water_logs` WHERE `actor_user_id` = ?',
+      'DELETE FROM `companion_trees` WHERE `owner_a_id` = ?',
+      'DELETE FROM `companion_trees` WHERE `owner_b_id` = ?',
+      'DELETE FROM `drift_bottle_entries` WHERE `picked_by_user_id` = ?',
       'DELETE FROM `users` WHERE `uid` = ?',
     ]);
     expect(queries.every((query) => query.params.length === 1 && query.params[0] === 'uid-1')).toBe(true);
@@ -72,6 +79,22 @@ describe('AF-587 账号硬擦除归属列覆盖', () => {
     expect(queries).toHaveLength(2);
     expect(queries[0]?.sql).toBe('DELETE FROM `duplicate_uid_table` WHERE `uid` = ?');
     expect(queries[1]?.sql).toBe('DELETE FROM `users` WHERE `uid` = ?');
+  });
+
+  it('provider_user_id 是第三方用户 id，不按本站 uid 删除', async () => {
+    const queries: RecordedQuery[] = [];
+    const service = buildService(
+      [table('oauth_identities', ['user_id', 'provider_user_id']), table('provider_only', ['provider_user_id'])],
+      queries,
+    );
+
+    const deletedTables = await service.erase('uid-2');
+
+    expect(deletedTables).toBe(1);
+    expect(queries.map((query) => query.sql)).toEqual([
+      'DELETE FROM `oauth_identities` WHERE `user_id` = ?',
+      'DELETE FROM `users` WHERE `uid` = ?',
+    ]);
   });
 
   it('无归属列的表不产生删除，仍会删 users', async () => {
