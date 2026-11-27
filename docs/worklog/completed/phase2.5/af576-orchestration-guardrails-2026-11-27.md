@@ -3,6 +3,7 @@
 - **任务单**：`docs/worklog/records/phase2.5-toolchain/AF-576/task-sheet.md`
 - **分支**：`task/AF-576-orchestration-guardrails`
 - **基线**：`c19a8246f9ae018966549946896a1ad02ecf7840`
+- **合并**：PR #288 squash 合并，merge SHA `900b0414967666f3f33e924dfe202800dcf3b22f`
 - **日期**：2026-11-27
 - **性质**：编排适配层护栏修复（IM-076 / IM-077 / IM-080 / IM-084 / IM-085）
 
@@ -33,10 +34,18 @@ AF-572→AF-575 返修链暴露了五个编排适配层缺口：登记阶段不�
 | `pnpm exec vitest run test/auto-practice/af073-batch-report-cli.spec.ts --no-file-parallelism` | exit 0；1 file / 4 tests passed，72.69s |
 | `pnpm exec vitest run --exclude "**/e2e/**/*.ts" --no-file-parallelism` | exit 0；362 passed / 1 skipped 文件，5148 passed / 4 skipped 用例，0 failed，3599.47s |
 | `node scripts/orchestration/cli.mjs validate --only-sheet --sheet docs/worklog/records/phase2.5-toolchain/AF-576/task-sheet.md` | exit 0；`[SUMMARY] sheet=PASS global=FAIL exit=0` |
-| `$env:ORCH_STATE_FREE='1'; node scripts/orchestration/cli.mjs worklog verify --strict --state-free` | PASS；活跃=1 归档=512 记录包=532 inbox=0 |
+| `$env:ORCH_STATE_FREE='1'; node scripts/orchestration/cli.mjs worklog verify --strict --state-free` | PASS；归档前跑：活跃=1 归档=512；合并后终态复核：活跃=0 归档=513 记录包=532 inbox=0 |
+| `node scripts/orchestration/cli.mjs events verify` | PASS；事件日志 2396 条，哈希链与索引投影一致 |
 | `git diff --stat HEAD -- src/engine-core` | 输出为空；engine-core 零 diff |
 
 标准并发 `pnpm test` 的 4 例失败均为 `spawnSync` 返回 `status=null`（子进程冷启动超时），与 AF-575 已记录的 `BL-AF575-01` 同源；隔离串行复跑 4 例全通过。为取得权威全量结论，另跑一次串行全量，结果见上表。
+
+### 合并后终态复核（AF-577 回填）
+
+- PR #288 已 squash 合并，merge SHA `900b0414967666f3f33e924dfe202800dcf3b22f`；远端 required checks 20/20 pass，PR 已关闭。
+- 本地 `integrate` 已对齐到该 merge SHA；AF-576 任务分支已在本地与远端清理。
+- 终态状态面：活跃 0 / 归档 513 / 记录包 532 / inbox 0；事件日志 2396 条 PASS。
+- 本机状态锚点在合并后曾短暂保留归档前旧状态，已按合并提交刷新；该问题属本机运行态，不影响仓库提交与远端状态面。
 
 ## 四、范围核对（scopeCheck）
 
