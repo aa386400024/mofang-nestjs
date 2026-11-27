@@ -23,7 +23,7 @@
     },
     "changedFiles": {
       "commits": [
-        "fc2c37399b4851c2e4d1b8f92a3805a07d3bf7cc"
+        "459a3b61fb6a3ae595a59b905a6fb3e27b64c014"
       ],
       "added": [
         "docs/worklog/completed/phase2.5/af577-af576-delivery-record-backfill-2026-11-27.md"
@@ -53,7 +53,7 @@
         "specFiles": null,
         "machine": "同上",
         "wallClock": "秒级",
-        "note": "PASS；写记录时 活跃=1 归档=513 记录包=533 inbox=0；本任务归档后为 活跃=0 归档=513 记录包=533"
+        "note": "PASS；写记录时 活跃=1 归档=513 记录包=533 inbox=0；本任务归档后为 活跃=0 归档=514 记录包=533"
       },
       {
         "command": "node scripts/orchestration/cli.mjs events verify",
