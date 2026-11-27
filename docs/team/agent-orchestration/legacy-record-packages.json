@@ -1,7 +1,7 @@
 {
   "version": "legacy-record-packages:1.0.0",
-  "updatedAt": "2026-11-24",
-  "note": "2026-11-23 框架 v2.1 迁移期产生的记录包：有 manifest 与任务单，多数有交付记录，但缺 journal 事件，因此不在事件链索引的投影内。本清单是显式继承账：verify 只豁免清单内的包并计数，清单外的孤儿仍然报错；任一包进入索引或记录包被删除后必须从本清单移除，否则 verify 报“继承清单已过期”。禁止用 ORCH_STATE_FREE 代替本清单做常规跳过。",
+  "updatedAt": "2026-11-27",
+  "note": "2026-11-23 框架 v2.1 迁移期产生的记录包：有 manifest 与任务单，多数有交付记录，但缺 journal 事件，因此不在事件链索引的投影内。本清单是显式继承账：verify 只豁免清单内的包并计数，清单外的孤儿仍然报错；任一包进入索引或记录包被删除后必须从本清单移除，否则 verify 报“继承清单已过期”。禁止用 ORCH_STATE_FREE 代替本清单做常规跳过。2026-11-27 增补 AF-512/513/514/515/516/482/497 七个同类历史包。",
   "packages": [
     {
       "taskId": "AF-363",
@@ -97,6 +97,73 @@
         "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/task-sheet.md",
         "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-376/receipt-RC-AF-376-1.json",
         "docs/worklog/completed/phase2.5/af376-state-none-subject-2026-11-23.md"
+      ]
+    },
+    {
+      "taskId": "AF-512",
+      "reason": "会员体系 v2 企业级改造的早期记录包，manifest 状态 rejected，交付记录在库；无 journal 事件，保留立项与回执证据。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-membership-v2/AF-512/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-512/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-512/receipt-RC-AF-512-1.json",
+        "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md"
+      ]
+    },
+    {
+      "taskId": "AF-513",
+      "reason": "AF-512 后续返修与验收包，复用同一交付记录；有回执、无 journal 事件。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-membership-v2/AF-513/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-513/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-513/receipt-RC-AF-513-1.json",
+        "docs/worklog/completed/phase2.5/af512-membership-v2-enterprise-implementation-2026-11-25.md"
+      ]
+    },
+    {
+      "taskId": "AF-514",
+      "reason": "会员 v2 拆出的子任务包，未进入执行即被 AF-516 收口取代；无回执与交付记录，保留立项证据。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-membership-v2/AF-514/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-514/task-sheet.md"
+      ]
+    },
+    {
+      "taskId": "AF-515",
+      "reason": "会员 v2 拆出的子任务包，未进入执行即被 AF-516 收口取代；无回执与交付记录，保留立项证据。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-membership-v2/AF-515/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-515/task-sheet.md"
+      ]
+    },
+    {
+      "taskId": "AF-516",
+      "reason": "会员非支付闭环收口包，有回执与交付记录；迁移期未写入 journal。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-membership-v2/AF-516/manifest.json",
+        "docs/worklog/records/phase2.5-membership-v2/AF-516/task-sheet.md",
+        "docs/worklog/records/phase2.5-membership-v2/AF-516/receipt-RC-AF-516-1.json",
+        "docs/worklog/completed/phase2.5/af516-membership-nonpayment-closure-implementation-2026-11-25.md"
+      ]
+    },
+    {
+      "taskId": "AF-482",
+      "reason": "AF-427 语料测试债修复包，有回执与交付记录；迁移期未写入 journal，状态停留在 submitted。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-482/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-482/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-482/receipt-RC-AF-482-1.json",
+        "docs/worklog/completed/phase2.5/af482-af427-corpus-debt-2026-11-25.md"
+      ]
+    },
+    {
+      "taskId": "AF-497",
+      "reason": "缓存命中观测的最终收口包，有两份回执与交付记录；迁移期未写入 journal，状态停留在 submitted。",
+      "evidence": [
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/receipt-RC-AF-497-1.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-497/receipt-RC-AF-497-2.json",
+        "docs/worklog/completed/phase2.5/af497-cache-final-2026-11-25.md"
       ]
     }
   ]

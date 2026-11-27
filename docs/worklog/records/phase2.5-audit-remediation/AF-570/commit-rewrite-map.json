@@ -1,0 +1,32 @@
+{
+  "version": "commit-rewrite-map:1.0.0",
+  "taskId": "AF-570",
+  "reason": "PR #285 首次 Orchestration Gate 失败原因为 missing-task-trailer；三个提交经 rebase 补 Task trailer 后重写，原回执 changedFiles.commits 仍保留重写前的历史事实。",
+  "pr": "https://github.com/aa386400024/mofang-nestjs/pull/285",
+  "originalReceipt": "receipt-RC-AF-570-1.json",
+  "mapping": [
+    {
+      "role": "implementation",
+      "original": "e003bf5fe3aec7c9e4ffb5220a0daf8686f9e27f",
+      "rewritten": "ed566647f2d2e946ad24adf32d99b950999728ad"
+    },
+    {
+      "role": "receipt-freeze",
+      "original": "c4649e5056758932168ec81b37225774fd1135bf",
+      "rewritten": "a5d4df951a67923b88721f64823bfa957ea51168"
+    },
+    {
+      "role": "state-plane",
+      "original": "347c66e2fee07ee82e71e48548828e74dd937920",
+      "rewritten": "5ec754be189402d8e44542b21f335909889dbd0e"
+    }
+  ],
+  "supplementalCommits": [
+    {
+      "role": "af568-record-package",
+      "commit": "e14d68c0e349ad8b0123ae59b7f15360d213d1d8"
+    }
+  ],
+  "mergeSha": "a4ca790df11c05c43ec3e8375b577e807c64a889",
+  "note": "原回执不可原地改写；本映射只补提交追溯，不改变回执内容与哈希。"
+}

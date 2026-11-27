@@ -1,0 +1,139 @@
+{
+  "deliveredAt": "2026-11-27T13:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-571-1",
+    "taskId": "AF-571",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "a4ca790df11c05c43ec3e8375b577e807c64a889",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-570"
+    ],
+    "policyRefs": [
+      "docs/team/conventions.md",
+      "docs/team/agent-orchestration/README.md"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-571/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "ec251d0d68d07bf59ba6614eae9aced0da8fc000"
+      ],
+      "added": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-570/commit-rewrite-map.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-571/task-sheet.md",
+        "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md"
+      ],
+      "modified": [
+        "docs/worklog/records/phase2.5-audit-remediation/AF-570/manifest.json",
+        "docs/team/agent-orchestration/legacy-record-packages.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "PASS (strict)：活跃=1 归档=507 记录包=527 继承孤儿=17/17；清单外无孤儿"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2370 条事件；schema / 哈希链 / 索引投影一致"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      }
+    ],
+    "reproNotes": "复跑顺序：node scripts/orchestration/cli.mjs worklog verify --strict → node scripts/orchestration/cli.mjs events verify → git diff --stat HEAD -- src/engine-core。关键断言：继承孤儿 17/17、无清单外孤儿；AF-570 原回执 sha256 仍为 12f1ac88d4795c5d67350a90cb05f46b932bfd64d934fa53fdc461048883d354。实现提交 ec251d0d 已落地后再冻结本回执。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-571 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；未手改索引与 journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 2370 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "仅 AF-570 记录包、AF-571 任务包、legacy-record-packages.json 与交付记录"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；继承孤儿计数、事件条数均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF571-01",
+        "impact": "全局 cli validate 仍因 AF-534/535/557 的 deletionChecks[0] 不是对象而 FAIL，属既有回执 schema 漂移；本单任务单本身已 PASS",
+        "severity": "low",
+        "schedule": "另立小任务修三个历史回执的 deletionChecks 形状，或在 schema 兼容层做只读归一"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "AF-570 回执直接指向 integrate 上的最终提交",
+        "reality": "原回执保留重写前 e003bf5f；该提交已不在 integrate",
+        "action": "新增 commit-rewrite-map.json 记录旧→新→merge 的完整映射",
+        "why": "已提交回执不可原地改写，改内容会破坏 sha256 与审计链"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-570 提交重写通过新增映射件恢复追溯，原回执哈希不变；7 个历史孤儿包逐条登记进继承账并附存在证据，未补写 journal、未使用 state-free 全局跳过；strict worklog 由 7 个孤儿 FAIL 转为 17/17 PASS，events 2370 条通过，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "未调用付费 LLM/TTS；仅本地编排 CLI 与只读校验，无额外 API 消耗。"
+  }
+}

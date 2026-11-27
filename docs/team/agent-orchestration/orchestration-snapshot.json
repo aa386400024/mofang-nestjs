@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T03:56:30.383Z",
+  "generatedAt": "2026-11-27T05:34:03.870Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -20,10 +20,10 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 84,
-    "activeCount": 30,
+    "total": 85,
+    "activeCount": 31,
     "byStatus": {
-      "candidate": 29,
+      "candidate": 30,
       "queued": 1,
       "accepted": 0,
       "done": 51,
@@ -31,14 +31,14 @@
     },
     "byType": {
       "gap": 49,
-      "guardrail": 7,
+      "guardrail": 8,
       "tool": 6,
       "standard": 7,
       "performance": 1,
       "tech-debt": 14
     },
     "bySource": {
-      "implementation": 41,
+      "implementation": 42,
       "acceptance": 17,
       "rework": 3,
       "dead-letter": 0,
@@ -1838,6 +1838,27 @@
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-085",
+        "title": "回执重冻后验收指纹未失效",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "guardrail",
+        "layer": "framework",
+        "relatedTaskId": "AF-571",
+        "evidence": [
+          "AF-571 RC-AF-571-2"
+        ],
+        "impact": "同一交付记录下重冻回执仍命中旧 receiptFingerprint，验收被跳过，任务卡在 submitted",
+        "suggestion": "指纹纳入回执 digest 或 receiptId；重冻后自动失效验收缓存",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-27T05:34:03.567Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -2026,6 +2047,53 @@
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-667",
+      "recordedAt": "2026-11-27T05:23:10.670Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-571",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-571-record-consistency"
+      ]
+    },
+    {
+      "auditId": "AUD-666",
+      "recordedAt": "2026-11-27T05:23:00.527Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-571",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-571",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-571.json"
+      ]
+    },
+    {
+      "auditId": "AUD-665",
+      "recordedAt": "2026-11-27T05:22:50.906Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-571",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-664",
       "recordedAt": "2026-11-27T03:48:38.412Z",
@@ -2217,67 +2285,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-652",
-      "recordedAt": "2026-11-26T23:48:44.141Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-565",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-565-voice-pause-lexicon"
-      ]
-    },
-    {
-      "auditId": "AUD-651",
-      "recordedAt": "2026-11-26T23:48:39.733Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-565",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-565",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-565.json"
-      ]
-    },
-    {
-      "auditId": "AUD-650",
-      "recordedAt": "2026-11-26T23:48:34.917Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-565",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 664,
+    "total": 667,
     "byResult": {
-      "allowed": 664,
+      "allowed": 667,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 663,
+      "TOOL-QUEUE-SCHEDULER": 666,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 664
+      "orchestrator": 667
     }
   },
   "protocolView": {
@@ -11257,6 +11278,24 @@
             "ref": "docs/worklog/completed/phase2.5/af570-auth-password-semantics-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-571",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-571/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11281,5 +11320,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 507
+  "archivedCount": 508
 }

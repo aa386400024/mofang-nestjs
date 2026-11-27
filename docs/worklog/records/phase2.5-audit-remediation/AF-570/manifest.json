@@ -2,9 +2,9 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-570",
   "contextId": "phase2.5-audit-remediation",
-  "status": "ready",
+  "status": "completed",
   "createdAt": "2026-11-27T11:30:00+08:00",
-  "updatedAt": "2026-11-27T03:56:11.234Z",
+  "updatedAt": "2026-11-27T13:25:00+08:00",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-570/task-sheet.md",
     "sha256": "d50bbe6b67de7886001e65c2766b79be221455458966831346ade8f079ce3a3b",
@@ -21,5 +21,6 @@
   "legacyPaths": [
     "docs/worklog/pending/af570-auth-password-semantics-task-2026-11-27.md"
   ],
+  "rewriteMap": "docs/worklog/records/phase2.5-audit-remediation/AF-570/commit-rewrite-map.json",
   "tombstone": null
 }
