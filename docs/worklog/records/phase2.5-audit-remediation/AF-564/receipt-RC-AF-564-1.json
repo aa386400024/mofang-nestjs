@@ -1,0 +1,238 @@
+{
+  "deliveredAt": "2026-11-27T10:42:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-564-1",
+    "taskId": "AF-564",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "2d965fb3fb98ca5826ae038a66c3c4ec3ba39796",
+    "dependsOn": ["AF-561"],
+    "priorTasks": [],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["0536f25a", "fcaaf253", "f7bb553a"],
+      "added": [
+        "scripts/eval/enqueue-exit5-batch.ts",
+        "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
+      ],
+      "modified": [
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-564/status.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过；仅 pnpm 环境提示 node>=26，当前 v22.23.2，非代码问题"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "eslint --cache 两段（业务 + scripts）均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec tsx scripts/eval/enqueue-exit5-batch.ts --target 482 --dry-run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "打印 482 场均匀分配（16 组合），未连接队列"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 362,
+        "machine": "同上",
+        "wallClock": "55.31s",
+        "note": "361 files passed + 1 skipped；5115 tests passed + 10 skipped；10 个 skip 均为 data/debug-sessions、dist、Redis 环境条件跳过，无失败"
+      },
+      {
+        "command": "mysql SELECT status, COUNT(*) FROM ap_practice_sessions GROUP BY status",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "completed 996→1000；crisis_ended 28、failed 587、stagnant 68；总计 1683 场 / 24,044 轮 / 66 个有场次批次"
+      },
+      {
+        "command": "mysql SELECT status, COUNT(*) FROM ap_practice_sessions WHERE batch_id='exit5-1000-r4-2026-11-27' GROUP BY status",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "本批 4 场全部 completed；12 轮/场、llm_call_turns=12、fallback=0、degraded=0、总成本 ¥0.107868"
+      },
+      {
+        "command": "mysql 括号残留抽检（ap_practice_turns JOIN ap_practice_sessions）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "48 轮；visitor_display_text / visitor_tts_text 全角括号、半角括号、【】、* 残留均为 0；违规样本查询为空"
+      },
+      {
+        "command": "bullmq queue.getJobCounts(waiting, active, completed, failed, delayed)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "prefix=bullmq:dev:0:DESKTOP-E3EVQ9P:186f0d61；completed=4、failed=0、waiting/active/delayed=0，队列已清空"
+      },
+      {
+        "command": "git diff --stat f31607e5..HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2347 条事件；schema / 哈希链 / 索引投影一致"
+      }
+    ],
+    "reproNotes": "复跑顺序：从主工作树 af070 以 cwd 执行 enqueue-exit5-batch.ts --target <缺口> --batch-id <新批次>；然后查 ap_practice_sessions 状态计数、本批状态计数、ap_practice_turns 括号残留、BullMQ 队列计数；再跑 pnpm typecheck / pnpm lint / pnpm test / 482 dry-run / engine-core diff。跨工作树执行会生成不同 BullMQ 前缀，必须与 worker 同 cwd。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-564 贯穿任务单、交付记录、状态文件、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "resume / run-once 经 CLI；状态面单独提交 464812a5，不混入实现提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 字段齐全；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 2347 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "commit-domain",
+        "result": "pass",
+        "note": "0536f25a 仅新增入队脚本；fcaaf253 仅交付记录与状态文档；f7bb553a 仅修复任务单 frontmatter；状态面独立"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；场次、轮次、成本、括号残留、队列计数、测试数字均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF564-01",
+        "impact": "入队脚本未显式打印 resolveBullPrefix() 与 cwd；跨工作树执行时会生成不同队列前缀，主工作树 worker 不会消费，容易被误判为入队失败",
+        "severity": "low",
+        "schedule": "后续改脚本时补打印 prefix/cwd，或增加显式 --prefix 覆盖；当前已在交付记录写明必须从 worker 工作树 cwd 执行"
+      },
+      {
+        "id": "BL-AF564-02",
+        "impact": "jobId 幂等依赖 BullMQ 保留窗口（removeOnComplete.count=5000）；队列清理后用同一 batch-id 重跑可能重新生成场次",
+        "severity": "low",
+        "schedule": "后续补差统一使用新 batch-id，并以 DB completed 实际数为准"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "基线",
+        "taskSays": "baselineRef=2d965fb3",
+        "reality": "任务分支重置到 f31607e5 后只 cherry-pick 实现提交 41b91914",
+        "action": "交付记录 §五 与回执写明",
+        "why": "任务单登记后 integrate 已前进 AF-565/566/567；旧分支携带过期状态面，保留实现、丢弃旧状态提交避免回灌"
+      },
+      {
+        "item": "缺口口径",
+        "taskSays": "按 513 completed 估算补 487 场",
+        "reality": "执行时 completed=996，实际缺口 4 场",
+        "action": "以现场 DB 为准入队 4 场，补到 1000",
+        "why": "旧文档快照过期；DB 是唯一现场真相"
+      },
+      {
+        "item": "执行 cwd",
+        "taskSays": "未写明 cwd",
+        "reality": "从主工作树 af070 执行脚本，而非任务工作树 af564",
+        "action": "交付记录 §1.1 写死命令",
+        "why": "resolveBullPrefix 按 cwd 生成前缀，必须与 worker 同工作树"
+      },
+      {
+        "item": "任务单格式",
+        "taskSays": "标准 YAML frontmatter",
+        "reality": "登记后任务单被写成单行，CLI receipt scaffold 无法解析",
+        "action": "从 160a0f47 恢复原始 65 行任务单，内容字段不变；单独提交 f7bb553a",
+        "why": "只修复格式损坏，不改任务语义与状态"
+      },
+      {
+        "item": "批次 ID",
+        "taskSays": "未指定",
+        "reality": "使用新批次 exit5-1000-r4-2026-11-27",
+        "action": "交付记录与回执写死",
+        "why": "默认 exit5-1000-2026-11-27 已存在 487 场全 failed，jobId 已占用，不能复用"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "出口⑤ completed 由 996 精确补到 1000：r4 批次 4 场全部 completed，12 轮/场、llm_call_turns=12、fallback/degraded=0；本批 48 轮 visitor_display_text / visitor_tts_text 括号残留 0；队列 completed=4 / failed=0 且已清空。入队脚本使用 resolveBullPrefix，从 worker 同 cwd 执行；lint/typecheck 0 error，全量测试无失败，engine-core 零 diff，events verify 2347 条通过。本单不改变出口④质量判定。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "本批 4 场共 48 轮，API 成本 ¥0.107868；测试与 DB 查询无额外付费调用。"
+  }
+}

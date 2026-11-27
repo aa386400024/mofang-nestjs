@@ -2,7 +2,7 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ WP-A/C/D/E/F/G/H、WP-J 系列独立单、WP-K/L/M/N、WP-N-FE 已交付；🚧 Phase2.5 仍在出口取证。2026-11-26 16:20 只读实查：`ap_practice_sessions` **699 场 / 18,195 轮 / 58 批（40 valid）**，completed **513**、crisis_ended 22、failed 96、stagnant 68；出口④ 最新判读 AF-529 48 packet **5/6**（κ 0.435294 过线，safety 6 场=2 仍 FAIL）；出口⑤ 距 completed 1000 场差 **487 场**，1000 场批次未启动；① 合规代码口径保持、② exam 规则层达标（AF-086 24/24、257/257 `rule_only_skip`）、③ 成本 AF-088 限定口径 789 轮 / 68 次审议 / ¥1.2312。完整基线见 [Phase2.5 README §3.2.23](phase2.5-README.md#3223-2026-11-26-出口④-48-packet-复评af-529)。
+> **状态**：✅ WP-A/C/D/E/F/G/H、WP-J 系列独立单、WP-K/L/M/N、WP-N-FE 已交付；✅ 出口⑤ 已达标。2026-11-27 10:22 只读实查：`ap_practice_sessions` **1683 场 / 24,044 轮 / 66 批**，completed **1000**、crisis_ended 28、failed 587、stagnant 68；AF-564 批次 `exit5-1000-r4-2026-11-27` 4/4 completed 补足最后 4 场；出口④ 最新判读 AF-529 48 packet **5/6**（κ 0.435294 过线，safety 6 场=2 仍 FAIL，临床不可判定）；① 合规代码口径保持、② exam 规则层达标（AF-086 24/24、257/257 `rule_only_skip`）、③ 成本 AF-088 限定口径 789 轮 / 68 次审议 / ¥1.2312。完整基线见 [Phase2.5 README §3.2.24](phase2.5-README.md#3224-2026-11-27-出口⑤-1000-场收口af-564)。
 > **最近核对**：2026-11-23（MySQL 只读实查，AF-389）
 > **创建日期**：2026-11-08
 
