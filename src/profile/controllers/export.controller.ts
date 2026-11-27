@@ -30,7 +30,7 @@ export class ExportController {
 
   @Post('export')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '申请导出我的数据 (异步任务, V2 占位返回 task id)' })
+  @ApiOperation({ summary: '申请导出我的数据 (同步生成, 任务与文件 24h 有效)' })
   public async exportData(@CurrentUser() user: { userId: string }, @Body() dto: ExportDataDto): Promise<ExportTaskDto> {
     return this.service.exportData(user.userId, dto);
   }
@@ -58,7 +58,7 @@ export class ExportController {
 
   @Delete()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '一键删除账户 (二次确认由前端负责, V2 占位仅审计)' })
+  @ApiOperation({ summary: '一键删除账户 (软删 + 会话/JWT/OAuth 撤销, 冷静期后硬擦除)' })
   public async deleteAccount(@CurrentUser() user: { userId: string }, @Body() dto: DeleteAccountDto): Promise<DeleteAccountResponseDto> {
     return this.service.deleteAccount(user.userId, dto);
   }

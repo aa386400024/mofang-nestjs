@@ -54,10 +54,10 @@ export interface ExportDownload {
  *
  * AF-537 P0-6 治本:
  *   - 删除账户不再“只写日志就返回 deleted”：落软删、撤 session、撤 JWT、解绑 OAuth、写审计。
- *   - 导出不再返回常量 taskId / 任意 taskId 均可查询：真实实现前直接 501，避免谎报。
+ *   - 导出不再返回常量 taskId / 任意 taskId 均可查询：AF-586 起改为真实采集 + Redis 任务 + 所有者校验。
  *
  * V3 计划:
- *   - exportData 串接 BullMQ queue, 异步生成加密 ZIP, 24h presigned URL。
+ *   - 对话 / 记忆 / 练习 / 语音转写纳入导出后，exportData 切 BullMQ 异步与加密 ZIP。
  *   - deleteAccount 冷静期到期后由 soft-delete cron 做全量数据擦除。
  */
 @Injectable()
