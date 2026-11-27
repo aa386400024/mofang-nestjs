@@ -1,0 +1,178 @@
+{
+  "deliveredAt": "2026-11-28T05:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-587-1",
+    "taskId": "AF-587",
+    "contextId": "phase2.5-quality-gates",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "fec854029e8d16e8e45ea1dcee7d17ac741c1b37",
+    "dependsOn": [],
+    "priorTasks": ["AF-586"],
+    "policyRefs": ["docs/team/conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-587/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af587-account-erasure-uid-columns-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["d82a523c348ced51cacbc933990ec7b67b3b89b5"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af587-account-erasure-uid-columns-2026-11-28.md",
+        "docs/worklog/records/phase2.5-quality-gates/AF-587/task-sheet.md",
+        "test/user/account-erasure.spec.ts"
+      ],
+      "modified": ["src/user/providers/account-erasure.service.ts"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/user/account-erasure.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "16.67s",
+        "note": "4 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 90s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 366,
+        "machine": "同上",
+        "wallClock": "746.42s",
+        "note": "365 files passed + 1 skipped；5179 passed / 0 failed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "任务单与回执机读校验 PASS"
+      }
+    ],
+    "reproNotes": "复核：pnpm exec vitest run test/user/account-erasure.spec.ts；pnpm typecheck；pnpm lint；pnpm test；git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-587 贯穿任务单、分支、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态只经 CLI 写入；实现提交与状态面提交分离"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 schema；回执七组必填字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "claim / dispatch / promote 由 CLI 写入，validate 校验索引投影"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改账号擦除服务与对应单测，未越出 executor 资源域"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "硬擦除不打印个人数据；审计留存策略未改；无新增外部输入"
+      },
+      {
+        "item": "honest-scope",
+        "result": "pass",
+        "note": "只修 uid / user_id / *_uid 列识别；非该命名约定的外键作为 AF-587-B1 遗留"
+      },
+      {
+        "item": "no-new-dependency",
+        "result": "pass",
+        "note": "无新依赖、无 migration、无配置变更"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 6 条 successCriteria 均落在实现、单测与门禁证据；未宣称完成 WP29 全部删除权范围"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-587-B1",
+        "impact": "擦除仍依赖列名约定；若未来出现非 *_uid 命名的用户外键，可能再次漏删，需补约定或实体显式标注",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "audit_logs 作为唯一保留表是否满足删除权的最小必要留存口径，需法务确认"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "账号硬擦除从只认 uid / user_id 扩展为 uid / user_id / *_uid，覆盖陪伴绑定、陪伴记录、康复项、双人会话、舒缓卡等关系表；多归属列逐列删除且去重计表，保留表与 users 顺序不变，仍在单事务内；4 条单测覆盖匹配、去重、跳过与异常上抛；全量 5179 例全绿，typecheck/lint 零错，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与编排校验，无付费 API 调用。"
+  }
+}
