@@ -1704,10 +1704,19 @@ async function cmdValidate(args) {
 
   const receiptDir = join(PATHS.transportDir, 'receipts');
   const receiptFiles = existsSync(receiptDir) ? readdirSync(receiptDir).filter((f) => f.endsWith('.json')) : [];
+  const archivedTaskIds = new Set();
+  if (existsSync(PATHS.index)) {
+    const index = JSON.parse(readFileSync(PATHS.index, 'utf8'));
+    for (const task of index.archivedTasks ?? []) {
+      if (task?.taskId) archivedTaskIds.add(task.taskId);
+    }
+  }
   for (const file of receiptFiles.sort()) {
     const record = JSON.parse(readFileSync(join(receiptDir, file), 'utf8'));
     const receipt = record?.payload ?? record;
-    sections.push([`回执 ${file}`, await validateReceiptSchema(receipt)]);
+    // 已归档回执已冻结：历史 deletionChecks 字符串只在校验视图里补成对象，不回写。
+    const archived = Boolean(receipt?.taskId && archivedTaskIds.has(receipt.taskId));
+    sections.push([`回执 ${file}`, await validateReceiptSchema(receipt, { archived })]);
   }
 
   const taskDir = join(PATHS.transportDir, 'tasks');

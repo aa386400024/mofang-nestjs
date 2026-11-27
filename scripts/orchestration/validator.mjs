@@ -178,9 +178,41 @@ export function validateReviewHandoverSchema(review) {
   return validateObject('reviewHandover', review);
 }
 
-/** 机读回执对象校验（框架 receipt.schema.json）。 */
-export function validateReceiptSchema(receipt) {
-  return validateObject('receipt', receipt);
+/**
+ * 已归档回执的 deletionChecks 兼容视图。
+ *
+ * 早期回执把 deletionChecks 写成字符串数组；这些回执已冻结进记录包，改正文会破坏
+ * sha256 与证据链。这里只在归档任务的校验视图里补成 {path, check} 对象，不回写磁盘。
+ * 活动任务不走进此分支，仍按 receipt 2.1.0 严格校验。
+ */
+export function normalizeReceiptForValidation(receipt, { archived = false } = {}) {
+  if (!archived || !receipt || typeof receipt !== 'object') return receipt;
+  const changedFiles = receipt.changedFiles;
+  const checks = changedFiles?.deletionChecks;
+  if (!Array.isArray(checks) || checks.length === 0) return receipt;
+  if (checks.every((item) => item && typeof item === 'object' && !Array.isArray(item))) return receipt;
+  if (!checks.every((item) => typeof item === 'string')) return receipt;
+
+  const deleted = Array.isArray(changedFiles.deleted) ? changedFiles.deleted : [];
+  const taskId = typeof receipt.taskId === 'string' && receipt.taskId ? receipt.taskId : 'unknown-task';
+  return {
+    ...receipt,
+    changedFiles: {
+      ...changedFiles,
+      deletionChecks: checks.map((check, index) => ({
+        path:
+          typeof deleted[index] === 'string' && deleted[index].trim()
+            ? deleted[index]
+            : `legacy://${taskId}/deleted-${index + 1}`,
+        check,
+      })),
+    },
+  };
+}
+
+/** 机读回执对象校验（框架 receipt.schema.json）。archived 仅放行已归档旧结构。 */
+export function validateReceiptSchema(receipt, options = {}) {
+  return validateObject('receipt', normalizeReceiptForValidation(receipt, options));
 }
 
 /** 夜间交付包对象校验（框架 delivery-package.schema.json）。 */
