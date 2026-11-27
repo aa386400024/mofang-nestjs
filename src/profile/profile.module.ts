@@ -32,6 +32,7 @@ import { NotificationSettingsService } from './providers/notification-settings.s
 import { PrivacyAuthorizationService } from './providers/privacy-authorization.service.js';
 import { ProfileService } from './providers/profile.service.js';
 import { SelfcareRecordService } from './providers/selfcare-record.service.js';
+import { UserDataExportCollector } from './providers/user-data-export.collector.js';
 import { User } from '../user/entities/user.entity.js';
 
 /**
@@ -87,6 +88,7 @@ import { User } from '../user/entities/user.entity.js';
     BurnoutSettingsService,
     ConsentService,
     ExportService,
+    UserDataExportCollector,
     PrivacyAuthorizationService,
   ],
   exports: [

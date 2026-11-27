@@ -81,6 +81,8 @@ export enum AuditEvent {
   // V2 软删
   UserAccountDeletionRequested = 'user_account_deletion_requested',
   UserHardDeleted = 'user_hard_deleted',
+  // Phase4 WP29: 数据导出请求 (合规审计需要知道"谁在什么时候导出了什么范围")
+  UserDataExportRequested = 'user_data_export_requested',
 
   // Membership v2 运营 (AF-517): 活动主数据写操作必须可追溯
   MembershipPromotionCreated = 'membership_promotion_created',
