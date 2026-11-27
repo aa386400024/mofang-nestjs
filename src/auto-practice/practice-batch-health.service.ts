@@ -35,6 +35,14 @@ export const BATCH_HEALTH_LLM_CALL_RATIO_MIN = 0.9;
 /** 合格线: 渲染兜底率批次均值上限 (改动 9). */
 export const BATCH_HEALTH_FALLBACK_RATIO_MAX = 0.05;
 
+/**
+ * 合格线: 咨询师侧降级轮次占全部轮次的比例上限 (AF-581).
+ *
+ * 复用渲染兜底同一 5% 可材料性量级，不另造第二套阈值; 该门禁只回答
+ * "批次数据能否用于结论", 不是临床质量结论.
+ */
+export const BATCH_HEALTH_COUNSELOR_DEGRADED_RATIO_MAX = 0.05;
+
 /** 不合格批次在响应体里带的告警文案 (改动 9 · 规格原文). */
 export const BATCH_INVALID_WARNING = '该批次未通过有效性门禁，指标不可用于结论';
 
@@ -48,6 +56,8 @@ export const BATCH_VALIDITY_FLAGS = {
   fallbackRatioUnknown: 'FALLBACK_RATIO_UNKNOWN',
   /** 计数不一致 (degraded_turns > turn_count). */
   counterInconsistent: 'COUNTER_INCONSISTENT',
+  /** 咨询师侧降级轮次占比过高. */
+  counselorDegradedHigh: 'COUNSELOR_DEGRADED_HIGH',
   /** 批次里一场都没有. */
   noSession: 'NO_SESSION',
 } as const;
@@ -85,6 +95,8 @@ export interface BatchMetrics {
   readonly degradedTurns: number;
   readonly counselorDegradedTurns: number;
   readonly visitorDegradedTurns: number;
+  /** 咨询师侧降级轮次 / 全部轮次 (0~1; 无轮次时 0). */
+  readonly counselorDegradedRatio: number;
   /** 渲染兜底率**批次均值** (改动 9 口径); null = 没测过 (不是 0). */
   readonly renderFallbackRatio: number | null;
   /** 渲染兜底率**加权值** (合计兜底轮 / 合计轮数); null = 没轮数. */
@@ -103,6 +115,7 @@ export interface BatchHealth {
   readonly flags: readonly string[];
   readonly llmCallRatio: number;
   readonly fallbackRatio: number | null;
+  readonly counselorDegradedRatio: number;
   readonly counterConsistent: boolean;
   readonly totalSessions: number;
 }
@@ -189,6 +202,7 @@ export function computeBatchMetrics(rows: readonly BatchSessionMetrics[]): Batch
     degradedTurns,
     counselorDegradedTurns,
     visitorDegradedTurns,
+    counselorDegradedRatio: totalTurns > 0 ? counselorDegradedTurns / totalTurns : 0,
     renderFallbackRatio: measuredRatioCount > 0 ? measuredRatioSum / measuredRatioCount : null,
     renderFallbackRatioWeighted: totalTurns > 0 ? renderFallbackTurns / totalTurns : null,
     llmCallRatio: totalSessions > 0 ? sessionsWithLlmCall / totalSessions : 0,
@@ -238,12 +252,16 @@ export function evaluateBatchHealth(metrics: BatchMetrics): BatchHealth {
   if (!metrics.counterConsistent) {
     flags.push(BATCH_VALIDITY_FLAGS.counterInconsistent);
   }
+  if (metrics.counselorDegradedRatio >= BATCH_HEALTH_COUNSELOR_DEGRADED_RATIO_MAX) {
+    flags.push(BATCH_VALIDITY_FLAGS.counselorDegradedHigh);
+  }
 
   return {
     valid: flags.length === 0,
     flags,
     llmCallRatio: metrics.llmCallRatio,
     fallbackRatio: metrics.renderFallbackRatio,
+    counselorDegradedRatio: metrics.counselorDegradedRatio,
     counterConsistent: metrics.counterConsistent,
     totalSessions: metrics.totalSessions,
   };

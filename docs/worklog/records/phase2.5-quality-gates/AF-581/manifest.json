@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-581",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-27T20:40:00+08:00",
+  "updatedAt": "2026-11-27T15:29:14.337Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-581/task-sheet.md",
+    "sha256": "515ebb839aad104bb7cc3ff1d0d8c89418578e094f6e733cf9a8115976ed2667",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-581/receipt-RC-AF-581-1.json",
+      "sha256": "1a879241ce055762d7e29b9f029c6d42242b64383779ec00744967902dedd156",
+      "receiptId": "RC-AF-581-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af581-counselor-degraded-gate-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af581-counselor-degraded-gate-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
