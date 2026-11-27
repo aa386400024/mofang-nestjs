@@ -1,3 +1,4 @@
+/* eslint-disable max-len, unicorn/prefer-single-call -- 取证报告按段落/表格行分段输出，命令行与结论行保留原格式便于复制复核 */
 // V2026-11-13 建立 (G-4 · 规则轨词表子串重叠量级离线取证 · CLI 编排):
 //   职责: 静态穷举规则轨词表的跨规则 / 同规则子串包含对 → 归档逐轮投影
 //         → 重叠对轮 / 其他多事件轮 / 单事件轮 分组频次 → 增量群体量级对照
@@ -32,9 +33,9 @@
 //     pnpm exec tsx scripts/ops/quality/g4-lexicon-substring-overlap-evidence.ts --lineage data/batch-reports/xxx.json
 //     pnpm exec tsx scripts/ops/quality/g4-lexicon-substring-overlap-evidence.ts --min-samples 20
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** 一条规则 (与 core EventRule 同构, 仅取 kind + terms). */
@@ -382,7 +383,7 @@ function describe(values: readonly number[]): Stats {
     p25: quantile(sorted, 0.25),
     median: quantile(sorted, 0.5),
     p75: quantile(sorted, 0.75),
-    max: sorted[sorted.length - 1] ?? Number.NaN,
+    max: sorted.at(-1) ?? Number.NaN,
     sum,
   };
 }
@@ -581,6 +582,7 @@ interface ReportInput {
 }
 
 /** 渲染取证报告 (stdout 与 --out 文件同构). */
+// eslint-disable-next-line complexity, sonarjs/cognitive-complexity -- 取证报告按 0-7 表顺序线性拼装，拆分函数会割裂表间引用
 function renderReport(input: ReportInput): string {
   const { options, scan, pairs } = input;
   const out: string[] = [];
@@ -598,32 +600,30 @@ function renderReport(input: ReportInput): string {
   const acceptanceEmpathyTurns = scan.turns.filter((turn) => turn.tags.includes('acceptance') && turn.tags.includes('empathy'));
   const acceptanceEmpathyStats = computeStats(acceptanceEmpathyTurns);
 
-  out.push('# G-4 · 规则轨词表子串重叠量级离线取证（归档实测）');
-  out.push('');
-  out.push('> 脚本：`scripts/ops/quality/g4-lexicon-substring-overlap-evidence.ts`（只读复算 · 纯离线）');
-  out.push('> 真相源：词表 `src/engine-core/domain/events/event-lexicon.ts` · delta 种子 `src/engine-core/cognition/state-transition.ts`');
-  out.push('> 结论边界：**只出证据与量级对照**，不实现消歧、不改词表 / 分类器 / D-1 基线快照 spec（任务单 §1.2.1 / §1.2.5）。');
-  out.push('');
-  out.push('## 表 0 · 静态子串包含对穷举（§3.1）');
-  out.push('');
+  out.push(
+    '# G-4 · 规则轨词表子串重叠量级离线取证（归档实测）',
+    '',
+    '> 脚本：`scripts/ops/quality/g4-lexicon-substring-overlap-evidence.ts`（只读复算 · 纯离线）',
+    '> 真相源：词表 `src/engine-core/domain/events/event-lexicon.ts` · delta 种子 `src/engine-core/cognition/state-transition.ts`',
+    '> 结论边界：**只出证据与量级对照**，不实现消歧、不改词表 / 分类器 / D-1 基线快照 spec（任务单 §1.2.1 / §1.2.5）。',
+    '',
+    '## 表 0 · 静态子串包含对穷举（§3.1）',
+    '',
+  );
   out.push(
     `- 真相源规则条数：**${input.sourceRuleCount}** · 内置静态声明条数：**${LEXICON.length}** · 运行期逐条比对：**一致**（漂移即报错退出）`,
+    `- 跨规则子串包含对：**${crossPairs.length}** 对 · 同规则子串包含对：**${samePairs.length}** 对`,
+    '',
+    '| 范围 | 外层词条（长） | 内层词条（子串） | 说明 |',
+    '| --- | --- | --- | --- |',
   );
-  out.push(`- 跨规则子串包含对：**${crossPairs.length}** 对 · 同规则子串包含对：**${samePairs.length}** 对`);
-  out.push('');
-  out.push('| 范围 | 外层词条（长） | 内层词条（子串） | 说明 |');
-  out.push('| --- | --- | --- | --- |');
   for (const pair of pairs) {
     out.push(
       `| ${pair.scope} | ${pair.outerKind} · ${pair.outerTerm} | ${pair.innerKind} · ${pair.innerTerm} | 内层命中即自动命中外层 → 单轮双 kind 叠加 |`,
     );
   }
   if (pairs.length === 0) out.push('| — | — | — | 未穷举到任何子串包含对 |');
-  out.push('');
-  out.push('## 表 1 · 归档事件标签组合频次（全库）');
-  out.push('');
-  out.push('| 事件标签组合 | 轮数 | 占有效轮 |');
-  out.push('| --- | --- | --- |');
+  out.push('', '## 表 1 · 归档事件标签组合频次（全库）', '', '| 事件标签组合 | 轮数 | 占有效轮 |', '| --- | --- | --- |');
   const comboCounts = new Map<string, number>();
   for (const turn of scan.turns) {
     const key = comboKey(turn.tags);
@@ -632,13 +632,15 @@ function renderReport(input: ReportInput): string {
   for (const [key, count] of [...comboCounts.entries()].toSorted((left, right) => right[1] - left[1])) {
     out.push(`| ${key} | ${count} | ${formatPercent(count, total)} |`);
   }
-  out.push('');
-  out.push(`> 有效轮合计 **${total}**（场次 ${scan.sessions} · 文件 ${scan.files}）。`);
-  out.push('');
-  out.push('## 表 2 · 分组计数总览（互斥分组）');
-  out.push('');
-  out.push('| 分组 | 轮数 | 占有效轮 | 备注 |');
-  out.push('| --- | --- | --- | --- |');
+  out.push(
+    '',
+    `> 有效轮合计 **${total}**（场次 ${scan.sessions} · 文件 ${scan.files}）。`,
+    '',
+    '## 表 2 · 分组计数总览（互斥分组）',
+    '',
+    '| 分组 | 轮数 | 占有效轮 | 备注 |',
+    '| --- | --- | --- | --- |',
+  );
   const groupNotes: Readonly<Record<GroupKey, string>> = {
     overlap_pair: '**与子串重叠对口径一致的双命中轮**（empathy + open_probe 同时出现）',
     other_multi: '命中多个**互不构成子串**的规则 —— 属真实双事件，不计入重叠归因',
@@ -653,11 +655,13 @@ function renderReport(input: ReportInput): string {
     const count = groupTurns.get(key)?.length ?? 0;
     out.push(`| ${GROUP_LABEL[key]} | ${count} | ${formatPercent(count, total)} | ${groupNotes[key]} |`);
   }
-  out.push('');
-  out.push('## 表 3 · 重叠对轮明细与分层（§3.2-1）');
-  out.push('');
-  out.push('| 批次目录 | 角色 | 轮次 | degraded | trust | safety | bond | valence |');
-  out.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
+  out.push(
+    '',
+    '## 表 3 · 重叠对轮明细与分层（§3.2-1）',
+    '',
+    '| 批次目录 | 角色 | 轮次 | degraded | trust | safety | bond | valence |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
+  );
   const sortedOverlap = overlapTurns.toSorted((left, right) => left.dir.localeCompare(right.dir) || left.turnIndex - right.turnIndex);
   for (const turn of sortedOverlap) {
     const delta = turn.delta ?? {};
@@ -666,11 +670,7 @@ function renderReport(input: ReportInput): string {
     );
   }
   if (overlapTurns.length === 0) out.push('| — | — | — | — | — | — | — | — |');
-  out.push('');
-  out.push('**分层计数**');
-  out.push('');
-  out.push('| 分层维度 | 取值 | 轮数 | 占有效轮 |');
-  out.push('| --- | --- | --- | --- |');
+  out.push('', '**分层计数**', '', '| 分层维度 | 取值 | 轮数 | 占有效轮 |', '| --- | --- | --- | --- |');
   const byDir = new Map<string, number>();
   const byRole = new Map<string, number>();
   const byDegraded = new Map<string, number>();
@@ -684,11 +684,7 @@ function renderReport(input: ReportInput): string {
   for (const [key, count] of byRole) out.push(`| 角色 | ${key} | ${count} | ${formatPercent(count, total)} |`);
   for (const [key, count] of byDegraded) out.push(`| 退化分层 | ${key} | ${count} | ${formatPercent(count, total)} |`);
   if (overlapTurns.length === 0) out.push('| — | — | 0 | 0.0000% |');
-  out.push('');
-  out.push('**其他多事件轮组合构成（§3.2-2，不混入重叠归因）**');
-  out.push('');
-  out.push('| 组合 | 轮数 | 占有效轮 |');
-  out.push('| --- | --- | --- |');
+  out.push('', '**其他多事件轮组合构成（§3.2-2，不混入重叠归因）**', '', '| 组合 | 轮数 | 占有效轮 |', '| --- | --- | --- |');
   const otherCombos = new Map<string, number>();
   for (const turn of otherMultiTurns) {
     const key = comboKey(turn.tags);
@@ -697,11 +693,13 @@ function renderReport(input: ReportInput): string {
   for (const [key, count] of [...otherCombos.entries()].toSorted((left, right) => right[1] - left[1])) {
     out.push(`| ${key} | ${count} | ${formatPercent(count, total)} |`);
   }
-  out.push('');
-  out.push('## 表 4 · 增量群体对照（§3.3 · 群体分布口径，不做逐事件分量分解）');
-  out.push('');
-  out.push(`单元格 = 中位 [P25~P75]；n = 有 delta 的轮数。**样本不足（n < ${options.minSamples}）的分组标「样本不足 · 不出结论」**。`);
-  out.push('');
+  out.push(
+    '',
+    '## 表 4 · 增量群体对照（§3.3 · 群体分布口径，不做逐事件分量分解）',
+    '',
+    `单元格 = 中位 [P25~P75]；n = 有 delta 的轮数。**样本不足（n < ${options.minSamples}）的分组标「样本不足 · 不出结论」**。`,
+    '',
+  );
   out.push(`| 分组 | n | ${CORE_DIMS.join(' | ')} |`);
   out.push(`| --- | --- | ${CORE_DIMS.map(() => '---').join(' | ')} |`);
   const tableGroups: readonly { key: GroupKey; label: string }[] = [
@@ -721,8 +719,8 @@ function renderReport(input: ReportInput): string {
   const accEmpMark = accEmpN < options.minSamples ? '（样本不足 · 不出结论）' : '';
   out.push(
     `| 参照组：acceptance+empathy 真实双事件${accEmpMark} | ${accEmpN} | ${CORE_DIMS.map((dim) => formatCell(acceptanceEmpathyStats.get(dim))).join(' | ')} |`,
+    '',
   );
-  out.push('');
   out.push(`| 分组 | n | ${OTHER_DIMS.join(' | ')} |`);
   out.push(`| --- | --- | ${OTHER_DIMS.map(() => '---').join(' | ')} |`);
   for (const entry of tableGroups) {
@@ -731,30 +729,20 @@ function renderReport(input: ReportInput): string {
     const mark = n < options.minSamples ? '（样本不足 · 不出结论）' : '';
     out.push(`| ${entry.label}${mark} | ${n} | ${OTHER_DIMS.map((dim) => formatCell(stats?.get(dim))).join(' | ')} |`);
   }
-  out.push('');
-  out.push('**群体对照判定（仅样本充足组给结论）**');
-  out.push('');
-  out.push('| 对照 | 样本充足性 | 判定 |');
-  out.push('| --- | --- | --- |');
+  out.push('', '**群体对照判定（仅样本充足组给结论）**', '', '| 对照 | 样本充足性 | 判定 |', '| --- | --- | --- |');
   const overlapN = groupStats.get('overlap_pair')?.get('trust')?.n ?? 0;
   const empathyN = groupStats.get('single_empathy')?.get('trust')?.n ?? 0;
   const openProbeN = groupStats.get('single_open_probe')?.get('trust')?.n ?? 0;
   out.push(
     `| 重叠对轮 vs empathy 单命中（trust 中位差） | 重叠对 n=${overlapN} / empathy n=${empathyN} | ${overlapN < options.minSamples ? '**样本不足 · 不出结论**（不强行给点值）' : '可给结论'} |`,
-  );
-  out.push(
     `| 重叠对轮 vs open_probe 单命中（trust 中位差） | 重叠对 n=${overlapN} / open_probe n=${openProbeN} | ${overlapN < options.minSamples || openProbeN < options.minSamples ? '**样本不足 · 不出结论**' : '可给结论'} |`,
-  );
-  out.push(
     `| 参照：acceptance+empathy 真实双事件 vs empathy 单命中 | n=${accEmpN} / n=${empathyN} | ${accEmpN < options.minSamples || empathyN < options.minSamples ? '**样本不足 · 不出结论**' : '可给结论（作为「真实双事件叠加」的量级参照）'} |`,
-  );
-  out.push('');
-  out.push('## 表 5 · 静态种子参照（§3.4 · 仅量级参照，非实测结论）');
-  out.push('');
-  out.push(
+    '',
+    '## 表 5 · 静态种子参照（§3.4 · 仅量级参照，非实测结论）',
+    '',
     '> 真相源 `state-transition.ts` DELTA_TABLE；**未含角色倍率 / 人格调制 / capTurnDelta 折损 / 时序权重**。归档侧一切数值均取自 `trace.delta` 原值，**种子向量不参与任何归档计算**。',
+    '',
   );
-  out.push('');
   out.push(`| 事件 | ${DELTA_DIMS.join(' | ')} |`);
   out.push(`| --- | ${DELTA_DIMS.map(() => '---').join(' | ')} |`);
   const seedRows: readonly { label: string; vector: DeltaVector }[] = [
@@ -790,8 +778,7 @@ function renderReport(input: ReportInput): string {
     const value = turn.delta?.trust;
     return typeof value === 'number' ? acc + value : acc;
   }, 0);
-  out.push('## 表 6 · 量级小结（事实陈述，不作临床结论）');
-  out.push('');
+  out.push('## 表 6 · 量级小结（事实陈述，不作临床结论）', '');
   out.push(
     `- 归档有效轮 **${total}**；与子串重叠对口径一致的双命中轮 **${overlapTurns.length}** 轮，占有效轮 **${formatPercent(overlapTurns.length, total)}**。`,
   );
@@ -800,60 +787,52 @@ function renderReport(input: ReportInput): string {
   );
   out.push(
     `- 重叠对轮 trust 增量合计 **${formatNumber(overlapTrustSum)}**；全库正向 trust 增量合计 **${formatNumber(positiveTrustTotal)}** → 重叠对轮占全库正向 trust 累计的 **${formatPercent(overlapTrustSum, positiveTrustTotal)}**（**上界**：归档不存命中词，无法逐轮证明命中机制，见表 7）。`,
-  );
-  out.push(
     `- 群体对照结论：重叠对组 n=${overlapN} ${overlapN < options.minSamples ? '**样本不足 · 不出结论**' : '可给结论'}；主对照 empathy 单命中组 n=${empathyN}（充足）；参照组 acceptance+empathy 真实双事件 n=${accEmpN}。`,
-  );
-  out.push('');
-  out.push('## 表 7 · 口径、限制与披露');
-  out.push('');
-  out.push('**口径限制**');
-  out.push('');
-  out.push(
+    '',
+    '## 表 7 · 口径、限制与披露',
+    '',
+    '**口径限制**',
+    '',
     '1. **归档不存命中词（matchedTerms）** → `empathy + open_probe` 双标签轮只能确定「两类同时出现」，**不能逐轮证明是子串重叠所致**（文本同时含「你觉得」与另一个 open_probe 词条也会产出同样双标签）→ 重叠对贡献按**上界**报告。',
-  );
-  out.push(
     '2. **不做逐事件分量分解**：归档 delta 经角色倍率 / 人格调制 / capTurnDelta 折损 / 时序权重处理，脚本不反推单事件分量，只做群体分布对照（任务单 §3.3）。',
-  );
-  out.push('3. **样本不足规则**：分组轮数 < `--min-samples`（本次 ' + options.minSamples + '）即标「样本不足 · 不出结论」，不强行给点值。');
-  out.push(
+    '3. **样本不足规则**：分组轮数 < `--min-samples`（本次 ' + options.minSamples + '）即标「样本不足 · 不出结论」，不强行给点值。',
     '4. **退化轮不做特殊剔除**：归档「degraded」= 渲染降级，规则事件仍推进状态（与 I-11 单结论一致），故退化轮**保留**在分组内并单列退化分层计数。',
-  );
-  out.push('5. **模式分层**：未传 `--lineage` → **不按 counselorModeId 分层**，只按角色 / 批次目录 / 退化分层。');
-  out.push(
+    '5. **模式分层**：未传 `--lineage` → **不按 counselorModeId 分层**，只按角色 / 批次目录 / 退化分层。',
     '6. **归档时点**：归档快照早于 S-1 / D-2 落地，事件 kind 集合与词表口径与当前版本存在时点差；本单只用归档里已落库的 kind 标签，不反推当前分类器行为。',
+    '',
+    '**跳过披露（不静默丢场）**',
+    '',
+    '| 项 | 数量 |',
+    '| --- | --- |',
+    `| 扫描文件 | ${scan.files} |`,
+    `| 有效场次 | ${scan.sessions} |`,
+    `| 有效轮次 | ${total} |`,
+    `| 非 JSON 文件跳过 | ${scan.skippedNonJson} |`,
+    `| 解析失败跳过 | ${scan.skippedParseFailed} |`,
+    `| 无角色跳过 | ${scan.skippedNoRole} |`,
   );
-  out.push('');
-  out.push('**跳过披露（不静默丢场）**');
-  out.push('');
-  out.push('| 项 | 数量 |');
-  out.push('| --- | --- |');
-  out.push(`| 扫描文件 | ${scan.files} |`);
-  out.push(`| 有效场次 | ${scan.sessions} |`);
-  out.push(`| 有效轮次 | ${total} |`);
-  out.push(`| 非 JSON 文件跳过 | ${scan.skippedNonJson} |`);
-  out.push(`| 解析失败跳过 | ${scan.skippedParseFailed} |`);
-  out.push(`| 无角色跳过 | ${scan.skippedNoRole} |`);
-  out.push(`| 无 traces 跳过 | ${scan.skippedNoTraces} |`);
-  out.push(`| 根目录散落 JSON（非场次） | ${scan.looseRootFiles} |`);
-  out.push(`| delta 缺失轮（trace.delta 为 null） | ${scan.deltaMissing} |`);
-  out.push('');
-  out.push('**归档完整性（运行前后全清单哈希）**');
-  out.push('');
-  out.push('| 时点 | 文件数 | 字节数 | SHA256 |');
-  out.push('| --- | --- | --- | --- |');
-  out.push(`| 运行前 | ${input.hashBefore.files} | ${input.hashBefore.bytes} | ${input.hashBefore.sha256} |`);
-  out.push(`| 运行后 | ${input.hashAfter.files} | ${input.hashAfter.bytes} | ${input.hashAfter.sha256} |`);
-  out.push(`| 结论 | ${input.hashBefore.sha256 === input.hashAfter.sha256 ? '**逐字一致 · 归档零修改**' : '**不一致 · 见偏差节**'} | | |`);
-  out.push('');
-  out.push('**血缘（模式分层）**');
-  out.push('');
   out.push(
+    `| 无 traces 跳过 | ${scan.skippedNoTraces} |`,
+    `| 根目录散落 JSON（非场次） | ${scan.looseRootFiles} |`,
+    `| delta 缺失轮（trace.delta 为 null） | ${scan.deltaMissing} |`,
+    '',
+    '**归档完整性（运行前后全清单哈希）**',
+    '',
+    '| 时点 | 文件数 | 字节数 | SHA256 |',
+    '| --- | --- | --- | --- |',
+    `| 运行前 | ${input.hashBefore.files} | ${input.hashBefore.bytes} | ${input.hashBefore.sha256} |`,
+    `| 运行后 | ${input.hashAfter.files} | ${input.hashAfter.bytes} | ${input.hashAfter.sha256} |`,
+  );
+  out.push(
+    `| 结论 | ${input.hashBefore.sha256 === input.hashAfter.sha256 ? '**逐字一致 · 归档零修改**' : '**不一致 · 见偏差节**'} | | |`,
+    '',
+    '**血缘（模式分层）**',
+    '',
     input.lineageProvided
       ? `- 已提供血缘文件：命中 ${input.lineageHits} 轮 / 关联 ${input.lineageRows} 个 mode`
       : '- 未提供 `--lineage` → **不按 counselorModeId 分层**（任务单 §3.3）',
+    '',
   );
-  out.push('');
   return out.join('\n');
 }
 
