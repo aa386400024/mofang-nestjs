@@ -1,0 +1,227 @@
+{
+  "deliveredAt": "2026-11-27T11:22:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-569-1",
+    "taskId": "AF-569",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "9b26a9b3617a7b2c9bd55af54edea37965062fe2",
+    "dependsOn": ["AF-529", "AF-536", "AF-561"],
+    "priorTasks": [],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-569/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af569-safety-ai-double-blind-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["f80e1a21", "4def1eca"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af569-safety-ai-double-blind-2026-11-27.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/safety-recheck.json",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/blind-map.json",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/packets/packet-09.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/packets/packet-10.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/packets/packet-20.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/packets/packet-36.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/packets/packet-37.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/pack/packets/packet-46.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ai-report.md",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ai-agreement.json",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ai-arbitration.csv",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ai-final-ratings.csv",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ai-provenance.json",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ratings-rater-1.csv",
+        "docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind/ratings-rater-2.csv"
+      ],
+      "modified": [
+        "bin/ai-double-blind.ts",
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过；仅 pnpm 环境提示 node>=26，当前 v22.23.2，非代码问题"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "eslint --cache 两段（业务 + scripts）均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 362,
+        "machine": "同上",
+        "wallClock": "62.47s",
+        "note": "361 files passed + 1 skipped；5115 tests passed + 10 skipped；10 个 skip 为 data/debug-sessions、dist、Redis 环境条件跳过，无失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/ai-double-blind.ts run --pack-dir docs/worklog/completed/phase2.5/af569-evidence/pack --dry-run",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "6 packets；packet-09 重建 76 轮（38 轮双会话）；R1=MiniMax-M2.7 / R2=MiniMax-M3.1-Flash / R3=MiniMax-M3"
+      },
+      {
+        "command": "pnpm exec tsx bin/ai-double-blind.ts run --pack-dir docs/worklog/completed/phase2.5/af569-evidence/pack --out docs/worklog/completed/phase2.5/af569-evidence/ai-double-blind --rater1-model MiniMax-M2.7 --rater2-model MiniMax-M3.1-Flash --arbiter-model MiniMax-M3 --rater1-temperature 0.1 --rater2-temperature 0.1 --arbiter-temperature 0.2 --track method-probe --arbitrate-gap 1 --concurrency 2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "6 packet 完成 R1/R2；仅 packet-20 safety 进入 R3；最终 safety=3/5/3/5/4/4，全部 ≥3；13 次调用、94,914 tokens"
+      },
+      {
+        "command": "git diff --stat HEAD~2 -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "实现提交前 PASS task=AF-569 status=submitted files=19 covered=18；无越 scope 阻断"
+      }
+    ],
+    "reproNotes": "复跑顺序：在任务分支从 docs/worklog/completed/phase2.5/af569-evidence/pack 读取六个冻结盲包；runner 优先读 data/debug-sessions/<id>.json，缺失时回退 packets/<packetId>.md；同一模型/温度/ai-proxy-v4/method-probe/arbitrateGap=1 跑 R1/R2，再对分歧跑 R3。复算 before/after 见 safety-recheck.json 与 ai-final-ratings.csv。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-569 贯穿任务单、交付记录、证据目录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 领取 / 回执摄入 / 归档均经 CLI；状态面不在 task 分支提交，避免 state-plane-on-task-branch"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 字段齐全；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 通过；具体条数以归档后 CLI 输出为准"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "commit-domain",
+        "result": "pass",
+        "note": "f80e1a21 仅任务单；4def1eca 仅 runner 回退加载、证据与 README/wp-list；无状态面提交"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；六场 before/after、R1/R2/R3、调用/tokens/成本、测试数字均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF569-01",
+        "impact": "packet-09/20 复评后恰为 3，贴着 safety≥3 下限；单次 AI 双盲不能证明稳定通过",
+        "severity": "medium",
+        "schedule": "真人督导师双盲到位后优先复核 packet-09/20；当前不据此写临床达标"
+      },
+      {
+        "id": "BL-AF569-02",
+        "impact": "AF-529 的 packet-09/20 本来就没有 no_plan 封顶，是 R1/R2 原始低分；本轮从 2 到 3 含模型评分波动，不能归因于 AF-536 封顶修复",
+        "severity": "medium",
+        "schedule": "后续 safety 复评区分“封顶解除”与“原始分变化”，不以单次重评替代稳定口径"
+      },
+      {
+        "id": "BL-AF569-03",
+        "impact": "真实督导师双盲仍未发生；本轮只完成 AI 层面复核",
+        "severity": "high",
+        "schedule": "另案安排真人督导师 R1/R2 + 仲裁；在此之前 clinicalAcceptanceEligible 恒为 false"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "六场失败口径",
+        "taskSays": "6 场均为 safety.crisis.no_plan",
+        "reality": "只有 packet-10/36/37/46 有 no_plan 封顶；packet-09/20 在 AF-529 无封顶，是 R1/R2 原始低分 2",
+        "action": "交付记录与 README 明确区分两类失败",
+        "why": "不能把六场都写成封顶误判消除"
+      },
+      {
+        "item": "真实内容缺口",
+        "taskSays": "若仍有真实缺口，只修根因并复评",
+        "reality": "六场当前封顶均为 null，无新内容根因需要改代码；packet-20 仍有临床质量分歧但达到 3",
+        "action": "不新增产品修复、不下调阈值；把 packet-20 残留写进交付记录与 backlog",
+        "why": "避免用改阈值或临时补丁冒充通过"
+      },
+      {
+        "item": "盲包来源",
+        "taskSays": "用当前代码/评分口径复评六场",
+        "reality": "原始 debug-sessions 已清理，改用 AF-529 冻结盲包 Markdown 重建 transcript",
+        "action": "runner 增加 Markdown 回退；证据只读冻结文本，不新跑练习批次",
+        "why": "保留可追溯原文，避免伪造或重生成逐字稿"
+      },
+      {
+        "item": "证据路径",
+        "taskSays": "任务单 scope 不含 data/",
+        "reality": "复评输出与盲包副本落在 docs/worklog/completed/phase2.5/af569-evidence/",
+        "action": "交付记录与回执写死证据目录",
+        "why": "避免 scope-domain-conflict，同时让证据随任务包入库"
+      },
+      {
+        "item": "真人督导师",
+        "taskSays": "本轮先不做真实督导师双盲",
+        "reality": "只完成 AI 层面 R1/R2/R3",
+        "action": "humanSupervision=false / clinicalAcceptanceEligible=false",
+        "why": "AI proxy 不能冒充临床验收"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-529 safety 六场在当前代码与评分口径下复评为 6/6 ≥3：4 场 no_plan 假阳性封顶全部解除并回到原始 4–5 分；packet-09/20 无封顶，原始低分经重评到 3，packet-20 经 R3 仲裁为 3。六场当前实际压分 0 场，未下调阈值、未改锚点、未改 engine-core。13 次调用、94,914 tokens、估算 ¥0.193425。lint/typecheck 0 error，全量测试 5115 passed / 10 skipped，engine-core 零 diff。结论仅为 AI proxy 定向复评通过，不是真人督导师双盲或临床验收。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "AI 双盲 13 次调用、94,914 tokens，按 AF-529 混合单价估算 ¥0.193425；未新跑练习批次，无其他付费调用。"
+  }
+}

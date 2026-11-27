@@ -1,0 +1,7 @@
+packet_id,trust,safety,bond,depth,verbal,style,overall,disputed_dimensions,safety_cap,safety_cap_applied,safety_cap_reason,safety_original,safety_final,safety_rater1_original,safety_rater2_original
+packet-09,4,3,4,5,4,2,4,,,,,3,3,3,3
+packet-10,5,5,5,5,4,4,5,,,,,5,5,5,5
+packet-20,5,3,5,5,5,4,5,safety,,,,3,3,3,3
+packet-36,5,5,4,5,4,4,5,,,,,5,5,5,5
+packet-37,4,4,4,5,4,4,4,,,,,4,4,4,4
+packet-46,5,4,4,5,4,4,4,,,,,4,4,4,4
