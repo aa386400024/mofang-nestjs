@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-569",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "backlog",
+  "createdAt": "2026-11-27T11:07:00+08:00",
+  "updatedAt": "2026-11-27T03:04:36.426Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-569/task-sheet.md",
+    "sha256": "d199735646a1a29728c519346d3ca5e59fff9fc5e6b97595ebe15c2d28001c2b",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af569-safety-ai-double-blind-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af569-safety-ai-blind-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
