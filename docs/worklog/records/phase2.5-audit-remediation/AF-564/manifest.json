@@ -4,10 +4,10 @@
   "contextId": "phase2.5-audit-remediation",
   "status": "submitted",
   "createdAt": "2026-11-27T02:32:00+08:00",
-  "updatedAt": "2026-11-27T02:32:53.517Z",
+  "updatedAt": "2026-11-27T02:34:32.405Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md",
-    "sha256": "c9986ebeda88b1888d9e799b7bfe043094d90bfc460eba6abe39416b11431008",
+    "sha256": "097f6597dd9d4e86199e12ed5b4240b9c79e78234f21d99df710aefb5209140e",
     "immutable": true
   },
   "receipts": [
@@ -17,7 +17,7 @@
       "receiptId": "RC-AF-564-1"
     }
   ],
-  "deliveryRecord": "docs/worklog/records/phase2.5-audit-remediation/AF-564/status.md",
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-exit5-1000-batch-task-2026-11-27.md"
   ],
