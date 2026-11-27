@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-27T05:34:03.568Z",
+  "updatedAt": "2026-11-27T10:27:18.970Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3382,7 +3382,7 @@
     },
     {
       "improvementId": "IM-076",
-      "status": "candidate",
+      "status": "done",
       "title": "重签发不继承原任务 artifactPath，取消任务的交付记录仍被强制要求存在",
       "source": "implementation",
       "type": "tool",
@@ -3395,7 +3395,7 @@
       "suggestion": "reissue 自动把原任务 artifactPath 纳入新任务 scope；取消时自动生成占位件并登记进 scope。",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-24T02:59:54.637Z",
-      "updatedAt": "2026-11-24T02:59:54.637Z",
+      "updatedAt": "2026-11-27T10:27:06.914Z",
       "history": [
         {
           "at": "2026-11-24T02:59:54.637Z",
@@ -3403,12 +3403,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-27T10:27:05.003Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:05.928Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:06.914Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-576 已实现并单测覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-27T10:27:06.914Z",
+        "resolutionNote": "AF-576 已实现并单测覆盖",
+        "linkedTaskId": "AF-576"
+      }
     },
     {
       "improvementId": "IM-077",
-      "status": "candidate",
+      "status": "done",
       "title": "register 阶段不校验 agentRole 与 scope 资源域匹配",
       "source": "implementation",
       "type": "guardrail",
@@ -3421,7 +3447,7 @@
       "suggestion": "register 前做域冲突预检，报错直接给出建议 agentRole 与冲突文件列表。",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-24T02:59:54.957Z",
-      "updatedAt": "2026-11-24T02:59:54.957Z",
+      "updatedAt": "2026-11-27T10:27:09.786Z",
       "history": [
         {
           "at": "2026-11-24T02:59:54.957Z",
@@ -3429,8 +3455,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-27T10:27:07.841Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:08.822Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:09.786Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-576 已实现并单测覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-27T10:27:09.786Z",
+        "resolutionNote": "AF-576 已实现并单测覆盖",
+        "linkedTaskId": "AF-576"
+      }
     },
     {
       "improvementId": "IM-078",
@@ -3486,7 +3538,7 @@
     },
     {
       "improvementId": "IM-080",
-      "status": "candidate",
+      "status": "done",
       "title": "dependsOn 指向 failed/canceled 任务时整条链永久阻塞",
       "source": "implementation",
       "type": "gap",
@@ -3499,7 +3551,7 @@
       "suggestion": "依赖进入终态失败时自动转 input-required 或提示重签发，并在 status 视图标出失效依赖。",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-24T03:00:02.550Z",
-      "updatedAt": "2026-11-24T03:00:02.550Z",
+      "updatedAt": "2026-11-27T10:27:12.915Z",
       "history": [
         {
           "at": "2026-11-24T03:00:02.550Z",
@@ -3507,8 +3559,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-27T10:27:10.762Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:11.820Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:12.915Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-576 已实现并单测覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-27T10:27:12.915Z",
+        "resolutionNote": "AF-576 已实现并单测覆盖",
+        "linkedTaskId": "AF-576"
+      }
     },
     {
       "improvementId": "IM-081",
@@ -3590,7 +3668,7 @@
     },
     {
       "improvementId": "IM-084",
-      "status": "candidate",
+      "status": "done",
       "title": "cli validate 单 sheet 校验的退出码被无关失败拖累",
       "source": "review",
       "type": "tool",
@@ -3603,7 +3681,7 @@
       "suggestion": "支持 --only-sheet，或在输出末尾给机读结论码，区分「本 sheet 结论」与「全仓既有失败」。",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-24T03:00:12.025Z",
-      "updatedAt": "2026-11-24T03:00:12.025Z",
+      "updatedAt": "2026-11-27T10:27:15.979Z",
       "history": [
         {
           "at": "2026-11-24T03:00:12.025Z",
@@ -3611,12 +3689,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-27T10:27:14.039Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:15.026Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:15.979Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-576 已实现并单测覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-27T10:27:15.979Z",
+        "resolutionNote": "AF-576 已实现并单测覆盖",
+        "linkedTaskId": "AF-576"
+      }
     },
     {
       "improvementId": "IM-085",
-      "status": "candidate",
+      "status": "done",
       "title": "回执重冻后验收指纹未失效",
       "source": "implementation",
       "type": "guardrail",
@@ -3629,7 +3733,7 @@
       "suggestion": "指纹纳入回执 digest 或 receiptId；重冻后自动失效验收缓存",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-27T05:34:03.567Z",
-      "updatedAt": "2026-11-27T05:34:03.567Z",
+      "updatedAt": "2026-11-27T10:27:18.970Z",
       "history": [
         {
           "at": "2026-11-27T05:34:03.567Z",
@@ -3637,8 +3741,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-27T10:27:16.961Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:17.940Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-27T10:27:18.970Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-576 已实现并单测覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-27T10:27:18.970Z",
+        "resolutionNote": "AF-576 已实现并单测覆盖",
+        "linkedTaskId": "AF-576"
+      }
     }
   ]
 }
