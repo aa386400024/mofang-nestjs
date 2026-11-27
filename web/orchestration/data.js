@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T19:14:33.231Z",
+  "generatedAt": "2026-11-27T19:44:21.571Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2049,6 +2049,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-705",
+      "recordedAt": "2026-11-27T19:23:02.620Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-585",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-585-admin-disfluency-fields"
+      ]
+    },
+    {
+      "auditId": "AUD-704",
+      "recordedAt": "2026-11-27T19:22:57.432Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-585",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-585",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-585.json"
+      ]
+    },
+    {
+      "auditId": "AUD-703",
+      "recordedAt": "2026-11-27T19:22:51.807Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-585",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-702",
       "recordedAt": "2026-11-27T18:48:06.818Z",
       "actorRef": "orchestrator",
@@ -2235,67 +2282,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-690",
-      "recordedAt": "2026-11-27T12:08:25.118Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-580",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-580-improvement-ledger-cleanup"
-      ]
-    },
-    {
-      "auditId": "AUD-689",
-      "recordedAt": "2026-11-27T12:08:16.131Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-580",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-580",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-580.json"
-      ]
-    },
-    {
-      "auditId": "AUD-688",
-      "recordedAt": "2026-11-27T12:08:08.081Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-580",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 702,
+    "total": 705,
     "byResult": {
-      "allowed": 702,
+      "allowed": 705,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 701,
+      "TOOL-QUEUE-SCHEDULER": 704,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 702
+      "orchestrator": 705
     }
   },
   "protocolView": {
@@ -11527,6 +11527,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af584-role-disfluency-config-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-585",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-585/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af585-admin-disfluency-fields-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11551,5 +11569,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 521
+  "archivedCount": 522
 };

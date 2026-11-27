@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-585",
+  "contextId": "phase2.5-quality-gates",
+  "status": "ready",
+  "createdAt": "2026-11-28T03:32:00+08:00",
+  "updatedAt": "2026-11-27T19:44:03.736Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-585/task-sheet.md",
+    "sha256": "3bea51d7517a85ccb16d1bc8fd3d25bbc920b8ad0b7afbabcea3cacaa4598e10",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-585/receipt-RC-AF-585-1.json",
+      "sha256": "6e945817eda11348f8df28c76ad37a8bfad70651cc59c4100d31118a84d401a5",
+      "receiptId": "RC-AF-585-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af585-admin-disfluency-fields-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af585-admin-disfluency-fields-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
