@@ -38,10 +38,33 @@ describe('AF-459 · prosody inject', () => {
     expect(firstSentence.length).toBeGreaterThan(0);
     expect(laterSentence).toHaveLength(0);
     for (const result of firstSentence) {
-      expect(result.speechText.startsWith('嗯，') || result.speechText.startsWith('呃，') || result.speechText.startsWith('那个，')).toBe(
-        true,
-      );
+      expect(result.speechText).toMatch(/^(嗯，|呃，|我想想，|其实，|就是，|这么说吧，)/);
+      expect(result.speechText).not.toMatch(/^那个，/);
     }
+  });
+
+  it('AF-565: 同一场相邻两轮的填充词不撞同一个', () => {
+    const sentence = '我最近，工作压力挺大的，晚上也睡不好。';
+    let compared = 0;
+    for (let index = 0; index < 120 && compared === 0; index += 1) {
+      const sessionId = `rotate-${index}`;
+      const firstPlan = buildProsodyPlan({ enabled: true, sessionId, turnIndex: 1, style: 'cooperative' });
+      const secondPlan = buildProsodyPlan({ enabled: true, sessionId, turnIndex: 2, style: 'cooperative' });
+      const first = applyProsodyToSentence(sentence, firstPlan, {
+        sentenceIndex: 0,
+        appliedEvents: 0,
+        lastEventSentenceIndex: -1,
+      });
+      const second = applyProsodyToSentence(sentence, secondPlan, {
+        sentenceIndex: 0,
+        appliedEvents: 0,
+        lastEventSentenceIndex: -1,
+      });
+      if (first.events[0]?.kind !== 'filler' || second.events[0]?.kind !== 'filler') continue;
+      compared += 1;
+      expect(first.events[0]?.text).not.toBe(second.events[0]?.text);
+    }
+    expect(compared).toBeGreaterThan(0);
   });
 
   it('停顿只落在句内次级标点之后，不在句首/句尾', () => {
@@ -113,23 +136,41 @@ describe('AF-460 · 思考段 / 长沉默 / 副语言', () => {
     const early = collectKind('thinking', sentence, 0);
     expect(early.length).toBeGreaterThan(0);
     for (const result of early) {
-      expect(result.speechText).toMatch(/^(嗯……|呃……|那个……|怎么说呢……).*\[beat:\d+(?:\.\d+)?\]/);
+      expect(result.speechText).toMatch(/^(嗯……|呃……|我想想……|怎么说呢……).*\[beat:\d+(?:\.\d+)?\]/);
+      expect(result.speechText).not.toMatch(/^那个……/);
       expect(result.displayText).toBe(sentence);
     }
     expect(collectKind('thinking', sentence, 1)).toHaveLength(0);
   });
 
-  it('长沉默从第 2 句起、时长在 medium 区间、只挂在句末', () => {
+  it('AF-565: 长沉默从第 2 句起、时长在 medium 区间、只挂在句末', () => {
     const later = collectKind('silence', sentence, 2);
     expect(later.length).toBeGreaterThan(0);
     for (const result of later) {
       expect(result.speechText).toMatch(/\[silence:\d+(?:\.\d+)?\]$/);
       const ms = result.events[0]?.durationMs ?? 0;
-      expect(ms).toBeGreaterThanOrEqual(3500);
-      expect(ms).toBeLessThanOrEqual(7000);
+      expect(ms).toBeGreaterThanOrEqual(2000);
+      expect(ms).toBeLessThanOrEqual(3500);
       expect(result.displayText).toBe(sentence);
     }
     expect(collectKind('silence', sentence, 0)).toHaveLength(0);
+  });
+
+  it('AF-565: 长沉默只静默前半段，后半段用隐藏思考声接住', () => {
+    const later = collectKind('silence', sentence, 2);
+    expect(later.length).toBeGreaterThan(0);
+    for (const result of later) {
+      const event = result.events[0];
+      expect(event?.kind).toBe('silence');
+      const lead = event?.leadMs ?? 0;
+      expect(lead).toBeGreaterThanOrEqual(900);
+      expect(lead).toBeLessThanOrEqual(1600);
+      expect(lead).toBeLessThan(event?.durationMs ?? 0);
+      expect(event?.thinkingText).toMatch(/^(嗯……|呃……|我想想……)$/);
+      // 思考声只挂在事件上，不污染字幕/展示正文.
+      expect(result.displayText).toBe(sentence);
+      expect(result.speechText).not.toContain(event?.thinkingText ?? '');
+    }
   });
 
   it('副语言只在 medium 句首，且不污染展示正文', () => {

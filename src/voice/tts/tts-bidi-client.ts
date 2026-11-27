@@ -50,7 +50,7 @@ import type { TtsBidiClientEvent, TtsBidiServerEvent } from './tts-protocol.type
 import { splitSentences } from './tts-sentence-splitter.js';
 import type { TtsEvent, TtsOptions } from './tts.types.js';
 import { toUtf8Text } from '../../shared/infra/string-utils/index.js';
-import { applyProsodyToSentence, renderMiniMaxText } from '../../shared/prosody/index.js';
+import { applyProsodyToSentence, composeHiddenInterlude, renderMiniMaxText } from '../../shared/prosody/index.js';
 import type { ProsodyEvent } from '../../shared/prosody/index.js';
 import { toMiniMaxEmotion, toMiniMaxVoiceSettingValues } from '../../shared/voice-delivery/index.js';
 
@@ -156,6 +156,13 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
   private readonly events = new AsyncEventQueue<TtsEvent>();
   /** 已下发但尚未被上游消费的句子（按序，用于给音频配字幕 + 语音形态）. */
   private readonly pendingSentences: PendingSentence[] = [];
+  /**
+   * AF-565: 上一句长沉默里安排的隐藏思考声.
+   *
+   * 它不改变 display；只在下一条真正要发音的句子前拼进 speechText，
+   * 让“静默 → 嗯…… → 继续说”听起来像人在掂量，而不是流断了两秒.
+   */
+  private pendingInterlude: string | null = null;
   /** 未成句的文本尾巴. */
   private residualText = '';
   /** 当前句的音频分片. */
@@ -309,6 +316,9 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
       this.sendSentence(residual);
     }
     this.logger.log(`[finish] chars=${this.charCount}`);
+    // AF-565: 长沉默若落在整轮最后一句，后面已经没有句子来承接思考声；
+    //   清掉 pending，避免下一轮复用时把“嗯……”错拼到新第一句.
+    this.pendingInterlude = null;
     // 长沉默可能在队列里等待：task_finish 必须等最后一句真正发出去后再发.
     this.finishQueued = true;
     this.drainSendQueue();
@@ -343,6 +353,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
       return;
     }
     this.logger.log('[cancel]');
+    this.pendingInterlude = null;
     this.clearSendQueue();
     this.sendJson({ event: 'task_cancel' });
     // 上游不响应 task_canceled 时也要断开, 否则连接会一直挂在池里
@@ -441,11 +452,20 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
         if (event.kind === 'breath' || event.kind === 'sigh') this.paralinguisticCount += 1;
       }
     }
+    const speechText = composeHiddenInterlude(this.pendingInterlude, applied.speechText);
+    this.pendingInterlude = null;
+
+    let silenceAfterMs = sumSilenceMs(applied.events);
+    for (const event of applied.events) {
+      if (event.kind !== 'silence') continue;
+      if (typeof event.leadMs === 'number') silenceAfterMs = event.leadMs;
+      this.pendingInterlude = event.thinkingText ?? null;
+    }
     return {
       display: applied.displayText,
-      speech: renderMiniMaxText(applied.speechText),
+      speech: renderMiniMaxText(speechText),
       events: applied.events,
-      silenceAfterMs: sumSilenceMs(applied.events),
+      silenceAfterMs,
     };
   }
 

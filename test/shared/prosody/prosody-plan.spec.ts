@@ -22,6 +22,29 @@ describe('AF-459 · prosody plan', () => {
     expect(buildProsodyPlan({ enabled: true, sessionId: 's1', turnIndex: 1, style: 'avoidant', difficulty: 'L3' }).level).toBe('medium');
   });
 
+  it('AF-565: 思考段按档位收紧，单次不超过 1s', () => {
+    const light = buildProsodyPlan({ enabled: true, sessionId: 's1', turnIndex: 1, style: 'cooperative' });
+    const medium = buildProsodyPlan({ enabled: true, sessionId: 's1', turnIndex: 1, style: 'avoidant' });
+    const l3 = buildProsodyPlan({ enabled: true, sessionId: 's1', turnIndex: 1, style: 'avoidant', difficulty: 'L3' });
+    expect(light.limits.thinkingPauseMs).toEqual([350, 650]);
+    expect(medium.limits.thinkingPauseMs).toEqual([600, 1000]);
+    expect(l3.limits.thinkingPauseMs).toEqual([650, 1000]);
+    expect(medium.limits.longSilenceMs).toEqual([2000, 3500]);
+    expect(l3.limits.longSilenceMs).toEqual([3000, 5000]);
+  });
+
+  it('AF-565: 低情绪基线/高防御只上浮一档，不突破 1s', () => {
+    const slow = buildProsodyPlan({
+      enabled: true,
+      sessionId: 's1',
+      turnIndex: 1,
+      style: 'avoidant',
+      emotionBaseline: 0.18,
+    });
+    expect(slow.limits.thinkingPauseMs).toEqual([700, 1000]);
+    expect(slow.limits.longSilenceMs).toEqual([2500, 4000]);
+  });
+
   it('同一会话同一轮 → 计划逐字相同（重放不会漂移）', () => {
     const first = buildProsodyPlan({ enabled: true, sessionId: 'abc', turnIndex: 7, style: 'avoidant' });
     const second = buildProsodyPlan({ enabled: true, sessionId: 'abc', turnIndex: 7, style: 'avoidant' });

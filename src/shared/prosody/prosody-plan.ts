@@ -26,7 +26,8 @@ const LEVEL_LIMITS: Readonly<Record<Exclude<ProsodyLevel, 'off'>, ProsodyTurnLim
     maxThinkingBeats: 1,
     maxLongSilences: 0,
     maxParalinguistic: 0,
-    thinkingPauseMs: [800, 1500],
+    // AF-565: 两字填充词后的第一口气不应超过 0.65s；0.8–1.5s 在耳机里像断线.
+    thinkingPauseMs: [350, 650],
     longSilenceMs: [0, 0],
   },
   medium: {
@@ -35,15 +36,15 @@ const LEVEL_LIMITS: Readonly<Record<Exclude<ProsodyLevel, 'off'>, ProsodyTurnLim
     filler: true,
     pause: true,
     trailoff: true,
-    // AF-460: 阻抗/回避才允许思考段、长沉默与低频呼吸，且每轮有硬上限.
+    // AF-565: 阻抗/回避的思考段保留，但单次上限压到 1.0s；长沉默分段后用思考声填中段.
     thinking: true,
     longSilence: true,
     paralinguistic: true,
-    maxThinkingBeats: 2,
+    maxThinkingBeats: 1,
     maxLongSilences: 1,
     maxParalinguistic: 2,
-    thinkingPauseMs: [1500, 2800],
-    longSilenceMs: [3500, 7000],
+    thinkingPauseMs: [600, 1000],
+    longSilenceMs: [2000, 3500],
   },
 };
 
@@ -90,8 +91,20 @@ export function buildProsodyPlan(input: ProsodyPlanInput): ProsodyTurnPlan {
     level = 'medium';
   }
   const base = LEVEL_LIMITS[level];
-  // AF-460: L3 的沉默可以更长（5–9s），但仍受每轮 1 次 + 句间隔约束；
-  //   普通 medium 保持 3.5–7s，避免把"阻抗"演成"断线".
-  const limits = input.difficulty === 'L3' && level === 'medium' ? { ...base, longSilenceMs: [5000, 9000] as const } : base;
-  return { level, seed, style: input.style ?? 'unknown', limits };
+  // AF-565: 语境慢档 —— 抑郁基线低或防御高的人，停顿可以稍长，但仍不超过 1.0s；
+  //   这不是“演得慢”，而是抑郁性迟缓/回避性掂量的真实语速差.
+  const slowContext = (input.emotionBaseline ?? 0.5) <= 0.3 || (input.defenseLevel ?? 0.5) >= 0.65;
+  let limits: ProsodyTurnLimits = base;
+  if (slowContext) {
+    limits = {
+      ...limits,
+      thinkingPauseMs: [700, 1000],
+      longSilenceMs: level === 'medium' ? [2500, 4000] : limits.longSilenceMs,
+    };
+  }
+  // AF-565: L3 的思考段与长沉默保留上限，但都比旧版短；长沉默中段由思考声填充.
+  if (input.difficulty === 'L3' && level === 'medium') {
+    limits = { ...limits, thinkingPauseMs: [650, 1000], longSilenceMs: [3000, 5000] };
+  }
+  return { level, seed, style: input.style ?? 'unknown', limits, turnIndex: input.turnIndex };
 }

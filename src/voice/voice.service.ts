@@ -1203,6 +1203,9 @@ export class VoiceService {
       turnIndex,
       style: state.meta.preset.style,
       difficulty: state.meta.preset.difficulty,
+      // AF-565: 低情绪基线/高防御的来访者，停顿略长但不超过 1s；不让所有人同一档.
+      emotionBaseline: state.meta.preset.emotionBaseline,
+      defenseLevel: state.meta.preset.defenseLevel,
     });
   }
 

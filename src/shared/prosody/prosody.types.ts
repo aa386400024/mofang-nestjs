@@ -45,6 +45,15 @@ export interface ProsodyEvent {
   readonly text?: string;
   /** pause/silence/thinking 时长（毫秒）. */
   readonly durationMs?: number;
+  /**
+   * AF-565: 长沉默中"思考声"之前的静默长度（毫秒）.
+   *
+   * 只对 silence 生效：下一句下发前先等 leadMs，再用一句隐藏的“嗯……”把
+   * 剩余沉默填成可听见的思考声；不填时按完整 durationMs 静默.
+   */
+  readonly leadMs?: number;
+  /** AF-565: 长沉默中间穿插的思考声（只进 TTS，不进 display）. */
+  readonly thinkingText?: string;
 }
 
 /** 本轮配额（每轮重置，不做跨轮预算——跨轮预算正是 prompt 方案失控的地方）. */
@@ -80,6 +89,8 @@ export interface ProsodyTurnPlan {
   /** 计划依据的来访者风格（仅用于审计，不参与选词以外的计算）. */
   readonly style: string;
   readonly limits: ProsodyTurnLimits;
+  /** AF-565: 本轮序号（用于口头语轮换；缺省时退化为纯哈希）. */
+  readonly turnIndex?: number;
 }
 
 /** 计划输入（业务侧从会话元数据取值，纯层不做读取）. */
@@ -93,6 +104,10 @@ export interface ProsodyPlanInput {
   readonly style?: string;
   /** 难度档（L1/L2/L3）. */
   readonly difficulty?: string;
+  /** AF-565: 情绪基线（0–1，越低越接近抑郁/空洞；缺省按 0.5）. */
+  readonly emotionBaseline?: number;
+  /** AF-565: 防御水平（0–1，越高越回避；缺省按 0.5）. */
+  readonly defenseLevel?: number;
 }
 
 /** 注入上下文（句序号 + 本轮已用配额 + 上次事件的句序号）. */
