@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T11:34:18.494Z",
+  "generatedAt": "2026-11-27T11:38:46.796Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-578",
-      "contextId": "phase2.5-admin-dashboard-alignment",
-      "type": "fix",
-      "title": "同步 admin-dashboard BdiStatePanel 组件声明（执行单）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-578/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af578-admin-dashboard-bdi-state-panel-declaration-2026-11-27.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-578",
-        "contextId": "phase2.5-admin-dashboard-alignment",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-27T11:34:18.246Z",
-        "leaseDeadline": "2026-11-27T12:04:18.241Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-578.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-27T11:34:18.246Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-578.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2090,6 +2049,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-684",
+      "recordedAt": "2026-11-27T11:34:51.914Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-578",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-578-admin-bdi-state-panel-declaration"
+      ]
+    },
+    {
+      "auditId": "AUD-683",
+      "recordedAt": "2026-11-27T11:34:18.729Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-578",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-578",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-578.json"
+      ]
+    },
+    {
       "auditId": "AUD-682",
       "recordedAt": "2026-11-27T11:34:08.916Z",
       "actorRef": "orchestrator",
@@ -2293,84 +2282,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-573.json"
       ]
-    },
-    {
-      "auditId": "AUD-669",
-      "recordedAt": "2026-11-27T05:47:23.319Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-572:AF-573",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-668",
-      "recordedAt": "2026-11-27T05:46:00.756Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-572",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 682,
+    "total": 684,
     "byResult": {
-      "allowed": 682,
+      "allowed": 684,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 681,
+      "TOOL-QUEUE-SCHEDULER": 683,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 682
+      "orchestrator": 684
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-578",
-        "title": "同步 admin-dashboard BdiStatePanel 组件声明（执行单）",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-admin-dashboard-alignment",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-578/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af578-admin-dashboard-bdi-state-panel-declaration-2026-11-27.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11471,6 +11401,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af577-af576-delivery-record-backfill-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-578",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-578/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af578-admin-dashboard-bdi-state-panel-declaration-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11485,22 +11433,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-578",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-admin-dashboard-alignment/AF-578/task-sheet.md"
-      },
-      {
-        "taskId": "AF-578",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af578-admin-dashboard-bdi-state-panel-declaration-2026-11-27.md"
-      }
-    ],
-    "groupId": "phase2.5-admin-dashboard-alignment",
-    "groupIds": [
-      "phase2.5-admin-dashboard-alignment"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11508,5 +11443,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 514
+  "archivedCount": 515
 };
