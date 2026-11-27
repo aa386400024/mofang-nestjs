@@ -1,5 +1,10 @@
 // AF-459: 文本清洗 / MiniMax 渲染 / 流式标签拆分.
-import { ProsodyStreamSanitizer, renderMiniMaxText, stripProsodyMarkers } from '../../../src/shared/prosody/index.js';
+import {
+  composeHiddenInterlude,
+  ProsodyStreamSanitizer,
+  renderMiniMaxText,
+  stripProsodyMarkers,
+} from '../../../src/shared/prosody/index.js';
 
 describe('AF-459 · prosody text', () => {
   describe('stripProsodyMarkers', () => {
@@ -19,9 +24,9 @@ describe('AF-459 · prosody text', () => {
       expect(renderMiniMaxText('我最近，[pause:0.4]工作压力挺大的。')).toBe('我最近，<#0.4#>工作压力挺大的。');
     });
 
-    it('时长夹到 0.1–1 秒，两位小数', () => {
+    it('时长夹到 0.1–0.6 秒，两位小数', () => {
       expect(renderMiniMaxText('我[pause:0.05]最近')).toBe('我<#0.1#>最近');
-      expect(renderMiniMaxText('我[pause:5]最近')).toBe('我<#1#>最近');
+      expect(renderMiniMaxText('我[pause:5]最近')).toBe('我<#0.6#>最近');
     });
 
     it('句首/句尾停顿丢弃（官方要求夹在可发音文本之间）', () => {
@@ -39,23 +44,38 @@ describe('AF-459 · prosody text', () => {
       expect(renderMiniMaxText(text)).toBe(text);
     });
 
-    it('AF-460: 思考段 beat → 0.5–3s 停顿', () => {
-      expect(renderMiniMaxText('我[beat:1.8]最近')).toBe('我<#1.8#>最近');
-      expect(renderMiniMaxText('我[beat:9]最近')).toBe('我<#3#>最近');
-      expect(renderMiniMaxText('我[beat:0.1]最近')).toBe('我<#0.5#>最近');
+    it('AF-565: 思考段 beat → 0.3–1.2s 停顿', () => {
+      expect(renderMiniMaxText('我[beat:1.0]最近')).toBe('我<#1#>最近');
+      expect(renderMiniMaxText('我[beat:9]最近')).toBe('我<#1.2#>最近');
+      expect(renderMiniMaxText('我[beat:0.1]最近')).toBe('我<#0.3#>最近');
     });
 
-    it('AF-460: 长沉默 silence → 1–10s（句末仍会被官方规则丢弃）', () => {
-      expect(renderMiniMaxText('我不知道。[silence:5.2]可能吧。')).toBe('我不知道。<#5.2#>可能吧。');
-      expect(renderMiniMaxText('我不知道。[silence:20]可能吧。')).toBe('我不知道。<#10#>可能吧。');
+    it('AF-565: 长沉默 silence → 1–6s（句末仍会被官方规则丢弃）', () => {
+      expect(renderMiniMaxText('我不知道。[silence:3.2]可能吧。')).toBe('我不知道。<#3.2#>可能吧。');
+      expect(renderMiniMaxText('我不知道。[silence:20]可能吧。')).toBe('我不知道。<#6#>可能吧。');
       // 句末/句首停顿无法落地，长度信息由 voice-delivery 的队列延迟承接.
-      expect(renderMiniMaxText('我不知道。[silence:5.2]')).toBe('我不知道。');
+      expect(renderMiniMaxText('我不知道。[silence:3.2]')).toBe('我不知道。');
     });
 
     it('AF-460: 副语言只在句首/句末落地，不塞进句子中间', () => {
       expect(renderMiniMaxText('(breath)我有点累。')).toBe('(breath)我有点累。');
       expect(renderMiniMaxText('我有点累。(sigh)')).toBe('我有点累。(sigh)');
       expect(renderMiniMaxText('我(breath)有点累。')).toBe('我有点累。');
+    });
+  });
+
+  describe('composeHiddenInterlude (AF-565)', () => {
+    it('把思考声 + 0.35s 停顿拼到下一句前面，正文不变', () => {
+      expect(composeHiddenInterlude('嗯……', '我最近睡得不好。')).toBe('嗯……[pause:0.35]我最近睡得不好。');
+    });
+
+    it('下一句已以口头语开头时跳过，避免双重起头', () => {
+      expect(composeHiddenInterlude('嗯……', '嗯，我最近睡得不好。')).toBe('嗯，我最近睡得不好。');
+      expect(composeHiddenInterlude('我想想……', '那个，我也说不好。')).toBe('那个，我也说不好。');
+    });
+
+    it('没有留下思考声时原样返回', () => {
+      expect(composeHiddenInterlude(null, '我最近睡得不好。')).toBe('我最近睡得不好。');
     });
   });
 

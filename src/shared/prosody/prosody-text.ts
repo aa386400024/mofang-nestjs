@@ -46,11 +46,33 @@ const MAX_HOLD_CHARS = 32;
 /** 单个可发音字符（汉字/字母/数字/常见标点之外的非空白）. */
 const SPEAKABLE = /[\p{L}\p{N}]/u;
 
-/** 不同类型停顿的时长边界（秒）与渲染标签. */
+/** AF-565: 已经以口头语开头的句子，不再前置隐藏思考声（否则会双重起头）. */
+const STARTS_WITH_HESITATION = /^(?:嗯|呃|那个|就是|我想想|怎么说呢)/u;
+
+/**
+ * AF-565: 把上一句长沉默里安排的隐藏思考声拼到下一句前面.
+ *
+ * 只改 speechText（TTS 实际读的文本），display 不动；下一句本身已以口头语开头时跳过.
+ *
+ * @param interlude 上一句留下的思考声（null = 没有）
+ * @param speech 下一句的 TTS 文本
+ * @returns 拼接后的 TTS 文本
+ */
+export function composeHiddenInterlude(interlude: string | null, speech: string): string {
+  if (interlude === null || interlude.length === 0 || STARTS_WITH_HESITATION.test(speech)) return speech;
+  return `${interlude}[pause:0.35]${speech}`;
+}
+
+/**
+ * 不同类型停顿的时长边界（秒）与渲染标签.
+ *
+ * AF-565 收紧：两字口头语后的停顿、句内逗号停、长沉默都不允许再拖到旧上限；
+ *   旧的 1s / 3s / 10s 在真实 TTS 里分别对应“卡住”“像断线”“像挂死”.
+ */
 const PAUSE_LIMITS = {
-  pause: { min: 0.1, max: 1, kind: 'pause' },
-  beat: { min: 0.5, max: 3, kind: 'beat' },
-  silence: { min: 1, max: 10, kind: 'silence' },
+  pause: { min: 0.1, max: 0.6, kind: 'pause' },
+  beat: { min: 0.3, max: 1.2, kind: 'beat' },
+  silence: { min: 1, max: 6, kind: 'silence' },
 } as const;
 
 /** 副语言 -> MiniMax 白名单标签. */

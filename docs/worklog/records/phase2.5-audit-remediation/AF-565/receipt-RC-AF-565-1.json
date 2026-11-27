@@ -1,0 +1,200 @@
+{
+  "deliveredAt": "2026-11-27T08:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-565-1",
+    "taskId": "AF-565",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "2d965fb3fb98ca5826ae038a66c3c4ec3ba39796",
+    "dependsOn": ["AF-561"],
+    "priorTasks": ["AF-561"],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-565/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af565-voice-pause-lexicon-2026-11-27.md",
+      "reply": null,
+      "others": ["docs/worklog/completed/phase2.5/af565-voice-pause-lexicon-2026-11-27.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af565-voice-pause-lexicon-2026-11-27.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-565/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-565/task-sheet.md"
+      ],
+      "modified": [
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/wiring/character/character-baseline-calibration.ts",
+        "src/shared/prosody/index.ts",
+        "src/shared/prosody/prosody-inject.ts",
+        "src/shared/prosody/prosody-plan.ts",
+        "src/shared/prosody/prosody-text.ts",
+        "src/shared/prosody/prosody.types.ts",
+        "src/voice/tts/tts-bidi-client.ts",
+        "src/voice/voice.service.ts",
+        "test/engine-adapters/wp-j-p2-verbal-voice-wiring.spec.ts",
+        "test/shared/prosody/prosody-inject.spec.ts",
+        "test/shared/prosody/prosody-plan.spec.ts",
+        "test/shared/prosody/prosody-text.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["02f4e5e7", "e4c55107", "7c1ed410", "9092a874"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/prosody test/engine-adapters/wp-j-p2-verbal-voice-wiring.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "0.98s",
+        "note": "4 files / 49 tests passed；覆盖分档上限、长沉默 startInterlude、填充词轮换、渲染夹取、冷却块与模板零回归"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 360,
+        "machine": "同上",
+        "wallClock": "41.97s",
+        "note": "359 files passed + 1 skipped；5111 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "0 error；唯一 warning 是 pnpm 对 node>=26 的环境提示，非代码问题"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过"
+      },
+      {
+        "command": "pnpm seed:character-profiles",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "目标库 117.72.30.78:3306 / mofang_dev；A 类更新 6 / B 类更新 4 / 基线校准未变 4；10 个角色 verbal_voice 复核无旧固定句"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2332 条事件；schema / 哈希链 / 索引投影一致"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run test/shared/prosody test/engine-adapters/wp-j-p2-verbal-voice-wiring.spec.ts → pnpm lint → pnpm typecheck → pnpm test → git diff --stat HEAD -- src/engine-core。数据面复核：pnpm seed:character-profiles 后查 character_profiles 未软删行的 verbal_voice，旧固定句（就是…那个… / 停两秒 / 我分析、客观来讲开头）应为空。真机听感按交付记录 §3.3 六条执行。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-565 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；未手改状态索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 2332 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；测试数字、seed 更新数、事件条数均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF565-01",
+        "impact": "长沉默中段思考声与分档停顿目前只有单测与静态口径，真机/耳机听感尚未由用户确认",
+        "severity": "low",
+        "schedule": "真机听感校准阶段按交付记录 §3.3 六条执行；若仍有拖尾，再按角色单独调 leadMs"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "近轮填充词",
+        "taskSays": "voice.service.ts 传入近轮填充词做去重",
+        "reality": "改为 sessionId + turnIndex 的纯函数轮换；voice.service 传入 emotionBaseline / defenseLevel 做语境慢档",
+        "action": "交付记录与回执写明实现方式",
+        "why": "不新增会话可变状态，plan 保持可重放；相邻轮换即可满足不连续撞词，避免 TTS 与 plan 两份状态漂移"
+      },
+      {
+        "item": "test/voice 回归",
+        "taskSays": "补 test/voice 回归单测",
+        "reality": "把思考声拼接抽成 composeHiddenInterlude，在 test/shared/prosody 覆盖",
+        "action": "在纯层验证不进 display / 不双重起头 / 无残留时原样返回",
+        "why": "该函数是 TTS 与 prosody 的共同边界，纯层测试不依赖 WebSocket，回归更稳定"
+      },
+      {
+        "item": "口头禅冷却位置",
+        "taskSays": "Prompt 层新增口头禅冷却规则",
+        "reality": "规则放在 src/engine-adapters/rendering/turn-render-orchestrator.ts 的 verbalVoice 块内，未改 visitor.prompts.ts",
+        "action": "交付记录 §1.4 与 wp-j-p2 回归断言同步调整",
+        "why": "AF-565 scope 不含 src/agent/visitor；渲染层同样进入每轮 prompt，且可保持无 verbalVoice 时模板逐字不变（wp41 零回归）"
+      },
+      {
+        "item": "数据面",
+        "taskSays": "任务范围以代码/测试为主",
+        "reality": "额外执行 pnpm seed:character-profiles 更新 mofang_dev 的 10 条 verbal_voice",
+        "action": "回执 gateResults 记录 seed 输出与复核结论",
+        "why": "只改代码不会更新 character_profiles.verbal_voice；不重灌库线上仍读旧固定句"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "落地：分档停顿、长沉默 leadMs + 隐藏思考声、通用池移除“那个”、口头语按轮次轮换、10 条 verbalVoice 改写、渲染层口头禅冷却与数据面 seed 全部完成；证据：定向 49 例、全量 5111 例、lint/typecheck 全 0、engine-core 零 diff、events verify 2332 条均有真实输出；范围：in-scope，偏差已记录且不改变成功标准；真机听感作为低优先级 BL-AF565-01 跟踪。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "未调用 MiniMax/豆包真实 TTS 合成；仅本地单测与 seed，无付费 API 消耗。"
+  }
+}

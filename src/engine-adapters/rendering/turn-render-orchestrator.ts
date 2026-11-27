@@ -2267,7 +2267,12 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec, promptVariant: Visit
   }
   // WP-J: 台词指纹 —— 角色自由文本"说话的味道". 缺省不渲染 (零回归).
   if (spec.verbalVoice) {
-    lines.push(`你说话的味道：${fencePromptFragment(spec.verbalVoice)}`);
+    // AF-565: "常用说法"是可选表达，不是固定台词；同一开场词整场限量.
+    lines.push(
+      `你说话的味道：${fencePromptFragment(spec.verbalVoice)}`,
+      '口头禅冷却（重要）：同一开场填充词（嗯 / 呃 / 那个 / 就是 / 我分析 / 客观来讲）同一场最多 2 次，' +
+        '不要连续两轮重复；上面列出的常用说法是可选表达，不是每轮都要用。',
+    );
   }
   lines.push(...speechRegisterPromptLines(spec));
 

@@ -177,6 +177,8 @@ describe('WP-J P2 · verbal_voice 台词指纹接线', () => {
       const prompt = systemPromptOf(spec);
       expect(prompt).toContain(VOICE_BLOCK);
       expect(prompt).toContain(VOICE_TEXT);
+      // AF-565: 台词指纹之后必须紧跟口头禅冷却，避免模型把"常用说法"当固定台词.
+      expect(prompt).toContain('口头禅冷却（重要）');
     });
 
     it('spec 带空串 → 不渲染该块 (空文案不得渲染出半句话)', () => {

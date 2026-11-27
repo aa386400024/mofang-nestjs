@@ -13,11 +13,14 @@
 
 import type { ProsodyApplyContext, ProsodyEvent, ProsodySentenceResult, ProsodyTurnPlan } from './prosody.types.js';
 
-/** 思考垫用词（按风格固定的三条，够用且都可自然念出）. */
-const FILLERS = ['嗯，', '呃，', '那个，'] as const;
+/** 思考垫用词（口头的“起个头”，不是每轮都用）. */
+const FILLERS = ['嗯，', '呃，', '我想想，', '其实，', '就是，', '这么说吧，'] as const;
 
 /** AF-460: 思考段用词（带省略号，后面跟一个真实的长停顿）. */
-const THINKING_FILLERS = ['嗯……', '呃……', '那个……', '怎么说呢……'] as const;
+const THINKING_FILLERS = ['嗯……', '呃……', '我想想……', '怎么说呢……'] as const;
+
+/** AF-565: 长沉默中段穿插的思考声（只进 TTS；不重复“那个”，避免和模型台词撞车）. */
+const INTERLUDE_FILLERS = ['嗯……', '呃……', '我想想……'] as const;
 
 /** 已以填充词开头的句子不再加（防重复）. */
 const FILLER_PREFIX = /^(?:嗯|呃|唉|那个|就是|怎么说呢)/;
@@ -31,10 +34,10 @@ const NON_SPEAKABLE = new Set(['。', '！', '？', '…', '；', '!', '?', '.',
 /** pause 对句长的最低要求（太短的句子加停顿只会更碎）. */
 const PAUSE_MIN_CHARS = 12;
 
-/** 不同强度的停顿候选时长（毫秒）. */
+/** AF-565: 句内短停也缩短半档；medium 保留一点“想一想”的余地，但不拖成 0.5s+. */
 const PAUSE_CANDIDATES: Readonly<Record<'light' | 'medium', readonly number[]>> = {
-  light: [300, 350, 400],
-  medium: [400, 450, 500, 550],
+  light: [200, 250, 300],
+  medium: [280, 340, 400, 450],
 };
 
 /** 各强度下"句末拖音"的概率（百分比）；light 不开启. */
@@ -117,7 +120,22 @@ function pauseDurationOf(plan: ProsodyTurnPlan, sentenceIndex: number): number {
  * @returns 填充词
  */
 function fillerOf(plan: ProsodyTurnPlan): string {
-  return FILLERS[hash32(`${plan.seed}:filler`) % FILLERS.length];
+  return FILLERS[rotateIndex(plan, FILLERS.length, 'filler')];
+}
+
+/**
+ * AF-565: 口头语按轮次轮换 —— 同一场相邻两轮不会撞同一个词.
+ *
+ * @param plan 本轮计划
+ * @param poolLength 词池长度
+ * @param salt 区分填充词/思考声/长沉默
+ * @returns 池下标
+ */
+function rotateIndex(plan: ProsodyTurnPlan, poolLength: number, salt: string): number {
+  const hashAt = plan.seed.indexOf('#');
+  const sessionKey = hashAt === -1 ? plan.seed : plan.seed.slice(0, hashAt);
+  const base = plan.turnIndex ?? hash32(plan.seed);
+  return (base + hash32(`${sessionKey}:${salt}`)) % poolLength;
 }
 
 /**
@@ -127,7 +145,7 @@ function fillerOf(plan: ProsodyTurnPlan): string {
  * @returns 思考段文本
  */
 function thinkingFillerOf(plan: ProsodyTurnPlan): string {
-  return THINKING_FILLERS[hash32(`${plan.seed}:thinking`) % THINKING_FILLERS.length];
+  return THINKING_FILLERS[rotateIndex(plan, THINKING_FILLERS.length, 'thinking')];
 }
 
 /**
@@ -176,10 +194,14 @@ function silenceResult(sentence: string, plan: ProsodyTurnPlan, sentenceIndex: n
   const range = plan.limits.longSilenceMs ?? [3000, 6000];
   const durationMs = durationInRange(range, plan.seed, `silence:${sentenceIndex}`);
   const seconds = String(Number((durationMs / 1000).toFixed(2)));
+  // AF-565: 长沉默不再一口气静默到底 —— 先静默 leadMs，再由下一句的隐藏思考声接住.
+  //   leadMs 夹在 0.9–1.6s：短于 0.9s 听不出“想了一会儿”，长于 1.6s 仍会像断线.
+  const leadMs = Math.min(1600, Math.max(900, Math.round(durationMs / 2)));
+  const thinkingText = INTERLUDE_FILLERS[rotateIndex(plan, INTERLUDE_FILLERS.length, 'interlude')];
   return {
     displayText: sentence,
     speechText: `${sentence}[silence:${seconds}]`,
-    events: [{ kind: 'silence', anchor: 'sentence_end', durationMs }],
+    events: [{ kind: 'silence', anchor: 'sentence_end', durationMs, leadMs, thinkingText }],
   };
 }
 
