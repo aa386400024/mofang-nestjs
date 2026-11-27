@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-590",
   "contextId": "phase2.5-quality-gates",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-28T06:00:00+08:00",
-  "updatedAt": "2026-11-27T21:59:41.766Z",
+  "updatedAt": "2026-11-27T22:27:46.009Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-quality-gates/AF-590/task-sheet.md",
     "sha256": "59146873e541c92a2639737a7d96bfd40c9b1849caf62d505b281f956fe9a93e",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-590/receipt-RC-AF-590-1.json",
+      "sha256": "3a377bb5e68bea435a32412028cc9bf68642a88f4115df1bb62fad5a7a2e0e5e",
+      "receiptId": "RC-AF-590-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af590-ai-conversations-real-data-2026-11-28.md",
   "legacyPaths": [
     "docs/worklog/pending/af590-ai-conversations-real-data-task-2026-11-28.md"
