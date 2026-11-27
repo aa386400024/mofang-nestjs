@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T08:06:54.036Z",
+  "generatedAt": "2026-11-27T08:09:44.538Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -18,10 +18,10 @@ window.ORCH_SNAPSHOT = {
   },
   "tasks": [
     {
-      "taskId": "AF-574",
+      "taskId": "AF-575",
       "contextId": "phase2.5-toolchain",
       "type": "fix",
-      "title": "quality 脚本 lint 闸门返修验收",
+      "title": "quality lint 闸门返修验收（第 2 次）",
       "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
@@ -29,22 +29,22 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md",
         "reply": null
       },
       "manualReview": [],
       "dispatch": {
-        "taskId": "AF-574",
+        "taskId": "AF-575",
         "contextId": "phase2.5-toolchain",
         "channel": "file",
         "targetRole": "orchestrator",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-27T08:06:53.781Z",
-        "leaseDeadline": "2026-11-27T08:36:53.778Z",
+        "dispatchedAt": "2026-11-27T08:09:44.212Z",
+        "leaseDeadline": "2026-11-27T08:39:44.210Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-574.json"
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-575.json"
       }
     }
   ],
@@ -2080,6 +2080,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-674",
+      "recordedAt": "2026-11-27T08:09:38.840Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-575",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-673",
+      "recordedAt": "2026-11-27T08:06:54.311Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-574",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-574",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-574.json"
+      ]
+    },
+    {
       "auditId": "AUD-672",
       "recordedAt": "2026-11-27T08:06:44.506Z",
       "actorRef": "orchestrator",
@@ -2285,62 +2317,28 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-659",
-      "recordedAt": "2026-11-27T03:04:14.609Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-568",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-658",
-      "recordedAt": "2026-11-27T03:03:45.293Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-568",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 672,
+    "total": 674,
     "byResult": {
-      "allowed": 672,
+      "allowed": 674,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 671,
+      "TOOL-QUEUE-SCHEDULER": 673,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 672
+      "orchestrator": 674
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
     "tasks": [
       {
-        "taskId": "AF-574",
-        "title": "quality 脚本 lint 闸门返修验收",
+        "taskId": "AF-575",
+        "title": "quality lint 闸门返修验收（第 2 次）",
         "type": "fix",
         "status": {
           "framework": "submitted",
@@ -2354,11 +2352,11 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md"
+            "ref": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md"
           }
         ]
       }
@@ -11391,6 +11389,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-574",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11407,14 +11423,14 @@ window.ORCH_SNAPSHOT = {
     },
     "artifacts": [
       {
-        "taskId": "AF-574",
+        "taskId": "AF-575",
         "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md"
+        "ref": "docs/worklog/records/phase2.5-toolchain/AF-575/task-sheet.md"
       },
       {
-        "taskId": "AF-574",
+        "taskId": "AF-575",
         "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md"
+        "ref": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md"
       }
     ],
     "groupId": "phase2.5-toolchain",
@@ -11428,5 +11444,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 510
+  "archivedCount": 511
 };
