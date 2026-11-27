@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-27T10:53:25.514Z",
+  "generatedAt": "2026-11-27T10:55:38.748Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-577",
-      "contextId": "phase2.5-toolchain",
-      "type": "documentation",
-      "title": "AF-576 交付记录终态回填与合并后状态复核",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-577",
-        "contextId": "phase2.5-toolchain",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-27T10:53:25.266Z",
-        "leaseDeadline": "2026-11-27T11:23:25.263Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-577.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2079,6 +2048,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-681",
+      "recordedAt": "2026-11-27T10:53:44.542Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-577",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-577-delivery-record-backfill"
+      ]
+    },
+    {
+      "auditId": "AUD-680",
+      "recordedAt": "2026-11-27T10:53:25.755Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-577",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-577",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-577.json"
+      ]
+    },
+    {
       "auditId": "AUD-679",
       "recordedAt": "2026-11-27T10:53:01.038Z",
       "actorRef": "orchestrator",
@@ -2284,82 +2283,25 @@
       "resources": [
         "task/AF-571-record-consistency"
       ]
-    },
-    {
-      "auditId": "AUD-666",
-      "recordedAt": "2026-11-27T05:23:00.527Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-571",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-571",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-571.json"
-      ]
-    },
-    {
-      "auditId": "AUD-665",
-      "recordedAt": "2026-11-27T05:22:50.906Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-571",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 679,
+    "total": 681,
     "byResult": {
-      "allowed": 679,
+      "allowed": 681,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 678,
+      "TOOL-QUEUE-SCHEDULER": 680,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 679
+      "orchestrator": 681
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-577",
-        "title": "AF-576 交付记录终态回填与合并后状态复核",
-        "type": "documentation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-toolchain",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11442,6 +11384,24 @@
             "ref": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-577",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af577-af576-delivery-record-backfill-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11456,22 +11416,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-577",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md"
-      },
-      {
-        "taskId": "AF-577",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
-      }
-    ],
-    "groupId": "phase2.5-toolchain",
-    "groupIds": [
-      "phase2.5-toolchain"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11479,5 +11426,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 513
+  "archivedCount": 514
 }
