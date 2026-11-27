@@ -26,6 +26,7 @@ import { PracticeBatch } from '../../src/auto-practice/entities/practice-batch.e
 import { PracticeSession } from '../../src/auto-practice/entities/practice-session.entity.js';
 import { ENGINE_VERSION_UNKNOWN, gitDescribeDirty, resolveEngineVersion } from '../../src/auto-practice/inference-fingerprint.service.js';
 import {
+  BATCH_HEALTH_COUNSELOR_DEGRADED_RATIO_MAX,
   BATCH_HEALTH_FALLBACK_RATIO_MAX,
   BATCH_HEALTH_LLM_CALL_RATIO_MIN,
   BATCH_INVALID_WARNING,
@@ -269,6 +270,46 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
       expect(metrics.counterConsistent).toBe(false);
       expect(health.valid).toBe(false);
       expect(health.flags).toContain(BATCH_VALIDITY_FLAGS.counterInconsistent);
+    });
+
+    it('咨询师侧降级比例达到 5% → valid = false 且带 COUNSELOR_DEGRADED_HIGH', () => {
+      // 20 轮里 1 轮咨询师侧降级 = 恰好 0.05, 走 >= 口径.
+      const metrics = computeBatchMetrics([makeMetrics({ turnCount: 20, counselorDegradedTurns: 1 })]);
+      const health = evaluateBatchHealth(metrics);
+
+      expect(metrics.counselorDegradedRatio).toBe(0.05);
+      expect(health.counselorDegradedRatio).toBe(0.05);
+      expect(health.valid).toBe(false);
+      expect(health.flags).toContain(BATCH_VALIDITY_FLAGS.counselorDegradedHigh);
+      expect(BATCH_HEALTH_COUNSELOR_DEGRADED_RATIO_MAX).toBe(0.05);
+    });
+
+    it('咨询师侧降级比例低于 5% → 不单独判无效', () => {
+      // 50 轮里 2 轮 = 0.04, 低于阈值.
+      const metrics = computeBatchMetrics([makeMetrics({ turnCount: 50, counselorDegradedTurns: 2 })]);
+      const health = evaluateBatchHealth(metrics);
+
+      expect(health.counselorDegradedRatio).toBe(0.04);
+      expect(health.flags).not.toContain(BATCH_VALIDITY_FLAGS.counselorDegradedHigh);
+      expect(health.valid).toBe(true);
+    });
+
+    it('咨询师侧降级比例高于 5% → 明确判无效', () => {
+      const metrics = computeBatchMetrics([makeMetrics({ turnCount: 10, counselorDegradedTurns: 2 })]);
+      const health = evaluateBatchHealth(metrics);
+
+      expect(health.counselorDegradedRatio).toBe(0.2);
+      expect(health.valid).toBe(false);
+      expect(health.flags).toContain(BATCH_VALIDITY_FLAGS.counselorDegradedHigh);
+    });
+
+    it('零轮批次 → 咨询师侧比例回落 0, 不产生 NaN', () => {
+      const metrics = computeBatchMetrics([makeMetrics({ turnCount: 0, llmCallTurns: 0, counselorDegradedTurns: 0 })]);
+      const health = evaluateBatchHealth(metrics);
+
+      expect(metrics.counselorDegradedRatio).toBe(0);
+      expect(Number.isNaN(health.counselorDegradedRatio)).toBe(false);
+      expect(health.flags).toContain(BATCH_VALIDITY_FLAGS.llmCallRatioLow);
     });
 
     it('兜底率没测过 → valid = false ("没测"不等于"没问题")', () => {
