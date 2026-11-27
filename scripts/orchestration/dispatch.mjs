@@ -223,3 +223,18 @@ export function isReceiptProcessed(entry, fingerprint) {
 export function markReceiptProcessed(entry, fingerprint) {
   entry.receiptFingerprint = fingerprint;
 }
+
+/**
+ * IM-085：回执重冻后让验收缓存失效。
+ * 同一交付记录路径 / 同一 revision 重冻时指纹不变，若不清除运行态标记，run-once 会误判已验收。
+ * @param {object|null} entry 运行态任务条目
+ * @returns {boolean} 是否实际清除了缓存标记
+ */
+export function invalidateReceiptAcceptance(entry) {
+  if (!entry || typeof entry !== 'object') return false;
+  const hadFingerprint = Object.prototype.hasOwnProperty.call(entry, 'receiptFingerprint');
+  const hadVerdict = entry.autoVerdict != null;
+  delete entry.receiptFingerprint;
+  delete entry.autoVerdict;
+  return hadFingerprint || hadVerdict;
+}

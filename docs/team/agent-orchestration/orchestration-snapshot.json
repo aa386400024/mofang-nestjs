@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T08:10:56.810Z",
+  "generatedAt": "2026-11-27T10:27:19.293Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -21,12 +21,12 @@
   "pendingApprovals": [],
   "improvements": {
     "total": 85,
-    "activeCount": 31,
+    "activeCount": 26,
     "byStatus": {
-      "candidate": 30,
+      "candidate": 25,
       "queued": 1,
       "accepted": 0,
-      "done": 51,
+      "done": 56,
       "wontfix": 3
     },
     "byType": {
@@ -1653,7 +1653,7 @@
       {
         "improvementId": "IM-076",
         "title": "重签发不继承原任务 artifactPath，取消任务的交付记录仍被强制要求存在",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tool",
         "layer": "framework",
@@ -1663,18 +1663,18 @@
         ],
         "impact": "一次域冲突重签发要额外开一个任务专门覆盖补齐件，链路从 1 个任务膨胀到 3 个任务、PR 载荷翻倍。",
         "suggestion": "reissue 自动把原任务 artifactPath 纳入新任务 scope；取消时自动生成占位件并登记进 scope。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T02:59:54.637Z",
+          "at": "2026-11-27T10:27:06.914Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-576 已实现并单测覆盖"
         }
       },
       {
         "improvementId": "IM-077",
         "title": "register 阶段不校验 agentRole 与 scope 资源域匹配",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "guardrail",
         "layer": "framework",
@@ -1684,12 +1684,12 @@
         ],
         "impact": "到 run-once 派发才报 scope-domain-conflict，代价是一次 reissue 加一个 canceled 任务与一件归档补齐件。",
         "suggestion": "register 前做域冲突预检，报错直接给出建议 agentRole 与冲突文件列表。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T02:59:54.957Z",
+          "at": "2026-11-27T10:27:09.786Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-576 已实现并单测覆盖"
         }
       },
       {
@@ -1737,7 +1737,7 @@
       {
         "improvementId": "IM-080",
         "title": "dependsOn 指向 failed/canceled 任务时整条链永久阻塞",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "framework",
@@ -1747,12 +1747,12 @@
         ],
         "impact": "AF-438 因此长挂 backlog，依赖链没有失效或转接机制，下游任务既跑不了也不会报错提醒。",
         "suggestion": "依赖进入终态失败时自动转 input-required 或提示重签发，并在 status 视图标出失效依赖。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T03:00:02.550Z",
+          "at": "2026-11-27T10:27:12.915Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-576 已实现并单测覆盖"
         }
       },
       {
@@ -1821,7 +1821,7 @@
       {
         "improvementId": "IM-084",
         "title": "cli validate 单 sheet 校验的退出码被无关失败拖累",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "tool",
         "layer": "framework",
@@ -1831,18 +1831,18 @@
         ],
         "impact": "即便目标 sheet PASS，整体仍 exit 1，脚本化判定不可用，本地与 CI 都要靠人工找 FAIL 行。",
         "suggestion": "支持 --only-sheet，或在输出末尾给机读结论码，区分「本 sheet 结论」与「全仓既有失败」。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T03:00:12.025Z",
+          "at": "2026-11-27T10:27:15.979Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-576 已实现并单测覆盖"
         }
       },
       {
         "improvementId": "IM-085",
         "title": "回执重冻后验收指纹未失效",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "guardrail",
         "layer": "framework",
@@ -1852,12 +1852,12 @@
         ],
         "impact": "同一交付记录下重冻回执仍命中旧 receiptFingerprint，验收被跳过，任务卡在 submitted",
         "suggestion": "指纹纳入回执 digest 或 receiptId；重冻后自动失效验收缓存",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-27T05:34:03.567Z",
+          "at": "2026-11-27T10:27:18.970Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-576 已实现并单测覆盖"
         }
       }
     ]
@@ -2048,6 +2048,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-678",
+      "recordedAt": "2026-11-27T08:54:57.390Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-576",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-576-orchestration-guardrails"
+      ]
+    },
+    {
+      "auditId": "AUD-677",
+      "recordedAt": "2026-11-27T08:54:42.308Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-576",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-576",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-576.json"
+      ]
+    },
+    {
+      "auditId": "AUD-676",
+      "recordedAt": "2026-11-27T08:54:32.872Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-576",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-675",
       "recordedAt": "2026-11-27T08:09:44.791Z",
       "actorRef": "orchestrator",
@@ -2236,67 +2283,20 @@
       "resources": [
         "task/AF-570-auth-password-semantics"
       ]
-    },
-    {
-      "auditId": "AUD-663",
-      "recordedAt": "2026-11-27T03:48:29.836Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-570",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-570",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-570.json"
-      ]
-    },
-    {
-      "auditId": "AUD-662",
-      "recordedAt": "2026-11-27T03:48:21.407Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-570",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-661",
-      "recordedAt": "2026-11-27T03:04:41.931Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-569",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-569",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-569.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 675,
+    "total": 678,
     "byResult": {
-      "allowed": 675,
+      "allowed": 678,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 674,
+      "TOOL-QUEUE-SCHEDULER": 677,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 675
+      "orchestrator": 678
     }
   },
   "protocolView": {
@@ -11366,6 +11366,24 @@
             "ref": "docs/worklog/completed/phase2.5/af575-quality-scripts-lint-rework-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-576",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-576/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11390,5 +11408,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 512
+  "archivedCount": 513
 }

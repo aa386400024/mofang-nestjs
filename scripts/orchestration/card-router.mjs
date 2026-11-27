@@ -157,3 +157,24 @@ export function validateScopeDomain(task, cards = [], opts = {}) {
   if (result.outside.length > 0) result.valid = false;
   return result;
 }
+
+/**
+ * 为越域 scope 推荐能完整覆盖的资源域角色（IM-077）。
+ * 只返回可用且 resources 覆盖全部 scope 条目的角色；只读任务与空 scope 返回空数组。
+ * @param {object} task 索引任务条目
+ * @param {object[]} cards Agent Card 只读投影
+ * @returns {string[]}
+ */
+export function suggestRolesForScope(task, cards = []) {
+  const normalized = normalizeScope(task);
+  if (normalized.readOnly || normalized.entries.length === 0) return [];
+  return (Array.isArray(cards) ? cards : [])
+    .filter((card) => card?.availability !== 'offline')
+    .filter((card) => {
+      const resources = asArray(card?.resources);
+      return resources.length > 0 && normalized.entries.every((entry) => resources.some((res) => scopeEntryInResource(entry, res)));
+    })
+    .map((card) => card.role)
+    .filter((role) => typeof role === 'string' && role.length > 0);
+}
+

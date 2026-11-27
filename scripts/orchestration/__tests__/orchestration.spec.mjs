@@ -20,12 +20,13 @@ import {
   validateTaskSheet,
   validateToolDir,
   validateProtocolView,
+  resolveValidationOutcome,
 } from '../validator.mjs';
 import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
 import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
-import { copyReceiptToBundle, findBundledReceipt, isTaskSheetBundled, verifyWorklog } from '../worklog.mjs';
+import { copyReceiptToBundle, findBundledReceipt, isTaskSheetBundled, sha256File, verifyWorklog } from '../worklog.mjs';
 import { PROTOCOL_CONTRACT_REF, buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
 import {
@@ -51,6 +52,7 @@ import {
 /** PR 任务分支按设计不提交运行态索引；状态面断言只在 integrate 全量校验时要求最新。 */
 const STATE_FREE = process.env.ORCH_STATE_FREE === '1';
 import { planReissue } from '../reissue.mjs';
+import { scopeDomainCheck } from '../task-intake.mjs';
 import { lintReceiptPayload } from '../receipt-lint.mjs';
 import { inspectTextFile, normalizeLf, normalizeTextFile } from '../text-normalize.mjs';
 import {
@@ -62,6 +64,7 @@ import {
   buildSnapshot,
   claimReadyTasks,
   cancelTask,
+  dependencyHealth,
   promoteTask,
   processReceipts,
   releaseExpiredLeases,
@@ -88,6 +91,7 @@ import {
   receiptFingerprint,
   isReceiptProcessed,
   markReceiptProcessed,
+  invalidateReceiptAcceptance,
   resolveChannelSelection,
 } from '../dispatch.mjs';
 import {
@@ -4810,5 +4814,115 @@ describe('AF-498 编排根因修复', () => {
     );
     expect(result.checks.find((check) => check.code === 'V7')?.status).toBe('fail');
     expect(result.verdict).toBe('rejected');
+  });
+});
+
+describe('AF-576 编排护栏收口', () => {
+  function readyTask(taskId, dependsOn = []) {
+    return {
+      taskId,
+      title: taskId,
+      type: 'implementation',
+      status: 'ready',
+      agentRole: 'executor',
+      dependsOn,
+      scope: { files: ['scripts/'], modules: [], interfaces: [] },
+      artifacts: { taskSheet: `docs/worklog/records/ctx/${taskId}/task-sheet.md` },
+      history: [],
+    };
+  }
+
+  it('IM-077 登记域预检：越域时给出冲突文件与可覆盖角色', () => {
+    const record = {
+      taskId: 'AF-900',
+      type: 'implementation',
+      agentRole: 'executor',
+      scope: { files: ['scripts/', 'docs/'], modules: [], interfaces: [] },
+    };
+    const cards = [
+      { role: 'executor', availability: 'available', resources: ['scripts/'] },
+      { role: 'orchestrator', availability: 'available', resources: ['scripts/', 'docs/'] },
+    ];
+    const check = scopeDomainCheck(record, cards);
+    expect(check.ok).toBe(false);
+    expect(check.reason).toContain('docs');
+    expect(check.suggestions).toEqual(['orchestrator']);
+    expect(scopeDomainCheck({ ...record, agentRole: 'orchestrator' }, cards).ok).toBe(true);
+    expect(scopeDomainCheck({ ...record, type: 'review', scope: { files: ['unknown/'] } }, cards).ok).toBe(true);
+  });
+
+  it('IM-076 canceled 任务缺交付指针只告警，completed 仍失败', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orch-af576-worklog-'));
+    try {
+      for (const [taskId, status, delivery] of [
+        ['AF-900', 'canceled', 'docs/worklog/completed/missing-canceled.md'],
+        ['AF-901', 'completed', 'docs/worklog/completed/missing-completed.md'],
+      ]) {
+        const bundle = join(root, 'docs', 'worklog', 'records', 'ctx', taskId);
+        mkdirSync(bundle, { recursive: true });
+        const sheet = join(bundle, 'task-sheet.md');
+        writeFileSync(sheet, `# ${taskId}\n`, 'utf8');
+        writeFileSync(
+          join(bundle, 'manifest.json'),
+          JSON.stringify({
+            taskId,
+            contextId: 'ctx',
+            status,
+            taskSheet: { path: `docs/worklog/records/ctx/${taskId}/task-sheet.md`, sha256: sha256File(sheet), immutable: true },
+            deliveryRecord: delivery,
+            receipts: [],
+          }),
+          'utf8',
+        );
+      }
+      const index = {
+        tasks: [
+          { taskId: 'AF-900', contextId: 'ctx', status: 'canceled', artifacts: { taskSheet: 'docs/worklog/records/ctx/AF-900/task-sheet.md', deliveryRecord: 'docs/worklog/completed/missing-canceled.md' } },
+          { taskId: 'AF-901', contextId: 'ctx', status: 'completed', artifacts: { taskSheet: 'docs/worklog/records/ctx/AF-901/task-sheet.md', deliveryRecord: 'docs/worklog/completed/missing-completed.md' } },
+        ],
+        archivedTasks: [],
+      };
+      const result = verifyWorklog(index, { rootDir: root });
+      expect(result.errors).toContain('交付记录缺文件：AF-901 → docs/worklog/completed/missing-completed.md');
+      expect(result.errors.join(' ')).not.toContain('AF-900');
+      expect(result.warnings.join(' ')).toContain('AF-900');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('IM-080 依赖失败/取消时显性报 dependency-invalid 并在健康视图列出', () => {
+    const downstream = readyTask('AF-902', ['AF-800']);
+    const index = { tasks: [downstream], archivedTasks: [{ taskId: 'AF-800', status: 'canceled', history: [] }] };
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    claimReadyTasks(index, runtimeState, { allowedTaskTypes: ['implementation'], maxConcurrentTasks: 1 }, actions, {
+      transport: { deliver: () => ({ ok: true }) },
+      cards: [],
+    });
+    expect(downstream.status).toBe('ready');
+    expect(actions.find((action) => action.type === 'dependency-invalid')?.unmet).toEqual([
+      { taskId: 'AF-800', status: 'canceled' },
+    ]);
+    expect(dependencyHealth(index)).toEqual([{ taskId: 'AF-902', unmet: [{ taskId: 'AF-800', status: 'canceled' }] }]);
+  });
+
+  it('IM-084 only-sheet 退出码与全仓失败解耦', () => {
+    const sections = [
+      ['状态索引', { ok: false, skipped: false, errors: [{ message: '既有失败' }] }],
+      ['任务单元', { ok: true, skipped: false, errors: [] }],
+    ];
+    expect(resolveValidationOutcome(sections, { onlySheet: true })).toMatchObject({ sheetOk: true, globalFailed: true, exitCode: 0 });
+    expect(resolveValidationOutcome(sections, { onlySheet: false }).exitCode).toBe(1);
+    const sheetFail = [['任务单元', { ok: false, skipped: false, errors: [{ message: 'bad' }] }]];
+    expect(resolveValidationOutcome(sheetFail, { onlySheet: true }).exitCode).toBe(1);
+  });
+
+  it('IM-085 重冻清除验收指纹与旧结论', () => {
+    const entry = { receiptFingerprint: 'AF-903|old', autoVerdict: { verdict: 'passed' }, receiptIngestedAt: 'x' };
+    expect(invalidateReceiptAcceptance(entry)).toBe(true);
+    expect(entry.receiptFingerprint).toBeUndefined();
+    expect(entry.autoVerdict).toBeUndefined();
+    expect(invalidateReceiptAcceptance({ receiptIngestedAt: 'x' })).toBe(false);
   });
 });

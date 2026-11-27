@@ -30,7 +30,7 @@ import {
   saveRuntimeState,
   writeJsonAtomic,
 } from './state-store.mjs';
-import { advanceOnce, buildSnapshot, cancelTask, promoteTask, shouldAdvance } from './scheduler.mjs';
+import { advanceOnce, buildSnapshot, cancelTask, dependencyHealth, promoteTask, shouldAdvance } from './scheduler.mjs';
 
 /**
  * AF-445：GUI relay 子进程环境修正。
@@ -60,6 +60,7 @@ function buildRelayChildEnv(baseEnv) {
 import {
   frameworkDir,
   requireFramework,
+  resolveValidationOutcome,
   validateAgentCard,
   validateDeliveryPackage,
   validateProtocolView,
@@ -126,6 +127,7 @@ import { createGitRemoteLock, describeRemoteRunLock } from './remote-lock.mjs';
 import { collectOccupiedTaskIds, nextTaskId } from './task-id-occupancy.mjs';
 import { createGitTaskIdReservation, pickReservedTaskId, reservationRef } from './task-id-reservation.mjs';
 import { planReissue } from './reissue.mjs';
+import { invalidateReceiptAcceptance } from './dispatch.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
 import { parseTaskSheetFrontmatter } from './task-intake.mjs';
 import { buildReceiptScaffoldFromFile } from './receipt-scaffold.mjs';
@@ -293,12 +295,16 @@ function printOperationalHealth() {
   const leaseExpired = activeRuntimeEntries.filter(([, e]) => e.releaseReason === 'lease-expired').length;
   const receiptErrors = activeRuntimeEntries.filter(([, e]) => Array.isArray(e.receiptErrors) && e.receiptErrors.length > 0);
   const receiptNoDigest = activeRuntimeEntries.filter(([, e]) => e.receiptStatus && !e.receiptDigest).length;
+  const dependencyIssues = dependencyHealth(index);
   const lock = describeRunLock();
 
   console.log('=== 运行健康 ===');
   console.log(
-    `死信=${deadLetter} 人工持单=${heldForHuman} 租约过期释放=${leaseExpired} 回执校验失败=${receiptErrors.length} 回执无指纹=${receiptNoDigest}`,
+    `死信=${deadLetter} 人工持单=${heldForHuman} 租约过期释放=${leaseExpired} 回执校验失败=${receiptErrors.length} 回执无指纹=${receiptNoDigest} 失效依赖=${dependencyIssues.length}`,
   );
+  for (const issue of dependencyIssues.slice(0, 5)) {
+    console.log(`  ${issue.taskId}：上游 ${issue.unmet.map((item) => `${item.taskId}:${item.status}`).join('、')}`);
+  }
   if (receiptErrors.length > 0) {
     for (const [taskId, e] of receiptErrors.slice(0, 5)) console.log(`  ${taskId}：${e.receiptErrors[0]}`);
   }
@@ -1651,6 +1657,11 @@ async function cmdValidate(args) {
     process.exit(1);
   }
   const stateFree = args.includes('--state-free') || process.env.ORCH_STATE_FREE === '1';
+  const onlySheet = args.includes('--only-sheet');
+  if (onlySheet && !argValue(args, '--sheet')) {
+    console.error('[FAIL] --only-sheet 必须与 --sheet <file> 一起使用');
+    process.exit(2);
+  }
   const sections = [];
 
   if (existsSync(PATHS.index)) {
@@ -1727,6 +1738,12 @@ async function cmdValidate(args) {
       if (meta) sections.push(['任务单元', await validateTaskSheet(meta)]);
     } else {
       console.log(`[SKIP] 任务单元：文件不存在：${sheetFile}`);
+      if (onlySheet) {
+        sections.push([
+          '任务单元',
+          { ok: false, skipped: false, schemaId: null, errors: [{ instancePath: '', message: `文件不存在：${sheetFile}`, params: {} }] },
+        ]);
+      }
     }
   }
 
@@ -1769,7 +1786,13 @@ async function cmdValidate(args) {
       for (const err of res.errors) console.log(`   - ${err.instancePath || '/'}：${err.message}`);
     }
   }
-  if (failed) process.exit(1);
+  const outcome = resolveValidationOutcome(sections, { onlySheet });
+  if (onlySheet) {
+    console.log(
+      `[SUMMARY] sheet=${outcome.sheetOk ? 'PASS' : 'FAIL'} global=${outcome.globalFailed ? 'FAIL' : 'PASS'} exit=${outcome.exitCode}`,
+    );
+  }
+  if (outcome.exitCode !== 0 || (!onlySheet && failed)) process.exit(1);
 }
 
 function cmdConfig(args) {
@@ -1940,8 +1963,22 @@ function cmdReceipt(args) {
     const parsed = JSON.parse(readFileSync(receiptFile, 'utf8'));
     const receipt = parsed.payload ?? parsed;
     const result = copyReceiptToBundle(task, receiptFile, receipt);
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    let cacheInvalidated = false;
+    if (entry) {
+      cacheInvalidated = invalidateReceiptAcceptance(entry);
+      entry.receiptFrozenAt = nowIso();
+      entry.receiptFreezeDigest = sha256File(receiptFile);
+      saveRuntimeState(runtimeState);
+    }
     console.log(`回执冻结 ${taskId} → ${result.ref}`);
     console.log(`内容哈希 ${sha256File(receiptFile)}`);
+    if (entry) {
+      console.log(`验收缓存：${cacheInvalidated ? '已失效（下次 run-once 重新验收）' : '无需清理（未命中旧指纹）'}`);
+    } else {
+      console.log('验收缓存：任务无运行态条目，跳过');
+    }
     console.log('下一步：提交回执副本与 manifest，再运行 pnpm orchestration:run。');
     return result;
   }

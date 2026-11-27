@@ -11,7 +11,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { createTask } from './event-store.mjs';
-import { loadIndex, REPO_ROOT } from './state-store.mjs';
+import { loadAgentCards, loadIndex, REPO_ROOT } from './state-store.mjs';
+import { suggestRolesForScope, validateScopeDomain } from './card-router.mjs';
 import { TASK_STATUSES, TASK_TYPES } from './contract-enums.mjs';
 import { validateTaskSheet } from './validator.mjs';
 import { ensureTaskRecordBundle } from './worklog.mjs';
@@ -100,6 +101,32 @@ export function buildTaskRecord(meta, opts) {
 }
 
 /**
+ * IM-077：登记前校验 agentRole 与 scope 的资源域匹配。
+ * 越域时不写记录包、不写事件，直接返回可读原因与建议角色，避免到派发才报 scope-domain-conflict。
+ * @param {object} record 待登记任务记录
+ * @param {object[]} cards Agent Card 只读投影
+ * @returns {{ok:boolean, reason:string|null, suggestions:string[], domain:object}}
+ */
+export function scopeDomainCheck(record, cards = []) {
+  const domain = validateScopeDomain(record, cards);
+  if (domain.valid) return { ok: true, reason: null, suggestions: [], domain };
+  const suggestions = suggestRolesForScope(record, cards);
+  const outside = domain.outside.map((item) => item.file);
+  const detail = outside.length > 0
+    ? `越域文件：${outside.join('、')}`
+    : domain.errors.join('；');
+  const hint = suggestions.length > 0
+    ? `建议 agentRole: ${suggestions.join(' / ')}`
+    : '无角色资源域可完整覆盖该 scope，请拆分任务或调整 scope';
+  return {
+    ok: false,
+    reason: `任务 scope 越出角色 ${record?.agentRole ?? 'unknown'} 资源域：${detail}；${hint}`,
+    suggestions,
+    domain,
+  };
+}
+
+/**
  * 读取已落 transport 的任务交接件并登记进索引（兼容 `{deliveredAt,payload}` 包装）。
  * 用于历史 transport 任务补登，不重写交接件正文。
  * @param {{handoverPath:string, status?:string, actor?:string}} opts
@@ -124,6 +151,10 @@ export async function registerTaskFromHandover(opts = {}) {
   const status = opts.status ?? payload.status ?? 'ready';
   if (!TASK_STATUSES.includes(status)) throw new Error(`任务状态非法：${String(status)}`);
   const task = buildTaskRecord(payload, { taskSheetPath, status });
+  if (opts.validateDomain !== false) {
+    const domainCheck = scopeDomainCheck(task, opts.cards ?? loadAgentCards());
+    if (!domainCheck.ok) throw new Error(domainCheck.reason);
+  }
   const index = createTask(task, { actor: opts.actor ?? 'orchestrator-cli' });
   return index.tasks.find((item) => item.taskId === task.taskId) ?? task;
 }
@@ -162,6 +193,10 @@ export async function registerTaskFromSheet(opts = {}) {
     const occupancy = opts.occupancy ?? collectOccupiedTaskIds({ runGit: opts.runGit, excludeRefs: opts.excludeRefs ?? [] });
     const verdict = assertTaskIdAvailable(record.taskId, { occupancy });
     for (const warning of verdict.warnings ?? []) console.warn(`[task-id] ${warning}`);
+  }
+  if (opts.validateDomain !== false) {
+    const domainCheck = scopeDomainCheck(record, opts.cards ?? loadAgentCards());
+    if (!domainCheck.ok) throw new Error(domainCheck.reason);
   }
   const bundle = ensureTaskRecordBundle(record, { sourceSheetPath: abs, status });
   record.artifacts.taskSheet = bundle.taskSheetPath;

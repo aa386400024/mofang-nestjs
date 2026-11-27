@@ -1,0 +1,177 @@
+{
+  "deliveredAt": "2026-11-27T18:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-576-1",
+    "taskId": "AF-576",
+    "contextId": "phase2.5-toolchain",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "c19a8246f9ae018966549946896a1ad02ecf7840",
+    "dependsOn": [],
+    "policyRefs": [
+      "docs/team/conventions.md",
+      "docs/team/agent-orchestration/README.md"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-576/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "2ad73e3715aa062e52feb7adda4602bb4365e8f6"
+      ],
+      "added": [
+        "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
+      ],
+      "modified": [
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "scripts/orchestration/card-router.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/dispatch.mjs",
+        "scripts/orchestration/scheduler.mjs",
+        "scripts/orchestration/task-intake.mjs",
+        "scripts/orchestration/validator.mjs",
+        "scripts/orchestration/worklog.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --no-file-parallelism",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "3.93s",
+        "note": "1 file / 283 tests passed / 0 failed；含 AF-576 新增 5 例护栏单测"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "全仓 lint 0 error；scripts/orchestration/**/*.mjs 走专用 eslint.config"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "分钟级",
+        "note": "tsc -p tsconfig.json --noEmit 0 error"
+      },
+      {
+        "command": "pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 363,
+        "machine": "同上",
+        "wallClock": "3599.47s",
+        "note": "362 passed / 1 skipped 文件，5148 passed / 4 skipped 用例，0 failed；标准并发 pnpm test 的 AF-073 4 例 spawnSync 30s 超时已隔离复跑 4/4 通过，串行全量 0 失败"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 纯层零 diff"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --no-file-parallelism → pnpm lint → pnpm typecheck → pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism → git diff --stat HEAD -- src/engine-core。行为实弹：only-sheet 输出 [SUMMARY] sheet=PASS global=FAIL exit=0；worklog verify --strict --state-free PASS（活跃=1 归档=512 记录包=532 inbox=0）；越域 scopeDomainCheck 实测返回冲突 docs/worklog 并建议 orchestrator。标准并发 pnpm test 在本机 363 worker 冷启动下复现 AF-073 4 例 spawnSync status=null（已知 BL-AF575-01），隔离复跑 72.69s 4/4 通过；权威全量以串行 5148 passed / 0 failed 为准。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-576 贯穿任务单、实现提交、交付记录、回执与状态索引；提交标题与正文含 Task: AF-576"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / receipt freeze / archive 全部经 CLI；未手改索引与 journal"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 task-sheet 1.1.0 schema；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-576 全生命周期事件由 CLI 写入，收尾 events verify 校验哈希链与索引投影"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff；未改业务层、数据库、admin-dashboard"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "agentRole=orchestrator 与 scripts/orchestration/、docs/worklog/、docs/team/agent-orchestration/ 资源域匹配；登记前预检已实跑拒绝越域 scope"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；gateResults 数字来自真实命令输出，未复算任务单口径"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF575-01",
+        "impact": "本机高并发 363 worker 冷启动下，AF-073 batch-report CLI 4 个 spawnSync 30s 超时；隔离串行 72.69s 4/4 通过，非代码回归。",
+        "schedule": "另立测试基础设施任务评估固定本地 maxWorkers 或提高 CLI 超时，不改断言"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "register 前调用 validateScopeDomain，越域时输出冲突文件和建议角色",
+        "reality": "validateScopeDomain 只返回 valid/outside/errors，本身不产生建议角色",
+        "action": "新增 scopeDomainCheck 包装，保留 validateScopeDomain 纯校验语义，补充 suggestRolesForScope 与统一错误文案；registerTaskFromSheet / registerTaskFromHandover 调用包装",
+        "why": "不复制资源域白名单，不改变既有纯函数契约，同时让登记阶段直接给出可执行的 agentRole 建议"
+      },
+      {
+        "taskSays": "dependencyState 区分 unknown 与 failed/canceled/rejected",
+        "reality": "dependencyState 只回答 met/unmet，不产生调度动作",
+        "action": "新增 INVALID_DEPENDENCY_STATUSES 与 dependencyHealth，claim 与 status 共用同一判定",
+        "why": "避免 claim 与健康视图两套口径漂移；failed/canceled/rejected/deadLetter 统一为失效依赖"
+      },
+      {
+        "taskSays": "全量测试 0 failed",
+        "reality": "标准并发 pnpm test 在本机复现 AF-073 4 例 spawnSync 超时（status=null）",
+        "action": "按任务单环境性并发超时条款隔离复跑 4/4 通过，并追加串行全量 5148 passed / 0 failed 作为权威闸门",
+        "why": "区分确定性缺陷与并行冷启动 flake；不改测试断言，不把环境噪声写成代码通过"
+      },
+      {
+        "taskSays": "任务 scope 未列 web/orchestration/",
+        "reality": "编排 CLI 每次推进自动重写 web/orchestration/data.js",
+        "action": "按 STATE_PLANE_ARTIFACTS 识别为状态面生成物，单独随状态面提交，不与实现混提交",
+        "why": "保持任务交付面与状态面分离；验收器已显式剔除该生成物"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "五项编排护栏均落地并有单测覆盖；编排定向 283/283，lint 与 typecheck 0 error，串行全量 5148 passed / 0 failed，engine-core 零 diff；标准并发仅复现已知 AF-073 spawnSync 冷启动超时，隔离复跑全通过；提交文件全部落在 AF-576 scope。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地 ESLint / tsc / vitest / 编排 CLI，无付费 LLM/TTS/API 调用。"
+  }
+}
