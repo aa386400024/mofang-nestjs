@@ -436,13 +436,20 @@ export function verifyWorklog(index, opts = {}) {
     if (manifest.taskId !== task.taskId) errors.push(`manifest taskId 不匹配：${task.taskId} → ${manifest.taskId}`);
     const terminal = ['completed', 'failed', 'canceled', 'rejected'].includes(task.status);
     const delivery = manifest.deliveryRecord ?? task?.artifacts?.deliveryRecord ?? null;
-    if (typeof delivery === 'string' && delivery) {
-      if (!existsSync(resolve(rootDir, delivery))) {
-        errors.push(`交付记录缺文件：${task.taskId} → ${delivery}`);
+    if (task.status === 'completed') {
+      // 只有 completed 才必须交付记录；缺文件直接失败。
+      if (!(typeof delivery === 'string' && delivery && existsSync(resolve(rootDir, delivery)))) {
+        missingDeliveries.push(task.taskId);
+        errors.push(
+          delivery
+            ? `交付记录缺文件：${task.taskId} → ${delivery}`
+            : `completed 任务缺交付记录：${task.taskId}`,
+        );
       }
-    } else if (task.status === 'completed') {
-      missingDeliveries.push(task.taskId);
-      errors.push(`completed 任务缺交付记录：${task.taskId}`);
+    } else if (typeof delivery === 'string' && delivery && !existsSync(resolve(rootDir, delivery))) {
+      // IM-076：canceled / rejected / failed 任务的声明指针可能从未产出。
+      // 把它降为告警而不是错误，避免一次重签发额外拖一个补齐任务。
+      warnings.push(`非 completed 任务交付指针失效（已忽略）：${task.taskId} → ${delivery}（status=${task.status}）`);
     }
     if (!manifest.taskSheet?.path) {
       missingSheets.push(task.taskId);

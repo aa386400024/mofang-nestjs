@@ -174,6 +174,25 @@ function dependencyState(task, index) {
   return { met: unmet.length === 0, unmet };
 }
 
+/** IM-080：失败 / 取消 / 拒绝 / 死信上游不会自行完成，必须显性暴露而不是静默死等。 */
+const INVALID_DEPENDENCY_STATUSES = ['failed', 'canceled', 'rejected', 'deadLetter'];
+
+/**
+ * 列出 ready 任务中依赖已进入失败类终态的条目，供 claim 与 status 共用。
+ * @param {object} index 状态索引
+ * @returns {Array<{taskId:string, unmet:Array<{taskId:string,status:string}>}>}
+ */
+export function dependencyHealth(index) {
+  const issues = [];
+  for (const task of index?.tasks ?? []) {
+    if (task.status !== 'ready') continue;
+    const state = dependencyState(task, index);
+    const invalid = state.unmet.filter((item) => INVALID_DEPENDENCY_STATUSES.includes(item.status));
+    if (invalid.length > 0) issues.push({ taskId: task.taskId, unmet: invalid });
+  }
+  return issues;
+}
+
 /** 超时释放：租约过期的活跃任务回到 ready，必须写 releaseReason 并转人工确认，不在同一轮自动重派。 */
 export function releaseExpiredLeases(index, runtimeState, actions) {
   for (const task of index.tasks) {
@@ -441,8 +460,12 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
     if (claimed >= maxConcurrent) break;
     const dependency = dependencyState(task, index);
     if (!dependency.met) {
-      // 依赖未满足：留 ready 等上游闭合；上游根本不存在时显性报出，避免静默死等。
-      if (dependency.unmet.some((item) => item.status === 'unknown')) {
+      // 依赖未满足：留 ready 等上游闭合；失败类终态显性报 dependency-invalid，
+      // 完全不存在的上游报 dependency-unresolved，避免静默死等。
+      const invalid = dependency.unmet.filter((item) => INVALID_DEPENDENCY_STATUSES.includes(item.status));
+      if (invalid.length > 0) {
+        actions.push({ type: 'dependency-invalid', taskId: task.taskId, unmet: invalid });
+      } else if (dependency.unmet.some((item) => item.status === 'unknown')) {
         actions.push({ type: 'dependency-unresolved', taskId: task.taskId, unmet: dependency.unmet });
       }
       continue;

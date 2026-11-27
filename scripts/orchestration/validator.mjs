@@ -287,6 +287,31 @@ export function validateContractVersion(instance, contractName) {
   return result({ ok: errors.length === 0, errors, schemaId: null });
 }
 
+/**
+ * IM-084：把校验分区汇总成退出码。
+ * `--only-sheet` 时只看「任务单元」分区，全仓既有失败只作为背景信息，不污染单 sheet 结论。
+ * @param {Array<[string, object]>} sections
+ * @param {{onlySheet?: boolean}} opts
+ * @returns {{onlySheet:boolean, sheetFound:boolean, sheetOk:boolean, globalFailed:boolean, exitCode:number}}
+ */
+export function resolveValidationOutcome(sections = [], opts = {}) {
+  const onlySheet = opts.onlySheet === true;
+  let sheetFound = false;
+  let sheetOk = false;
+  let globalFailed = false;
+  for (const [name, res] of sections) {
+    const ok = res?.ok === true && res?.skipped !== true;
+    if (name === '任务单元') {
+      sheetFound = true;
+      sheetOk = ok;
+    } else if (!ok) {
+      globalFailed = true;
+    }
+  }
+  const exitCode = onlySheet ? (sheetFound && sheetOk ? 0 : 1) : (globalFailed || (sheetFound && !sheetOk) ? 1 : 0);
+  return { onlySheet, sheetFound, sheetOk, globalFailed, exitCode };
+}
+
 /** 复位编译缓存（测试隔离用）。 */
 export function _resetCache() {
   compiledCache.clear();
