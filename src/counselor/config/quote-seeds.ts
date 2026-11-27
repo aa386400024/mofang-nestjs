@@ -67,8 +67,27 @@ export const QUOTE_BG_STARRY_MOUNTAIN = 'quote_starry_mountain.jpg';
 /** 满版背景图 CDN base url 的 env 键. */
 export const QUOTE_CDN_BASE_URL_ENV_KEY = 'QUOTE_CDN_BASE_URL';
 
-/** 满版背景图 CDN base url 的缺省值. */
-export const QUOTE_CDN_BASE_URL_DEFAULT = 'https://cdn.xinsu.app/quote/';
+/**
+ * 满版背景图 CDN base url 的缺省值.
+ *
+ * AF-567: 旧缺省值 `https://cdn.xinsu.app/quote/` 指向一个我们并不拥有的域名，
+ * DNS 直接 NXDOMAIN，seed 会把 16 行 background_url 写成必 404 的远端地址。
+ * 现在缺省为空串：没有显式配置 CDN 时 seed 写空串，前端 `isRemoteBackground`
+ * 判 false 后直接走本地 asset，不再下发假域名。
+ */
+export const QUOTE_CDN_BASE_URL_DEFAULT = '';
+
+/** 把 env 里的 CDN base 归一成「以 / 结尾」的形态；空值返回空串（表示走本地 asset）。 */
+export function normalizeQuoteCdnBase(raw: string | null | undefined = ''): string {
+  const trimmed = (raw ?? '').trim();
+  if (!trimmed) return '';
+  return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
+}
+
+/** 拼背景图完整地址；base 为空时返回空串，不造 `/quote_x.jpg` 这类半远端路径。 */
+export function buildQuoteBackgroundUrl(base: string, assetFileName: string): string {
+  return base ? `${base}${assetFileName}` : '';
+}
 
 /** 金句流默认条数 (spec §2.2 的 limit=10). */
 export const QUOTE_LIST_DEFAULT_LIMIT = 10;

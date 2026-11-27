@@ -43,6 +43,9 @@ export class ListFragmentLogsQueryDto {
 
   /** 限制条数, 默认 50, 上限 200. */
   @IsOptional()
+  // AF-567: query 参数到手是 string；全局 ValidationPipe 未开 enableImplicitConversion，
+  // 必须显式转 number，否则 "30" 会同时挂 @IsInt 与 @Min.
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   limit?: number;

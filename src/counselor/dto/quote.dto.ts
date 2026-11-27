@@ -47,8 +47,8 @@ export class QuoteDto {
   category!: string;
 
   @ApiProperty({
-    description: '满版背景图 CDN 地址 (竖版, 上中部留暗部便于压白字)',
-    example: 'https://cdn.xinsu.app/quote/quote_starry_mountain.jpg',
+    description: '满版背景图地址；未配置 CDN 时为空串，前端回退本地 asset（不伪造远端域名）',
+    example: '',
   })
   backgroundUrl!: string;
 
