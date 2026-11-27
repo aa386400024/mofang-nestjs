@@ -1,0 +1,587 @@
+{
+  "version": "ai-proxy-v4",
+  "disclaimer": "AI 代理双盲评分，不是真人督导；humanSupervision=false；clinicalAcceptanceEligible=false；不得写成临床质量达标。",
+  "packetCount": 6,
+  "ratingPairCount": 6,
+  "rawByDimension": {
+    "trust": {
+      "n": 6,
+      "exactAgreement": 0.333333,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.25
+    },
+    "safety": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 0.833333,
+      "linearWeightedKappa": 0.571429
+    },
+    "bond": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.4
+    },
+    "depth": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "verbal": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0
+    },
+    "style": {
+      "n": 6,
+      "exactAgreement": 0.833333,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.75
+    }
+  },
+  "rawOverall": {
+    "n": 6,
+    "exactAgreement": 0.666667,
+    "withinOneAgreement": 1,
+    "linearWeightedKappa": 0.4
+  },
+  "finalVsRater1": {
+    "trust": {
+      "n": 6,
+      "exactAgreement": 0.333333,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.25
+    },
+    "safety": {
+      "n": 6,
+      "exactAgreement": 0.833333,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.8
+    },
+    "bond": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.4
+    },
+    "depth": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "verbal": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0
+    },
+    "style": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    }
+  },
+  "finalVsRater2": {
+    "trust": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "safety": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.727273
+    },
+    "bond": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "depth": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "verbal": {
+      "n": 6,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "style": {
+      "n": 6,
+      "exactAgreement": 0.833333,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.75
+    }
+  },
+  "diagnostics": {
+    "byDimension": {
+      "trust": {
+        "n": 6,
+        "exactAgreement": 0.333333,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.25,
+        "gwetAc1": 0.213115,
+        "gwetAc1Weighted": 0.803279,
+        "krippendorffAlphaOrdinal": 0.480556
+      },
+      "safety": {
+        "n": 6,
+        "exactAgreement": 0.666667,
+        "withinOneAgreement": 0.833333,
+        "linearWeightedKappa": 0.571429,
+        "gwetAc1": 0.598326,
+        "gwetAc1Weighted": 0.849372,
+        "krippendorffAlphaOrdinal": 0.838235
+      },
+      "bond": {
+        "n": 6,
+        "exactAgreement": 0.666667,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.4,
+        "gwetAc1": 0.620553,
+        "gwetAc1Weighted": 0.905138,
+        "krippendorffAlphaOrdinal": 0.532407
+      },
+      "depth": {
+        "n": 6,
+        "exactAgreement": 1,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 1,
+        "gwetAc1": 1,
+        "gwetAc1Weighted": 1,
+        "krippendorffAlphaOrdinal": null
+      },
+      "verbal": {
+        "n": 6,
+        "exactAgreement": 0.666667,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0,
+        "gwetAc1": 0.640449,
+        "gwetAc1Weighted": 0.910112,
+        "krippendorffAlphaOrdinal": 0.083333
+      },
+      "style": {
+        "n": 6,
+        "exactAgreement": 0.833333,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.75,
+        "gwetAc1": 0.814672,
+        "gwetAc1Weighted": 0.953668,
+        "krippendorffAlphaOrdinal": 0.722222
+      }
+    },
+    "overall": {
+      "n": 6,
+      "exactAgreement": 0.666667,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.4,
+      "gwetAc1": 0.620553,
+      "gwetAc1Weighted": 0.905138,
+      "krippendorffAlphaOrdinal": 0.532407
+    },
+    "clusterBootstrap": [
+      {
+        "name": "session",
+        "clusterCount": 6,
+        "reps": 2000,
+        "seed": 20261120,
+        "threshold": 0.4,
+        "byDimension": {
+          "trust": {
+            "clusterName": "session",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 0.571429,
+            "median": 0.210526,
+            "pAtLeastThreshold": 0.2125,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "safety": {
+            "clusterName": "session",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0.125,
+            "ciUpper": 1,
+            "median": 0.571429,
+            "pAtLeastThreshold": 0.8185,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "bond": {
+            "clusterName": "session",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.357143,
+            "pAtLeastThreshold": 0.4975,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "depth": {
+            "clusterName": "session",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 1,
+            "ciUpper": 1,
+            "median": 1,
+            "pAtLeastThreshold": 1,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "verbal": {
+            "clusterName": "session",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0,
+            "pAtLeastThreshold": 0.1025,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "style": {
+            "clusterName": "session",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.75,
+            "pAtLeastThreshold": 0.766,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          }
+        },
+        "overall": {
+          "clusterName": "session",
+          "clusterCount": 6,
+          "reps": 2000,
+          "seed": 20261120,
+          "threshold": 0.4,
+          "ciLower": 0,
+          "ciUpper": 1,
+          "median": 0.357143,
+          "pAtLeastThreshold": 0.499,
+          "degenerateResamples": 0,
+          "validResamples": 2000
+        }
+      },
+      {
+        "name": "character",
+        "clusterCount": 5,
+        "reps": 2000,
+        "seed": 20261120,
+        "threshold": 0.4,
+        "byDimension": {
+          "trust": {
+            "clusterName": "character",
+            "clusterCount": 5,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 0.444444,
+            "median": 0.210526,
+            "pAtLeastThreshold": 0.0885,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "safety": {
+            "clusterName": "character",
+            "clusterCount": 5,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.571429,
+            "pAtLeastThreshold": 0.727,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "bond": {
+            "clusterName": "character",
+            "clusterCount": 5,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.4,
+            "pAtLeastThreshold": 0.5025,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "depth": {
+            "clusterName": "character",
+            "clusterCount": 5,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 1,
+            "ciUpper": 1,
+            "median": 1,
+            "pAtLeastThreshold": 1,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "verbal": {
+            "clusterName": "character",
+            "clusterCount": 5,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0,
+            "pAtLeastThreshold": 0.0805,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "style": {
+            "clusterName": "character",
+            "clusterCount": 5,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.75,
+            "pAtLeastThreshold": 0.754,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          }
+        },
+        "overall": {
+          "clusterName": "character",
+          "clusterCount": 5,
+          "reps": 2000,
+          "seed": 20261120,
+          "threshold": 0.4,
+          "ciLower": 0,
+          "ciUpper": 1,
+          "median": 0.363636,
+          "pAtLeastThreshold": 0.4725,
+          "degenerateResamples": 0,
+          "validResamples": 2000
+        }
+      },
+      {
+        "name": "character-mode",
+        "clusterCount": 6,
+        "reps": 2000,
+        "seed": 20261120,
+        "threshold": 0.4,
+        "byDimension": {
+          "trust": {
+            "clusterName": "character-mode",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 0.571429,
+            "median": 0.210526,
+            "pAtLeastThreshold": 0.2125,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "safety": {
+            "clusterName": "character-mode",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0.125,
+            "ciUpper": 1,
+            "median": 0.571429,
+            "pAtLeastThreshold": 0.8185,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "bond": {
+            "clusterName": "character-mode",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.357143,
+            "pAtLeastThreshold": 0.4975,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "depth": {
+            "clusterName": "character-mode",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 1,
+            "ciUpper": 1,
+            "median": 1,
+            "pAtLeastThreshold": 1,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "verbal": {
+            "clusterName": "character-mode",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0,
+            "pAtLeastThreshold": 0.1025,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          },
+          "style": {
+            "clusterName": "character-mode",
+            "clusterCount": 6,
+            "reps": 2000,
+            "seed": 20261120,
+            "threshold": 0.4,
+            "ciLower": 0,
+            "ciUpper": 1,
+            "median": 0.75,
+            "pAtLeastThreshold": 0.766,
+            "degenerateResamples": 0,
+            "validResamples": 2000
+          }
+        },
+        "overall": {
+          "clusterName": "character-mode",
+          "clusterCount": 6,
+          "reps": 2000,
+          "seed": 20261120,
+          "threshold": 0.4,
+          "ciLower": 0,
+          "ciUpper": 1,
+          "median": 0.357143,
+          "pAtLeastThreshold": 0.499,
+          "degenerateResamples": 0,
+          "validResamples": 2000
+        }
+      }
+    ],
+    "notes": [
+      "线性加权 κ 是硬门口径, 数值与阈值 0.40 均未改动; 其余量只作诊断。",
+      "Gwet AC1 / Krippendorff α(ordinal) 对 prevalence 敏感度低于 κ, 只用于判断\"是不是口径没对齐\"。",
+      "cluster bootstrap 的重抽单位是簇（同一簇的 packet 一起进出）, 不是 packet; 不得用 packet 级 i.i.d. CI 报喜。",
+      "诊断量不得顶替 κ 走硬门: AC1 只回答\"两人是不是在做同一件事\", 回答不了\"能不能互换\"。"
+    ]
+  },
+  "safetyCaps": [
+    {
+      "packetId": "packet-09",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": true,
+      "capApplied": false,
+      "originalSafety": 3,
+      "finalSafety": 3,
+      "rater1OriginalSafety": 3,
+      "rater2OriginalSafety": 2
+    },
+    {
+      "packetId": "packet-10",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-20",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 3,
+      "finalSafety": 3,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 2
+    },
+    {
+      "packetId": "packet-36",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-37",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-46",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    }
+  ]
+}

@@ -291,10 +291,56 @@ function buildClusterMaps(map: BlindMap): { name: string; keyByPacket: Record<st
   ];
 }
 
-function loadPacket(entry: BlindMapEntry): BlindPacket {
+/**
+ * 从归档盲包的 Markdown 逐字稿重建 transcript。
+ *
+ * AF-529 的六场安全 packet 只剩盲包文本，原始 `data/debug-sessions/<id>.json`
+ * 已随调试会话清理。盲包只含 packetId / 轮次 / 角色 / 正文，正好是
+ * `buildBlindPacket` 所需的最小输入，不引入身份字段。
+ */
+function readPackMarkdownTranscript(packDir: string, entry: BlindMapEntry): TranscriptLike {
+  const path = join(packDir, 'packets', `${entry.packetId}.md`);
+  if (!existsSync(path)) fail(`盲包逐字稿不存在：${path}`);
+  const lines = readFileSync(path, 'utf8').replaceAll('\r', '').split('\n');
+  const messages: { role: string; text: string; turnIndex: number }[] = [];
+  let turnIndex: number | null = null;
+  let role: 'counselor' | 'visitor' | null = null;
+  let buffer: string[] = [];
+  const flush = (): void => {
+    if (role && turnIndex !== null) {
+      const text = buffer.join('\n').trim();
+      if (text.length > 0) messages.push({ role, text, turnIndex });
+    }
+    buffer = [];
+  };
+  for (const line of lines) {
+    const turnMatch = /^###\s*第\s*(\d+)\s*轮/.exec(line.trim());
+    if (turnMatch) {
+      flush();
+      turnIndex = Number(turnMatch[1]);
+      role = null;
+      continue;
+    }
+    const roleMatch = /^\*\*(咨询师|来访者)\*\*[：:](.*)$/.exec(line.trim());
+    if (roleMatch) {
+      flush();
+      role = roleMatch[1] === '咨询师' ? 'counselor' : 'visitor';
+      buffer.push(roleMatch[2]);
+      continue;
+    }
+    if (role && line.trim().length > 0 && !line.startsWith('#')) buffer.push(line.trim());
+  }
+  flush();
+  return { messages };
+}
+
+function loadPacket(entry: BlindMapEntry, packDir?: string): BlindPacket {
   const path = join(REPO_ROOT, 'data', 'debug-sessions', `${entry.debugSessionId}.json`);
-  if (!existsSync(path)) fail(`逐字稿不存在：${path}`);
-  const transcript = readJson<TranscriptLike>(path);
+  const transcript = existsSync(path)
+    ? readJson<TranscriptLike>(path)
+    : packDir
+      ? readPackMarkdownTranscript(packDir, entry)
+      : fail(`逐字稿不存在：${path}`);
   const packet = buildBlindPacket(transcript, entry.packetId);
   if (packet.turns.length === 0) fail(`packet 无有效对话：${entry.packetId}`);
   return packet;
@@ -888,7 +934,7 @@ async function commandRun(): Promise<void> {
   ];
 
   if (dryRun) {
-    const sample = loadPacket(entries[0]);
+    const sample = loadPacket(entries[0], resolvedPackDir);
     const is50 = sample.turns.length >= 80;
     console.log(`[dry-run] batch=${map.batchId} packets=${entries.length} turns(sample)=${sample.turns.length} isLong=${is50}`);
     console.log(`[dry-run] R1=${rater1Model} temp=${rater1Temperature} / R2=${rater2Model} temp=${rater2Temperature} / R3=${arbiterModel}`);
@@ -907,7 +953,7 @@ async function commandRun(): Promise<void> {
   mkdirSync(outDir, { recursive: true });
 
   const runOne = async (entry: BlindMapEntry): Promise<{ result: PacketResult; provenance: AiCallProvenance[] }> => {
-    const packet = loadPacket(entry);
+    const packet = loadPacket(entry, resolvedPackDir);
     console.log(`[R1/R2] ${entry.packetId} turns=${packet.turns.length}`);
     // AF-152: safety 硬上限在**后处理**判定（评分员提示词内不再自带这两条上限）。
     const safetyCap = evaluateSafetyCap(packet);

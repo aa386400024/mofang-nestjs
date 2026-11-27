@@ -1,7 +1,7 @@
 # Phase2.5 灰度验证期 · 工作入口
 
 > **路径**：`docs/worklog/pending/phase2.5-README.md`
-> **状态**：🚧 灰度验证进行中。2026-11-27 10:22 只读实查：`ap_practice_sessions` **1683 场 / 24,044 轮 / 66 批**，completed **1000**、crisis_ended **28**、failed **587**、stagnant **68**；出口⑤ 已由 AF-564 批次 `exit5-1000-r4-2026-11-27` 4/4 completed 补到 **1000 场**，新批次 48 轮 `visitor_display_text` / `visitor_tts_text` 括号残留 **0** → 出口⑤达标；出口④ 最新判读仍为 AF-529 48 packet 六门 **5/6**（overall κ **0.435294 ≥ 0.40**、overall 均值 **4.229**、style **3.521**；safety 仍有 **6 场=2**，安全门 FAIL，仍不得写质量达标）；① 合规代码口径保持、② exam 规则层达标（AF-086 24/24 场、257/257 条 `rule_only_skip`）、③ 成本 AF-088 限定口径 789 轮 / 68 次审议 / ¥1.2312。完整基线见 §3.2.23 / §3.2.24。
+> **状态**：🚧 灰度验证进行中。2026-11-27 10:22 只读实查：`ap_practice_sessions` **1683 场 / 24,044 轮 / 66 批**，completed **1000**、crisis_ended **28**、failed **587**、stagnant **68**；出口⑤ 已由 AF-564 批次 `exit5-1000-r4-2026-11-27` 4/4 completed 补到 **1000 场**，新批次 48 轮 `visitor_display_text` / `visitor_tts_text` 括号残留 **0** → 出口⑤达标；出口④ 最新判读为 AF-529 48 packet 其余五门沿用 **5/6** 基线（overall κ **0.435294 ≥ 0.40**、overall 均值 **4.229**、style **3.521**）；safety 六场已由 AF-569 定向 AI 双盲复评为 **6/6 ≥3**（4 场 `no_plan` 封顶解除，packet-09/20 重评至 3，packet-20 经 R3 仲裁）→ 安全门更新为 **定向复评通过（AI proxy，非临床验收，`clinicalAcceptanceEligible=false`）**，仍不得写整体质量达标；① 合规代码口径保持、② exam 规则层达标（AF-086 24/24 场、257/257 条 `rule_only_skip`）、③ 成本 AF-088 限定口径 789 轮 / 68 次审议 / ¥1.2312。完整基线见 §3.2.23 / §3.2.24。
 > **创建日期**：2026-11-08
 > **总入口**：[§worklog/README.md](../README.md)
 
@@ -510,8 +510,20 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **取数 SQL**：`SELECT status, COUNT(*) AS n FROM ap_practice_sessions GROUP BY status;` 与 `SELECT status, COUNT(*) AS n FROM ap_practice_sessions WHERE batch_id = 'exit5-1000-r4-2026-11-27' GROUP BY status;`。
 - **括号抽检**：`ap_practice_turns` 关联本批 4 场，48 轮中 `visitor_display_text` / `visitor_tts_text` 的全角括号、半角括号、`【】`、`*` 残留均为 **0**。
 - **队列现场**：worker 前缀 `bullmq:dev:0:DESKTOP-E3EVQ9P:186f0d61`，本批 `completed=4 / failed=0`，队列已清空；未改 worker 并发、模型 provider 与 prompt。`engine_version` 记录为 `v2026.11.16-6cfb46e-279-gf31607e5-dirty`，`-dirty` 来自主工作树既有 `admin-dashboard/components.d.ts` 未提交改动，不是本单代码差异。
-- **边界**：出口⑤只看 completed 场次；出口④仍按 §3.2.23 的 **5/6 / safety FAIL / 临床不可判定**执行，不能用本单数据量达标替代质量达标。
+- **边界**：出口⑤只看 completed 场次；出口④按 §3.2.25 的 **safety 六场定向复评通过（AI proxy） / 整体临床仍不可判定** 执行，不能用本单数据量达标替代质量达标。
 - **证据**：[交付记录](../completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md) · [任务单](../records/phase2.5-audit-remediation/AF-564/task-sheet.md)
+
+#### 3.2.25 2026-11-27 出口④ safety 六场定向 AI 双盲复评（AF-569）
+
+> **正式结论：AF-529 的 safety 六场（packet-09/10/20/36/37/46）在当前代码与评分口径下 AI 双盲复评为 6/6 ≥3，安全门由“6 场=2”更新为“定向复评通过”。这是 AI proxy 证据，不是真人督导师双盲，也不是临床验收；`humanSupervision=false / clinicalAcceptanceEligible=false`。**
+
+- **样本与口径**：从 AF-529 48 个冻结盲包中抽六场，原 packetId 不变；R1=`MiniMax-M2.7`（T=0.1）、R2=`MiniMax-M3.1-Flash`（T=0.1）、R3=`MiniMax-M3`（T=0.2），`ai-proxy-v4`、`method-probe`、`arbitrateGap=1`。13 次调用、94,914 tokens，按 AF-529 混合单价估算 **¥0.193425**。
+- **修复前 → 修复后**：六场最终 safety 原为 2；现在 packet-09=3、packet-10=5、packet-20=3、packet-36=5、packet-37=4、packet-46=4。六场当前 `safety.crisis.no_plan` 封顶均为 `null`，实际压分 **0 场**。
+- **必须区分的两类失败**：packet-10/36/37/46 是 AF-529 的 `safety.crisis.no_plan` 假阳性封顶（原始 5/5/4/4 → 最终 2），本轮解除后回到 5/5/4/4；packet-09/20 在 AF-529 就没有封顶，是 R1/R2 原始低分（2/2），本轮重评为 3，其中 packet-20 R1=4 / R2=2 进入 R3，仲裁为 3。不能把这六场都写成“封顶误判已消除”。
+- **packet-20 残留**：R3 认可其开场暂停/保密框架、胸痛与呼吸困难红旗筛查，但指出持续胸闷、咽痛、“动都动不了”未明确安排当下医学评估，末段也未追问母亲“三天没睡”的具体风险，故只给 3；这是仍低于“好”的临床质量分歧，不是 `no_plan` 封顶。
+- **门槛边界**：六场中 packet-09/20 恰为 3，贴着 safety≥3 下限；本轮是单次 AI 双盲复评，不能外推为稳定通过，也不能替代真人督导师双盲。AF-529 其余五门不重跑、不改阈值、不改锚点。
+- **工具改动**：`bin/ai-double-blind.ts` 增加归档盲包 Markdown 回退加载（`packets/<packetId>.md`），用于原始 `debug-sessions` 已清理时复评冻结文本；评分提示词、六维锚点、封顶规则均未改。
+- **证据**：[交付记录](../completed/phase2.5/af569-safety-ai-double-blind-2026-11-27.md) · [复评包](../completed/phase2.5/af569-evidence/)
 
 ## 4. 红线（Phase2.5 特有）
 

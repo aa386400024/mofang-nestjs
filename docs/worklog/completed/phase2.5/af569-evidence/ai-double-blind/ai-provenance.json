@@ -1,0 +1,193 @@
+{
+  "version": "ai-proxy-v4",
+  "status": "ai_proxy_candidate",
+  "humanSupervision": false,
+  "clinicalAcceptanceEligible": false,
+  "batchId": "texpIVvqpRMXd4f_63cFm-safety6",
+  "packetCount": 6,
+  "sameModelForBothRaters": false,
+  "scoringTrack": "method-probe",
+  "arbitrateGap": 1,
+  "raterConfigs": [
+    {
+      "raterId": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4"
+    },
+    {
+      "raterId": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4"
+    }
+  ],
+  "arbiterModel": "MiniMax-M3",
+  "limitations": [
+    "R1/R2 可能使用同一模型，独立性来自提示词、上下文隔离与温度差异，不是真人双盲。",
+    "AI 评分可能受训练数据与提示词顺序影响，不能替代督导师的临床判断与伦理责任。",
+    "文本盲标只能去除结构化身份字段，无法去除台词中的角色/职业/关系线索。",
+    "仲裁只解决“这个 packet 的争议维度该几分”，不反向修改 9 条锚点或 intake 阈值。",
+    "AF-152：safety 的两条结构性上限（开场框架缺失、风险无安全计划）已从提示词移到后处理；封顶是词面规则判定，属 candidate 级结构证据，不是临床质量判断。",
+    "在真实督导师双人盲标 + 仲裁完成前，本结果只能作为预评审/分歧发现，不作为验收证据。"
+  ],
+  "calls": [
+    {
+      "role": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "d1b1e8c3672a7bc76ea37f64c1b640a84abdc2e60250e489aded6f09e14dc1a9",
+      "packetId": "packet-09",
+      "promptTokens": 5806,
+      "completionTokens": 1754,
+      "totalTokens": 7560,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "6510a89f033e9596a1125d66d1ce5db8790b764515580aebb19a042e17a9ce8c",
+      "packetId": "packet-09",
+      "promptTokens": 5820,
+      "completionTokens": 1082,
+      "totalTokens": 6902,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "8fa61756905a162cb43491b59f086b1c4c39bee1dc07d3cf03ca992c3d31b1c1",
+      "packetId": "packet-10",
+      "promptTokens": 5372,
+      "completionTokens": 1547,
+      "totalTokens": 6919,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "24cbf9f88e505025a3bff63d983e2f56072391ae1d73f6b9044030fca1bcb5af",
+      "packetId": "packet-10",
+      "promptTokens": 5386,
+      "completionTokens": 825,
+      "totalTokens": 6211,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "033eb1a24839dbbb2a30867777ff0bf575947e72e4e41704c784042e5f0fd937",
+      "packetId": "packet-20",
+      "promptTokens": 6035,
+      "completionTokens": 1934,
+      "totalTokens": 7969,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "4d52ccba7c9acf4b20da99fe4fd13736d3d8db547bd45656d3413eec838794a9",
+      "packetId": "packet-20",
+      "promptTokens": 6046,
+      "completionTokens": 922,
+      "totalTokens": 6968,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R3",
+      "model": "MiniMax-M3",
+      "temperature": 0.2,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "47eced8777980d540bc495ca31372d4069be66faf21ff8aa745e283f401c2f4c",
+      "packetId": "packet-20",
+      "promptTokens": 4468,
+      "completionTokens": 2085,
+      "totalTokens": 6553,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "bf281bbd7a7d2baacd3965a9f70320aa25b0f5b91538c09e825a44665ea5d88e",
+      "packetId": "packet-36",
+      "promptTokens": 7704,
+      "completionTokens": 1246,
+      "totalTokens": 8950,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "4f5ab110c46d5c1d9e8eab64b8e58e049bbd4669a62a592fb0df811f8014608f",
+      "packetId": "packet-36",
+      "promptTokens": 7720,
+      "completionTokens": 1033,
+      "totalTokens": 8753,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "b1a192ac2f91e68304d8068035567404fd86500ecb9164f7ed1f9c84992a6587",
+      "packetId": "packet-37",
+      "promptTokens": 6175,
+      "completionTokens": 862,
+      "totalTokens": 7037,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "9e66bd0b8210dee5fa9c72e782ce51f26286a474ddbe02279b6fb0a7b6da3f0e",
+      "packetId": "packet-37",
+      "promptTokens": 6189,
+      "completionTokens": 646,
+      "totalTokens": 6835,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R1",
+      "model": "MiniMax-M2.7",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "f5aae5ed941583c9b330542b91e13743483aa91c7fec5dc828658d878a48a6c3",
+      "packetId": "packet-46",
+      "promptTokens": 5862,
+      "completionTokens": 1782,
+      "totalTokens": 7644,
+      "finishReason": "stop"
+    },
+    {
+      "role": "R2",
+      "model": "MiniMax-M3.1-Flash",
+      "temperature": 0.1,
+      "promptVersion": "ai-proxy-v4",
+      "promptSha256": "9e8824e5ac24142958658f626ce6841844bd44ac403cea261417f56d93beadc9",
+      "packetId": "packet-46",
+      "promptTokens": 5876,
+      "completionTokens": 737,
+      "totalTokens": 6613,
+      "finishReason": "stop"
+    }
+  ],
+  "generatedAt": "2026-11-27T03:11:24.714Z"
+}
