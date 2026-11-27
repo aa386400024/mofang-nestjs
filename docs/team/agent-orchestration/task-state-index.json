@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2349,
+    "lastEventSeq": 2367,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -4518,6 +4518,33 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-568",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-568/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af568-safety-ai-double-blind-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-569",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-569/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af569-safety-ai-double-blind-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-570",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-570/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af570-auth-password-semantics-2026-11-27.md",
         "reply": null
       }
     }
