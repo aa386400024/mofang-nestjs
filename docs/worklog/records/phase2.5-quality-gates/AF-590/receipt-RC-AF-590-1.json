@@ -1,0 +1,189 @@
+{
+  "deliveredAt": "2026-11-28T06:35:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-590-1",
+    "taskId": "AF-590",
+    "contextId": "phase2.5-quality-gates",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "498185d15469435055bb5ba041f382e15c13d891",
+    "dependsOn": [],
+    "priorTasks": ["AF-589"],
+    "policyRefs": ["docs/team/conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-590/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af590-ai-conversations-real-data-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["1634f6cfbabd13f91687d7e15e654d5b98385f0e"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af590-ai-conversations-real-data-2026-11-28.md",
+        "docs/worklog/records/phase2.5-quality-gates/AF-590/task-sheet.md",
+        "test/ai-companion/ai-conversations.spec.ts"
+      ],
+      "modified": ["src/ai-companion/providers/ai-conversations.service.ts"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/ai-companion/ai-conversations.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "18.74s",
+        "note": "7 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 90s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 120s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 367,
+        "machine": "同上",
+        "wallClock": "740.77s",
+        "note": "366 files passed + 1 skipped；5192 passed / 0 failed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "任务单与回执机读校验 PASS"
+      }
+    ],
+    "reproNotes": "复核：pnpm exec vitest run test/ai-companion/ai-conversations.spec.ts；pnpm typecheck；pnpm lint；pnpm test；git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-590 贯穿任务单、分支、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态只经 CLI 写入；实现提交与状态面提交分离"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 schema；回执七组必填字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "claim / dispatch / promote 由 CLI 写入，validate 校验索引投影"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改 AI 对话历史服务的列表查询与对应单测"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "移除硬编码心理对话样本；测试夹具全部合成 uid，未接触真实数据"
+      },
+      {
+        "item": "honest-scope",
+        "result": "pass",
+        "note": "未虚称接通写入链路；空表返回空列表，真实缺口登记 AF-590-B1/B2/B3"
+      },
+      {
+        "item": "no-new-dependency",
+        "result": "pass",
+        "note": "无新依赖、无 migration、无配置变更"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 6 条 successCriteria 均落在真实查询、空列表、归属校验、单测与门禁证据"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-590-B1",
+        "impact": "ai_chat_sessions 无任何 writer，真实对话结束后不会产生历史记录，历史页对真实用户为空",
+        "schedule": null
+      },
+      {
+        "id": "AF-590-B2",
+        "impact": "llm_conversations 与 ai_chat_sessions 的桥接 / 合并口径未定，实时会话无法进入历史页",
+        "schedule": null
+      },
+      {
+        "id": "AF-590-B3",
+        "impact": "历史列表固定上限 100 条且无分页，数据量增长后会截断更早记录",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "AI 对话历史应只读 ai_chat_sessions，还是同时桥接 llm_conversations，需产品与数据架构口径",
+      "摘要由 LLM 生成时的心理内容处理与留存边界需隐私评审"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "删除了忽略 uid 的 6 条硬编码心理对话样本，列表改为按 uid 倒序查询真实表、最多 100 条；空表返回空列表，不再用假数据掩盖写入链路缺失；详情、归档保护与删除的 uid 约束保持；新增 7 条单测，全量 5192 例全绿，typecheck/lint 零错，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与编排校验，无付费 API 调用。"
+  }
+}
