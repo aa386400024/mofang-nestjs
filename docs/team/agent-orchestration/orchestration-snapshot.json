@@ -1,20 +1,19 @@
 {
-  "generatedAt": "2026-11-27T08:54:02.843Z",
+  "generatedAt": "2026-11-27T08:54:42.073Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0,
-    "backlog": 1
+    "deadLetter": 0
   },
   "tasks": [
     {
@@ -22,7 +21,7 @@
       "contextId": "phase2.5-toolchain",
       "type": "fix",
       "title": "编排 CLI 护栏收口：域预检、失效依赖、单 sheet 校验与重冻指纹",
-      "status": "backlog",
+      "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
       "attemptCount": 0,
@@ -34,7 +33,18 @@
         "reply": null
       },
       "manualReview": [],
-      "dispatch": null
+      "dispatch": {
+        "taskId": "AF-576",
+        "contextId": "phase2.5-toolchain",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-27T08:54:41.815Z",
+        "leaseDeadline": "2026-11-27T09:24:41.813Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-576.json"
+      }
     }
   ],
   "deadLetters": [],
@@ -2069,6 +2079,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-676",
+      "recordedAt": "2026-11-27T08:54:32.872Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-576",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-675",
       "recordedAt": "2026-11-27T08:09:44.791Z",
       "actorRef": "orchestrator",
@@ -2289,35 +2316,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-661",
-      "recordedAt": "2026-11-27T03:04:41.931Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-569",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-569",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-569.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 675,
+    "total": 676,
     "byResult": {
-      "allowed": 675,
+      "allowed": 676,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 674,
+      "TOOL-QUEUE-SCHEDULER": 675,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 675
+      "orchestrator": 676
     }
   },
   "protocolView": {
@@ -2328,9 +2340,9 @@
         "title": "编排 CLI 护栏收口：域预检、失效依赖、单 sheet 校验与重冻指纹",
         "type": "fix",
         "status": {
-          "framework": "backlog",
-          "protocol": null,
-          "stage": "orchestration"
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
         },
         "groupId": "phase2.5-toolchain",
         "requiredSkills": [],
