@@ -1,12 +1,12 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T10:27:19.293Z",
+  "generatedAt": "2026-11-27T10:53:00.999Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 0,
+    "ready": 1,
     "submitted": 0,
     "working": 0,
     "completed": 0,
@@ -16,7 +16,27 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-577",
+      "contextId": "phase2.5-toolchain",
+      "type": "documentation",
+      "title": "AF-576 交付记录终态回填与合并后状态复核",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2302,7 +2322,32 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-577",
+        "title": "AF-576 交付记录终态回填与合并后状态复核",
+        "type": "documentation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-toolchain",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11399,9 +11444,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-577",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-toolchain/AF-577/task-sheet.md"
+      },
+      {
+        "taskId": "AF-577",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md"
+      }
+    ],
+    "groupId": "phase2.5-toolchain",
+    "groupIds": [
+      "phase2.5-toolchain"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
