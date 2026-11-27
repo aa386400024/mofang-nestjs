@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T16:20:29.982Z",
+  "generatedAt": "2026-11-27T16:25:39.161Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -22,12 +22,12 @@ window.ORCH_SNAPSHOT = {
   "pendingApprovals": [],
   "improvements": {
     "total": 85,
-    "activeCount": 8,
+    "activeCount": 7,
     "byStatus": {
-      "candidate": 7,
+      "candidate": 6,
       "queued": 1,
       "accepted": 0,
-      "done": 71,
+      "done": 72,
       "wontfix": 6
     },
     "byType": {
@@ -1265,7 +1265,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-058",
         "title": "批次有效性门禁不读咨询师侧降级计数",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "guardrail",
         "layer": "adapter",
@@ -1275,12 +1275,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "咨询师空输出/截断已计数但批次仍可能判 valid",
         "suggestion": "下一单修 practice-batch-health 读取 counselor_degraded_turns",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-18T13:02:19.718Z",
+          "at": "2026-11-27T16:24:39.301Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-581 已补 counselorDegradedRatio 与 COUNSELOR_DEGRADED_HIGH 门禁（>=5% 判无效），定向 29 例与全量 5153 例通过，PR #293 合并 db586a05"
         }
       },
       {
@@ -2049,6 +2049,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-699",
+      "recordedAt": "2026-11-27T16:24:27.959Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-583",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-583-close-im058"
+      ]
+    },
+    {
+      "auditId": "AUD-698",
+      "recordedAt": "2026-11-27T16:24:23.294Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-583",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-583",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-583.json"
+      ]
+    },
+    {
+      "auditId": "AUD-697",
+      "recordedAt": "2026-11-27T16:24:17.960Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-583",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-696",
       "recordedAt": "2026-11-27T15:57:38.072Z",
       "actorRef": "orchestrator",
@@ -2235,67 +2282,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-684",
-      "recordedAt": "2026-11-27T11:34:51.914Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-578",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-578-admin-bdi-state-panel-declaration"
-      ]
-    },
-    {
-      "auditId": "AUD-683",
-      "recordedAt": "2026-11-27T11:34:18.729Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-578",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-578",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-578.json"
-      ]
-    },
-    {
-      "auditId": "AUD-682",
-      "recordedAt": "2026-11-27T11:34:08.916Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-578",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 696,
+    "total": 699,
     "byResult": {
-      "allowed": 696,
+      "allowed": 699,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 695,
+      "TOOL-QUEUE-SCHEDULER": 698,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 696
+      "orchestrator": 699
     }
   },
   "protocolView": {
@@ -11491,6 +11491,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af582-test-timeout-budget-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-583",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-583/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af583-close-im058-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11515,5 +11533,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 519
+  "archivedCount": 520
 };
