@@ -4,10 +4,94 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2391,
+    "lastEventSeq": 2392,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-576",
+      "status": "backlog",
+      "history": [],
+      "contextId": "phase2.5-toolchain",
+      "title": "编排 CLI 护栏收口：域预检、失效依赖、单 sheet 校验与重冻指纹",
+      "type": "fix",
+      "baselineRef": "c19a8246f9ae018966549946896a1ad02ecf7840",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3",
+        "docs/team/agent-orchestration/README.md"
+      ],
+      "createdAt": "2026-11-27T08:54:02.392Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/",
+          "docs/worklog/",
+          "docs/team/agent-orchestration/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-576/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "编排单测全绿",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "tsc 0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试完成并记录真实通过/失败数字",
+          "threshold": "0 failed（环境性并发超时须隔离复跑并记录）"
+        }
+      ],
+      "successCriteria": [
+        "register 在写记录包与事件前完成 agentRole 资源域预检，越域直接拒绝并给出可用角色建议",
+        "canceled / rejected / failed 任务的历史交付指针缺文件只告警，不再让 worklog strict 失败；completed 仍必须存在",
+        "dependsOn 指向 failed / canceled / rejected 时产生 dependency-invalid 动作，status 运行健康行显性标出失效依赖",
+        "cli validate 支持 only-sheet，单任务单结论与全仓既有失败分离，默认全仓行为不变",
+        "receipt freeze 重冻后清除运行态 receiptFingerprint，下一次 run-once 必须重新验收",
+        "上述五类行为均有单测覆盖，且 lint / typecheck / 全量测试结果如实记录"
+      ],
+      "objective": "收口 AF-572 至 AF-575 返修中暴露的五项编排护栏缺口，减少一次域冲突重签发引发的多任务膨胀与静默死等",
+      "outOfScope": [
+        "不改业务代码与 engine-core",
+        "不改框架仓契约正文与 schema",
+        "不批量改写历史任务单与历史回执"
+      ],
+      "constraints": [
+        "状态面只经 CLI 写入",
+        "不引入新依赖",
+        "保持默认 cli validate 全仓口径兼容"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af576-orchestration-guardrails-2026-11-27.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "priorTasks": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
