@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T00:13:57.154Z",
+  "generatedAt": "2026-11-27T00:20:44.993Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 1,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -49,46 +49,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-26T18:31:59.971Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-564.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-566",
-      "contextId": "phase2.5-audit-remediation",
-      "type": "implementation",
-      "title": "AF-565 语音停顿与语料改造（提交域返修）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-566/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-566",
-        "contextId": "phase2.5-audit-remediation",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-27T00:13:57.050Z",
-        "leaseDeadline": "2026-11-27T00:43:57.046Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-566.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-27T00:13:57.050Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-566.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -2109,6 +2069,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-654",
+      "recordedAt": "2026-11-27T00:13:57.406Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-566",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-566",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-566.json"
+      ]
+    },
+    {
       "auditId": "AUD-653",
       "recordedAt": "2026-11-27T00:13:48.158Z",
       "actorRef": "orchestrator",
@@ -2331,35 +2306,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-639",
-      "recordedAt": "2026-11-26T17:35:13.870Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-561",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-561-safety-tts-membership-closure"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 653,
+    "total": 654,
     "byResult": {
-      "allowed": 653,
+      "allowed": 654,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 652,
+      "TOOL-QUEUE-SCHEDULER": 653,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 653
+      "orchestrator": 654
     }
   },
   "protocolView": {
@@ -2384,32 +2344,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-566",
-        "title": "AF-565 语音停顿与语料改造（提交域返修）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-audit-remediation",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-561"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-566/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md"
           }
         ]
       }
@@ -11280,6 +11214,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af565-voice-pause-lexicon-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-566",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-566/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11299,16 +11251,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-564",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
-      },
-      {
-        "taskId": "AF-566",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-566/task-sheet.md"
-      },
-      {
-        "taskId": "AF-566",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md"
       }
     ],
     "groupId": "phase2.5-audit-remediation",
@@ -11322,5 +11264,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 501
+  "archivedCount": 502
 };
