@@ -20,7 +20,9 @@ export {
 export {
   buildVisitorRealismProfile,
   buildVisitorRealismPromptBlock,
+  parseDisfluencyLevel,
   parseRealismMode,
+  type DisfluencyLevel,
   type RealismMode,
   type RealismQuotas,
   type VisitorRealismContext,

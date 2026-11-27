@@ -59,6 +59,7 @@ import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } f
 import { mapRoleDesiresToCore } from './character-desire-mapping.js';
 import { CharacterProfileEntity } from './character-profile.entity.js';
 import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver.js';
+import { parseDisfluencyLevel } from '../../../shared/realism/index.js';
 import { selectSpeechRegister, parseSpeechRegisterColumn } from '../../../shared/speech-register/index.js';
 
 /**
@@ -152,6 +153,8 @@ export class DbCharacterProfileResolver implements CharacterProfileResolver {
     }
 
     const speechSelection = selectSpeechRegister(parseSpeechRegisterColumn(row.speechRegister), templateId, process.env);
+    // Phase3 P3: 非法档位 / NULL 一律不携带 —— 渲染侧按 "角色没表态" 处理 (零回归).
+    const disfluencyLevel = parseDisfluencyLevel(row.disfluencyLevel);
     return {
       // 复用 WP9-A 的唯一一份映射 (临场 preset 的叠加规则与内置种子完全一致).
       characterProfile: buildCharacterProfile(toCharacterSeed(row), request.preset),
@@ -159,6 +162,8 @@ export class DbCharacterProfileResolver implements CharacterProfileResolver {
       seed: stableSeedFromKey(templateId),
       displayName: row.displayName,
       ...(row.verbalVoice ? { verbalVoice: row.verbalVoice } : {}),
+      ...(disfluencyLevel ? { disfluencyLevel } : {}),
+      ...(row.disfluencyDensity == null ? {} : { disfluencyDensity: row.disfluencyDensity }),
       ...(speechSelection.register ? { speechRegister: speechSelection.register } : {}),
       ...(speechSelection.audit ? { speechRegisterAudit: speechSelection.audit } : {}),
     };

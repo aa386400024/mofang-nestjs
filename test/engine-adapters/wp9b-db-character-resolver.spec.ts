@@ -698,6 +698,35 @@ describe('WP9-B · MySQL 角色解析器 (DB 数据源)', () => {
       expect(BASELINE_CALIBRATION_BY_TEMPLATE_ID.has(BUILTIN_ANXIOUS_LOW_MOOD_L1.key)).toBe(false);
     });
   });
+
+  describe('F. 角色级不流利配置条件携带 (AF-584)', () => {
+    it('NULL = 角色没表态：解析结果不带两个键，行为与旧行逐字一致', async () => {
+      const row = buildRow(AVOIDANT_SEED!);
+      const { resolver } = buildResolver([row]);
+      const resolved = await resolver.resolve({ templateId: AVOIDANT_SEED!.templateId });
+      expect(resolved).not.toBeNull();
+      expect(Object.prototype.hasOwnProperty.call(resolved, 'disfluencyLevel')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(resolved, 'disfluencyDensity')).toBe(false);
+    });
+
+    it('显式档位 + 密度才携带；非法档位静默忽略，不阻断角色解析', async () => {
+      const heavy = buildRow(AVOIDANT_SEED!, { disfluencyLevel: 'heavy', disfluencyDensity: 1 });
+      const { resolver } = buildResolver([heavy]);
+      const resolved = await resolver.resolve({ templateId: AVOIDANT_SEED!.templateId });
+      expect(resolved?.disfluencyLevel).toBe('heavy');
+      expect(resolved?.disfluencyDensity).toBe(1);
+
+      const invalid = buildRow(AVOIDANT_SEED!, {
+        disfluencyLevel: 'broken' as never,
+        disfluencyDensity: null,
+      });
+      const { resolver: invalidResolver } = buildResolver([invalid]);
+      const invalidResolved = await invalidResolver.resolve({ templateId: AVOIDANT_SEED!.templateId });
+      expect(invalidResolved).not.toBeNull();
+      expect(invalidResolved?.disfluencyLevel).toBeUndefined();
+      expect(invalidResolved?.disfluencyDensity).toBeUndefined();
+    });
+  });
 });
 
 /**

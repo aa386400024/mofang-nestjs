@@ -102,6 +102,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 import type { AttachmentStyle, CharacterProfile, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { DisfluencyLevel } from '../../../shared/realism/index.js';
 import type { SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /**
@@ -297,6 +298,24 @@ export class CharacterProfileEntity {
    */
   @Column({ type: 'json', name: 'speech_register', nullable: true })
   speechRegister!: SpeechRegister | null;
+
+  /**
+   * 角色级不流利档位 (Phase3 P3): none / light / natural / heavy.
+   *
+   * NULL = 角色没表态 = 走 AF-204 的 role/state 配额解析.
+   * 存储侧用 VARCHAR(16) 而不是 ENUM: 档位还会随批次扩展, 改 enum 要 ALTER 表.
+   */
+  @Column({ type: 'varchar', length: 16, name: 'disfluency_level', nullable: true })
+  disfluencyLevel!: DisfluencyLevel | null;
+
+  /**
+   * 角色级密度倾向 [0,1] (Phase3 P3): 0.5 = 不修正; ≤0.25 / ≥0.75 各修正一档.
+   *
+   * NULL = 角色没表态 = 修正量 0. 用 FLOAT (单精度同既有 baseline 列),
+   * 读取侧不做裸 `!==` 比较, 归一后按断点判断.
+   */
+  @Column({ type: 'float', name: 'disfluency_density', nullable: true })
+  disfluencyDensity!: number | null;
 
   /** 核心信念 (第一人称, 永久不可变): `[{theme, statement, activationTags[]}]`. */
   @Column({ type: 'json', name: 'core_beliefs' })

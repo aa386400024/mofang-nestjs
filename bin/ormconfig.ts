@@ -295,6 +295,7 @@ import { AddMembershipV2Tables1714900000054 } from '../src/migration/17149000000
 import { AddMembershipPromotionAndPlanGrant1714900000055 } from '../src/migration/1714900000055-AddMembershipPromotionAndPlanGrant.js';
 import { AddMembershipPromotionReservation1714900000056 } from '../src/migration/1714900000056-AddMembershipPromotionReservation.js';
 import { AddCompanionTreeAndDualPuzzleTables1714900000057 } from '../src/migration/1714900000057-AddCompanionTreeAndDualPuzzleTables.js';
+import { AddCharacterProfileDisfluencyConfig1714900000058 } from '../src/migration/1714900000058-AddCharacterProfileDisfluencyConfig.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -505,6 +506,8 @@ const ormconfig = async (): Promise<DataSource> => {
       AddMembershipPromotionReservation1714900000056,
       // AF-537 P0-3 — 陪伴树 + 默契拼图 5 张在线表.
       AddCompanionTreeAndDualPuzzleTables1714900000057,
+      // AF-584 (Phase3 P3) — character_profiles 加角色级不流利配置两列 (可空, 存量零影响).
+      AddCharacterProfileDisfluencyConfig1714900000058,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

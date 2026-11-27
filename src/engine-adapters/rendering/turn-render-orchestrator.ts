@@ -222,6 +222,13 @@ export interface TurnSessionContext {
   /** 语域配置审计摘要 (AF-462): audit 模式下只进 trace, 不注入 prompt. */
   readonly speechRegisterAudit?: AdaptiveRenderSpec['speechRegisterAudit'];
   /**
+   * 角色级不流利配置 (Phase3 P3): 整个会话不变, 与 verbalVoice 同一登记路径.
+   *
+   * 缺省 = 角色未标定 = 沿用 AF-204 的 role/state 配额 = prompt 逐字不变.
+   */
+  readonly disfluencyLevel?: AdaptiveRenderSpec['disfluencyLevel'];
+  readonly disfluencyDensity?: AdaptiveRenderSpec['disfluencyDensity'];
+  /**
    * 依恋风格 (WP-J P1d): 渲染层的**依恋行为指引**开关.
    *
    * 为什么必须登记在**会话归属**里 (与 verbalVoice 同一处):
@@ -1226,6 +1233,8 @@ export class TurnRenderOrchestrator {
       ...(context?.verbalVoice === undefined ? {} : { verbalVoice: context.verbalVoice }),
       // AF-462: 语域指纹透传（缺省 = 规格不带该字段 → 渲染层不消费）.
       ...speechRegisterSessionFields(context),
+      // Phase3 P3: 角色级不流利配置透传（缺省 = 规格不带键 → 配额解析与 AF-204 一致）.
+      ...disfluencySessionFields(context),
       // WP-J P1d: 依恋风格透传 —— 不传则 spec 里没有该字段, 渲染层不渲染行为指引 (零回归).
       ...(context?.attachmentStyle === undefined ? {} : { attachmentStyle: context.attachmentStyle }),
       // AF-187: 场景契约透传 —— 没登记则不传, spec 里没有该字段, prompt 逐字不变.
@@ -1645,6 +1654,19 @@ function speechRegisterSessionFields(context: TurnSessionContext | undefined): P
   return {
     ...(context?.speechRegister === undefined ? {} : { speechRegister: context.speechRegister }),
     ...(context?.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: context.speechRegisterAudit }),
+  };
+}
+
+/**
+ * 角色级不流利两字段的条件透传 (AF-584).
+ *
+ * @param context 会话归属
+ * @returns 只在角色库标定了档位/密度时出现的键
+ */
+function disfluencySessionFields(context: TurnSessionContext | undefined): Partial<SpecAssemblyInput> {
+  return {
+    ...(context?.disfluencyLevel === undefined ? {} : { disfluencyLevel: context.disfluencyLevel }),
+    ...(context?.disfluencyDensity === undefined ? {} : { disfluencyDensity: context.disfluencyDensity }),
   };
 }
 
@@ -2093,6 +2115,7 @@ function logRealismProfile(profile: VisitorRealismProfile, injected: boolean): v
   console.log(
     `[TurnRenderOrchestrator] 真人度 profile: mode=${profile.mode} scene=${profile.scene} role=${profile.role} ` +
       `state=${profile.state} shape=${profile.shape} maxEvents=${profile.quotas.maxEvents} ` +
+      `disfluency=${profile.disfluencyLevel} ` +
       `eventPlan=${profile.eventPlan.maxEvents}/${profile.eventPlan.options.length} injected=${injected}`,
   );
 }

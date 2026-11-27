@@ -15,6 +15,7 @@ import { buildVisitorMessages } from '../../src/engine-adapters/rendering/turn-r
 import {
   buildVisitorRealismProfile,
   buildVisitorRealismPromptBlock,
+  parseDisfluencyLevel,
   parseRealismMode,
   REALISM_SCENES,
   resolveRealismScene,
@@ -221,5 +222,82 @@ describe('AF-204 · 临床与咨询师边界', () => {
       expect(profile.scene).toBe('in_person');
       expect(buildVisitorRealismPromptBlock(profile)).toContain('不要模仿对方的措辞');
     }
+  });
+});
+
+describe('AF-584 · 角色级不流利配置', () => {
+  function profileWith(config: Pick<VisitorRealismContext, 'disfluencyLevel' | 'disfluencyDensity'>) {
+    return buildVisitorRealismProfile(
+      { ...ROLE_SOURCE.emotional, ...STATE_SOURCE.steady, encounter: SCENE_ENCOUNTER.in_person, ...config },
+      'active',
+    );
+  }
+
+  it('只认四个显式档位；NULL / 拼错 / 空串 = 角色没表态', () => {
+    expect(parseDisfluencyLevel()).toBeUndefined();
+    expect(parseDisfluencyLevel(null)).toBeUndefined();
+    expect(parseDisfluencyLevel('')).toBeUndefined();
+    expect(parseDisfluencyLevel('HEAVY')).toBeUndefined();
+    expect(parseDisfluencyLevel('none')).toBe('none');
+    expect(parseDisfluencyLevel('light')).toBe('light');
+    expect(parseDisfluencyLevel('natural')).toBe('natural');
+    expect(parseDisfluencyLevel('heavy')).toBe('heavy');
+  });
+
+  it('缺省与显式 natural + 0.5 密度配额逐字一致，prompt 也不变', () => {
+    const baseline = profileWith({});
+    const explicitNeutral = profileWith({ disfluencyLevel: 'natural', disfluencyDensity: 0.5 });
+    expect(baseline.quotas).toEqual(explicitNeutral.quotas);
+    expect(baseline.disfluencyLevel).toBe('natural');
+    expect(buildVisitorRealismPromptBlock(baseline)).toBe(buildVisitorRealismPromptBlock(explicitNeutral));
+  });
+
+  it('light 把合计上限压到 1；none 全零且不主动加痕迹；heavy 在角色底色上放宽', () => {
+    const baseline = profileWith({});
+    expect(baseline.quotas.maxEvents).toBe(2);
+
+    const light = profileWith({ disfluencyLevel: 'light' });
+    expect(light.quotas.maxEvents).toBe(1);
+
+    const none = profileWith({ disfluencyLevel: 'none' });
+    expect(none.quotas).toEqual({
+      filler: 0,
+      pause: 0,
+      repair: 0,
+      trailoff: 0,
+      repetition: 0,
+      elongation: 0,
+      maxEvents: 0,
+    });
+    expect(buildVisitorRealismPromptBlock(none)).toContain('这一轮不主动加入填充');
+
+    const heavy = profileWith({ disfluencyLevel: 'heavy' });
+    expect(heavy.quotas.filler).toBe(2);
+    expect(heavy.quotas.pause).toBe(2);
+    expect(heavy.quotas.maxEvents).toBe(3);
+  });
+
+  it('密度按 0.5 权重做档位修正：≤0.25 降一档，≥0.75 升一档，中间不修正', () => {
+    const natural = profileWith({ disfluencyLevel: 'natural', disfluencyDensity: 0.5 });
+    const low = profileWith({ disfluencyLevel: 'natural', disfluencyDensity: 0 });
+    const high = profileWith({ disfluencyLevel: 'natural', disfluencyDensity: 1 });
+    expect(low.quotas.maxEvents).toBe(natural.quotas.maxEvents - 1);
+    expect(high.quotas.maxEvents).toBe(natural.quotas.maxEvents + 1);
+    expect(profileWith({ disfluencyDensity: Number.NaN }).quotas).toEqual(natural.quotas);
+  });
+
+  it('安全优先：heavy 遇到风险轮仍归零', () => {
+    const risk = buildVisitorRealismProfile(
+      {
+        ...ROLE_SOURCE.emotional,
+        ...STATE_SOURCE.risk,
+        encounter: SCENE_ENCOUNTER.in_person,
+        disfluencyLevel: 'heavy',
+        disfluencyDensity: 1,
+      },
+      'active',
+    );
+    expect(risk.quotas.maxEvents).toBe(0);
+    expect(buildVisitorRealismPromptBlock(risk)).toContain('安全信息优先清楚');
   });
 });

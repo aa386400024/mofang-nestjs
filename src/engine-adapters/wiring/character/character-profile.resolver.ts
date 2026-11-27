@@ -32,6 +32,7 @@
 //     3. test/engine-adapters/wp9a-open-profile.spec.ts 覆盖 openSession 注入与中性回退
 
 import type { CharacterProfile } from '../../../engine-core/index.js';
+import type { DisfluencyLevel } from '../../../shared/realism/index.js';
 import type { SpeechRegister, SpeechRegisterAuditSummary } from '../../../shared/speech-register/index.js';
 
 /**
@@ -79,6 +80,14 @@ export interface ResolvedCharacter {
   readonly displayName: string;
   /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
   readonly verbalVoice?: string;
+  /**
+   * 角色级不流利档位 (Phase3 P3): 渲染侧侧通道, 不进内核 CharacterProfile.
+   *
+   * 缺省 = 角色未标定 (NULL / 非法值) = 沿用 AF-204 的角色/状态配额.
+   */
+  readonly disfluencyLevel?: DisfluencyLevel;
+  /** 角色级密度倾向 [0,1] (Phase3 P3): 0.5 = 不修正; 缺省 = 不修正. */
+  readonly disfluencyDensity?: number;
   /**
    * 语域指纹 (AF-462): 结构化角色资产, 仅在 active 且命中试点时注入.
    *

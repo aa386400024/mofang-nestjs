@@ -167,6 +167,13 @@ export interface EngineTurnOpenOptions {
   /** 语域配置审计摘要 (AF-462): audit 模式只观测, 不注入. */
   readonly speechRegisterAudit?: TurnSessionContext['speechRegisterAudit'];
   /**
+   * 角色级不流利配置 (Phase3 P3): 整个会话不变, 与 verbalVoice 同一登记路径.
+   *
+   * 缺省 = 不登记 = 渲染层沿用 AF-204 配额 = prompt 逐字不变 (零回归).
+   */
+  readonly disfluencyLevel?: TurnSessionContext['disfluencyLevel'];
+  readonly disfluencyDensity?: TurnSessionContext['disfluencyDensity'];
+  /**
    * 学员账号 id (V2026-11-05 WP64).
    *
    * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
@@ -291,6 +298,8 @@ export class EngineTurnService {
       readonly expressionTone?: TurnSessionContext['expressionTone'];
       readonly attachmentStyle?: TurnSessionContext['attachmentStyle'];
       readonly verbalVoice?: TurnSessionContext['verbalVoice'];
+      readonly disfluencyLevel?: TurnSessionContext['disfluencyLevel'];
+      readonly disfluencyDensity?: TurnSessionContext['disfluencyDensity'];
       readonly userId?: string;
       readonly characterBrief?: string;
       readonly dbSessionId?: string;
@@ -304,6 +313,22 @@ export class EngineTurnService {
       visitorId: input.visitorId,
       ...this.buildRenderAttribution(options),
       ...this.buildDeliberationAttribution(options),
+    };
+  }
+
+  /**
+   * 角色侧通道三字段的条件登记 (WP-J P2 / AF-584).
+   *
+   * 为什么抽方法: `buildRenderAttribution` 复杂度贴着上限, 三条条件展开会顶过 20.
+   *
+   * @param options 装配层附加信息
+   * @returns 只在装配层真正给了对应字段时出现的键
+   */
+  private sideChannelAttribution(options?: EngineTurnOpenOptions): Partial<TurnSessionContext> {
+    return {
+      ...(options?.verbalVoice === undefined ? {} : { verbalVoice: options.verbalVoice }),
+      ...(options?.disfluencyLevel === undefined ? {} : { disfluencyLevel: options.disfluencyLevel }),
+      ...(options?.disfluencyDensity === undefined ? {} : { disfluencyDensity: options.disfluencyDensity }),
     };
   }
 
@@ -331,8 +356,8 @@ export class EngineTurnService {
       ...(options?.expressionTone === undefined ? {} : { expressionTone: options.expressionTone }),
       // WP-J P1d: 依恋风格登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.attachmentStyle === undefined ? {} : { attachmentStyle: options.attachmentStyle }),
-      // WP-J P2: 台词指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
-      ...(options?.verbalVoice === undefined ? {} : { verbalVoice: options.verbalVoice }),
+      // WP-J P2 + Phase3 P3: 台词指纹与角色级不流利配置登记 —— 条件展开, 缺省不登记.
+      ...this.sideChannelAttribution(options),
       // AF-462: 语域指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.speechRegister === undefined ? {} : { speechRegister: options.speechRegister }),
       ...(options?.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: options.speechRegisterAudit }),
