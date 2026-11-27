@@ -1,0 +1,66 @@
+{
+  "taskId": "AF-575",
+  "reason": "pr-release merge 被 Orchestration Gate 阻断：原 11 个提交均缺 Task trailer（强制生效时间 2026-11-23T09:00:00Z）。重写仅补 trailer；AF-573 前 4 个提交同时压缩为 1 个，使任务单与实现同提交，满足逐提交门禁。树内容与重写前一致。",
+  "rewrittenAt": "2026-11-27T16:55:00+08:00",
+  "treeUnchanged": true,
+  "commits": [
+    {
+      "subject": "fix(quality): AF-573 quality 运维脚本纳入 lint 闸门",
+      "trailer": "AF-573",
+      "squashedFrom": [
+        "aed982305f788ade7a65ddd5c55e9de275f5bfc6",
+        "20c81c921af55744c9af0a8a016072322d39b09e",
+        "9cb997f1ef34028eb5dbfbbab749c2ae5063bc42",
+        "cf830014158bff0547eb05d0aa3e6ce8b8234409"
+      ],
+      "to": "729fe4d0eba878d8df7dd2193b54277654565e82"
+    },
+    {
+      "subject": "docs(worklog): AF-574 返修验收记录与证据",
+      "trailer": "AF-574",
+      "from": "8353dba3f0c5a2254a68f1ac589b3ffd2cec6ada",
+      "to": "9df322be9f7cb963facc93d53c57bd15588e7c93"
+    },
+    {
+      "subject": "chore(orchestration): AF-572/573/574 状态面流转",
+      "trailer": "AF-572",
+      "from": "f41cbc9f44110ed896cfd3bce9f32aa39e3f5dd9",
+      "to": "a7ec4340361f2ea27eddb0b6054160842d104c03"
+    },
+    {
+      "subject": "docs(worklog): AF-574 冻结通过回执",
+      "trailer": "AF-574",
+      "from": "2ba07843ab04e8a44d266e996da875e4c7f5730e",
+      "to": "6767b45c949acc43cefd63fa1c7218a9b799c8d9"
+    },
+    {
+      "subject": "docs(worklog): AF-575 第二次返修验收记录",
+      "trailer": "AF-575",
+      "from": "5d6503337d3eb536fb9e004710cc16ac311006c0",
+      "to": "827cc42c7c0b1babdd0bb45cbdce387365ae0fd2"
+    },
+    {
+      "subject": "chore(orchestration): AF-574/575 返修状态面",
+      "trailer": "AF-574",
+      "from": "35fe2284ae92e727ec08fdfb784fc13ba385f149",
+      "to": "8081dea2c63bc81f4ba9672241a21540c1c209e5"
+    },
+    {
+      "subject": "docs(worklog): AF-575 冻结通过回执",
+      "trailer": "AF-575",
+      "from": "d37488de6b20f6aafe5986e4dcb3ab423096f81d",
+      "to": "e5e4e3dd39eed404169b0e64758c9fa29dc288e3"
+    },
+    {
+      "subject": "chore(orchestration): AF-575 完成归档状态面",
+      "trailer": "AF-575",
+      "from": "a05d0fc8220a2e5c0185a6bf652b0889a248cc11",
+      "to": "b1406b611acf5f6a03280f45c43b0f52638713ce"
+    },
+    {
+      "subject": "docs(worklog): AF-575 补记提交消息重写映射",
+      "trailer": "AF-575",
+      "to": "cb99dcaee22cb5203d5c0e9fb7454943821bbe77"
+    }
+  ]
+}
