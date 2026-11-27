@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-570",
+  "contextId": "phase2.5-audit-remediation",
+  "status": "ready",
+  "createdAt": "2026-11-27T11:30:00+08:00",
+  "updatedAt": "2026-11-27T03:56:11.234Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-audit-remediation/AF-570/task-sheet.md",
+    "sha256": "d50bbe6b67de7886001e65c2766b79be221455458966831346ade8f079ce3a3b",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-570/receipt-RC-AF-570-1.json",
+      "sha256": "12f1ac88d4795c5d67350a90cb05f46b932bfd64d934fa53fdc461048883d354",
+      "receiptId": "RC-AF-570-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af570-auth-password-semantics-2026-11-27.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af570-auth-password-semantics-task-2026-11-27.md"
+  ],
+  "tombstone": null
+}
