@@ -13,6 +13,24 @@ import { DataSource } from 'typeorm';
  */
 const RETAINED_TABLES = new Set(['audit_logs']);
 
+/** 直接以用户 id 命名的归属列. */
+const DIRECT_OWNER_COLUMNS = new Set(['uid', 'user_id']);
+
+/**
+ * 判断某列是否是"这条记录属于谁"的用户归属列.
+ *
+ * 为什么不能只认 uid / user_id: 陪伴域用 owner_uid / companion_uid /
+ * companion_to_uid、舒缓卡用 from_uid / to_uid、康复项用 owner_uid +
+ * companion_uid —— 这些表在账号硬擦除时同样必须清空，否则用户删除账号后
+ * 关系型心理数据仍留在库里（GDPR / 个保法口径的漏删）.
+ *
+ * @param columnName 数据库列名（来自 TypeORM metadata，不可由外部输入）
+ * @returns 是用户归属列
+ */
+function isUserOwnershipColumn(columnName: string): boolean {
+  return DIRECT_OWNER_COLUMNS.has(columnName) || columnName.endsWith('_uid');
+}
+
 @Injectable()
 export class AccountErasureService {
   private readonly logger = new Logger(AccountErasureService.name);
@@ -25,6 +43,8 @@ export class AccountErasureService {
   /**
    * 硬擦除一个账号的全部个人数据。
    *
+   * 归属列识别为 uid / user_id / 任意 `*_uid`（多用户关系表按列逐一删除）.
+   *
    * @param uid 用户 uid
    * @returns 被删除的表数量（不含 users）
    */
@@ -35,11 +55,15 @@ export class AccountErasureService {
         if (metadata.tableName === 'users' || RETAINED_TABLES.has(metadata.tableName)) {
           continue;
         }
-        const column = metadata.columns.find((c) => c.databaseName === 'uid' || c.databaseName === 'user_id');
-        if (!column) {
+        const ownershipColumns = [
+          ...new Set(metadata.columns.map((column) => column.databaseName).filter((columnName) => isUserOwnershipColumn(columnName))),
+        ];
+        if (ownershipColumns.length === 0) {
           continue;
         }
-        await manager.query(`DELETE FROM \`${metadata.tableName}\` WHERE \`${column.databaseName}\` = ?`, [uid]);
+        for (const columnName of ownershipColumns) {
+          await manager.query(`DELETE FROM \`${metadata.tableName}\` WHERE \`${columnName}\` = ?`, [uid]);
+        }
         deletedTables += 1;
       }
       await manager.query('DELETE FROM `users` WHERE `uid` = ?', [uid]);
