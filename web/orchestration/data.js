@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T11:55:11.882Z",
+  "generatedAt": "2026-11-27T12:00:13.194Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-579",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "修复全仓 validate 对已归档旧回执 deletionChecks 的误报",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-579/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-579",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-27T11:55:11.643Z",
-        "leaseDeadline": "2026-11-27T12:25:11.639Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-579.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2080,6 +2049,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-687",
+      "recordedAt": "2026-11-27T11:55:21.933Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-579",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-579-legacy-receipt-deletion-checks"
+      ]
+    },
+    {
+      "auditId": "AUD-686",
+      "recordedAt": "2026-11-27T11:55:12.093Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-579",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-579",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-579.json"
+      ]
+    },
+    {
       "auditId": "AUD-685",
       "recordedAt": "2026-11-27T11:55:06.485Z",
       "actorRef": "orchestrator",
@@ -2283,82 +2282,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-574.json"
       ]
-    },
-    {
-      "auditId": "AUD-672",
-      "recordedAt": "2026-11-27T08:06:44.506Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-574",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-671",
-      "recordedAt": "2026-11-27T05:47:38.727Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-573",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-573-quality-scripts-lint"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 685,
+    "total": 687,
     "byResult": {
-      "allowed": 685,
+      "allowed": 687,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 684,
+      "TOOL-QUEUE-SCHEDULER": 686,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 685
+      "orchestrator": 687
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-579",
-        "title": "修复全仓 validate 对已归档旧回执 deletionChecks 的误报",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-579/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11477,6 +11419,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af578-admin-dashboard-bdi-state-panel-declaration-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-579",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-579/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11491,22 +11451,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-579",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-579/task-sheet.md"
-      },
-      {
-        "taskId": "AF-579",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11514,5 +11461,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 515
+  "archivedCount": 516
 };
