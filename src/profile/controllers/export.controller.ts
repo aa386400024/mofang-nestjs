@@ -19,7 +19,8 @@ import { ExportService } from '../providers/export.service.js';
  *
  * Phase4 WP29 纵切:
  *   - 导出覆盖 account / profile / 通知 / 会员 / 认证 / 陪伴 / 自护 / 同意与授权
- *   - 对话原文、记忆、练习记录等心理内容尚未纳入，文件内 scope.pendingDomains 明示
+ *   - 已纳入 AI 对话摘要、练习场次与训练记录（schema 1.1）
+ *   - 对话消息原文服务端不存储；记忆、语音转写仍待后续批次，scope.pendingDomains 明示
  */
 @ApiTags('profile-privacy')
 @Controller('profile/me')
