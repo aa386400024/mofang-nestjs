@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2341,
+    "lastEventSeq": 2344,
     "rebuiltAt": null
   },
   "tasks": [
@@ -105,6 +105,100 @@
       "constraints": [],
       "priorTasks": [],
       "promotedAt": "2026-11-26T18:31:50.728Z"
+    },
+    {
+      "taskId": "AF-567",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-27T01:48:42.480Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "dev 接口修复开工"
+        },
+        {
+          "at": "2026-11-27T01:48:52.293Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-audit-remediation",
+      "title": "dev 接口三问题：fragment limit DTO / quote 背景图假域名 / 构建与 DI 核对",
+      "type": "fix",
+      "baselineRef": "eddf560414fd82e1c630a2d51c5ad2b0d1fbae46",
+      "riskClass": "R2",
+      "gateProfile": "full",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-27T01:40:00.000Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/inner_world/dto/",
+          "src/counselor/dto/",
+          "src/counselor/config/",
+          "bin/seed-quotes.ts",
+          "test/inner_world/",
+          "test/counselor/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-audit-remediation/AF-567/"
+        ],
+        "modules": [
+          "inner-world",
+          "counselor"
+        ],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm typecheck",
+          "check": "0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm exec vitest run test/inner_world test/counselor/td21-counselor-quote-port-c2-batch5.spec.ts",
+          "check": "定向测试全绿",
+          "threshold": "exit 0"
+        }
+      ],
+      "successCriteria": [
+        "GET /inner-world/fragments/logs?limit=30 通过 DTO 校验；limit=0/abc 400；省略 limit 200",
+        "扫描 src/inner_world/dto 与 src/counselor/dto 所有数值 query 字段，缺 @Type 的同形问题一起修复",
+        "金句 backgroundUrl 不再默认指向 cdn.xinsu.app；无 CDN 配置时 seed 写空串，前端走本地 asset",
+        "核对 watch 增量编译与 quotes/badges DI，给出证据结论",
+        "engine-core 零 diff"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-27T01:48:42.480Z"
     }
   ],
   "archivedTasks": [
