@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-583",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-28T00:40:00+08:00",
+  "updatedAt": "2026-11-27T16:25:33.901Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-583/task-sheet.md",
+    "sha256": "ef2aef90e7334f6a47048852487f689d46c9dd4af812a84bbbee759212fc6c9c",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-583/receipt-RC-AF-583-1.json",
+      "sha256": "090d286fc35e554d85d2fe24a03248fcc9d2096fa500f898c9c0107678b932a1",
+      "receiptId": "RC-AF-583-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af583-close-im058-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af583-close-im058-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
