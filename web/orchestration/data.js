@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T00:20:44.993Z",
+  "generatedAt": "2026-11-27T01:58:22.379Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -29,7 +29,7 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": null,
+        "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md",
         "reply": null
       },
@@ -2069,6 +2069,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-657",
+      "recordedAt": "2026-11-27T01:48:56.775Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-567",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-567-dev-api-fixes"
+      ]
+    },
+    {
+      "auditId": "AUD-656",
+      "recordedAt": "2026-11-27T01:48:52.609Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-567",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-567",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-567.json"
+      ]
+    },
+    {
+      "auditId": "AUD-655",
+      "recordedAt": "2026-11-27T01:48:42.819Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-567",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-654",
       "recordedAt": "2026-11-27T00:13:57.406Z",
       "actorRef": "orchestrator",
@@ -2257,69 +2304,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-642",
-      "recordedAt": "2026-11-26T18:00:24.012Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-562",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-641",
-      "recordedAt": "2026-11-26T17:59:56.907Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-562",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-562-exit5-1000-batch"
-      ]
-    },
-    {
-      "auditId": "AUD-640",
-      "recordedAt": "2026-11-26T17:59:48.026Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-562",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 654,
+    "total": 657,
     "byResult": {
-      "allowed": 654,
+      "allowed": 657,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 653,
+      "TOOL-QUEUE-SCHEDULER": 656,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 654
+      "orchestrator": 657
     }
   },
   "protocolView": {
@@ -2341,6 +2339,10 @@ window.ORCH_SNAPSHOT = {
         ],
         "agentRole": "executor",
         "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md"
+          },
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
@@ -11232,6 +11234,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-567",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11249,6 +11269,11 @@ window.ORCH_SNAPSHOT = {
     "artifacts": [
       {
         "taskId": "AF-564",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-audit-remediation/AF-564/task-sheet.md"
+      },
+      {
+        "taskId": "AF-564",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af564-exit5-1000-batch-2026-11-27.md"
       }
@@ -11264,5 +11289,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 502
+  "archivedCount": 503
 };

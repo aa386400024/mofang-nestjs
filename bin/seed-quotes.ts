@@ -10,9 +10,9 @@
 //   不 bootstrap AppModule: 其含 ScheduleModule.forRoot(), 跑 seed 会启动全部 cron.
 //
 //   ── 背景图 CDN base ──
-//   背景图完整地址 = base + 文件名. base 走 env `QUOTE_CDN_BASE_URL` (缺省
-//   https://cdn.xinsu.app/quote/). 换 CDN 供应商时改 env 后**重跑本脚本**即可
-//   (seed 是 upsert, 会把 background_url 刷成新 base 下的地址).
+//   背景图完整地址 = base + 文件名. base 走 env `QUOTE_CDN_BASE_URL`; **未配置时为空串**,
+//   seed 把 background_url 写成空串, 前端回退本地 asset. 换 CDN 供应商时改 env 后
+//   **重跑本脚本**即可 (seed 是 upsert, 会把 background_url 刷成新 base 下的地址).
 //
 //   ── 内容库为空的兜底 ──
 //   `quotes` 表为空时, 首页金句端点返回 404, 前端回退本地种子 (spec §4
@@ -35,7 +35,8 @@ import { DataSource, type DataSourceOptions } from 'typeorm';
 
 import { configuration } from '../src/config/configuration.js';
 import {
-  QUOTE_CDN_BASE_URL_DEFAULT,
+  buildQuoteBackgroundUrl,
+  normalizeQuoteCdnBase,
   QUOTE_CDN_BASE_URL_ENV_KEY,
   QUOTE_SEEDS,
   validateQuoteSeeds,
@@ -90,11 +91,12 @@ async function main(): Promise<void> {
   await dataSource.initialize();
 
   try {
-    const baseUrl = (process.env[QUOTE_CDN_BASE_URL_ENV_KEY] ?? QUOTE_CDN_BASE_URL_DEFAULT).trim();
-    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-    process.stdout.write(`[seed:quotes] 背景图 CDN base ${normalizedBase}\n`);
+    // AF-567: 没有显式 CDN 配置时不再回落假域名；base 为空 → background_url 写空串，
+    // 前端 quote.isRemoteBackground 判 false，直接使用本地 asset。
+    const baseUrl = normalizeQuoteCdnBase(process.env[QUOTE_CDN_BASE_URL_ENV_KEY]);
+    process.stdout.write(`[seed:quotes] 背景图 CDN base ${baseUrl || '(empty → local asset)'}\n`);
 
-    const result = await seedQuotes(dataSource, (assetFileName) => `${normalizedBase}${assetFileName}`);
+    const result = await seedQuotes(dataSource, (assetFileName) => buildQuoteBackgroundUrl(baseUrl, assetFileName));
     const total = result.inserted + result.updated + result.unchanged;
     process.stdout.write(
       '[seed:quotes] 新增 ' + result.inserted + ' / 更新 ' + result.updated + ' / 未变 ' + result.unchanged + '（合计 ' + total + '）\n',
