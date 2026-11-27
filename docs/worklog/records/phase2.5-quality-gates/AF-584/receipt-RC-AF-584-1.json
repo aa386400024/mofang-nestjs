@@ -1,0 +1,220 @@
+{
+  "deliveredAt": "2026-11-28T03:15:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-584-1",
+    "taskId": "AF-584",
+    "contextId": "phase2.5-quality-gates",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "abf50ef7b3af594da72fc83059b46c9d516984fb",
+    "dependsOn": [],
+    "priorTasks": ["AF-204", "AF-462"],
+    "policyRefs": ["docs/team/conventions.md#1.3", "docs/team/conventions.md#5.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-584/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af584-role-disfluency-config-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/completed/phase2.5/af584-role-disfluency-config-2026-11-28.md",
+        "docs/worklog/records/phase2.5-quality-gates/AF-584/task-sheet.md",
+        "src/migration/1714900000058-AddCharacterProfileDisfluencyConfig.ts"
+      ],
+      "modified": [
+        "bin/ormconfig.ts",
+        "src/engine-adapters/rendering/render-risk.ts",
+        "src/engine-adapters/rendering/spec-assembler.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/rendering/visitor-realism-runtime.ts",
+        "src/engine-adapters/wiring/character/character-profile-version.entity.ts",
+        "src/engine-adapters/wiring/character/character-profile.admin.service.ts",
+        "src/engine-adapters/wiring/character/character-profile.entity.ts",
+        "src/engine-adapters/wiring/character/character-profile.resolver.ts",
+        "src/engine-adapters/wiring/character/db-character-profile.resolver.ts",
+        "src/engine-adapters/wiring/engine-stream-backend.adapter.ts",
+        "src/engine-adapters/wiring/engine-turn.service.ts",
+        "src/migration/index.ts",
+        "src/shared/realism/index.ts",
+        "src/shared/realism/visitor-realism-profile.ts",
+        "test/auto-practice/af204-realism.spec.ts",
+        "test/engine-adapters/character-profile-fixtures.ts",
+        "test/engine-adapters/wp9b-db-character-resolver.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af204-realism.spec.ts test/engine-adapters/wp9b-db-character-resolver.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "42.72s",
+        "note": "44 passed / 0 failed"
+      },
+      {
+        "command": "12 个 realism / 角色渲染回归文件",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 12,
+        "machine": "同上",
+        "wallClock": "30.34s",
+        "note": "136 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 90s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 363,
+        "machine": "同上",
+        "wallClock": "742.83s",
+        "note": "362 files passed + 1 skipped；5160 passed / 0 failed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "全仓机读校验全 PASS"
+      }
+    ],
+    "reproNotes": "复核：pnpm exec vitest run test/auto-practice/af204-realism.spec.ts test/engine-adapters/wp9b-db-character-resolver.spec.ts；pnpm typecheck；pnpm lint；pnpm test；git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-584 贯穿任务单、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态与状态面均由 CLI 写入；实现提交与状态面分两次提交"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 task-sheet schema；回执六组必填标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "生命周期事件由 CLI 写入，validate 显示索引投影一致"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改渲染侧、角色实体/迁移、测试与交付记录，未越出 executor 资源域"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff；两字段只走适配层侧通道"
+      },
+      {
+        "item": "migration-registration",
+        "result": "pass",
+        "note": "0058 同时注册到 bin/ormconfig.ts 与 src/migration/index.ts，up/down 均幂等"
+      },
+      {
+        "item": "zero-regression",
+        "result": "pass",
+        "note": "NULL / 缺省路径 prompt 与 AF-204 逐字一致；定向与全量全绿"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria 6 条均落在交付记录与测试证据；admin 编辑入口按非目标留作后续"
+    },
+    "backlogItems": [
+      {
+        "id": "IM-065",
+        "impact": "角色级档位/密度数值尚未标定，需真实 active 批次分布后回填；角色库覆盖与真人度校准仍受批次阻塞",
+        "schedule": null
+      },
+      {
+        "id": "AF-584-B1",
+        "impact": "admin 角色管理暂未暴露 disfluency_level / disfluency_density，当前只能 seed / DB 维护",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "密度断点 0.25 / 0.75 是否长期沿用，待真实批次标定"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务单只要求完成 migration 与两处注册点，未要求本机跑库",
+        "reality": "本机无本地 MySQL 运行态授权，未执行 migration:run",
+        "action": "交付幂等 DDL（up/down 均先查 INFORMATION_SCHEMA）+ 两处注册 + typecheck/全量测试",
+        "why": "避免在未授权环境改数据库；部署时由既有 migration 流程执行"
+      },
+      {
+        "taskSays": "任务单把 admin 前端/接口列为非目标",
+        "reality": "只落实体、快照与渲染管道，admin DTO/Controller 未暴露两字段",
+        "action": "角色数值暂由 seed / DB 维护，管理后台编辑另立任务",
+        "why": "本单聚焦运行时管道，避免扩大前端改动面"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "角色级两字段已从 DB 实体经 resolver / 装配层 / 渲染 spec 条件透传到 VisitorRealismContext，NULL 路径 prompt 与 AF-204 逐字一致；档位/密度/风险轮边界均有单测；定向 44 例、回归 136 例、全量 5160 例全绿，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与编排校验，无付费 API 调用。"
+  }
+}

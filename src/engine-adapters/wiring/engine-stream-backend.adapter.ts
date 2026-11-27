@@ -446,7 +446,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       ...(profile?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: profile.speechVolumeBaseline }),
       ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
       ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
-      ...(character?.verbalVoice ? { verbalVoice: character.verbalVoice } : {}),
+      // WP-J P2 + Phase3 P3: 台词指纹与角色级不流利配置 —— 从 ResolvedCharacter 侧通道取.
+      ...characterSideChannelOpenOptions(character),
       // AF-462: 语域指纹 —— 只在 active + 试点命中时 resolver 才会返回, off/audit 不带.
       ...speechRegisterOpenOptions(character),
       // WP-J P1d: 依恋风格 —— 语音链路的开场登记点 (自动对练/调试面板走 debug-session 那条).
@@ -1793,6 +1794,26 @@ function speechRegisterOpenOptions(character: ResolvedCharacter | null): {
   return {
     ...(character?.speechRegister ? { speechRegister: character.speechRegister } : {}),
     ...(character?.speechRegisterAudit ? { speechRegisterAudit: character.speechRegisterAudit } : {}),
+  };
+}
+
+/**
+ * 角色侧通道三字段的条件开场参数 (WP-J P2 / AF-584).
+ *
+ * 为什么合并成一个函数: `openKernelSession` 复杂度贴着上限, 三条独立条件展开会顶过 20.
+ *
+ * @param character 本场角色 (无 = 中性基线)
+ * @returns 只在 resolver 真正返回对应侧通道字段时出现的键
+ */
+function characterSideChannelOpenOptions(character: ResolvedCharacter | null): {
+  readonly verbalVoice?: string;
+  readonly disfluencyLevel?: NonNullable<ResolvedCharacter['disfluencyLevel']>;
+  readonly disfluencyDensity?: NonNullable<ResolvedCharacter['disfluencyDensity']>;
+} {
+  return {
+    ...(character?.verbalVoice ? { verbalVoice: character.verbalVoice } : {}),
+    ...(character?.disfluencyLevel ? { disfluencyLevel: character.disfluencyLevel } : {}),
+    ...(character?.disfluencyDensity === undefined ? {} : { disfluencyDensity: character.disfluencyDensity }),
   };
 }
 

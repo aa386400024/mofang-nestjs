@@ -473,6 +473,8 @@ function toSnapshot(row: CharacterProfileEntity): CharacterProfileSnapshot {
     expressionTone: row.expressionTone,
     verbalVoice: row.verbalVoice,
     speechRegister: row.speechRegister,
+    disfluencyLevel: row.disfluencyLevel,
+    disfluencyDensity: row.disfluencyDensity,
     coreBeliefs: row.coreBeliefs,
     underlyingDesires: row.underlyingDesires,
     forbiddenBehaviors: row.forbiddenBehaviors,

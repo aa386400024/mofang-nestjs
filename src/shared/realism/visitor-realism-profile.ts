@@ -24,6 +24,22 @@ import {
 
 export type RealismMode = 'off' | 'audit' | 'active';
 
+/**
+ * 角色级不流利档位 (Phase3 P3): 角色天生更顺 / 更磕巴的基线倾向.
+ *
+ * - none   = 不主动加不流利痕迹 (仍受风险轮归零约束)
+ * - light  = 只保留一次短停顿/半截话级别的痕迹
+ * - natural = 沿用 AF-204 的角色 + 状态配额 (缺省档)
+ * - heavy  = 在角色底色上再放宽一档, 但仍受 4 处硬上限约束
+ */
+export type DisfluencyLevel = 'none' | 'light' | 'natural' | 'heavy';
+
+/** 只认四个显式值；未配置 / 拼错 / 空串 → undefined (= 角色没表态). */
+export function parseDisfluencyLevel(raw?: string | null): DisfluencyLevel | undefined {
+  if (raw === 'none' || raw === 'light' || raw === 'natural' || raw === 'heavy') return raw;
+  return undefined;
+}
+
 /** 只认三个显式值；未配置 / 拼错 / 空串一律回落 off。 */
 export function parseRealismMode(raw?: string | null): RealismMode {
   if (raw === 'active' || raw === 'audit' || raw === 'off') return raw;
@@ -33,6 +49,19 @@ export function parseRealismMode(raw?: string | null): RealismMode {
 export interface VisitorRealismContext extends VoiceSource, StateSource {
   /** 本场接触方式；缺省由 profile 归一化为面对面咨询室。 */
   readonly encounter?: SceneSource | null;
+  /**
+   * 角色级不流利档位 (Phase3 P3): 由角色库 NULL → 不传; NULL = 不表态 = natural.
+   *
+   * 为什么不从 role/state 反推: 现有 quotas 已经把 role/state 编码进去了,
+   * 再从同一批输入反推 "档位" 只会造出第二份真相.
+   */
+  readonly disfluencyLevel?: DisfluencyLevel;
+  /**
+   * 角色级密度倾向 [0,1] (Phase3 P3): 0.5 = 不修正; ≤0.25 / ≥0.75 各修正一档.
+   *
+   * 缺省 = 不传 = 修正量 0 (与 AF-204 逐字一致).
+   */
+  readonly disfluencyDensity?: number;
 }
 
 export interface RealismQuotas {
@@ -53,6 +82,8 @@ export interface VisitorRealismProfile {
   readonly state: RealismStateBand;
   readonly shape: VisitorTurnShape;
   readonly quotas: RealismQuotas;
+  /** Phase3 P3: 角色级档位 (缺省 natural; 只用于审计日志与回放, 不进 prompt 字面). */
+  readonly disfluencyLevel: DisfluencyLevel;
   /** R2：具体口语事件候选与上限；off/audit 仍计算，但不注入。 */
   readonly eventPlan: RealismEventPlan;
   /** R6：状态化节奏（停顿形态、改口位置、短答偏置）；off/audit 仍计算，但不注入。 */
@@ -152,9 +183,56 @@ function buildQuotas(role: VisitorVoiceRole, state: RealismStateBand): RealismQu
   };
 }
 
-function buildQuotaDirective(quotas: RealismQuotas, state: RealismStateBand): string {
+/**
+ * 把密度倾向归一成 -1 / 0 / 1 的档位修正量.
+ *
+ * 为什么取 0.25 / 0.75 两个断点: 配额是整数上限, 0.5 权重落不到半档;
+ * 极端区各修正一档、中间 50% 区间不修正, 既让密度可感知, 又避免连续值抖动.
+ */
+function resolveDensityShift(density: number | undefined): number {
+  if (density === undefined || !Number.isFinite(density)) return 0;
+  const clamped = Math.min(1, Math.max(0, density));
+  if (clamped <= 0.25) return -1;
+  if (clamped >= 0.75) return 1;
+  return 0;
+}
+
+/**
+ * Phase3 P3: 在 role/state 底色上叠加角色级档位与密度修正.
+ *
+ * 优先级仍是安全 > 档位: 风险轮直接返回全零, 不受 heavy 影响.
+ */
+function applyDisfluencyConfig(
+  base: RealismQuotas,
+  state: RealismStateBand,
+  level: DisfluencyLevel | undefined,
+  density: number | undefined,
+): RealismQuotas {
+  if (state === 'risk') return base;
+  const resolvedLevel = level ?? 'natural';
+  if (resolvedLevel === 'none') {
+    return { filler: 0, pause: 0, repair: 0, trailoff: 0, repetition: 0, elongation: 0, maxEvents: 0 };
+  }
+
+  const adjusted = { ...base };
+  if (resolvedLevel === 'light') {
+    adjusted.maxEvents = Math.min(1, adjusted.maxEvents);
+  } else if (resolvedLevel === 'heavy' && state !== 'guarded') {
+    adjusted.filler += 1;
+    adjusted.pause += 1;
+    adjusted.maxEvents = Math.min(4, adjusted.maxEvents + 1);
+  }
+
+  adjusted.maxEvents = Math.max(0, Math.min(4, adjusted.maxEvents + resolveDensityShift(density)));
+  return adjusted;
+}
+
+function buildQuotaDirective(quotas: RealismQuotas, state: RealismStateBand, level: DisfluencyLevel): string {
   if (state === 'risk') {
     return '不流利配额：这一轮不刻意加入填充、停顿、改口或半截话；安全信息优先清楚。';
+  }
+  if (level === 'none') {
+    return '不流利配额：这一轮不主动加入填充、停顿、改口或半截话；自然带出也不要超过上限。';
   }
   const detail = [
     `填充词 ${quotas.filler} 处`,
@@ -171,6 +249,7 @@ function buildDirectives(
   scene: RealismScene,
   role: VisitorVoiceRole,
   state: RealismStateBand,
+  level: DisfluencyLevel,
   shape: VisitorTurnShape,
   quotas: RealismQuotas,
   eventPlan: RealismEventPlan,
@@ -183,7 +262,7 @@ function buildDirectives(
     REGISTER_INSTRUCTION,
     `角色声音层：${ROLE_INSTRUCTION[role]}`,
     `话轮形态层：${SHAPE_INSTRUCTION[shape]}`,
-    buildQuotaDirective(quotas, state),
+    buildQuotaDirective(quotas, state, level),
     ...(eventLine === '' ? [] : [`事件层：${eventLine}`]),
     '如果角色声音或状态要求你突然跳开（例如失组织状态下的联想），允许一次短促的偏移；如果角色是讨好/焦虑型，允许一次试探性反问。两者都只允许一次，且不得展开成对咨询师私人经历的盘问。',
     '不要解释自己为什么这样说话，也不要把“停顿/改口/配额/话轮形态”这些词说出来。',
@@ -200,7 +279,8 @@ export function buildVisitorRealismProfile(context: VisitorRealismContext, mode:
   const role = resolveVisitorVoiceRole(context);
   const state = resolveRealismStateBand(context);
   const shape = selectTurnShape({ ...context, scene });
-  const quotas = buildQuotas(role, state);
+  const level = context.disfluencyLevel ?? 'natural';
+  const quotas = applyDisfluencyConfig(buildQuotas(role, state), state, level, context.disfluencyDensity);
   const eventPlan = buildRealismEventPlan({ role, state, scene, quotas });
   const rhythm = resolveRealismEventRhythm({ role, state, scene });
 
@@ -211,9 +291,10 @@ export function buildVisitorRealismProfile(context: VisitorRealismContext, mode:
     state,
     shape,
     quotas,
+    disfluencyLevel: level,
     eventPlan,
     rhythm,
-    directives: mode === 'active' ? buildDirectives(scene, role, state, shape, quotas, eventPlan, rhythm) : [],
+    directives: mode === 'active' ? buildDirectives(scene, role, state, level, shape, quotas, eventPlan, rhythm) : [],
   };
 }
 

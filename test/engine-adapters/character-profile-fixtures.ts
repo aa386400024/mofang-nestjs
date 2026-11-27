@@ -57,6 +57,9 @@ export function buildCharacterProfileRow(overrides: Partial<CharacterProfileEnti
     verbalVoice: null,
     // AF-462: 语域指纹可空 —— NULL = 未标定 / 灰度未命中.
     speechRegister: null,
+    // Phase3 P3: 角色级不流利配置可空 —— NULL = 角色没表态 (零回归).
+    disfluencyLevel: null,
+    disfluencyDensity: null,
     coreBeliefs: [],
     underlyingDesires: [],
     forbiddenBehaviors: [],

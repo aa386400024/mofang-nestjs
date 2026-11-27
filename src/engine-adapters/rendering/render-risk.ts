@@ -24,6 +24,7 @@
 
 import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core/index.js';
 import type { EncounterInput } from '../../shared/encounter/encounter-scene.js';
+import type { DisfluencyLevel } from '../../shared/realism/visitor-realism-profile.js';
 import type { SpeechRegister, SpeechRegisterAuditSummary } from '../../shared/speech-register/index.js';
 
 /**
@@ -71,6 +72,19 @@ export interface AdaptiveRenderSpec extends RenderSpec {
   readonly speechRegister?: SpeechRegister;
   /** 语域配置审计摘要 (AF-462): audit 模式下只观测、不注入. */
   readonly speechRegisterAudit?: SpeechRegisterAuditSummary;
+  /**
+   * 角色级不流利档位 (Phase3 P3): 角色天生更顺 / 更磕巴.
+   *
+   * 走适配层扩展字段, 不进内核 RenderSpec —— 与 verbalVoice / speechRegister 同属
+   * "渲染侧增强". 缺省 = 角色未标定 = 沿用 AF-204 的角色/状态配额 (零回归).
+   */
+  readonly disfluencyLevel?: DisfluencyLevel;
+  /**
+   * 角色级密度倾向 [0,1] (Phase3 P3): 0.5 = 不修正; ≤0.25 / ≥0.75 各修正一档.
+   *
+   * 缺省 = 角色未标定 = 修正量 0 (零回归).
+   */
+  readonly disfluencyDensity?: number;
   /**
    * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
    *

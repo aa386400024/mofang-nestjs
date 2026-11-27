@@ -259,4 +259,9 @@ export { AddMembershipV2Tables1714900000054 } from './1714900000054-AddMembershi
 export { AddMembershipPromotionAndPlanGrant1714900000055 } from './1714900000055-AddMembershipPromotionAndPlanGrant.js';
 export { AddMembershipPromotionReservation1714900000056 } from './1714900000056-AddMembershipPromotionReservation.js';
 
+// AF-584 (Phase3 P3 · 角色级不流利配置):
+//   character_profiles 加 disfluency_level / disfluency_density 两个可空列;
+//   缺省 NULL = 角色没表态, 与 AF-204 的 role/state 配额逐字一致.
+export { AddCharacterProfileDisfluencyConfig1714900000058 } from './1714900000058-AddCharacterProfileDisfluencyConfig.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

@@ -43,6 +43,9 @@ export function resolveVisitorRealismRuntime(spec: AdaptiveRenderSpec): VisitorR
       bond: spec.bond,
       riskLevel: spec.riskSignal?.level,
       encounter,
+      // Phase3 P3: 角色级不流利配置 —— 缺省不带键, 不改变 AF-204 的配额解析.
+      ...(spec.disfluencyLevel === undefined ? {} : { disfluencyLevel: spec.disfluencyLevel }),
+      ...(spec.disfluencyDensity === undefined ? {} : { disfluencyDensity: spec.disfluencyDensity }),
     },
     mode,
   );

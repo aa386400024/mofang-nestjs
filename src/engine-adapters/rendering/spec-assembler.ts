@@ -111,6 +111,11 @@ export interface SpecAssemblyInput {
   readonly speechRegister?: AdaptiveRenderSpec['speechRegister'];
   readonly speechRegisterAudit?: AdaptiveRenderSpec['speechRegisterAudit'];
   /**
+   * 角色级不流利配置 (Phase3 P3): 缺省 = 不传 = 规格不带这两个键 (零回归).
+   */
+  readonly disfluencyLevel?: AdaptiveRenderSpec['disfluencyLevel'];
+  readonly disfluencyDensity?: AdaptiveRenderSpec['disfluencyDensity'];
+  /**
    * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
    *
    * 缺省 = 不传 = 规格里没有该字段 → 渲染层不追加场景块（legacy 零回归）.
@@ -173,6 +178,8 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
     ...(input.verbalVoice === undefined ? {} : { verbalVoice: input.verbalVoice }),
     // AF-462: 语域指纹（缺省 = 规格不带这个键 → prompt 与改前逐字一致）.
     ...speechRegisterFields(input),
+    // Phase3 P3: 角色级不流利配置（缺省 = 不带键 → 配额解析与 AF-204 逐字一致）.
+    ...disfluencyFields(input),
     // AF-187: 场景契约（缺省 = 不带这个键 → 规格与之前逐字一致）.
     ...encounterField(input),
   };
@@ -191,6 +198,19 @@ function speechRegisterFields(input: SpecAssemblyInput): Partial<AdaptiveRenderS
   return {
     ...(input.speechRegister === undefined ? {} : { speechRegister: input.speechRegister }),
     ...(input.speechRegisterAudit === undefined ? {} : { speechRegisterAudit: input.speechRegisterAudit }),
+  };
+}
+
+/**
+ * 角色级不流利两字段的条件展开 (AF-584).
+ *
+ * @param input 组装入参
+ * @returns 只有传了才出现的键
+ */
+function disfluencyFields(input: SpecAssemblyInput): Partial<AdaptiveRenderSpec> {
+  return {
+    ...(input.disfluencyLevel === undefined ? {} : { disfluencyLevel: input.disfluencyLevel }),
+    ...(input.disfluencyDensity === undefined ? {} : { disfluencyDensity: input.disfluencyDensity }),
   };
 }
 

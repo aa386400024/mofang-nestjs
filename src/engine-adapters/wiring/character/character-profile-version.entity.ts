@@ -34,6 +34,7 @@ import type {
 } from './character-profile.entity.js';
 import type { CharacterVersionChangeType } from './character-version.js';
 import type { AttachmentStyle, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { DisfluencyLevel } from '../../../shared/realism/index.js';
 import type { SpeechRegister } from '../../../shared/speech-register/index.js';
 
 /**
@@ -62,6 +63,9 @@ export interface CharacterProfileSnapshot {
   readonly expressionTone: CharacterExpressionTone;
   readonly verbalVoice: string | null;
   readonly speechRegister: SpeechRegister | null;
+  /** Phase3 P3: 新增快照字段用可选 —— 旧版本快照没有这两个键, 读取侧按"未标定"处理. */
+  readonly disfluencyLevel?: DisfluencyLevel | null;
+  readonly disfluencyDensity?: number | null;
   readonly coreBeliefs: CoreBelief[];
   readonly underlyingDesires: UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: string[];
