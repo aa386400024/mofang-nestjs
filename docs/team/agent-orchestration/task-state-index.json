@@ -4,10 +4,145 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2372,
+    "lastEventSeq": 2384,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-574",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-27T08:06:43.996Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "AF-573 rejected 后返修验收"
+        },
+        {
+          "at": "2026-11-27T08:06:53.778Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.2.0",
+      "contextId": "phase2.5-toolchain",
+      "type": "fix",
+      "title": "quality 脚本 lint 闸门返修验收",
+      "baselineRef": "cf830014158bff0547eb05d0aa3e6ce8b8234409",
+      "dependsOn": [],
+      "supersedes": [],
+      "supersededBy": null,
+      "policyRefs": [
+        "docs/team/conventions.md",
+        "docs/team/agent-orchestration/README.md"
+      ],
+      "createdAt": "2026-11-27T08:06:38.641Z",
+      "objective": "AF-573 实现已完成但回执取 conditional-pass 被编排器判 rejected；本返修任务在 AF-573 提交基础上，以全量串行测试的真实通过证据重出 passed 回执并完成归档与 PR。",
+      "successCriteria": [
+        "scripts/ops/quality 14 个 TS 文件 ESLint 0 error / 0 warning",
+        "pnpm lint 0 error，pnpm typecheck 0 error",
+        "全量 5147 用例在同一轮内 0 失败（串行执行规避本机 363 并发冷启动超时）",
+        "src/engine-core 零 diff",
+        "回执 reviewVerdict=passed，任务 completed 并归档"
+      ],
+      "outOfScope": [
+        "不新增 type-aware tsconfig 或单独类型检查工程",
+        "不改 quality 脚本业务规则、阈值、报告字段或 CLI 参数",
+        "不改 test/、src/、admin-dashboard/、Flutter 前端"
+      ],
+      "references": [
+        {
+          "ref": "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md",
+          "kind": "report",
+          "note": "AF-573 实现与闸门原始证据"
+        }
+      ],
+      "priorTasks": [
+        "AF-573",
+        "AF-572"
+      ],
+      "constraints": [
+        "禁止裸 npx；统一 pnpm exec",
+        "复跑证据必须来自真实命令输出，不把并发抖动写成代码回归"
+      ],
+      "scope": {
+        "files": [
+          "scripts/ops/quality/",
+          "package.json",
+          "eslint.config.mjs",
+          "docs/worklog/records/phase2.5-toolchain/AF-573/",
+          "docs/worklog/records/phase2.5-toolchain/AF-574/",
+          "docs/worklog/completed/phase2.5/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "exclusions": [
+        "src/",
+        "test/",
+        "admin-dashboard/"
+      ],
+      "agentRole": "orchestrator",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+        "reply": null
+      },
+      "artifactSchema": null,
+      "deliveryPath": null,
+      "gates": [
+        {
+          "command": "pnpm exec eslint \"scripts/ops/quality/**/*.ts\"",
+          "check": "quality TS 脚本 0 error / 0 warning",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "全仓 lint 0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查 0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm exec vitest run --exclude \"**/e2e/**/*.ts\" --no-file-parallelism",
+          "check": "全量用例 0 失败",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "git diff --stat HEAD -- src/engine-core",
+          "check": "engine-core 零 diff",
+          "threshold": "输出为空"
+        }
+      ],
+      "evidenceFormat": "命令 + 退出码 + 文件/用例计数",
+      "riskClass": "R1",
+      "riskRationale": "仅重出验收证据与回执，无新增业务代码",
+      "gateProfile": "standard",
+      "escalationTriggers": [
+        "全量串行测试仍出现失败",
+        "返修需要改动 test/ 或业务代码"
+      ],
+      "priority": null,
+      "deadline": null,
+      "retention": null,
+      "plannedArtifacts": [
+        {
+          "name": "返修交付记录",
+          "path": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "promotedAt": "2026-11-27T08:06:43.995Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -4556,6 +4691,24 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-572",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-572/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af572-quality-scripts-lint-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-573",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-573/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -4618,6 +4771,7 @@
     "AF-501": "scope 重签发 → AF-502",
     "AF-478": "补登历史已完成任务以解除 AF-481 依赖",
     "AF-525": "scope 重签发 → AF-526",
-    "AF-533": "scope 重签发 → AF-534"
+    "AF-533": "scope 重签发 → AF-534",
+    "AF-572": "scope 重签发 → AF-573"
   }
 }

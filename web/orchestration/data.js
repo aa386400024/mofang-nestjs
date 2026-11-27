@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T05:34:03.870Z",
+  "generatedAt": "2026-11-27T08:06:54.036Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,38 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-574",
+      "contextId": "phase2.5-toolchain",
+      "type": "fix",
+      "title": "quality 脚本 lint 闸门返修验收",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-574",
+        "contextId": "phase2.5-toolchain",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-27T08:06:53.781Z",
+        "leaseDeadline": "2026-11-27T08:36:53.778Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-574.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2049,6 +2080,87 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-672",
+      "recordedAt": "2026-11-27T08:06:44.506Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-574",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-671",
+      "recordedAt": "2026-11-27T05:47:38.727Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-573",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-573-quality-scripts-lint"
+      ]
+    },
+    {
+      "auditId": "AUD-670",
+      "recordedAt": "2026-11-27T05:47:29.189Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-573",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-573",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-573.json"
+      ]
+    },
+    {
+      "auditId": "AUD-669",
+      "recordedAt": "2026-11-27T05:47:23.319Z",
+      "actorRef": "orchestrator",
+      "correlationId": "reissue:AF-572:AF-573",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-668",
+      "recordedAt": "2026-11-27T05:46:00.756Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-572",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-667",
       "recordedAt": "2026-11-27T05:23:10.670Z",
       "actorRef": "orchestrator",
@@ -2207,104 +2319,50 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-657",
-      "recordedAt": "2026-11-27T01:48:56.775Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-567",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-567-dev-api-fixes"
-      ]
-    },
-    {
-      "auditId": "AUD-656",
-      "recordedAt": "2026-11-27T01:48:52.609Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-567",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-567",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-567.json"
-      ]
-    },
-    {
-      "auditId": "AUD-655",
-      "recordedAt": "2026-11-27T01:48:42.819Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-567",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-654",
-      "recordedAt": "2026-11-27T00:13:57.406Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-566",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-566",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-566.json"
-      ]
-    },
-    {
-      "auditId": "AUD-653",
-      "recordedAt": "2026-11-27T00:13:48.158Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-566",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 667,
+    "total": 672,
     "byResult": {
-      "allowed": 667,
+      "allowed": 672,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 666,
+      "TOOL-QUEUE-SCHEDULER": 671,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 667
+      "orchestrator": 672
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-574",
+        "title": "quality 脚本 lint 闸门返修验收",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-toolchain",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11297,6 +11355,42 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af571-record-package-consistency-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-572",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-572/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af572-quality-scripts-lint-2026-11-27.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-573",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-toolchain/AF-573/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af573-quality-scripts-lint-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11311,9 +11405,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-574",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-toolchain/AF-574/task-sheet.md"
+      },
+      {
+        "taskId": "AF-574",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af574-quality-scripts-lint-rework-2026-11-27.md"
+      }
+    ],
+    "groupId": "phase2.5-toolchain",
+    "groupIds": [
+      "phase2.5-toolchain"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11321,5 +11428,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 508
+  "archivedCount": 510
 };
