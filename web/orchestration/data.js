@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T12:11:51.208Z",
+  "generatedAt": "2026-11-27T15:30:00.983Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2049,6 +2049,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-693",
+      "recordedAt": "2026-11-27T14:43:53.782Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-581",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-581-counselor-degraded-gate"
+      ]
+    },
+    {
+      "auditId": "AUD-692",
+      "recordedAt": "2026-11-27T14:43:48.335Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-581",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-581",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-581.json"
+      ]
+    },
+    {
+      "auditId": "AUD-691",
+      "recordedAt": "2026-11-27T14:43:41.717Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-581",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-690",
       "recordedAt": "2026-11-27T12:08:25.118Z",
       "actorRef": "orchestrator",
@@ -2235,67 +2282,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-678",
-      "recordedAt": "2026-11-27T08:54:57.390Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-576",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-576-orchestration-guardrails"
-      ]
-    },
-    {
-      "auditId": "AUD-677",
-      "recordedAt": "2026-11-27T08:54:42.308Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-576",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-576",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-576.json"
-      ]
-    },
-    {
-      "auditId": "AUD-676",
-      "recordedAt": "2026-11-27T08:54:32.872Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-576",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 690,
+    "total": 693,
     "byResult": {
-      "allowed": 690,
+      "allowed": 693,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 689,
+      "TOOL-QUEUE-SCHEDULER": 692,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 690
+      "orchestrator": 693
     }
   },
   "protocolView": {
@@ -11455,6 +11455,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af580-improvement-ledger-cleanup-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-581",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-581/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af581-counselor-degraded-gate-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11479,5 +11497,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 517
+  "archivedCount": 518
 };
