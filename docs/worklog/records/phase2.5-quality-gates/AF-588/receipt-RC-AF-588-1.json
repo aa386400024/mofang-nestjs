@@ -1,0 +1,187 @@
+{
+  "deliveredAt": "2026-11-28T05:30:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-588-1",
+    "taskId": "AF-588",
+    "contextId": "phase2.5-quality-gates",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "d11a37b2cdd88404d0eaec38ac209183e0ac3973",
+    "dependsOn": [],
+    "priorTasks": ["AF-586", "AF-587"],
+    "policyRefs": ["docs/team/conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-588/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af588-delete-account-contract-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["99d71a6f9bf46c8bf23b107db7773ad5fd8717b8"],
+      "added": [
+        "docs/worklog/completed/phase2.5/af588-delete-account-contract-2026-11-28.md",
+        "docs/worklog/records/phase2.5-quality-gates/AF-588/task-sheet.md"
+      ],
+      "modified": [
+        "src/profile/controllers/export.controller.ts",
+        "src/profile/dto/export.dto.ts",
+        "src/profile/providers/export.service.ts",
+        "test/profile/export.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/profile/export.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "26.11s",
+        "note": "13 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 90s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 366,
+        "machine": "同上",
+        "wallClock": "736.05s",
+        "note": "365 files passed + 1 skipped；5184 passed / 0 failed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "无空白错误"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "任务单与回执机读校验 PASS"
+      }
+    ],
+    "reproNotes": "复核：pnpm exec vitest run test/profile/export.spec.ts；pnpm typecheck；pnpm lint；pnpm test；git diff --stat HEAD -- src/engine-core。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-588 贯穿任务单、分支、交付记录、回执与提交标题"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态只经 CLI 写入；实现提交与状态面提交分离"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 schema；回执七组必填字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "claim / dispatch / promote 由 CLI 写入，validate 校验索引投影"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改 profile 删除 / 导出 DTO、controller、service 文案与单测"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "测试夹具为合成账号；未使用真实用户数据，未打印原文"
+      },
+      {
+        "item": "honest-scope",
+        "result": "pass",
+        "note": "只锁删除现状并收口契约；取消删除 / 状态机统一登记为 AF-588-B1/B2"
+      },
+      {
+        "item": "no-new-dependency",
+        "result": "pass",
+        "note": "仅复用 class-transformer / class-validator 既有依赖"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 7 条 successCriteria 均落在测试、DTO、文案与门禁证据"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-588-B1",
+        "impact": "deleteAccount 直接写 user.state，未走 UserService.transition；状态机口径存在旁路，需单独评估是否统一",
+        "schedule": null
+      },
+      {
+        "id": "AF-588-B2",
+        "impact": "冷静期内取消删除 / 恢复账号无接口；需产品与法务先定是否提供及窗口规则",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "冷静期是否允许用户取消删除，窗口与恢复条件需产品/法务口径"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "删除账户 P0 路径从零单测补齐到 5 条，覆盖成功、确认失败、404、retentionDays 与 DTO 校验；确认失败不触碰任何用户/会话/OAuth 数据；导出与删除的 Swagger summary、DTO 注释、Service 文件头不再保留 501 / 仅审计等失实描述；全量 5184 例全绿，typecheck/lint 零错，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与编排校验，无付费 API 调用。"
+  }
+}
