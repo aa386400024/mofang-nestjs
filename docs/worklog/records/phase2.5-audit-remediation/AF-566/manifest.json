@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-566",
   "contextId": "phase2.5-audit-remediation",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-27T08:15:00+08:00",
-  "updatedAt": "2026-11-27T00:13:47.255Z",
+  "updatedAt": "2026-11-27T00:17:05.560Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-audit-remediation/AF-566/task-sheet.md",
     "sha256": "dc3878fc4f06aaade104546808d80a5bbc3c13bae2f94e5b81086ec398f9d64c",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-audit-remediation/AF-566/receipt-RC-AF-566-1.json",
+      "sha256": "9121c1de9208a2832248855340d1889fbb8a8c51b45e0217e2449d0328966f4e",
+      "receiptId": "RC-AF-566-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af566-voice-pause-lexicon-rework-2026-11-27.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-af566-voice-pause-lexicon-rework-task-2026-11-27.md"
