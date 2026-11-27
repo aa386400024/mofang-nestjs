@@ -137,3 +137,36 @@ export class ChatCompletionChunkDto {
     suggestedResource?: string;
   } | null;
 }
+
+/**
+ * 会话历史查询参数 — limit 只允许 1..100.
+ */
+export class ChatHistoryQueryDto {
+  @ApiProperty({ description: '返回条数上限 (1..100)', required: false, default: 50, minimum: 1, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
+/**
+ * 会话历史对外投影 — 不暴露 token 计数、provider / model 与危机审计 id.
+ */
+export class ChatConversationSummaryDto {
+  @ApiProperty({ description: '会话 id' })
+  id!: string;
+
+  @ApiProperty({ description: '模型层级', enum: LLMTier })
+  tier!: LLMTier;
+
+  @ApiProperty({ description: '会话标题', nullable: true })
+  title!: string | null;
+
+  @ApiProperty({ description: '会话开始时间' })
+  startedAt!: Date;
+
+  @ApiProperty({ description: '会话结束时间 (null 表示进行中)', nullable: true })
+  endedAt!: Date | null;
+}

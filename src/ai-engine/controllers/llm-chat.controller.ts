@@ -12,7 +12,8 @@ import { Observable, from } from 'rxjs';
 
 import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
-import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto.js';
+import { ChatHistoryQueryDto } from '../dto/llm-chat.dto.js';
+import type { ChatCompletionChunkDto, ChatCompletionDto, ChatConversationSummaryDto } from '../dto/llm-chat.dto.js';
 import { LlmOrchestratorService } from '../providers/llm-orchestrator.service.js';
 
 @ApiTags('llm-chat')
@@ -56,72 +57,38 @@ export class LlmChatController {
   }
 
   /**
-   * 会话历史.
+   * 会话历史 — 仅返回用户可见的会话元数据.
+   *
+   * 不暴露 token 计数、provider / model 与 crisis_event_id：这些是内部计费与
+   * 安全审计字段，前端历史页不需要，也不应通过普通用户接口泄露.
    */
   @Get('conversations')
   @ApiOperation({ summary: '会话历史列表' })
   public async listConversations(
     @CurrentUser('userId') uid: string,
-    @Query('limit') limit?: string,
-  ): Promise<
-    {
-      id: string;
-      tier: string;
-      providerId: string | null;
-      model: string | null;
-      title: string | null;
-      promptTokens: number;
-      completionTokens: number;
-      crisisEventId: string | null;
-      startedAt: Date;
-      endedAt: Date | null;
-    }[]
-  > {
-    const rows = await this.orchestrator.listConversations(uid, limit ? Number(limit) : 50);
+    @Query() query: ChatHistoryQueryDto,
+  ): Promise<ChatConversationSummaryDto[]> {
+    const rows = await this.orchestrator.listConversations(uid, query.limit ?? 50);
     return rows.map((r) => ({
       id: r.id,
       tier: r.tier,
-      providerId: r.providerId,
-      model: r.model,
       title: r.title,
-      promptTokens: r.promptTokens,
-      completionTokens: r.completionTokens,
-      crisisEventId: r.crisisEventId,
       startedAt: r.startedAt,
       endedAt: r.endedAt,
     }));
   }
 
   /**
-   * 单条会话.
+   * 单条会话 — 返回同一套用户可见投影.
    */
   @Get('conversations/:id')
   @ApiOperation({ summary: '单条会话详情' })
-  public async getConversation(
-    @CurrentUser('userId') uid: string,
-    @Param('id') id: string,
-  ): Promise<{
-    id: string;
-    tier: string;
-    providerId: string | null;
-    model: string | null;
-    title: string | null;
-    promptTokens: number;
-    completionTokens: number;
-    crisisEventId: string | null;
-    startedAt: Date;
-    endedAt: Date | null;
-  }> {
+  public async getConversation(@CurrentUser('userId') uid: string, @Param('id') id: string): Promise<ChatConversationSummaryDto> {
     const r = await this.orchestrator.getConversation(uid, id);
     return {
       id: r.id,
       tier: r.tier,
-      providerId: r.providerId,
-      model: r.model,
       title: r.title,
-      promptTokens: r.promptTokens,
-      completionTokens: r.completionTokens,
-      crisisEventId: r.crisisEventId,
       startedAt: r.startedAt,
       endedAt: r.endedAt,
     };
