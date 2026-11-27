@@ -56,6 +56,8 @@ const NOT_FOUND_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.QuoteLibraryEmpty,
   BizCode.VisitorPoolTemplateNotFound,
   BizCode.VisitorPoolLibraryEmpty,
+  BizCode.ChatSessionNotFound,
+  BizCode.LlmConversationNotFound,
   // V2026-10-26 治本 (官方音色目录 — spec §任务 2):
   //   「音色目录为空」跟金句 / 来访池的"库为空"同语义: 是**服务端还没准备好**,
   //   不是用户的错 → 404, 前端据此回退本地默认音色 (而不是提示"你没选对").
@@ -267,6 +269,7 @@ function getBizCodeDefaultMessage(code: BizCode): string {
 
     // V2026-08-28 —「我的」Tab V2.0 4 个新页面专用
     [BizCode.ChatSessionNotFound]: '对话不存在或不属于你',
+    [BizCode.LlmConversationNotFound]: '对话不存在或不属于你',
     [BizCode.ChatSessionArchived]: '已归档的会话不允许修改或删除',
     [BizCode.DashboardRangeInvalid]: '时间范围不合法',
     [BizCode.DashboardDataEmpty]: '暂无训练数据',

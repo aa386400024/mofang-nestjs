@@ -6,13 +6,15 @@
 //     - 不写 crisis 关键词匹配 — 走 CrisisDetectorService (统一逻辑).
 //     - 不写 SSE 帧编码 — 走 NestJS @Sse() decorator (controller 层).
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import type { Repository } from 'typeorm';
 
 import { CrisisDetectorService } from './crisis-detector.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 import { ConsentService } from '../../consent/providers/consent.service.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto.js';
@@ -237,7 +239,7 @@ export class LlmOrchestratorService {
     }
     const existing = await this.conversationRepo.findOne({ where: { id: provided } });
     if (!existing || existing.uid !== uid) {
-      throw new NotFoundException('conversation not found');
+      throw new BizException(BizCode.LlmConversationNotFound, '对话不存在或不属于你');
     }
     return provided;
   }
@@ -296,7 +298,7 @@ export class LlmOrchestratorService {
   async getConversation(uid: string, id: string): Promise<LLMConversationEntity> {
     const row = await this.conversationRepo.findOne({ where: { id, uid } });
     if (!row) {
-      throw new Error(`Conversation not found id=${id} uid=${uid}`);
+      throw new BizException(BizCode.LlmConversationNotFound, '对话不存在或不属于你');
     }
     return row;
   }

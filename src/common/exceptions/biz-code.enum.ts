@@ -78,6 +78,7 @@ export enum BizCode {
   // ====== 业务模块 (20xxx+) —「我的」Tab V2.0 二级页专用 ======
   // AI 对话历史 (26xxx)
   ChatSessionNotFound = 26_001, // 会话不存在
+  LlmConversationNotFound = 26_002, // LLM 实时会话不存在 / 不属于本人
   ChatSessionArchived = 26_003, // 会话已归档, 不允许修改/删除
   // 心理健身 / 仪表板 (31xxx)
   DashboardRangeInvalid = 31_001, // 时间范围不合法

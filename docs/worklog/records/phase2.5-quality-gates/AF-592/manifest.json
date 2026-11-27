@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-592",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-28T07:00:00+08:00",
+  "updatedAt": "2026-11-27T23:25:37.902Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-592/task-sheet.md",
+    "sha256": "d622e168c08e030ff55a9f949fc0d4931908af5b7ead0f7ebc36c9313c0abb83",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-592/receipt-RC-AF-592-1.json",
+      "sha256": "f3b46d63e43dcba2d4583951680e917c71bec5a244de773c53772824a08b7429",
+      "receiptId": "RC-AF-592-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af592-chat-history-contract-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af592-chat-history-contract-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
