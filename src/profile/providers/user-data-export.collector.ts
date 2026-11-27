@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
+import { ChatSession } from '../../ai-companion/entities/chat-session.entity.js';
+import { PracticeRecord } from '../../practice/entities/practice-record.entity.js';
+import { PracticeSession } from '../../practice/entities/practice-session.entity.js';
 import { User } from '../../user/entities/user.entity.js';
 
 import { BurnoutSettings } from '../entities/burnout-settings.entity.js';
@@ -16,7 +19,7 @@ import { SelfcareRecord } from '../entities/selfcare-record.entity.js';
 import { UserProfile } from '../entities/user-profile.entity.js';
 
 /** 导出文件 schema 版本 —— 字段增删时递增，方便下游解析方识别. */
-export const EXPORT_SCHEMA_VERSION = '1.0';
+export const EXPORT_SCHEMA_VERSION = '1.1';
 
 /** 本次纵切实际覆盖的域（写在文件里，避免把局部导出误读成全量导出）. */
 export const EXPORT_INCLUDED_DOMAINS = [
@@ -31,15 +34,18 @@ export const EXPORT_INCLUDED_DOMAINS = [
   'burnoutSettings',
   'consentSignatures',
   'privacyAuthorizations',
+  'aiConversationSummaries',
+  'practiceSessions',
+  'practiceRecords',
 ] as const;
 
 /**
  * 尚未纳入本次导出的域 —— 明确写在文件里，不假装已经全量.
  *
- * 对话原文 / 记忆 / 练习记录等心理内容需要单独的脱敏与分级策略（Phase4
- * WP29 后续批次），不能在本纵切里顺手塞进来.
+ * 对话消息原文服务端不存储；记忆在向量库、语音转写另有留存策略，
+ * 都需要单独的脱敏与分级方案（Phase4 WP29 后续批次）.
  */
-export const EXPORT_PENDING_DOMAINS = ['conversations', 'memories', 'practiceSessions', 'voiceTranscripts'] as const;
+export const EXPORT_PENDING_DOMAINS = ['conversationMessages', 'memories', 'voiceTranscripts'] as const;
 
 /** 账号侧可导出字段白名单：只给用户能理解的身份与时间，不给密码哈希 / 内部风控计数. */
 interface ExportableAccount {
@@ -74,6 +80,12 @@ export interface UserDataExportPayload {
   burnoutSettings: BurnoutSettings | null;
   consentSignatures: ConsentSignature[];
   privacyAuthorizations: PrivacyAuthorization[];
+  /** AI 对话摘要与元数据（不含消息原文；服务端本就未存储原文）. */
+  aiConversationSummaries: ChatSession[];
+  /** 心理健身房练习场次（含状态与反馈快照）. */
+  practiceSessions: PracticeSession[];
+  /** 已完成练习的训练记录. */
+  practiceRecords: PracticeRecord[];
 }
 
 /**
@@ -114,6 +126,12 @@ export class UserDataExportCollector {
       this.dataSource.getRepository(PrivacyAuthorization).find({ where: { uid } }),
     ]);
 
+    const [aiConversationSummaries, practiceSessions, practiceRecords] = await Promise.all([
+      this.dataSource.getRepository(ChatSession).find({ where: { uid }, order: { createdAt: 'DESC' } }),
+      this.dataSource.getRepository(PracticeSession).find({ where: { uid }, order: { startedAt: 'DESC' } }),
+      this.dataSource.getRepository(PracticeRecord).find({ where: { uid }, order: { completedAt: 'DESC' } }),
+    ]);
+
     return {
       schemaVersion: EXPORT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
@@ -132,6 +150,9 @@ export class UserDataExportCollector {
       burnoutSettings,
       consentSignatures,
       privacyAuthorizations,
+      aiConversationSummaries,
+      practiceSessions,
+      practiceRecords,
     };
   }
 

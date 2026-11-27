@@ -14,7 +14,7 @@ import { UserState } from '../../src/user/user.state.js';
 /** 最小导出载荷（真实采集器在 collector 单测里覆盖）. */
 function samplePayload(): UserDataExportPayload {
   return {
-    schemaVersion: '1.0',
+    schemaVersion: '1.1',
     exportedAt: '2026-11-28T00:00:00.000Z',
     scope: { includedDomains: ['account'], pendingDomains: [] },
     account: {
@@ -39,6 +39,9 @@ function samplePayload(): UserDataExportPayload {
     burnoutSettings: null,
     consentSignatures: [],
     privacyAuthorizations: [],
+    aiConversationSummaries: [],
+    practiceSessions: [],
+    practiceRecords: [],
   };
 }
 
@@ -155,7 +158,7 @@ describe('Phase4 WP29 · 用户数据导出纵切', () => {
     expect(file.fileName.endsWith('.json')).toBe(true);
     const parsed = JSON.parse(file.body.toString('utf8'));
     expect(parsed.account.phone).toBe('13800000000');
-    expect(parsed.schemaVersion).toBe('1.0');
+    expect(parsed.schemaVersion).toBe('1.1');
   });
 
   it('ZIP 下载是合法单成员归档', async () => {

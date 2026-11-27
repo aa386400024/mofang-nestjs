@@ -95,9 +95,38 @@ describe('Phase4 WP29 · 用户数据导出采集器', () => {
     expect(payload.profile).toBeNull();
     expect(payload.companionBindings).toEqual([]);
     expect(payload.selfcareRecords).toEqual([]);
+    expect(payload.aiConversationSummaries).toEqual([]);
+    expect(payload.practiceSessions).toEqual([]);
+    expect(payload.practiceRecords).toEqual([]);
   });
 
-  it('十张 profile 表全部被访问（防漏表）', async () => {
+  it('AI 对话摘要、练习场次与训练记录按 uid 查询并按时间倒序', async () => {
+    const { collector, lists, calls } = buildCollector();
+    lists.set('ChatSession', [{ id: 'chat-1', uid: 'uid-1', summaryTitle: '焦虑' }]);
+    lists.set('PracticeSession', [{ id: 'ps-1', uid: 'uid-1', status: 'completed' }]);
+    lists.set('PracticeRecord', [{ id: 'pr-1', uid: 'uid-1', module: 'cbt' }]);
+
+    const payload = await collector.collect('uid-1');
+
+    expect(payload.aiConversationSummaries).toEqual([{ id: 'chat-1', uid: 'uid-1', summaryTitle: '焦虑' }]);
+    expect(payload.practiceSessions).toEqual([{ id: 'ps-1', uid: 'uid-1', status: 'completed' }]);
+    expect(payload.practiceRecords).toEqual([{ id: 'pr-1', uid: 'uid-1', module: 'cbt' }]);
+
+    expect(calls.find((call) => call.name === 'ChatSession')?.args).toEqual({
+      where: { uid: 'uid-1' },
+      order: { createdAt: 'DESC' },
+    });
+    expect(calls.find((call) => call.name === 'PracticeSession')?.args).toEqual({
+      where: { uid: 'uid-1' },
+      order: { startedAt: 'DESC' },
+    });
+    expect(calls.find((call) => call.name === 'PracticeRecord')?.args).toEqual({
+      where: { uid: 'uid-1' },
+      order: { completedAt: 'DESC' },
+    });
+  });
+
+  it('十四张用户数据表全部被访问（防漏表）', async () => {
     const { collector, rows, calls } = buildCollector();
     rows.set('User', baseUser());
     await collector.collect('uid-1');
@@ -114,6 +143,9 @@ describe('Phase4 WP29 · 用户数据导出采集器', () => {
       'SelfcareRecord',
       'ConsentSignature',
       'PrivacyAuthorization',
+      'ChatSession',
+      'PracticeSession',
+      'PracticeRecord',
     ]) {
       expect(visited.has(entity), `${entity} 未被采集`).toBe(true);
     }

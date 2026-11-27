@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-591",
+  "contextId": "phase2.5-quality-gates",
+  "status": "backlog",
+  "createdAt": "2026-11-28T06:40:00+08:00",
+  "updatedAt": "2026-11-27T22:31:45.127Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-591/task-sheet.md",
+    "sha256": "aeaa209fa260a10b547e061fb0d7d04a478d5723123d4b797c1ea318c3605c02",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af591-export-ai-practice-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af591-export-ai-practice-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
