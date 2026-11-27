@@ -4,110 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2414,
+    "lastEventSeq": 2416,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-580",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-27T12:08:07.571Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始清理改进台账"
-        },
-        {
-          "at": "2026-11-27T12:08:15.651Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "清理改进台账中已由后续任务落地或已决策关闭的历史条目",
-      "type": "documentation",
-      "baselineRef": "ba156c61d060b55f2925337d56405e139dd42ba4",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-579"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-27T12:08:06.511Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "docs/team/agent-orchestration/improvement-log.json",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-580/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af580-improvement-ledger-cleanup-2026-11-27.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "node scripts/orchestration/cli.mjs improvements --summary",
-          "check": "活跃条目下降且全部保留项都有明确未完成原因",
-          "threshold": "exit 0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
-          "check": "记录包与台账结构一致",
-          "threshold": "exit 0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs events verify",
-          "check": "事件链与索引投影一致",
-          "threshold": "exit 0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs validate",
-          "check": "全仓机读校验全 PASS",
-          "threshold": "exit 0"
-        }
-      ],
-      "successCriteria": [
-        "只关闭已由后续任务真实落地、或已有明确决策不再做的条目；每条给出 linkedTask 与证据 note",
-        "仍无落地证据的条目保持 candidate / queued，不用台账数字凑「清零」",
-        "台账变更全部经 CLI improvements --transition 写入，不手改 improvement-log.json",
-        "交付记录列出关闭清单、保留清单与判定依据",
-        "不修改 AF-579 代码、框架契约、engine-core 与业务代码"
-      ],
-      "objective": "让改进台账回到可信状态：已落地的关掉并留下追溯，未落地的继续跟踪，避免同一问题反复被重新提出",
-      "outOfScope": [
-        "不实现任何改进项本身",
-        "不关闭 IM-073（临床真人双标阻塞）与仍需新语料/新批次验证的条目",
-        "不改 scripts/orchestration 代码与框架 schema"
-      ],
-      "constraints": [
-        "台账是状态面，只能经 CLI 流转",
-        "每条关闭必须能指到具体交付记录或当前仓库事实",
-        "不把「已有候选」误判成「已解决」"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af580-improvement-ledger-cleanup-2026-11-27.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "promotedAt": "2026-11-27T12:08:07.570Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -4726,6 +4626,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-579/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-580",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-580/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af580-improvement-ledger-cleanup-2026-11-27.md",
         "reply": null
       }
     }
