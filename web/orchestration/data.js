@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T12:00:13.194Z",
+  "generatedAt": "2026-11-27T12:11:51.208Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -22,13 +22,13 @@ window.ORCH_SNAPSHOT = {
   "pendingApprovals": [],
   "improvements": {
     "total": 85,
-    "activeCount": 26,
+    "activeCount": 8,
     "byStatus": {
-      "candidate": 25,
+      "candidate": 7,
       "queued": 1,
       "accepted": 0,
-      "done": 56,
-      "wontfix": 3
+      "done": 71,
+      "wontfix": 6
     },
     "byType": {
       "gap": 49,
@@ -1185,7 +1185,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-054",
         "title": "WP-K 容差边界按二进制差值判定，十进制恰好 0.01 会被判 movement",
-        "status": "candidate",
+        "status": "wontfix",
         "source": "review",
         "type": "tech-debt",
         "layer": "framework",
@@ -1197,18 +1197,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "小样本批次可能因边界抖动被判 regressed；出口④质量判读出现假阳性",
         "suggestion": "评估改为带 epsilon 的容差比较，或对边界差值单独标注；需产品/质量口径拍板，AF-067 已锁定当前行为",
-        "historyCount": 1,
+        "historyCount": 2,
         "lastTransition": {
-          "at": "2026-11-18T07:13:20.010Z",
+          "at": "2026-11-27T12:09:52.139Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "wontfix",
+          "note": "AF-067 已锁定保守判定：十进制 0.01 边界按二进制差值判 regressed，属预期口径；不引入 epsilon，避免掩盖真实边界回归"
         }
       },
       {
         "improvementId": "IM-055",
         "title": "长会话咨询师空输出未计数（36.3%）",
-        "status": "candidate",
+        "status": "done",
         "source": "rework",
         "type": "guardrail",
         "layer": "adapter",
@@ -1216,18 +1216,18 @@ window.ORCH_SNAPSHOT = {
         "evidence": [],
         "impact": "render_fallback_turns=0、batchHealth=true，空输出污染质量证据",
         "suggestion": "预算/重试/降级/计数修复后再跑 long 批次",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-18T11:44:37.773Z",
+          "at": "2026-11-27T12:08:45.256Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-102 落地 judgeVisibleOutput：剥离推理块后为空即计空输出并走重试；AF-095 审计 CLI 以 emptyCounselorTurns 输出证据"
         }
       },
       {
         "improvementId": "IM-056",
         "title": "来访者角色缺失导致批次失败",
-        "status": "candidate",
+        "status": "done",
         "source": "rework",
         "type": "gap",
         "layer": "adapter",
@@ -1235,12 +1235,12 @@ window.ORCH_SNAPSHOT = {
         "evidence": [],
         "impact": "long 批次 4 场只完成 3 场",
         "suggestion": "入队前校验 characterSlug 存在性",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-18T11:44:38.000Z",
+          "at": "2026-11-27T12:09:11.194Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-103 已在批量入队与单场启动前校验 characterSlug 可解析，角色缺失不再进入队列"
         }
       },
       {
@@ -1286,7 +1286,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-059",
         "title": "审计 CLI 不再能识别空输出",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -1296,18 +1296,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "empty_output_high 不再触发，质量证据可能假性正常",
         "suggestion": "审计 CLI 改读 DB 的 counselor_degraded_turns",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-18T13:02:19.931Z",
+          "at": "2026-11-27T12:09:13.807Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-095 审计 CLI 改读逐字稿并计算 emptyCounselorTurns / empty_output_high，空输出可再次被识别"
         }
       },
       {
         "improvementId": "IM-060",
         "title": "审计 CLI 与生成侧各有一份推理块剥离口径",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -1317,18 +1317,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "两份口径将来会漂移",
         "suggestion": "统一到 visible-output 纯函数",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-18T13:02:20.135Z",
+          "at": "2026-11-27T12:09:16.283Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-102 的 visible-output 统一转出 shared/llm/reasoning-text 的 stripReasoningBlocks，审计与生成侧共用同一剥离函数"
         }
       },
       {
         "improvementId": "IM-061",
         "title": "batch 复跑尚无真实证据",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -1338,12 +1338,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "long 2048 是否足够未实证",
         "suggestion": "AF-102 合入后跑一轮 long 批次并重新取证",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-18T13:02:20.355Z",
+          "at": "2026-11-27T12:09:18.994Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-140 已跑 16 场 long/50 轮真实批次（693 轮，15 completed + 1 crisis_ended），复跑预算有实证"
         }
       },
       {
@@ -1370,7 +1370,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-063",
         "title": "逐字稿不再保留咨询师推理块",
-        "status": "candidate",
+        "status": "wontfix",
         "source": "implementation",
         "type": "standard",
         "layer": "adapter",
@@ -1380,12 +1380,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "新旧批次逐字稿结构不同",
         "suggestion": "跨批次比对时标注口径",
-        "historyCount": 1,
+        "historyCount": 2,
         "lastTransition": {
-          "at": "2026-11-18T13:02:20.783Z",
+          "at": "2026-11-27T12:09:53.057Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "wontfix",
+          "note": "AF-102 起逐字稿有意不保留咨询师推理块，跨批次比对标注口径即可；恢复推理块会重新引入隐私与泄漏风险"
         }
       },
       {
@@ -1435,7 +1435,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-066",
         "title": "长会话咨询师开场框架与收束缺失导致 AI 质量门 safety/style 系统性不足",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -1446,12 +1446,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "16 场中 safety 平均 3.0、最低 2；style 平均 3.125；overall 平均 3.938，AI 质量门未达标",
         "suggestion": "在咨询师系统提示词中加入开场知情框架（保密/边界/时长/可暂停/可拒答）与结束收束（总结/带走/下一步），并用新批次复评",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T01:12:23.814Z",
+          "at": "2026-11-27T12:09:21.703Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-129 新增开场知情框架（保密/边界/时长/暂停拒答/录音），AF-140 补最终收束三件套，prompt 结构缺口已落地"
         }
       },
       {
@@ -1481,7 +1481,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-068",
         "title": "forcedClose 需升级为 runner 级最后两轮硬约束",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -1494,18 +1494,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "13/16 max_turns 场次无常规收束，style 3.3125<3.50",
         "suggestion": "最后 2 轮若未产出 summary/takeaway/nextStep，继续补轮而非硬切",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T09:38:25.082Z",
+          "at": "2026-11-27T12:09:24.247Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-140 将 forcedClose 升级为 runner 级 +1/+2 收束窗与三件套内容门，未齐挡回继续"
         }
       },
       {
         "improvementId": "IM-069",
         "title": "跨模型评分 κ 口径校准未落地",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "standard",
         "layer": "framework",
@@ -1515,18 +1515,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "跨模型分数不可互换，κ 硬门失败但非质量差",
         "suggestion": "落地 AF-131 B-1/B-3/B-4：同法 κ 赛道、未取整共识、±1 仲裁、cluster bootstrap CI",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T09:38:25.265Z",
+          "at": "2026-11-27T12:09:26.716Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-147 落地 kappa 赛道同方法/同锚点/±1 仲裁；κ 0.365854 仍低于 0.40，质量门未通过由 IM-073 继续跟踪"
         }
       },
       {
         "improvementId": "IM-070",
         "title": "pack 只保留 completed 会系统性漏掉 crisis_ended",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "tool",
         "layer": "adapter",
@@ -1536,18 +1536,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "危机样本被排除，安全质量评估有选择偏差",
         "suggestion": "selectBalancedSessions 纳入 crisis_ended，或提供 includeCrisis 选项",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T09:38:25.459Z",
+          "at": "2026-11-27T12:09:29.170Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-140 让 selectBalancedSessions 同时纳入 completed 与 crisis_ended，官方 pack 不再系统性排除危机样本"
         }
       },
       {
         "improvementId": "IM-071",
         "title": "升级后的风险收束缺少内容级强制校验",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "gap",
         "layer": "adapter",
@@ -1558,18 +1558,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "轮次到了但模型可能仍漏评估/计划要素，exit reason 无法区分",
         "suggestion": "复用 AF-127 结构审计五组正则，新增 crisis_safety_incomplete exit reason，不改 af127-v1 口径",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T10:04:06.563Z",
+          "at": "2026-11-27T12:09:31.741Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-140 新增风险收束五组内容门与 crisis_safety_incomplete exit reason，缺项先追加修复轮"
         }
       },
       {
         "improvementId": "IM-072",
         "title": "long-session-acceptance 只取 completed 会漏 crisis_ended",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "tool",
         "layer": "adapter",
@@ -1580,12 +1580,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "官方 pack 系统性排除危机样本，安全评估样本失真",
         "suggestion": "把 crisis_ended 纳入 selectBalancedSessions 与 pack 过滤条件",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T10:04:06.774Z",
+          "at": "2026-11-27T12:09:34.328Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-140 同步把 long-session-acceptance 与 pack 过滤条件纳入 crisis_ended"
         }
       },
       {
@@ -1633,7 +1633,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-075",
         "title": "任务单模板把 baselineRef 标「可空」与 promote 强校验冲突",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tool",
         "layer": "framework",
@@ -1643,12 +1643,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "照模板写出来的任务单会在 promote 阶段被拒，重签发与返工时反复踩同一个坑。",
         "suggestion": "模板注明 baselineRef 必填并给出取 HEAD 的命令；或缺省时由 register 自动填当时 HEAD。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T02:59:54.315Z",
+          "at": "2026-11-27T12:09:36.888Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "当前 wp-task-template 的 baselineRef 已是必填示例值（2b03756），promote 强校验不再与模板口头描述冲突"
         }
       },
       {
@@ -1717,7 +1717,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-079",
         "title": "scripts/ops/quality/*.ts 不在 lint 覆盖面",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "guardrail",
         "layer": "framework",
@@ -1727,12 +1727,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "脚本型 TS 无静态兜底，类型错误只能等运行到才暴露，且不确定是否被 tsc 纳入。",
         "suggestion": "eslint 的 scripts 段加入 .ts，或在 tsconfig 覆盖清单里显式列出这些脚本并纳入 typecheck。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T03:00:02.252Z",
+          "at": "2026-11-27T12:09:39.392Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "当前 package.json lint 已覆盖 scripts/ops/quality/**/*.ts 与 scripts/**/*.{mjs,cjs}，pnpm lint exit 0，脚本型 TS 有静态兜底"
         }
       },
       {
@@ -1759,7 +1759,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-081",
         "title": "候选改进长期只活在回执 backlogItems，未进台账",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "framework",
@@ -1769,18 +1769,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "下次治理会把已分析过的问题重新提一遍，之前的分析等于白攒，台账与回执出现两套真相。",
         "suggestion": "收口动作固定加一步 backlogItems 到 improvements --add；缺失台账条目时 run-once 只告警不阻断。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T03:00:11.140Z",
+          "at": "2026-11-27T12:09:41.889Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-017 回执正文解析通道 extractFromReceiptDoc 已落地，候选改进可从回执进入台账，不再只活在 backlogItems"
         }
       },
       {
         "improvementId": "IM-082",
         "title": "本地执行场景与 GUI 派发租约语义冲突",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tool",
         "layer": "framework",
@@ -1790,18 +1790,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "就地执行完成须先 receipt freeze 再跑一次 run-once 才走 late-receipt-recovered；租约过期会把任务回滚 ready 并置人工持单，判定规则不直观。",
         "suggestion": "提供 --channel local 直接收口，或把「freeze 后再跑一轮」写成标准收口动作写进 runbook。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-24T03:00:11.442Z",
+          "at": "2026-11-27T12:09:44.525Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "agent-orchestration README §收尾与 closed-loop runbook 已明确 freeze 后 run-once 的标准收口动作，语义冲突已文档化"
         }
       },
       {
         "improvementId": "IM-083",
         "title": "本机 node 版本低于仓库要求（v22 对 >=26）",
-        "status": "candidate",
+        "status": "wontfix",
         "source": "review",
         "type": "standard",
         "layer": "adapter",
@@ -1811,12 +1811,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "每次 pnpm 打印 engine 警告，TS 与 vitest 行为可能与 CI 的 node 26 存在差异，闸门数字的可比性打折。",
         "suggestion": "固化本机 node 来源（nvm/volta）或在 runbook 里写死版本，并加一条 engines 校验脚本。",
-        "historyCount": 1,
+        "historyCount": 2,
         "lastTransition": {
-          "at": "2026-11-24T03:00:11.735Z",
+          "at": "2026-11-27T12:09:53.889Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "wontfix",
+          "note": "仓库 engines 已声明 node>=26 且 CI 使用 node 26；本机 v22 属运行环境选择，不作为仓库代码缺陷修复"
         }
       },
       {
@@ -2049,6 +2049,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-690",
+      "recordedAt": "2026-11-27T12:08:25.118Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-580",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-580-improvement-ledger-cleanup"
+      ]
+    },
+    {
+      "auditId": "AUD-689",
+      "recordedAt": "2026-11-27T12:08:16.131Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-580",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-580",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-580.json"
+      ]
+    },
+    {
+      "auditId": "AUD-688",
+      "recordedAt": "2026-11-27T12:08:08.081Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-580",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-687",
       "recordedAt": "2026-11-27T11:55:21.933Z",
       "actorRef": "orchestrator",
@@ -2235,67 +2282,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-675",
-      "recordedAt": "2026-11-27T08:09:44.791Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-575",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-575",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-575.json"
-      ]
-    },
-    {
-      "auditId": "AUD-674",
-      "recordedAt": "2026-11-27T08:09:38.840Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-575",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-673",
-      "recordedAt": "2026-11-27T08:06:54.311Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-574",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-574",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-574.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 687,
+    "total": 690,
     "byResult": {
-      "allowed": 687,
+      "allowed": 690,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 686,
+      "TOOL-QUEUE-SCHEDULER": 689,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 687
+      "orchestrator": 690
     }
   },
   "protocolView": {
@@ -11437,6 +11437,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af579-legacy-receipt-deletion-checks-2026-11-27.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-580",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-580/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af580-improvement-ledger-cleanup-2026-11-27.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11461,5 +11479,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 516
+  "archivedCount": 517
 };
