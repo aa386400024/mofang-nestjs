@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-27T01:58:22.379Z",
+  "generatedAt": "2026-11-27T02:15:36.542Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 1,
-    "submitted": 0,
+    "ready": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -21,7 +21,7 @@
       "contextId": "phase2.5-audit-remediation",
       "type": "implementation",
       "title": "出口⑤ 1000 场批次入队与实跑",
-      "status": "ready",
+      "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
       "attemptCount": 0,
@@ -39,20 +39,31 @@
         "channel": "gui-relay",
         "targetRole": "executor",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-26T18:31:59.971Z",
-        "leaseDeadline": "2026-11-26T19:01:59.967Z",
-        "attempt": 1,
+        "dispatchedAt": "2026-11-27T02:15:36.441Z",
+        "leaseDeadline": "2026-11-27T02:45:36.438Z",
+        "attempt": 2,
         "status": "submitted",
         "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-564.json",
         "delivery": {
           "state": "pending",
-          "preparedAt": "2026-11-26T18:31:59.971Z",
+          "preparedAt": "2026-11-27T02:15:36.441Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-564.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
           "consecutiveFailures": 0,
-          "history": []
+          "history": [
+            {
+              "state": "pending",
+              "preparedAt": "2026-11-26T18:31:59.971Z",
+              "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-564.brief.md",
+              "sessionPath": null,
+              "locateLayer": null,
+              "evidenceRef": null,
+              "consecutiveFailures": 0,
+              "history": []
+            }
+          ]
         }
       }
     }
@@ -2327,9 +2338,9 @@
         "title": "出口⑤ 1000 场批次入队与实跑",
         "type": "implementation",
         "status": {
-          "framework": "ready",
-          "protocol": null,
-          "stage": "orchestration"
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
         },
         "groupId": "phase2.5-audit-remediation",
         "requiredSkills": [],

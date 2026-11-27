@@ -4,13 +4,13 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2346,
+    "lastEventSeq": 2347,
     "rebuiltAt": null
   },
   "tasks": [
     {
       "taskId": "AF-564",
-      "status": "ready",
+      "status": "submitted",
       "history": [
         {
           "at": "2026-11-26T18:31:50.729Z",
@@ -32,6 +32,13 @@
           "to": "ready",
           "by": "orchestrator-cli",
           "reason": "租约超时释放（持单待人工确认，不自动重派）"
+        },
+        {
+          "at": "2026-11-27T02:15:36.438Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
         }
       ],
       "contextId": "phase2.5-audit-remediation",
