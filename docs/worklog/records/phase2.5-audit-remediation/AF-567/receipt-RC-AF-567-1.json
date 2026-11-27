@@ -1,0 +1,214 @@
+{
+  "deliveredAt": "2026-11-27T09:57:19+08:00",
+  "payload": {
+    "receiptId": "RC-AF-567-1",
+    "taskId": "AF-567",
+    "contextId": "phase2.5-audit-remediation",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "eddf560414fd82e1c630a2d51c5ad2b0d1fbae46",
+    "dependsOn": [],
+    "priorTasks": [],
+    "policyRefs": ["docs/team/conventions.md", "docs/team/agent-orchestration/README.md"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af567-dev-api-fixes-2026-11-27.md",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-567/manifest.json",
+        "docs/worklog/records/phase2.5-audit-remediation/AF-567/task-sheet.md",
+        "test/counselor/af567-quote-cdn-base.spec.ts",
+        "test/inner_world/af567-fragment-logs-query.spec.ts"
+      ],
+      "modified": [
+        "bin/seed-quotes.ts",
+        "src/counselor/config/quote-seeds.ts",
+        "src/counselor/dto/quote.dto.ts",
+        "src/inner_world/dto/fragment.dto.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["e11665f9"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "全量",
+        "note": "0 error；唯一 warning 是 pnpm 对 node>=26 的环境提示，非代码问题"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "全量",
+        "note": "tsc --noEmit 通过"
+      },
+      {
+        "command": "pnpm exec vitest run test/inner_world/af567-fragment-logs-query.spec.ts test/counselor/af567-quote-cdn-base.spec.ts test/counselor/quote-engine.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "同上",
+        "wallClock": "1.70s",
+        "note": "3 files / 22 tests passed；覆盖真实 ValidationPipe 下 limit 转换、0/abc/省略、quote base 空值保护与既有 quote 引擎回归"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 362,
+        "machine": "同上",
+        "wallClock": "44.53s",
+        "note": "361 files passed + 1 skipped；5121 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm seed:quotes",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "目标库 117.72.30.78:3306 / mofang_dev；CDN base empty → local asset；新增 0 / 更新 16 / 未变 0"
+      },
+      {
+        "command": "mysql SELECT COUNT(*) total, SUM(background_url='') empty_count, SUM(background_url LIKE 'http%') remote_count FROM quotes",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "total=16，empty_count=16，remote_count=0；16 行 background_url 全部空串，无远端假域名"
+      },
+      {
+        "command": "git diff --stat HEAD~2..HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "2344 条事件；schema / 哈希链 / 索引投影一致"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm exec vitest run test/inner_world/af567-fragment-logs-query.spec.ts test/counselor/af567-quote-cdn-base.spec.ts test/counselor/quote-engine.spec.ts → pnpm lint → pnpm typecheck → pnpm test → pnpm seed:quotes → 查 quotes.background_url 计数 → git diff --stat HEAD~2..HEAD -- src/engine-core。P0 端点可再用合法 dev JWT 打 ?limit=30 / ?limit=0 / ?limit=abc / 省略 limit 四条；P1 可打 GET /counselor/quotes/today 确认 backgroundUrl 为空串。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-567 贯穿任务单、交付记录、回执与状态索引"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI；状态面单独提交为 25628df3"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 2344 条通过，哈希链与索引投影一致"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "commit-domain",
+        "result": "pass",
+        "note": "实现提交 e11665f9 仅含 AF-567 scope 内 9 个文件；状态面生成物在独立提交 25628df3，不混入实现提交"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；测试数字、seed 更新数、数据库计数、事件条数均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF567-01",
+        "impact": "quote 远端背景图暂未接入 CDN / 对象存储，前端走本地 asset；若后续产品要求远端沉浸图，需要补存储与 QUOTE_CDN_BASE_URL 后重跑 seed",
+        "severity": "low",
+        "schedule": "产品确认远端背景图需求时执行；当前空串方案不会阻断功能"
+      },
+      {
+        "id": "BL-AF567-02",
+        "impact": "09:35 之前那版 watch 增量编译是否报错无法从现有 stdout 日志回溯（日志停在 08:35）",
+        "severity": "low",
+        "schedule": "后续 dev 启动日志落文件；本次已实测当前 watch 重建/重启干净且 /health 200"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "P1 方案选择",
+        "taskSays": "三选一：①上传现有存储并配 env；②后端静态目录；③不做 CDN 写空串",
+        "reality": "采用方案③：默认 base 改空串，seed 写空串，前端走本地 asset",
+        "action": "交付记录 §二 与回执 backlogItems 写明",
+        "why": "现场无对象存储/CDN 凭证，后端也无 /quote 静态根；方案③最小且直接消除假域名静默 404"
+      },
+      {
+        "item": "空 base 归一化",
+        "taskSays": "seed 侧写 null / 空串",
+        "reality": "新增 normalizeQuoteCdnBase/buildQuoteBackgroundUrl，避免空 base 被归一成 '/' 写出半远端路径；列是 NOT NULL，最终写空串而非 null",
+        "action": "quote-seeds.ts helper + 单测覆盖",
+        "why": "只改默认值会留下 '/' 路径坑；NOT NULL 列也不能写 null"
+      },
+      {
+        "item": "同形扫描范围",
+        "taskSays": "扫 src/inner_world/dto/*、src/counselor/dto/* 的数值 query 字段",
+        "reality": "11 个 *QueryDto 全部核对；仅 fragment limit 缺 @Type；island.dto 的数值字段是 JSON body DTO，不属于 query，未改",
+        "action": "交付记录 §一 列扫描结论",
+        "why": "避免把 body DTO 的 JSON number 误判成 query string 问题而扩大改动"
+      },
+      {
+        "item": "P2 构建定案",
+        "taskSays": "核对 watch 两次增量编译是否干净、quotes/badge DI 是否导出",
+        "reality": "DI exports 闭合；09:35 前日志停在 08:35 无法回溯；当前 watch 实测改动触发重建并重启，/health 200",
+        "action": "交付记录 §三 给进程/时间戳证据",
+        "why": "不伪造无法取得的编译日志，改用可复现的当前构建链路证明"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "P0 用最小 @Type 修好 fragment limit，并以仓库真实 ValidationPipe 验证 30/0/abc/省略四种输入；同目录 11 个 QueryDto 扫描无第二处同形缺陷。P1 默认假 CDN 改为空串，helper 防住空 base 变 '/'，seed 刷新 16 行且库内 remote_count=0。P2 DI exports 闭合，当前 watch 重建/重启与 /health 200 有实测证据；09:35 旧实例无法回溯已登记低优先级 BL-AF567-02。lint/typecheck 0 error、全量 5121 例通过、engine-core 零 diff、events verify 2344 条通过。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "未调用付费 LLM/TTS；仅本地测试与 dev 库 seed，无额外 API 消耗。"
+  }
+}
