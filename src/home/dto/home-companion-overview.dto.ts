@@ -72,7 +72,7 @@ export class CompanionPersonStatusDto {
   @ApiProperty({ description: '被陪伴者昵称 (L1+)' })
   nickname!: string;
 
-  @ApiProperty({ description: '被陪伴者头像 emoji (L1+)' })
+  @ApiProperty({ description: '被陪伴者头像 emoji（deprecated：请改读 avatarGlyph）', deprecated: true })
   avatarEmoji!: string;
 
   @ApiProperty({
@@ -130,7 +130,7 @@ export class ToolboxItemDto {
   @ApiProperty({ description: '工具副标题', example: '发送温暖卡片给对方' })
   subtitle!: string;
 
-  @ApiProperty({ description: 'emoji 图标', example: '💌' })
+  @ApiProperty({ description: 'emoji 图标（deprecated：请改读 glyph）', example: '💌', deprecated: true })
   emoji!: string;
 
   @ApiProperty({ description: '图标枚举名 (前端 AppIcons 渲染, 与 emoji 同图)', enum: ICON_GLYPHS, required: false, nullable: true })
@@ -232,7 +232,7 @@ export class SwitchAccompaniedPersonResponseDto {
   @ApiProperty({ description: '被陪伴者昵称' })
   nickname!: string;
 
-  @ApiProperty({ description: '被陪伴者头像 emoji' })
+  @ApiProperty({ description: '被陪伴者头像 emoji（deprecated：请改读 avatarGlyph）', deprecated: true })
   avatarEmoji!: string;
 
   @ApiProperty({
@@ -310,7 +310,7 @@ export class CompanionHomeOverviewDto {
   @ApiProperty({ description: '陪伴者昵称' })
   nickname!: string;
 
-  @ApiProperty({ description: '陪伴者头像 emoji (陪伴者端首页不需要头像 URL, 统一 emoji)' })
+  @ApiProperty({ description: '陪伴者头像 emoji（deprecated：请改读 avatarGlyph）', deprecated: true })
   avatarEmoji!: string;
 
   @ApiProperty({
