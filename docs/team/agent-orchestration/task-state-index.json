@@ -4,10 +4,124 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 2496,
+    "lastEventSeq": 2499,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-595",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-28T02:56:12.988Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-28T02:56:18.708Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-quality-gates",
+      "title": "后台导出与聚合查询性能治理",
+      "type": "fix",
+      "baselineRef": "41b87497",
+      "dependsOn": [
+        "AF-594"
+      ],
+      "priorTasks": [
+        "AF-591",
+        "AF-594"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-28T00:40:00.000Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/profile/",
+          "src/analytics/",
+          "src/home/providers/",
+          "src/membership/providers/",
+          "src/shared/infra/queue/",
+          "test/profile/",
+          "test/analytics/",
+          "test/home/",
+          "test/membership/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-quality-gates/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/profile test/analytics test/home test/membership",
+          "check": "后台链路定向测试全绿",
+          "threshold": "0 failed"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查 0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "Lint 0 error",
+          "threshold": "exit 0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试全绿",
+          "threshold": "0 failed"
+        }
+      ],
+      "successCriteria": [
+        "导出 POST 只登记任务并返回 pending，采集/序列化/base64 全部移到 BullMQ worker，HTTP 请求不再等待全量序列化",
+        "导出任务状态支持 pending / processing / completed / failed，失败可查询，下载仍只允许任务所有者且 24h 有效",
+        "Analytics 趋势改为 SQL 时间桶聚合，不再把时间窗内全部 createdAt 拉进 Node；KPI 计数并行",
+        "首页 profile/user、companions/unread 并行；陪伴者只取前 3 条并用 count 取总数",
+        "会员年付发放与过期订单关单改为有限并发批处理，单条事务与行锁语义不变",
+        "定向测试、typecheck、lint、全量测试全绿"
+      ],
+      "objective": "把后台导出、分析聚合、首页高频读与会员 cron 的固定开销降下来，不改变计费、权限与状态机语义",
+      "outOfScope": [
+        "不改数据库表结构 / 不加 migration",
+        "不改导出文件 schema 版本与已纳入域清单",
+        "不改会员发放规则、订单状态机与配额口径",
+        "不引入新依赖"
+      ],
+      "constraints": [
+        "导出 worker 必须保持 uid 归属校验与 60s 频率限制",
+        "导出失败必须落 failed 状态，不得静默丢失",
+        "Analytics 时间桶边界必须与现有 today/week/month/year 口径一致",
+        "会员批量并发不得突破连接池承受范围，默认并发 8 且可单测"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "promotedAt": "2026-11-28T02:56:12.987Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

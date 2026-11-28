@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-595",
+  "contextId": "phase2.5-quality-gates",
+  "status": "backlog",
+  "createdAt": "2026-11-28T08:40:00+08:00",
+  "updatedAt": "2026-11-28T02:56:06.480Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md",
+    "sha256": "7d87b03ce5fcfbb9ce4bf8885477362ebc82e3ec44dc1d84df06063809b3d8a4",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af595-background-query-performance-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
