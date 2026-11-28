@@ -157,8 +157,8 @@ function checkEncoding(task) {
     if (!rel) continue;
     const probe = probeTextFile(relToAbs(rel));
     if (!probe.exists) continue;
-    if (probe.hasBom) bad.push(`${key}: 含 BOM`);
-    if (probe.hasCr) bad.push(`${key}: 含 CR`);
+    if (probe.hasBom) bad.push(`${key}: 含 BOM（执行 docs normalize --path ${rel} --apply）`);
+    if (probe.hasCr) bad.push(`${key}: 含 CR（执行 docs normalize --path ${rel} --apply）`);
   }
   if (bad.length > 0) {
     record(checks, 'V5', '编码一致', 'fail', bad.join('；'));

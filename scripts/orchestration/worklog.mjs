@@ -13,9 +13,11 @@
  * 哈希，迁移历史任务单不重写已归档指针，读取侧用 manifest 解析。
  */
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { REPO_ROOT, nowIso, writeJsonAtomic } from './state-store.mjs';
+import { normalizeLf, normalizeTextFile } from './text-normalize.mjs';
 
 export const WORKLOG_DIRS = {
   inbox: join(REPO_ROOT, 'docs', 'worklog', 'inbox'),
@@ -92,6 +94,14 @@ export function sha256File(file) {
   return sha256Text(readFileSync(file, 'utf8'));
 }
 
+/**
+ * 任务单哈希唯一口径：先按 UTF-8 去 BOM、CRLF/CR → LF 规范化，再计算 SHA-256。
+ * 同一逻辑内容在 Windows / Linux、不同 autocrlf 检出下必须得到同一 manifest 哈希。
+ */
+export function sha256TaskSheet(file) {
+  return sha256Text(normalizeLf(readFileSync(file, 'utf8')));
+}
+
 export function readRecordManifest(task, { rootDir = REPO_ROOT } = {}) {
   let file = recordManifestPath(task, { rootDir });
   if (!existsSync(file)) {
@@ -151,11 +161,9 @@ export function isTaskSheetBundled(task, { rootDir = REPO_ROOT } = {}) {
   return existsSync(resolve(rootDir, pointer));
 }
 
+/** 任务单落盘前统一为 UTF-8 无 BOM + LF，并返回是否发生改写。 */
 export function normalizeTaskSheetLineEndings(path) {
-  const text = readFileSync(path, 'utf8');
-  if (!text.includes('\r')) return false;
-  writeFileSync(path, text.replace(/\r\n/g, '\n').replace(/\r/g, '\n'), 'utf8');
-  return true;
+  return normalizeTextFile(path, { apply: true }).applied;
 }
 
 /**
@@ -213,7 +221,7 @@ export function ensureTaskRecordBundle(task, opts = {}) {
     }
   } else if (source && existsSync(source) && !samePath(source, target)) {
     // 目标已存在：内容一致才删重复源；内容不同说明任务单被改写，拒绝静默覆盖。
-    if (sha256File(source) !== sha256File(target)) {
+    if (sha256TaskSheet(source) !== sha256TaskSheet(target)) {
       throw new Error(`任务单已入包且内容不同，拒绝覆盖：${task.taskId} ← ${repoRelative(rootDir, source)}`);
     }
     unlinkSync(source);
@@ -229,7 +237,7 @@ export function ensureTaskRecordBundle(task, opts = {}) {
   const legacy = source && !samePath(source, target) ? repoRelative(rootDir, source) : null;
   manifest.taskSheet = {
     path: repoRelative(rootDir, target),
-    sha256: sha256File(target),
+    sha256: sha256TaskSheet(target),
     immutable: true,
   };
   if (legacy && !manifest.legacyPaths.includes(legacy)) manifest.legacyPaths.push(legacy);
@@ -404,6 +412,33 @@ export function loadLegacyRecordPackages({ rootDir = REPO_ROOT } = {}) {
 }
 
 /**
+ * 记录包缺 manifest 时，尝试在本地 git 里定位任务单所在的未合并分支。
+ * 只做只读诊断；仓库不是 git、CI 浅检出或对象已回收时返回空，不阻塞 verify。
+ */
+function taskSheetBranches(task, rootDir) {
+  const ref = typeof task?.artifacts?.taskSheet === 'string' ? posix(task.artifacts.taskSheet) : null;
+  if (!ref || ref.startsWith('../')) return [];
+  try {
+    const commit = execFileSync('git', ['-C', rootDir, 'log', '--all', '-1', '--format=%H', '--', ref], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (!commit) return [];
+    const output = execFileSync('git', ['-C', rootDir, 'branch', '-a', '--contains', commit, '--format=%(refname:short)'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return output
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * worklog 完整性校验：索引 ↔ 记录包 ↔ 文件哈希 ↔ inbox。
  * @returns {{ok:boolean, errors:string[], stats:object, warnings:string[]}}
  */
@@ -430,7 +465,11 @@ export function verifyWorklog(index, opts = {}) {
       continue;
     }
     if (!manifest) {
-      errors.push(`记录包缺 manifest：${task.taskId}`);
+      const branches = taskSheetBranches(task, rootDir);
+      const hint = branches.length
+        ? `记录包只存在于未合并分支：${branches.join('、')}；先合并该任务分支或把记录包恢复到当前基线`
+        : '若记录包只存在于未合并任务分支，请先合并或恢复记录包；不要手写 manifest 绕过';
+      errors.push(`记录包缺 manifest：${task.taskId}（${hint}）`);
       continue;
     }
     if (manifest.taskId !== task.taskId) errors.push(`manifest taskId 不匹配：${task.taskId} → ${manifest.taskId}`);
@@ -463,10 +502,17 @@ export function verifyWorklog(index, opts = {}) {
     const sheet = resolveTaskSheet(task, { rootDir });
     if (!sheet) {
       errors.push(`任务单不可解析：${task.taskId}（manifest=${manifest.taskSheet.path}）`);
-    } else if (sha256File(sheet.path) !== manifest.taskSheet.sha256) {
-      errors.push(`任务单哈希不匹配：${task.taskId}`);
-    } else if (readFileSync(sheet.path, 'utf8').includes('\r')) {
-      errors.push(`任务单含 CR 行尾：${task.taskId}（${repoRelative(rootDir, sheet.path)}）`);
+    } else {
+      const rawText = readFileSync(sheet.path, 'utf8');
+      const canonicalText = normalizeLf(rawText);
+      const sheetRef = repoRelative(rootDir, sheet.path);
+      if (sha256Text(canonicalText) !== manifest.taskSheet.sha256) {
+        errors.push(
+          `任务单哈希不匹配：${task.taskId}（若仅 CRLF/BOM 差异，执行 docs normalize --path ${sheetRef} --apply 后 worklog migrate --apply 重算）`,
+        );
+      } else if (canonicalText !== rawText) {
+        errors.push(`任务单未规范化：${task.taskId}（${sheetRef}：BOM 或 CR 行尾，执行 docs normalize --path ${sheetRef} --apply）`);
+      }
     }
     for (const receipt of manifest.receipts ?? []) {
       const abs = resolve(rootDir, receipt.path);
@@ -590,7 +636,7 @@ export function migrateWorklog(index, opts = {}) {
     if (!existsSync(target)) {
       if (apply) moveFile(source, target);
       movedSheets += 1;
-    } else if (sha256File(source) === sha256File(target)) {
+    } else if (sha256TaskSheet(source) === sha256TaskSheet(target)) {
       if (apply) unlinkSync(source);
       movedSheets += 1;
     } else {
@@ -618,7 +664,7 @@ export function migrateWorklog(index, opts = {}) {
         if (!existsSync(target)) {
           if (apply) moveFile(source, target);
           movedSheets += 1;
-        } else if (sha256File(source) === sha256File(target)) {
+        } else if (sha256TaskSheet(source) === sha256TaskSheet(target)) {
           if (apply) unlinkSync(source);
           movedSheets += 1;
         } else {
@@ -704,7 +750,7 @@ export function migrateWorklog(index, opts = {}) {
           moveFile(source, target);
         }
         orphanSheets += 1;
-      } else if (apply && sha256File(source) === sha256File(target)) {
+      } else if (apply && sha256TaskSheet(source) === sha256TaskSheet(target)) {
         unlinkSync(source);
       }
       if (apply) {
@@ -747,9 +793,10 @@ function ensureBundleManifest(task, taskSheetAbs, rootDir) {
   manifest.createdAt = manifest.createdAt ?? task.createdAt ?? null;
   applyTaskArtifacts(task, manifest, { rootDir, taskSheetPath: taskSheetAbs });
   if (taskSheetAbs) {
+    normalizeTaskSheetLineEndings(taskSheetAbs);
     manifest.taskSheet = {
       path: repoRelative(rootDir, taskSheetAbs),
-      sha256: sha256File(taskSheetAbs),
+      sha256: sha256TaskSheet(taskSheetAbs),
       immutable: true,
     };
   }
