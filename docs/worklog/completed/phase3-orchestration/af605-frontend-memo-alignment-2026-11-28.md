@@ -89,7 +89,7 @@
 
 | 实际命令 | 退出码 | 错误 | 警告 | 关键数字 / 说明 | 原始证据 |
 | --- | ---: | ---: | ---: | --- | --- |
-| `node scripts/orchestration/cli.mjs events verify` | 0 | 0 | 0 | 事件日志 2564 条；schema state-event 1.0.0；哈希链与索引投影一致 | 后端 CLI stdout |
+| `node scripts/orchestration/cli.mjs events verify` | 0 | 0 | 0 | 事件日志 2566 条；schema state-event 1.0.0；哈希链与索引投影一致 | 后端 CLI stdout |
 | `node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-orchestration/AF-608/task-sheet.md` | 1（仅历史遗留失败） | 3 | 0 | AF-608 任务单元 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单引入 | 后端 CLI stdout |
 | `python tools/orchestration/cli.py validate`（前端归档后复跑记录） | 0 | 0 | 0 | 11060 项 / 失败 0 | `docs/team/agent-orchestration/evidence/XS-143-validate-postarchive-20261128-231944.log` |
 | `python tools/orchestration/cli.py validate`（本次复核） | 0 | 0 | 0 | 11060 项 / 失败 0 → PASS | 前端 CLI stdout |
@@ -122,7 +122,10 @@
 
 ## 9. 提交、推送与结论
 
-- 后端 Commit：台账记录包、回执、交付记录与 CLI 投影随 AF-605 任务分支提交；本记录写入时后端提交尚未产生。
+- 后端 Commit：
+  - `4b084db2`：AF-605 记录包、legacy AF-605 副本、AF-606 初始记录包与本交付记录首次入库。
+  - `038cbeff`：AF-606 冻结回执副本、AF-608 manifest / 任务单，以及本交付记录的 scope 与字段标记返修入库。
+  - AF-608 冻结回执副本与 manifest 回执条目随本次记录包收尾提交入库；状态投影与 Web `data.js` 未提交。
 - 前端 Commit：`760e3182fb23c437e60e5c5e5381a7367b4e7c69`，本地未推送。
 - Push / PR：AF-604 PR 合并前，不创建 AF-605 后端合并 PR；禁止直推 `integrate`、force push、删除 required checks 或绕过 `--no-verify`。
 - `finalStatus`：`completed`
