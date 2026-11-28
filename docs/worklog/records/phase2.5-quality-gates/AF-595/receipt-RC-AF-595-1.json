@@ -1,0 +1,212 @@
+{
+  "deliveredAt": "2026-11-28T12:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-595-1",
+    "taskId": "AF-595",
+    "contextId": "phase2.5-quality-gates",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "41b87497",
+    "dependsOn": ["AF-594"],
+    "priorTasks": ["AF-591", "AF-594"],
+    "policyRefs": ["docs/team/conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": ["5fcd3dcc"],
+      "added": [
+        "src/profile/providers/export-queue.service.ts",
+        "src/membership/providers/concurrency.ts",
+        "test/membership/membership-concurrency.spec.ts",
+        "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md"
+      ],
+      "modified": [
+        "src/profile/providers/export.service.ts",
+        "src/profile/profile.module.ts",
+        "src/profile/controllers/export.controller.ts",
+        "src/analytics/domain/repositories/analytics-event.repository.ts",
+        "src/analytics/data/analytics-event.repository.typeorm.ts",
+        "src/analytics/providers/analytics.service.ts",
+        "src/home/providers/home-overview.service.ts",
+        "src/membership/providers/membership-plan-grant.service.ts",
+        "src/membership/providers/membership-order.service.ts",
+        "test/profile/export.spec.ts",
+        "test/analytics/td13-analytics-repository-port.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/profile test/analytics test/home test/membership",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 18,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "66.40s",
+        "note": "124 passed / 0 failed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 70s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 60s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 372,
+        "machine": "同上",
+        "wallClock": "837.90s",
+        "note": "371 files passed + 1 skipped；5220 passed / 0 failed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      }
+    ],
+    "reproNotes": "复核：pnpm exec vitest run test/profile test/analytics test/home test/membership；pnpm typecheck；pnpm lint；pnpm test；git diff --stat HEAD -- src/engine-core。全量首跑因宿主 D 盘 0 可用、Tee 日志写入失败中断，经用户确认清空回收站后重跑得到上述结果。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-595 贯穿任务单、分支、交付记录、回执与提交"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 领单只经 CLI；实现提交与状态面提交分离"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 schema；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "register / promote / claim 由 CLI 写入"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改 profile / analytics / home / membership 与对应测试、交付记录"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "export-permission",
+        "result": "pass",
+        "note": "60s 锁、uid 归属、24h TTL、审计与完成态下载校验均保留"
+      },
+      {
+        "item": "analytics-tenant-isolation",
+        "result": "pass",
+        "note": "tenant_id + event_type + 时间窗条件未改，桶数口径不变"
+      },
+      {
+        "item": "membership-transaction",
+        "result": "pass",
+        "note": "单条事务与 pessimistic_write 行锁未改，只改批内并发"
+      },
+      {
+        "item": "no-new-dependency",
+        "result": "pass",
+        "note": "无新依赖、无 migration、无表结构变更"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 6 条 successCriteria 全部落地；导出拆分为 exportData 登记入队 + processTask Worker 处理"
+    },
+    "backlogItems": [
+      {
+        "id": "AF595-B1",
+        "impact": "导出队列积压未接 Prometheus 指标，目前只有 Worker 失败日志",
+        "schedule": null
+      },
+      {
+        "id": "AF595-B2",
+        "impact": "Flutter 导出页仍为 POST 后 3s 提示，未真轮询 getExportTask；后端已支持 pending/processing/completed/failed",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "AF-593 PR #306 仍 pending；AF-594/AF-595 stacked 分支的 PR 将包含其提交，旧 PR 关闭方式待远端凭据确认"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "ExportService 拆分 createTask / processTask",
+        "reality": "exportData 负责登记 + 入队，processTask 负责 Worker 侧处理",
+        "action": "保留两个职责边界，不额外暴露仅内部使用的 createTask",
+        "why": "避免扩大公开方法面，行为与拆分目标等价"
+      },
+      {
+        "taskSays": "AnalyticsEventRepository.countByTimeBucket",
+        "reality": "实现为 countBucketed",
+        "action": "按端口现有命名风格命名",
+        "why": "语义一致，减少方法名与实现细节耦合"
+      },
+      {
+        "taskSays": "companions 用 findAndCount + take 3",
+        "reality": "find({ take: 3 }) + count() 并行",
+        "action": "两查询并行代替 findAndCount",
+        "why": "findAndCount 内部串行 count + find；并行结果一致且少一次等待"
+      },
+      {
+        "taskSays": "会员 cron 默认并发 8 且可单测",
+        "reality": "常量 MEMBERSHIP_CRON_CONCURRENCY = 8，两个 cron 共用，单测引用同一常量",
+        "action": "不引入 env 旋钮",
+        "why": "任务未要求运行期配置面，单一常量避免两个 cron 漂移"
+      },
+      {
+        "taskSays": "导出队列名未指定",
+        "reality": "独立 profile-export 队列",
+        "action": "不复用 audit-log 队列",
+        "why": "payload 与消费逻辑不同，复用会错消费"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "导出 POST 只落 pending 并入队，采集/打包/base64 移到 BullMQ Worker，processing/completed/failed 可查询且失败不静默；Analytics 分桶下沉 SQL 并并行 KPI；首页基础数据两波并发且 companions 只取 3 条；会员两个 cron 改有界并发但单条事务与行锁不变。定向 124 例、全量 5220 例全绿，typecheck/lint 零错，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与编排校验，无付费 API 调用。"
+  }
+}
