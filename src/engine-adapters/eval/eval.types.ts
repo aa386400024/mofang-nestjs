@@ -20,9 +20,10 @@
 //     督导案例的逐字稿属于外部语料, 解析后也只落"标注结果" (哪一轮该跑 + 期望 delta),
 //     原文不进入评测数据集, 更不进报告.
 
+import type { JudgeSnapshotSection } from '../judge/judge.types.js';
+
 /** 评测口径的六个维度 (建议质量的计算范围). */
 export const EVAL_DIMENSIONS = ['trust', 'safety', 'bond', 'verbal', 'depth', 'style'] as const;
-
 /** 评测维度名. */
 export type EvalDimension = (typeof EVAL_DIMENSIONS)[number];
 
@@ -367,6 +368,13 @@ export interface EvalReport {
   readonly warnings: readonly string[];
   /** 样本 id (会话 id + 轮次, 供人工抽检导出). */
   readonly sampleIds: readonly string[];
+  /**
+   * 可选 Judge Shadow 段 (P0 不升级 schema).
+   *
+   * ⚠️ 缺省 = 本批未启用 Judge; null = 整段调用失败但批次继续.
+   *   Shadow 结果不改变 triggerQuality / suggestionQuality / baselineComparison 的判定.
+   */
+  readonly judge?: JudgeSnapshotSection | null;
   /** 报告状态. */
   readonly status: 'ok' | 'degraded' | 'failed';
 }

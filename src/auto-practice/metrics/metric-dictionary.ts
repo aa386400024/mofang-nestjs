@@ -411,6 +411,66 @@ function buildDisfluencyMetrics(): readonly MetricDef[] {
 }
 
 /**
+ * Judge Shadow 观测指标段 (AF-611 / Phase3 Judge Layer P0).
+ *
+ * ⚠️ 全部 direction=neutral / nullable=true:
+ *   - neutral: Judge 结论只旁路留痕, 不进入 Regression evaluator 的好/坏判定;
+ *   - nullable: P0 只有显式启用 Shadow 的批次才有值, 未启用批次不伪造 0.
+ *
+ * 版本口径: judge.* 是不改变任何既有指标口径的**新增观测段**, 字典版本号暂保持 dict-v4;
+ * 待 P1 把 Judge 指标接入前端字典缓存时, 与既有键一起统一升版 (避免此刻让前端缓存无谓失效).
+ */
+function buildJudgeMetrics(): readonly MetricDef[] {
+  return [
+    {
+      id: 'judge.reviews.count',
+      label: 'Judge·评审场次',
+      unit: 'count',
+      direction: 'neutral',
+      bounds: null,
+      nullable: true,
+      definition: 'Shadow 成功产出结构化评审的场次数 (失败场次记 null, 不计入)',
+    },
+    {
+      id: 'judge.review_coverage',
+      label: 'Judge·评审覆盖率',
+      unit: 'ratio',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: true,
+      definition: '成功评审场次数 ÷ Shadow 尝试场次数; 未启用 Judge 的批次为 null',
+    },
+    {
+      id: 'judge.failure_rate',
+      label: 'Judge·失败率',
+      unit: 'ratio',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: true,
+      definition: '超时 / 越界 / 校验非法 / 危机全轮排除等失败场次数 ÷ 尝试场次数; 仅观测, 不判定好坏',
+    },
+    {
+      id: 'judge.rating.mean',
+      label: 'Judge·三档均值',
+      unit: 'count',
+      direction: 'neutral',
+      bounds: { min: 0, max: 2 },
+      nullable: true,
+      definition: '成功评审的三维 0/1/2 主评算术平均 (仅描述分布, 不是分数/及格线/临床诊断)',
+    },
+    {
+      id: 'judge.rating.low_share',
+      label: 'Judge·0档占比',
+      unit: 'ratio',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: true,
+      definition: '成功评审中 rating=0 的维度数 ÷ 全部已评级维度数; 仅观测留痕',
+    },
+  ];
+}
+
+/**
  * 字典版本标识.
  *
  * 改字典条目 / 口径 / 取值域时手动递增; 供前端缓存与审计比对.
@@ -433,6 +493,7 @@ export const METRIC_DICTIONARY: readonly MetricDef[] = [
   ...buildStrategyMetrics(),
   ...SCALAR_METRICS,
   ...buildDisfluencyMetrics(),
+  ...buildJudgeMetrics(),
 ];
 
 /** id → 定义 的快速索引. */
