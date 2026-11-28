@@ -9,6 +9,7 @@ import { HomeMoodLogService } from './home-mood-log.service.js';
 import { HomeRecommendationEngine } from './home-recommendation.engine.js';
 import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
 import { UserProfile } from '../../profile/entities/user-profile.entity.js';
+import type { IconGlyph } from '../../shared/types/icon-glyph.types.js';
 import { User } from '../../user/entities/user.entity.js';
 
 import type { HomeOverviewDto, SupportCompanionDto, TodayRecommendationDto } from '../dto/home-overview.dto.js';
@@ -162,10 +163,12 @@ export class HomeOverviewService {
 
     const companions: SupportCompanionDto[] = top3.map((b) => {
       const profile = b.companionUid ? profileMap.get(b.companionUid) : undefined;
+      const avatar = this.avatarForPermission(b.permissionLevel);
       return {
         id: b.id,
         nickname: profile?.nickname ?? '陪伴者',
-        avatarEmoji: this.emojiForRelation(b.permissionLevel),
+        avatarEmoji: avatar.avatarEmoji,
+        avatarGlyph: avatar.avatarGlyph,
         relation: 'other', // V2.0 简化: 不存 relation 字段, 默认 other
         permissionLevel: b.permissionLevel,
         lastActiveAt: b.boundAt?.toISOString() ?? null,
@@ -175,18 +178,21 @@ export class HomeOverviewService {
   }
 
   /**
-   * 关系类型 → emoji 默认头像.
+   * 权限等级 → 默认头像 (emoji + 枚举名同图).
+   *
+   * 单一事实源: 同一 helper 同时产出新旧字段, 避免 emoji 与 glyph 漂移.
+   * L1 基础可见 → personUser; L2 进阶陪伴 → personCompanion; L3 完整信任 → personVerified.
    */
-  private emojiForRelation(permission: 'L1' | 'L2' | 'L3'): string {
+  private avatarForPermission(permission: 'L1' | 'L2' | 'L3'): { avatarEmoji: string; avatarGlyph: IconGlyph } {
     switch (permission) {
       case 'L1':
-        return '🌸';
+        return { avatarEmoji: '🌸', avatarGlyph: 'personUser' };
       case 'L2':
-        return '🌿';
+        return { avatarEmoji: '🌿', avatarGlyph: 'personCompanion' };
       case 'L3':
-        return '🌷';
+        return { avatarEmoji: '🌷', avatarGlyph: 'personVerified' };
       default:
-        return '🌱';
+        return { avatarEmoji: '🌱', avatarGlyph: 'personCompanion' };
     }
   }
 }

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-596",
+  "contextId": "phase2.5-quality-gates",
+  "status": "rejected",
+  "createdAt": "2026-11-28T15:10:00+08:00",
+  "updatedAt": "2026-11-28T08:36:13.440Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-596/task-sheet.md",
+    "sha256": "32c04910e00ecdbe455e677625b4279d8e93a55c3eade95b9d52f8c6506b7392",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-596/receipt-RC-AF-596-1.json",
+      "sha256": "3f00349f3385fcfbff1ad4eb4cebe10a5ab6c97767b257796a14f7aa327bd2f1",
+      "receiptId": "RC-AF-596-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af596-icon-glyph-contract-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af596-icon-glyph-contract-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}

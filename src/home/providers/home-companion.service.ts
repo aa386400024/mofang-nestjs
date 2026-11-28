@@ -4,6 +4,7 @@ import type { Repository } from 'typeorm';
 
 import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
 import { UserProfile } from '../../profile/entities/user-profile.entity.js';
+import type { IconGlyph } from '../../shared/types/icon-glyph.types.js';
 
 import {
   type CompanionHomeOverviewDto,
@@ -66,12 +67,14 @@ export class HomeCompanionService {
     // V2.0 简化: 用 uid 后 4 位 + 默认 emoji; V3 接 User 表
     const nickname = '你';
     const avatarEmoji = '🤝';
+    const avatarGlyph: IconGlyph = 'personSupport';
 
     const status: CompanionPersonStatusDto =
       firstBinding && firstProfile
         ? {
             nickname: this.toNickname(firstProfile),
             avatarEmoji: '🌱',
+            avatarGlyph: 'personCompanion',
             relation: 'other', // V3 扩 binding 字段
             permissionLevel: firstBinding.permissionLevel,
             overallStatus: 'normal',
@@ -89,6 +92,7 @@ export class HomeCompanionService {
     return {
       nickname,
       avatarEmoji,
+      avatarGlyph,
       certificationStatus: 'unverified', // V3 拉 certification 表
       dailyTip: this.pickDailyTip(uid, new Date()),
       accompaniedPersonStatus: status,
@@ -115,6 +119,7 @@ export class HomeCompanionService {
       bindingId: binding.id,
       nickname: profile?.nickname ?? '对方',
       avatarEmoji: '🌱',
+      avatarGlyph: 'personCompanion',
       permissionLevel: binding.permissionLevel,
     };
   }
@@ -216,6 +221,7 @@ export class HomeCompanionService {
     return {
       nickname: '',
       avatarEmoji: '🌱',
+      avatarGlyph: 'personCompanion',
       relation: 'other',
       permissionLevel: 'L1',
       overallStatus: 'normal',
@@ -241,6 +247,7 @@ export class HomeCompanionService {
         title: '安抚卡片',
         subtitle: '发送温暖卡片给对方',
         emoji: '💌',
+        glyph: 'actionMail',
         accent: 'coral',
         routePath: '/companion/reassurance',
         isNew: false,
@@ -250,6 +257,7 @@ export class HomeCompanionService {
         title: '同步练习',
         subtitle: '双方一起做练习',
         emoji: '🤝',
+        glyph: 'personSupport',
         accent: 'mint',
         routePath: '/companion/sync-practice',
         isNew: false,
@@ -259,6 +267,7 @@ export class HomeCompanionService {
         title: '陪伴任务',
         subtitle: '为对方安排一件小事',
         emoji: '📝',
+        glyph: 'actionArchive',
         accent: 'iris',
         routePath: '/companion/tasks',
         isNew: false,
@@ -268,6 +277,7 @@ export class HomeCompanionService {
         title: '危机应对',
         subtitle: '紧急情况处理流程',
         emoji: '🆘',
+        glyph: 'statusWarning',
         accent: 'sand',
         routePath: '/companion/crisis',
         isNew: false,
@@ -277,6 +287,7 @@ export class HomeCompanionService {
         title: '一起成长练习',
         subtitle: '在关系中共同疗愈',
         emoji: '🌱',
+        glyph: 'growthTarget',
         accent: 'mint',
         routePath: '/companion/dual-practices',
         isNew: true,

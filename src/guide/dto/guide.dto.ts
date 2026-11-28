@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+import { ICON_GLYPHS, type IconGlyph } from '../../shared/types/icon-glyph.types.js';
+
 /**
  * 陪伴者端「指南」Tab DTO — V3.0 §4 Tab3 设计文档.
  *
@@ -61,6 +63,14 @@ export class GuideCourseDto {
 
   @ApiProperty({ description: '封面 emoji', example: '💝' })
   coverEmoji!: string;
+
+  @ApiProperty({
+    description: '封面图标枚举名 (前端 AppIcons 渲染, 与 coverEmoji 同图)',
+    enum: ICON_GLYPHS,
+    required: false,
+    nullable: true,
+  })
+  coverGlyph?: IconGlyph | null;
 
   @ApiProperty({ description: '时长 (分钟)', example: 8 })
   durationMinutes!: number;

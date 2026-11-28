@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsString, ValidateNested } from 'class-validator';
 
+import { ICON_GLYPHS, type IconGlyph } from '../../shared/types/icon-glyph.types.js';
+
 /**
  * 强调色枚举别名 — 抽出来后被多个 DTO 复用 (DailyCompanionTip / ToolboxItem / DualPracticeItem).
  *
@@ -73,6 +75,14 @@ export class CompanionPersonStatusDto {
   @ApiProperty({ description: '被陪伴者头像 emoji (L1+)' })
   avatarEmoji!: string;
 
+  @ApiProperty({
+    description: '被陪伴者头像枚举名 (前端 AppIcons 渲染, 与 avatarEmoji 同图, L1+)',
+    enum: ICON_GLYPHS,
+    required: false,
+    nullable: true,
+  })
+  avatarGlyph?: IconGlyph | null;
+
   @ApiProperty({ description: '关系 (family/friend/partner/colleague/other)' })
   relation!: 'family' | 'friend' | 'partner' | 'colleague' | 'other';
 
@@ -122,6 +132,9 @@ export class ToolboxItemDto {
 
   @ApiProperty({ description: 'emoji 图标', example: '💌' })
   emoji!: string;
+
+  @ApiProperty({ description: '图标枚举名 (前端 AppIcons 渲染, 与 emoji 同图)', enum: ICON_GLYPHS, required: false, nullable: true })
+  glyph?: IconGlyph | null;
 
   @ApiProperty({ description: '强调色 (coral/mint/iris/sand)' })
   accent!: CompanionAccent;
@@ -222,6 +235,14 @@ export class SwitchAccompaniedPersonResponseDto {
   @ApiProperty({ description: '被陪伴者头像 emoji' })
   avatarEmoji!: string;
 
+  @ApiProperty({
+    description: '被陪伴者头像枚举名 (前端 AppIcons 渲染, 与 avatarEmoji 同图)',
+    enum: ICON_GLYPHS,
+    required: false,
+    nullable: true,
+  })
+  avatarGlyph?: IconGlyph | null;
+
   @ApiProperty({ description: '当前权限等级' })
   permissionLevel!: 'L1' | 'L2' | 'L3';
 }
@@ -291,6 +312,14 @@ export class CompanionHomeOverviewDto {
 
   @ApiProperty({ description: '陪伴者头像 emoji (陪伴者端首页不需要头像 URL, 统一 emoji)' })
   avatarEmoji!: string;
+
+  @ApiProperty({
+    description: '陪伴者头像枚举名 (前端 AppIcons 渲染, 与 avatarEmoji 同图)',
+    enum: ICON_GLYPHS,
+    required: false,
+    nullable: true,
+  })
+  avatarGlyph?: IconGlyph | null;
 
   @ApiProperty({ description: '实名认证状态', enum: ['unverified', 'pending', 'verified', 'rejected'] })
   certificationStatus!: 'unverified' | 'pending' | 'verified' | 'rejected';
