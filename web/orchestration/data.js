@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-28T14:14:22.737Z",
+  "generatedAt": "2026-11-28T14:51:23.713Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,40 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-604",
+      "contextId": "phase3-docs-governance",
+      "type": "documentation",
+      "title": "更新协作备忘：小豆编排口径、任务单模板字段与任务执行技能隔离说明",
+      "status": "submitted",
+      "verdict": "conditional-pass",
+      "verdictRationale": "机读护栏全绿，存在需人工复核的语义 / 口径项",
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase3-docs-governance/AF-604/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af604-collaboration-workflow-update-2026-11-28.md",
+        "reply": null
+      },
+      "manualReview": [
+        "交付记录未出现字段标记：deviationTable"
+      ],
+      "dispatch": {
+        "taskId": "AF-604",
+        "contextId": "phase3-docs-governance",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-28T14:51:09.146Z",
+        "leaseDeadline": "2026-11-28T15:21:09.144Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-604.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2049,6 +2082,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-756",
+      "recordedAt": "2026-11-28T14:51:09.672Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-604",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-604",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-604.json"
+      ]
+    },
+    {
+      "auditId": "AUD-755",
+      "recordedAt": "2026-11-28T14:49:48.880Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-604",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-754",
       "recordedAt": "2026-11-28T14:06:54.884Z",
       "actorRef": "orchestrator",
@@ -2250,57 +2315,50 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-599.json"
       ]
-    },
-    {
-      "auditId": "AUD-741",
-      "recordedAt": "2026-11-28T12:07:14.029Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-599",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-740",
-      "recordedAt": "2026-11-28T10:06:52.207Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-598",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-598-worklog-record-hardening"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 754,
+    "total": 756,
     "byResult": {
-      "allowed": 754,
+      "allowed": 756,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 753,
+      "TOOL-QUEUE-SCHEDULER": 755,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 754
+      "orchestrator": 756
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-604",
+        "title": "更新协作备忘：小豆编排口径、任务单模板字段与任务执行技能隔离说明",
+        "type": "documentation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase3-docs-governance",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-docs-governance/AF-604/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af604-collaboration-workflow-update-2026-11-28.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11883,9 +11941,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-604",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase3-docs-governance/AF-604/task-sheet.md"
+      },
+      {
+        "taskId": "AF-604",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase3-orchestration/af604-collaboration-workflow-update-2026-11-28.md"
+      }
+    ],
+    "groupId": "phase3-docs-governance",
+    "groupIds": [
+      "phase3-docs-governance"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
