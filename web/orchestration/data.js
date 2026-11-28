@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-28T10:19:00.595Z",
+  "generatedAt": "2026-11-28T12:20:16.038Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2049,6 +2049,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-743",
+      "recordedAt": "2026-11-28T12:07:27.916Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-599",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-599-icon-contract-http-regression"
+      ]
+    },
+    {
+      "auditId": "AUD-742",
+      "recordedAt": "2026-11-28T12:07:23.261Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-599",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-599",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-599.json"
+      ]
+    },
+    {
+      "auditId": "AUD-741",
+      "recordedAt": "2026-11-28T12:07:14.029Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-599",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-740",
       "recordedAt": "2026-11-28T10:06:52.207Z",
       "actorRef": "orchestrator",
@@ -2237,67 +2284,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-593-chat-session-writer"
       ]
-    },
-    {
-      "auditId": "AUD-728",
-      "recordedAt": "2026-11-27T23:29:32.982Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-593",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-593",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-593.json"
-      ]
-    },
-    {
-      "auditId": "AUD-727",
-      "recordedAt": "2026-11-27T23:29:26.268Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-593",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-726",
-      "recordedAt": "2026-11-27T23:01:29.526Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-592",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-592-chat-history-contract"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 740,
+    "total": 743,
     "byResult": {
-      "allowed": 740,
+      "allowed": 743,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 739,
+      "TOOL-QUEUE-SCHEDULER": 742,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 740
+      "orchestrator": 743
     }
   },
   "protocolView": {
@@ -11781,6 +11781,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af598-worklog-record-hardening-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-599",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-599/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af599-icon-contract-http-regression-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11805,5 +11823,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 535
+  "archivedCount": 536
 };

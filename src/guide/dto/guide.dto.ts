@@ -61,7 +61,7 @@ export class GuideCourseDto {
   @ApiProperty({ description: '课程副标题', example: '听懂对方的弦外之音' })
   subtitle!: string;
 
-  @ApiProperty({ description: '封面 emoji', example: '💝' })
+  @ApiProperty({ description: '封面 emoji（deprecated：请改读 coverGlyph）', example: '💝', deprecated: true })
   coverEmoji!: string;
 
   @ApiProperty({

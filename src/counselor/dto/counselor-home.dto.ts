@@ -82,7 +82,7 @@ export class CounselorTrainingCategoryDto {
   @ApiProperty({ description: '分类 enum (跟 xin_su_app TrainingCategory 1:1)', enum: ['skill', 'fullSession', 'script', 'caseConcept'] })
   category!: 'skill' | 'fullSession' | 'script' | 'caseConcept';
 
-  @ApiProperty({ description: 'emoji 图标 (跟 xin_su_app TrainingCategoryDisplay.emoji 1:1)', example: '🎯' })
+  @ApiProperty({ description: 'emoji 图标（deprecated：请改读 glyph）', example: '🎯', deprecated: true })
   emoji!: string;
 
   @ApiProperty({

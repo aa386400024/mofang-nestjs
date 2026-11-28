@@ -111,7 +111,7 @@ export class SupportCompanionDto {
   @ApiProperty({ description: '陪伴者昵称 (用户给陪伴者起的爱称, 不是真实姓名)' })
   nickname!: string;
 
-  @ApiProperty({ description: '头像 emoji (用户可选头像, 用 emoji 不引入图片依赖)' })
+  @ApiProperty({ description: '头像 emoji（deprecated：请改读 avatarGlyph）', deprecated: true })
   avatarEmoji!: string;
 
   @ApiProperty({
@@ -155,7 +155,7 @@ export class MicroInterventionScenarioDto {
   @ApiProperty({ description: '显示场景名', example: '会议前' })
   scenario!: string;
 
-  @ApiProperty({ description: 'emoji 图标', example: '📅' })
+  @ApiProperty({ description: 'emoji 图标（deprecated：请改读 glyph）', example: '📅', deprecated: true })
   icon!: string;
 
   @ApiProperty({ description: '图标枚举名 (前端 AppIcons 渲染, 与 icon 同图)', enum: ICON_GLYPHS, required: false, nullable: true })

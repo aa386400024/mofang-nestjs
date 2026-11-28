@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-599",
+  "contextId": "phase2.5-quality-gates",
+  "status": "submitted",
+  "createdAt": "2026-11-28T18:40:00+08:00",
+  "updatedAt": "2026-11-28T12:20:07.546Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-599/task-sheet.md",
+    "sha256": "4e263012f8baa9c56806cf83b6090de3a09c26f65fd51bdb3618fa674ff0bc16",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-599/receipt-RC-AF-599-1.json",
+      "sha256": "ebe9514bd7e8755cb65c73b239252e4add5d5b3ee541e99b017148ef9551f8d5",
+      "receiptId": "RC-AF-599-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af599-icon-contract-http-regression-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af599-icon-contract-http-regression-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
