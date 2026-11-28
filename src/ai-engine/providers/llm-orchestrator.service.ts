@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto';
 import type { Repository } from 'typeorm';
 
 import { CrisisDetectorService } from './crisis-detector.service.js';
+import { ChatSessionRecorder } from '../../ai-companion/providers/chat-session-recorder.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
 import { ConsentService } from '../../consent/providers/consent.service.js';
@@ -45,6 +46,7 @@ export class LlmOrchestratorService {
     private readonly crisisRepo: Repository<CrisisEventEntity>,
     private readonly consent: ConsentService,
     private readonly config: ConfigService,
+    private readonly chatSessionRecorder: ChatSessionRecorder,
   ) {}
 
   /**
@@ -152,6 +154,7 @@ export class LlmOrchestratorService {
           endedAt: new Date(),
         },
       );
+      await this.persistChatSession(uid, conversationId, dto.messages);
       void finishReason;
     } catch (e) {
       this.logger.error(`streamChat failed uid=${uid} conversationId=${conversationId}: ${(e as Error).message}`);
@@ -226,6 +229,25 @@ export class LlmOrchestratorService {
         endedAt: new Date(),
       },
     );
+    await this.persistChatSession(uid, conversationId, dto.messages);
+  }
+
+  /**
+   * 落 AI 对话历史元数据 — 失败只 warn，不改变对话成功语义.
+   *
+   * 只传 uid / conversationId / messages 给 recorder；标题截断与轮数计算都在
+   * ai-companion 域内完成，orchestrator 不碰心理内容.
+   */
+  private async persistChatSession(
+    uid: string,
+    conversationId: string,
+    messages: readonly { role: string; content: string }[],
+  ): Promise<void> {
+    try {
+      await this.chatSessionRecorder.record({ uid, conversationId, messages });
+    } catch (e) {
+      this.logger.warn(`persist chat session failed uid=${uid} conversationId=${conversationId} err=${(e as Error).name}`);
+    }
   }
 
   /**

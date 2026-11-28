@@ -96,7 +96,7 @@ describe('ChatHistoryQueryDto · limit 边界', () => {
 describe('会话不存在 · 404 业务码', () => {
   it('getConversation 抛 LlmConversationNotFound 且 HTTP 404', async () => {
     const repo = { findOne: vi.fn().mockResolvedValue(null) };
-    const service = new LlmOrchestratorService({} as never, {} as never, repo as never, {} as never, {} as never, {} as never);
+    const service = new LlmOrchestratorService({} as never, {} as never, repo as never, {} as never, {} as never, {} as never, {} as never);
 
     const error = await service.getConversation('u-1', 'missing').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(BizException);
@@ -107,5 +107,75 @@ describe('会话不存在 · 404 业务码', () => {
   it('ChatSessionNotFound 也映射为 404', () => {
     const error = new BizException(BizCode.ChatSessionNotFound);
     expect(error.getStatus()).toBe(404);
+  });
+});
+
+describe('流式对话结束 · 落会话元数据', () => {
+  function buildOrchestrator(crisisLevel: 'none' | 'high') {
+    const conversationRepo = {
+      findOne: vi.fn().mockResolvedValue({ id: 'conv-1', uid: 'u-1' }),
+      create: vi.fn((value: unknown) => value),
+      save: vi.fn(async (value: unknown) => value),
+      update: vi.fn().mockResolvedValue({ affected: 1 }),
+    };
+    const crisisRepo = {
+      create: vi.fn((value: unknown) => value),
+      save: vi.fn(async (value: unknown) => ({ ...(value as object), id: 'crisis-1' })),
+    };
+    const router = {
+      streamChat: vi.fn(async function* () {
+        yield { delta: '你好', tokenCount: 1, isFinal: false, finishReason: null };
+        yield { delta: '', tokenCount: 2, isFinal: true, finishReason: 'stop' };
+      }),
+    };
+    const detector = {
+      detect: vi.fn().mockReturnValue({
+        level: crisisLevel,
+        keywords: [],
+        suggestedResource: '热线',
+      }),
+    };
+    const recorder = { record: vi.fn().mockResolvedValue(true) };
+    const service = new LlmOrchestratorService(
+      router as never,
+      detector as never,
+      conversationRepo as never,
+      crisisRepo as never,
+      { assertAccepted: vi.fn().mockResolvedValue(null) } as never,
+      { get: vi.fn().mockReturnValue({ enforceAiChat: true }) } as never,
+      recorder as never,
+    );
+    return { service, recorder };
+  }
+
+  const dto = {
+    tier: LLMTier.RAG,
+    messages: [
+      { role: 'user', content: '今天很焦虑' },
+      { role: 'assistant', content: '先做呼吸' },
+    ],
+    stream: true,
+    useRag: false,
+    conversationId: 'conv-1',
+  };
+
+  it('正常流结束后按 uid + conversationId 写会话', async () => {
+    const { service, recorder } = buildOrchestrator('none');
+    for await (const _chunk of service.streamChat('u-1', dto as never)) {
+      // drain
+    }
+    expect(recorder.record).toHaveBeenCalledWith({
+      uid: 'u-1',
+      conversationId: 'conv-1',
+      messages: dto.messages,
+    });
+  });
+
+  it('高危危机直出路径同样写会话', async () => {
+    const { service, recorder } = buildOrchestrator('high');
+    for await (const _chunk of service.streamChat('u-1', dto as never)) {
+      // drain
+    }
+    expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u-1', conversationId: 'conv-1' }));
   });
 });
