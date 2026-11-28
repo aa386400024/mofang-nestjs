@@ -1,0 +1,194 @@
+{
+  "deliveredAt": "2026-11-29T00:40:29+08:00",
+  "payload": {
+    "receiptId": "RC-AF-611-1",
+    "taskId": "AF-611",
+    "contextId": "phase3-judge-layer",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "4fab586b3753b8a7969cb1998ae43e96651279a5",
+    "dependsOn": [],
+    "priorTasks": [],
+    "policyRefs": [
+      "docs/team/conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-judge-layer/AF-611/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-judge-layer/af611-review-port-shadow-skeleton-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "src/engine-adapters/judge/index.ts",
+        "src/engine-adapters/judge/judge.types.ts",
+        "src/engine-adapters/judge/judge.fingerprint.ts",
+        "src/engine-adapters/judge/judge.rubric.ts",
+        "src/engine-adapters/judge/judge.contract.ts",
+        "src/engine-adapters/judge/judge.redaction.ts",
+        "src/engine-adapters/judge/judge.provider.ts",
+        "src/engine-adapters/judge/judge.shadow.ts",
+        "src/engine-adapters/judge/judge.module.ts",
+        "test/engine-adapters/judge/judge-test-fixtures.ts",
+        "test/engine-adapters/judge/judge-shadow.spec.ts",
+        "test/engine-adapters/judge/judge-redaction.spec.ts",
+        "test/engine-adapters/judge/judge-provider.spec.ts",
+        "test/engine-adapters/judge/judge-rubric.spec.ts",
+        "test/engine-adapters/judge/judge-snapshot-guard.spec.ts",
+        "docs/worklog/completed/phase3-judge-layer/af611-review-port-shadow-skeleton-2026-11-28.md",
+        "docs/worklog/records/phase3-judge-layer/AF-611/receipt-RC-AF-611-1.json"
+      ],
+      "modified": [
+        "src/engine-adapters/eval/eval.service.ts",
+        "src/engine-adapters/eval/eval.types.ts",
+        "src/auto-practice/metrics/metric-dictionary.ts",
+        "src/auto-practice/metrics/batch-metrics.schema.ts",
+        "docs/worklog/records/phase3-judge-layer/AF-611/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": [
+        "04c61006"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2579,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / node v22.23.2",
+        "wallClock": "秒级",
+        "note": "PASS：事件日志 2579 条，schema state-event 1.0.0，哈希链与索引投影一致；证据 .tmp/af611-evidence/events-verify.log",
+        "evidenceFile": ".tmp/af611-evidence/events-verify.log"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-judge-layer/AF-611/task-sheet.md",
+        "exitCode": 1,
+        "errors": 3,
+        "warnings": 0,
+        "specFiles": null,
+        "passed": null,
+        "failed": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / node v22.23.2",
+        "wallClock": "秒级",
+        "note": "AF-611 任务单元 PASS；状态索引、工具契约与事件链 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单新增",
+        "evidenceFile": ".tmp/af611-evidence/validate.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / pnpm 9.15.0",
+        "wallClock": "约 12 秒",
+        "note": "全仓 TS 与 scripts lint 通过；AF-611 文件复杂度、正则与排序问题已全部清理",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / pnpm 9.15.0",
+        "wallClock": "约 40 秒",
+        "note": "tsc -p tsconfig.json --noEmit 通过；node>=26 仅为 pnpm engine WARN，不阻塞",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/judge",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 5,
+        "passed": 31,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / pnpm 9.15.0",
+        "wallClock": "10.63s",
+        "note": "5 files / 31 tests passed：端口替身、Provider 失败回落、脱敏、Rubric 血缘、可选快照段守卫",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 376,
+        "passed": 5253,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / pnpm 9.15.0",
+        "wallClock": "338.81s",
+        "note": "任务收尾全量回归：375 passed / 1 skipped files，5253 passed / 4 skipped tests",
+        "evidenceFile": ".tmp/af611-evidence/vitest-full.log"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 19,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "PASS：task=AF-611 status=submitted files=19 covered=19；暂存唯一归属 AF-611，无状态面、legacy、PsyGuard 混入",
+        "evidenceFile": null
+      }
+    ],
+    "reproNotes": "Windows DESKTOP-E3EVQ9P，Node v22.23.2 / pnpm 9.15.0。顺序：events verify → validate --sheet → pnpm lint → pnpm typecheck → 目标 Vitest → 全量 pnpm test → preflight。validate 退出码 1 由 AF-600/601/602 历史回执缺口造成，AF-611 单元 PASS；全量回归只在任务收尾执行一次。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单、回执、交付记录统一 AF-611；contextId phase3-judge-layer、type implementation、baselineRef 与任务单一致"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态仅经 NestJS CLI 写入；未手改 task-state-index.json、journal.jsonl、快照或 Web 投影"
+      },
+      {
+        "item": "scope-file",
+        "result": "pass",
+        "note": "新增 17 / 修改 5 均在 scope.files 与 records/AF-611 记录包内；约 500 项历史脏文件全部排除"
+      },
+      {
+        "item": "contract-ref",
+        "result": "pass",
+        "note": "回执按 urn:agent-collaboration-framework:schema:receipt:1.0.0 组织；任务单 contractRef 为 task-sheet:1.2.0"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify 通过，2579 条事件哈希链与索引投影一致；状态写入由 CLI 承担"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同 taskId、同数字、同结论；台账以 docs/worklog 为唯一事实源"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "九项验收全部落地：ReviewJudgePort 与三维 0/1/2、MiniMax Provider 复用结构化 JSON 出口且排除 DeepSeek、Rubric/Prompt 版本指纹、Shadow 失败不阻断批次、v1 可选快照段守卫、judge.* neutral 指标、脱敏纯函数与危机轮次排除、机器代理标注、31 条目标单测。lint、typecheck、全量 5253 条回归、events verify、preflight 均通过；validate 仅 AF-600/601/602 历史缺口。scope 内无并行产物、无越界重构，契约与字段对齐，无新增遗留与偏差。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
