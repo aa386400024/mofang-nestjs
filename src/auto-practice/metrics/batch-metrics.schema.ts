@@ -9,6 +9,8 @@
 //     · 字段只增不删; 确需删除/改语义, 必须升 schemaVersion 而不是就地改 v1.
 
 import type { ZeroMotionBreakdown } from './acceptance-thresholds.js';
+import { assertJudgeSnapshotSection } from '../../engine-adapters/judge/judge.contract.js';
+import type { JudgeSnapshotSection } from '../../engine-adapters/judge/judge.types.js';
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
 
 /** 当前快照版本. */
@@ -63,6 +65,13 @@ export interface BatchMetricsV1 {
   readonly metrics: Readonly<Record<string, number | null>>;
   /** 全批零变化场次细分 (I-22); 字段只增不删, 旧快照缺省. */
   readonly zeroMotionBreakdown?: ZeroMotionBreakdown;
+  /**
+   * 可选 Judge Shadow 段 (AF-611 / Phase3 P0).
+   *
+   * ⚠️ schemaVersion 仍为 1: Judge 是**可选段**, 旧快照缺省即通过;
+   *   段内评审必须带评级 / 理由 / 证据引用 / 信心度 / 血缘, 失败场次记 null.
+   */
+  readonly judge?: JudgeSnapshotSection | null;
   readonly byMode: Readonly<Record<string, MetricsSlice>>;
   readonly byCharacter: Readonly<Record<string, MetricsSlice>>;
 }
@@ -224,6 +233,8 @@ export function assertBatchMetricsV1(value: unknown, label = 'snapshot'): assert
   if (!isObject(value['byMode'])) throw new Error(`[${label}] byMode 缺失`);
   if (!isObject(value['byCharacter'])) throw new Error(`[${label}] byCharacter 缺失`);
   if (value['zeroMotionBreakdown'] !== undefined) assertZeroMotionBreakdown(value['zeroMotionBreakdown'], label);
+  // Judge 段可选: undefined / null 都合法 (旧快照 / 整段失败), 对象则逐项严格校验.
+  if (value['judge'] !== undefined) assertJudgeSnapshotSection(value['judge'], `${label}.judge`);
   for (const [sliceName, slices] of [
     ['byMode', value['byMode']],
     ['byCharacter', value['byCharacter']],
