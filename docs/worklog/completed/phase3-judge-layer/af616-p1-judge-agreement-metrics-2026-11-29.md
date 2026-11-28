@@ -78,7 +78,7 @@
 ## 9. 提交、推送与结论
 
 - Commit：`fc361ea99fddf17cca44f2a60136496b5eef30c8`（9 files, +937/-8；Task trailer `AF-616`）
-- Push / PR：提交时分支尚未推送；推送与 PR 结果以回执 `changedFiles.commits` 及 `manualReviewList` 为准
+- Push / PR：任务分支已推送 `origin/task/AF-616-judge-layer-p1-a-scope-judge-agreement`；draft PR #315 https://github.com/aa386400024/mofang-nestjs/pull/315 （base `integrate`，合并门未执行）
 - `finalStatus`：`completed`
 - `reviewVerdict`：`passed`
 - 结论依据：AF-616 全部验收项与闸门真实通过；scope 内无并行产物、无越界重构；契约与字段对齐；遗留仅第二 Provider 未接入与编排侧依赖改指。
