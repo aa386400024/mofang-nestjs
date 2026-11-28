@@ -70,15 +70,18 @@
 
 ## 8. 偏差、遗留与人工复核
 
-- 偏差：AF-612 在 submitted 无法原地扩 scope，改由 successor AF-616 承接并加入字典测试文件；AF-615 在首轮 run-once 被误派发后取消，未开工，需编排侧另发 review 单承接。
+- 任务范围偏差：无。worktree 缺 `.env` 与 manifest 生成属环境/工具前置，已记入回执 `reproNotes`，不计 scope 偏差。
+- 编排背景：AF-612 在 submitted 无法原地扩 scope，由 successor AF-616 承接并加入字典测试文件；AF-615 首轮误派发后取消、未开工，需另发 review 单承接。
 - Backlog：第二模型族 Provider 未接入（依赖外部模型 key，另开任务单）；AF-613/614 依赖需由编排侧从 AF-612 改指 AF-616。
 - 未决问题：无代码层未决；下游依赖指向需编排侧处理。
 - 人工/小豆复核：核对 AF-616 回执、changedFiles、scope 与更正后的依赖台账。
 
 ## 9. 提交、推送与结论
 
-- Commit：`fc361ea99fddf17cca44f2a60136496b5eef30c8`（9 files, +937/-8；Task trailer `AF-616`）
+- Commit：`fc361ea99fddf17cca44f2a60136496b5eef30c8`（9 files, +937/-8；Task trailer `AF-616`）；回执修订 `RC-AF-616-2` 提交 `2618ee551133803c6c41ffab1cbb6f00d4ca7afa`
+- 全量回归：`pnpm test` 5263 passed / 10 skipped（376 files passed / 1 skipped，429.01s；日志 `.tmp/af616-evidence/vitest-full.log`）
 - Push / PR：任务分支已推送 `origin/task/AF-616-judge-layer-p1-a-scope-judge-agreement`；draft PR #315 https://github.com/aa386400024/mofang-nestjs/pull/315 （base `integrate`，合并门未执行）
+- 编排归档：`run-once` 以 `RC-AF-616-2` 验收归档，AF-616 `completed`，活跃任务 0、归档 551；AF-613/614 仍 backlog
 - `finalStatus`：`completed`
 - `reviewVerdict`：`passed`
 - 结论依据：AF-616 全部验收项与闸门真实通过；scope 内无并行产物、无越界重构；契约与字段对齐；遗留仅第二 Provider 未接入与编排侧依赖改指。
