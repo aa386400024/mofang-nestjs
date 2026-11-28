@@ -34,6 +34,7 @@ import { buildEvalReport, diffEvalReports, EVAL_REPORT_REPOSITORY, type EvalRepo
 import { DEFAULT_EVAL_GATE_POLICY, EvalRunner, type EvalDeliberationExecutorPort, type EvalPredictionSample } from './eval.runner.js';
 import type {
   EvalBaselineComparison,
+  EvalCompactState,
   EvalCost,
   EvalDataQuality,
   EvalDelta,
@@ -42,10 +43,13 @@ import type {
   EvalReportConfig,
   EvalRunSnapshot,
   EvalRunsSummary,
+  EvalSessionRecord,
   EvalSplit,
   EvalSuggestionQuality,
   EvalTriggerQuality,
 } from './eval.types.js';
+import { runJudgeShadow, type JudgeShadowSession } from '../judge/judge.shadow.js';
+import type { JudgeSnapshotSection, ReviewJudgePort } from '../judge/judge.types.js';
 
 /** 数据集根目录的缺省位置 (相对仓库根). */
 export const DEFAULT_EVAL_DATASET_ROOT = 'data/eval-datasets';
@@ -74,6 +78,13 @@ export interface EvalRunRequest {
   readonly deliberationExecutor?: EvalDeliberationExecutorPort;
   /** 上一版报告 (用于回归对比). */
   readonly previousReport?: EvalReport | null;
+  /**
+   * 可选的 Judge Shadow 端口.
+   *
+   * ⚠️ 只在调用方显式传入时启用; 不传 = 批次行为与 AF-611 之前逐字一致.
+   *   传入后 Judge 失败也只记 null, 不阻断批次.
+   */
+  readonly judge?: ReviewJudgePort;
 }
 
 /** 链路的外部依赖 (便于单测注入假实现). */
@@ -84,6 +95,8 @@ export interface EvalPipelineDeps {
   readonly reportId?: () => string;
   /** 加载数据集 (缺省读文件). */
   readonly loadDataset?: (root: string, version: string) => ReturnType<typeof loadEvalDatasetFromDirectory>;
+  /** Judge Shadow 端口 (缺省 = 不启用). */
+  readonly judge?: ReviewJudgePort;
 }
 
 /** 链路结果. */
@@ -198,6 +211,42 @@ function suggestionUnavailableReason(samples: readonly EvalSuggestionSample[]): 
 }
 
 /**
+ * 把紧凑状态压成纯数值字典 (Judge 输入只取数值, 不带状态对象引用).
+ *
+ * @param state 紧凑状态
+ * @returns 数值字典
+ */
+function toNumericRecord(state: EvalCompactState): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(state)) {
+    if (typeof value === 'number') out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * 把评测数据集场次映射为 Judge Shadow 场次.
+ *
+ * ⚠️ 数据集本身不含对话原文, 所以这里只传数值 + 事件标签 + 风险等级;
+ *   Judge 侧会生成不含原文的结构化摘要片段 (脱敏层仍会再走一遍).
+ *
+ * @param sessions 数据集场次
+ * @returns Shadow 场次
+ */
+export function toJudgeShadowSessions(sessions: readonly EvalSessionRecord[]): JudgeShadowSession[] {
+  return sessions.map((session) => ({
+    sessionId: session.sessionId,
+    turns: session.turns.map((turn) => ({
+      turnIndex: turn.turnIndex,
+      riskLevel: turn.riskLevel,
+      events: turn.events,
+      before: toNumericRecord(turn.before),
+      after: toNumericRecord(turn.after),
+    })),
+  }));
+}
+
+/**
  * 跑一次完整评测 (纯链路, 零 Nest 依赖 —— CLI 也走这一条).
  *
  * @param request 入参
@@ -274,9 +323,25 @@ export async function runEvaluationPipeline(request: EvalRunRequest, deps: EvalP
     previous: request.previousReport ?? null,
   });
 
-  const diff = diffEvalReports(request.previousReport ?? null, report);
+  // Judge Shadow: 只在调用方显式传入端口时旁路执行.
+  // ⚠️ 整段失败也不抛: 记 null, 批次报告照常产出 (Shadow 不改变主流程).
+  let judgeSection: JudgeSnapshotSection | null | undefined;
+  if (deps.judge !== undefined) {
+    try {
+      judgeSection = await runJudgeShadow({
+        sessions: toJudgeShadowSessions(cleaned.dataset.sessions),
+        port: deps.judge,
+        now: () => now,
+      });
+    } catch {
+      judgeSection = null;
+    }
+  }
+  const finalReport: EvalReport = judgeSection === undefined ? report : { ...report, judge: judgeSection };
 
-  return { report, diff, dropped: cleaned.dropped };
+  const diff = diffEvalReports(request.previousReport ?? null, finalReport);
+
+  return { report: finalReport, diff, dropped: cleaned.dropped };
 }
 
 /**
@@ -351,7 +416,7 @@ export class EvalService {
   async runEvaluation(request: EvalRunRequest): Promise<EvalReport> {
     try {
       const previous = request.previousReport ?? (await this.repository.latest(request.datasetVersion));
-      const result = await runEvaluationPipeline({ ...request, previousReport: previous });
+      const result = await runEvaluationPipeline({ ...request, previousReport: previous }, { judge: request.judge });
       await this.repository.save(result.report);
       return result.report;
     } catch (error) {
