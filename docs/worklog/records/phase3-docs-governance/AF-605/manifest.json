@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-605",
+  "contextId": "phase3-docs-governance",
+  "status": "submitted",
+  "createdAt": "2026-11-28T23:03:44+08:00",
+  "updatedAt": "2026-11-28T15:24:05.241Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-docs-governance/AF-605/task-sheet.md",
+    "sha256": "257068b3751560687cf5bccdb340c91bfc0e1d03809689b40154f10d858bbbe4",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-docs-governance/AF-605/receipt-RC-AF-605-1.json",
+      "sha256": "10987fe44dc75a9749bb186d93e663174da116579736bfffa75df9ec9d45d7e6",
+      "receiptId": "RC-AF-605-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af605-frontend-memo-alignment-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-docs-governance-af605-frontend-memo-alignment-2026-11-28.md"
+  ],
+  "tombstone": null
+}
