@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-597",
   "contextId": "phase2.5-quality-gates",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-28T16:09:57+08:00",
-  "updatedAt": "2026-11-28T08:10:38.918Z",
+  "updatedAt": "2026-11-28T08:20:56.127Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md",
     "sha256": "1608edfa21ed1c68836b53dba86e8dd291db62068a6a6d95757e1099675d6011",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-597/receipt-RC-AF-597-1.json",
+      "sha256": "037e97c1280a5feb15fe855825d170cd6819b2d76a92825c47e648689f7a785b",
+      "receiptId": "RC-AF-597-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md",
   "legacyPaths": [
     "docs/worklog/pending/phase2.5-af597-icon-glyph-rework-2026-11-28.md"
