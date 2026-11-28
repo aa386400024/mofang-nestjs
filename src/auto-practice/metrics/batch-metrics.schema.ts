@@ -9,6 +9,7 @@
 //     · 字段只增不删; 确需删除/改语义, 必须升 schemaVersion 而不是就地改 v1.
 
 import type { ZeroMotionBreakdown } from './acceptance-thresholds.js';
+import { assertJudgeAgreementSection } from '../../engine-adapters/judge/judge.agreement.js';
 import { assertJudgeSnapshotSection } from '../../engine-adapters/judge/judge.contract.js';
 import type { JudgeSnapshotSection } from '../../engine-adapters/judge/judge.types.js';
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
@@ -234,7 +235,13 @@ export function assertBatchMetricsV1(value: unknown, label = 'snapshot'): assert
   if (!isObject(value['byCharacter'])) throw new Error(`[${label}] byCharacter 缺失`);
   if (value['zeroMotionBreakdown'] !== undefined) assertZeroMotionBreakdown(value['zeroMotionBreakdown'], label);
   // Judge 段可选: undefined / null 都合法 (旧快照 / 整段失败), 对象则逐项严格校验.
-  if (value['judge'] !== undefined) assertJudgeSnapshotSection(value['judge'], `${label}.judge`);
+  if (value['judge'] !== undefined) {
+    const judge = value['judge'];
+    assertJudgeSnapshotSection(judge, `${label}.judge`);
+    if (isObject(judge) && judge['agreement'] !== undefined) {
+      assertJudgeAgreementSection(judge['agreement'], `${label}.judge.agreement`);
+    }
+  }
   for (const [sliceName, slices] of [
     ['byMode', value['byMode']],
     ['byCharacter', value['byCharacter']],

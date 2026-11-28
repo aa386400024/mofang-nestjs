@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-616",
+  "contextId": "phase3-judge-layer",
+  "status": "submitted",
+  "createdAt": "2026-11-28T17:34:48.753Z",
+  "updatedAt": "2026-11-28T18:23:25.618Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-judge-layer/AF-616/task-sheet.md",
+    "sha256": "489ac328cfc0181c6325ff0fba53207c66f1be1697c3092179865ba419618366",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase3-judge-layer/af616-p1-judge-agreement-metrics-2026-11-29.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

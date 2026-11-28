@@ -417,8 +417,8 @@ function buildDisfluencyMetrics(): readonly MetricDef[] {
  *   - neutral: Judge 结论只旁路留痕, 不进入 Regression evaluator 的好/坏判定;
  *   - nullable: P0 只有显式启用 Shadow 的批次才有值, 未启用批次不伪造 0.
  *
- * 版本口径: judge.* 是不改变任何既有指标口径的**新增观测段**, 字典版本号暂保持 dict-v4;
- * 待 P1 把 Judge 指标接入前端字典缓存时, 与既有键一起统一升版 (避免此刻让前端缓存无谓失效).
+ * 版本口径: judge.* 是不改变任何既有指标口径的**新增观测段**; AF-611 当时为避开 scope 外
+ * 硬断言测试暂保持 dict-v4, AF-616 (P1-A) 已按字典纪律连同 agreement 段统一升到 dict-v5.
  */
 function buildJudgeMetrics(): readonly MetricDef[] {
   return [
@@ -471,6 +471,68 @@ function buildJudgeMetrics(): readonly MetricDef[] {
 }
 
 /**
+ * Judge 双评审一致率指标段 (AF-616 / Phase3 Judge Layer P1-A).
+ *
+ * ⚠️ 全部 direction=neutral / nullable=true:
+ *   - neutral: 一致率只描述两场机器代理评审的对齐程度, 不进入 Regression evaluator 好/坏判定;
+ *   - nullable: 未配对或低于最小场次门槛时不伪造 0, 一致率记 null.
+ *
+ * 口径边界: 只引用两侧既有 lineage, 不发起任何 Provider 调用; 不设达标阈值.
+ */
+function buildJudgeAgreementMetrics(): readonly MetricDef[] {
+  return [
+    {
+      id: 'judge.agreement.paired_sessions',
+      label: 'Judge·一致率配对场次',
+      unit: 'count',
+      direction: 'neutral',
+      bounds: null,
+      nullable: true,
+      definition: '两侧均成功评审且 sessionId 相同的场次数; 任一侧为 null 不计入',
+    },
+    {
+      id: 'judge.agreement.overall_rate',
+      label: 'Judge·整体一致率',
+      unit: 'ratio',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: true,
+      definition: '三维全部同档的配对场次数 ÷ 配对场次数; 低于最小场次门槛记 null',
+    },
+    ...JUDGE_AGREEMENT_DIMENSIONS.flatMap((dimension) => [
+      {
+        id: `judge.agreement.${dimension}.rate`,
+        label: `Judge·一致率·${judgeAgreementDimensionLabel(dimension)}`,
+        unit: 'ratio' as const,
+        direction: 'neutral' as const,
+        bounds: RATIO_BOUNDS,
+        nullable: true,
+        definition: `${judgeAgreementDimensionLabel(dimension)}同档配对场次数 ÷ 配对场次数; 低于最小场次门槛记 null`,
+      },
+      {
+        id: `judge.agreement.${dimension}.disagreement_count`,
+        label: `Judge·分歧·${judgeAgreementDimensionLabel(dimension)}`,
+        unit: 'count' as const,
+        direction: 'neutral' as const,
+        bounds: null,
+        nullable: true,
+        definition: `${judgeAgreementDimensionLabel(dimension)}不同档的配对场次数 (分歧维度分布); 仅观测`,
+      },
+    ]),
+  ];
+}
+
+/** 一致率指标复用的三个 Judge 维度 (与 JUDGE_DIMENSIONS 保持同序). */
+const JUDGE_AGREEMENT_DIMENSIONS = ['empathic_attunement', 'safety_boundary', 'intervention_structure'] as const;
+
+/** 维度中文展示名 (只用于指标 label / definition, 不参与判定). */
+function judgeAgreementDimensionLabel(dimension: (typeof JUDGE_AGREEMENT_DIMENSIONS)[number]): string {
+  if (dimension === 'empathic_attunement') return '共情贴合';
+  if (dimension === 'safety_boundary') return '安全边界';
+  return '干预结构';
+}
+
+/**
  * 字典版本标识.
  *
  * 改字典条目 / 口径 / 取值域时手动递增; 供前端缓存与审计比对.
@@ -481,10 +543,12 @@ function buildJudgeMetrics(): readonly MetricDef[] {
  *   event.holding_present.{count,rate} / event.cold_absent.{count,rate} 四项.
  * · dict-v4 (2026-11-13): C-5-1 探索指标分层 —— 新增 exploration.character_coverage
  *   (探索角色覆盖率 · 角色比例 · 结构观测), 并给 exploration.rate 补长会话档位标注.
+ * · dict-v5 (2026-11-29): Judge P1-A 新增 judge.agreement.* 八项 (配对场次 / 整体率 /
+ *   三维一致率 / 三维分歧分布), 全部 neutral + nullable; 与既有 Judge P0 段合并升版.
  *   ⚠️ **版本必须跟着字典内容走**: 两份不同的字典共用同一个版本号 =
  *     前端缓存不失效 + 审计比对看不出字典换过 (Phase3 P0 已是同款约定).
  */
-export const METRIC_DICTIONARY_VERSION = 'dict-v4';
+export const METRIC_DICTIONARY_VERSION = 'dict-v5';
 
 /** 完整指标字典 (单一真相源). */
 export const METRIC_DICTIONARY: readonly MetricDef[] = [
@@ -494,6 +558,7 @@ export const METRIC_DICTIONARY: readonly MetricDef[] = [
   ...SCALAR_METRICS,
   ...buildDisfluencyMetrics(),
   ...buildJudgeMetrics(),
+  ...buildJudgeAgreementMetrics(),
 ];
 
 /** id → 定义 的快速索引. */
