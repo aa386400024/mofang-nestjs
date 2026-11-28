@@ -1,0 +1,155 @@
+{
+  "deliveredAt": "2026-11-28T16:07:43.377Z",
+  "payload": {
+    "receiptId": "RC-AF-610-1",
+    "taskId": "AF-610",
+    "contextId": "phase3-orchestration",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "4da1753817f34088cc765ea9c700412c072a86cc",
+    "dependsOn": [
+      "AF-609"
+    ],
+    "priorTasks": [],
+    "policyRefs": [
+      "docs/team/conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration/AF-610/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af610-frontend-memo-ledger-intake-scope-2026-11-28.md",
+      "reply": "docs/team/agent-orchestration/transport/receipts/AF-610.json"
+    },
+    "changedFiles": {
+      "commits": [],
+      "externalCommits": [
+        {
+          "repo": "aa386400024/xinsu",
+          "commits": [
+            "9a7c6fa"
+          ]
+        }
+      ],
+      "added": [
+        "docs/worklog/completed/phase3-orchestration/af610-frontend-memo-ledger-intake-scope-2026-11-28.md",
+        "docs/worklog/records/phase3-orchestration/AF-610/receipt-RC-AF-610-1.json"
+      ],
+      "modified": [
+        "docs/worklog/records/phase3-orchestration/AF-610/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "python tools/orchestration/cli.py validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 11107,
+        "machine": "windows/client:582478:4140140854520649 (DESKTOP-E3EVQ9P)",
+        "wallClock": "秒级",
+        "note": "前端执行方回执证据：ACF 契约闸门 PASS，检查 11107 项、失败 0；主会话未复跑 Flutter 业务闸门，闸门数字以 XS-144 回执与前端证据日志为准",
+        "evidenceFile": "docs/team/agent-orchestration/evidence/XS-144-validate-20261129-000036.log"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2576,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell",
+        "wallClock": "秒级",
+        "note": "PASS：后端事件日志 2576 条，schema state-event 1.0.0，哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-orchestration/AF-610/task-sheet.md",
+        "exitCode": 1,
+        "errors": 3,
+        "warnings": 0,
+        "specFiles": null,
+        "passed": null,
+        "failed": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell",
+        "wallClock": "秒级",
+        "note": "AF-610 任务单元 PASS；状态索引、工具契约、协议视图与事件链 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单引入"
+      },
+      {
+        "command": "read-only artifact and scope metadata cross-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell",
+        "wallClock": "不足 1s",
+        "note": "XS-144 回执、交付记录与前端备忘指针已回流；清单与 AF-610 任务单 scope、排除项和跨仓引用口径一致；未发现 lib/、test/、Framework 规范件或 PsyGuard 改动引用"
+      }
+    ],
+    "reproNotes": "AF-610 是 AF-609 回收口径的前端备忘切片。前端执行方在 XS-144 闭环内完成备忘改动、前端适配层闸门与回执自验；小豆只回流并核对回执工件、verdict / scope / 契约 / 遗留字段、路径与跨仓引用，以及 CLI 台账归档状态。测试、lint、analyze、typecheck 等业务闸门不由主会话重复抽跑。前端提交 9a7c6fa 属于外部仓工件引用，不进入后端本仓 commits。状态投影、Web data.js 与 legacy migrate 遗留继续排除在本单暂存清单之外。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-610 贯穿后端任务单、记录包、交付记录与回执；XS-144 为前端适配层本地映射单号，台账事实源为 NestJS docs/worklog"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "后端任务登记、提级、领单、回执冻结与台账归档只经后端 CLI；未手工编辑 task-state-index.json、journal.jsonl、快照或 Web 投影"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组必填字段齐备，contractRef 使用 receipt 1.0.0；任务单 frontmatter 已由 AF-610 register 摄入"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify PASS：2576 条事件哈希链与索引投影一致"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "后端仓仅限 AF-610 台账记录包、回执副本与交付记录；NestJS src/、测试、迁移、种子、运行配置、Flutter lib/、Framework 规范件与冻结期 PsyGuard 零改动"
+      },
+      {
+        "item": "cross-repo-boundary",
+        "result": "pass",
+        "note": "前端提交 9a7c6fa 与前端工件路径走 externalCommits / artifactRefs.others；不写入后端 changedFiles.commits"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria、前端 XS-144 回执与交付记录、后端 AF-610 交付记录在 taskId、scope、回收边界与外部仓引用口径上一致"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "前端回执工件齐全且 verdict 为 passed；备忘已切换为执行方自验收 + 小豆元数据回收口径；后端事件链 verify PASS，AF-610 任务单元通过；scope 元数据、文件清单与跨仓引用核对一致。无越界重构、无并行 legacy 产物混入、无新增遗留与偏差。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地 CLI 校验、工件只读核对与台账收口，无付费 API 调用。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}
