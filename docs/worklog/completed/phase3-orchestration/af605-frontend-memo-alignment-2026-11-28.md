@@ -47,13 +47,23 @@
   - `docs/team/agent-orchestration/state/task-state-index.json`
 - 删除：无。
 
-### 4.2 后端仓 AF-605 台账切片
+### 4.2 后端仓 AF-605 / AF-606 / AF-608 台账切片
 
-- 新增：
+- AF-605 新增（已随提交 `4b084db2` 入库）：
   - `docs/worklog/records/phase3-docs-governance/AF-605/task-sheet.md`
   - `docs/worklog/records/phase3-docs-governance/AF-605/receipt-RC-AF-605-1.json`
   - `docs/worklog/records/phase3-docs-governance/AF-605/manifest.json`
+  - `docs/worklog/records/legacy/AF-605/manifest.json`
+  - `docs/worklog/records/legacy/AF-605/task-sheet.md`
   - `docs/worklog/completed/phase3-orchestration/af605-frontend-memo-alignment-2026-11-28.md`
+- AF-606 记录包：
+  - `docs/worklog/records/phase3-orchestration/AF-606/manifest.json`：freeze 后补入回执哈希与状态投影
+  - `docs/worklog/records/phase3-orchestration/AF-606/task-sheet.md`：scope 补入 AF-606 自身记录包目录
+  - `docs/worklog/records/phase3-orchestration/AF-606/receipt-RC-AF-606-1.json`：冻结回执副本，AF-608 返修提交入库
+- AF-608 返修记录包：
+  - `docs/worklog/records/phase3-orchestration/AF-608/manifest.json`
+  - `docs/worklog/records/phase3-orchestration/AF-608/task-sheet.md`
+  - `docs/worklog/records/phase3-orchestration/AF-608/receipt-RC-AF-608-1.json`：回执冻结后生成并随返修记录提交入库
 - 修改（CLI 状态投影，非手工状态面编辑）：
   - `docs/team/agent-orchestration/orchestration-snapshot.json`
   - `docs/team/agent-orchestration/state/journal.jsonl`
@@ -79,8 +89,8 @@
 
 | 实际命令 | 退出码 | 错误 | 警告 | 关键数字 / 说明 | 原始证据 |
 | --- | ---: | ---: | ---: | --- | --- |
-| `node scripts/orchestration/cli.mjs events verify` | 0 | 0 | 0 | 事件日志 2551 条；schema state-event 1.0.0；哈希链与索引投影一致 | 后端 CLI stdout |
-| `node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-docs-governance/AF-605/task-sheet.md` | 1（仅历史遗留失败） | 3 | 0 | AF-605 任务单元 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单引入 | 后端 CLI stdout |
+| `node scripts/orchestration/cli.mjs events verify` | 0 | 0 | 0 | 事件日志 2564 条；schema state-event 1.0.0；哈希链与索引投影一致 | 后端 CLI stdout |
+| `node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-orchestration/AF-608/task-sheet.md` | 1（仅历史遗留失败） | 3 | 0 | AF-608 任务单元 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单引入 | 后端 CLI stdout |
 | `python tools/orchestration/cli.py validate`（前端归档后复跑记录） | 0 | 0 | 0 | 11060 项 / 失败 0 | `docs/team/agent-orchestration/evidence/XS-143-validate-postarchive-20261128-231944.log` |
 | `python tools/orchestration/cli.py validate`（本次复核） | 0 | 0 | 0 | 11060 项 / 失败 0 → PASS | 前端 CLI stdout |
 | `git show --name-only --format=fuller 760e318` | 0 | 0 | 0 | 9 个文件全部为前端编排文档 / 状态面 / 证据；无业务代码文件 | 前端仓 git stdout |
@@ -96,18 +106,18 @@
 - 跨仓边界：前端提交不写入后端回执本仓 `changedFiles.commits`；前端工件通过 `artifactRefs.others` 与本记录 §4.1 指针引用。
 - Framework 规范件：未修改。PsyGuard：未触碰。
 
-## 8. 偏差、遗留与人工复核
+## 8. backlogItems、deviationTable、遗留与人工复核
 
-- 偏差：无；`deviationAbsent=true`。XS-143 与 AF-605 双号并存属于前后端适配层映射口径，不是范围偏差。
-- Backlog（既有战线，另立任务单授权后处理，不混入本单）：
+- `deviationTable`：空数组；本次返修未改变 AF-605 / AF-606 已冻结回执的交付口径，`deviationAbsent=true`。XS-143 与 AF-605 双号并存属于前后端适配层映射口径，不是范围偏差。
+- `backlogItems`：AF-608 回执无新增遗留；以下既有战线继续另立任务单授权后处理，不混入本单：
   - AF-600 / AF-601 / AF-602 历史回执 schema 缺口。
   - VPT 报告合同哈希漂移。
   - 根目录临时日志、排查脚本与 legacy migrate 遗留改动清理。
   - AF-545 缺 task-sheet.md 的历史记录缺口。
-- 未决问题：无新增产品或架构未决项。
-- 复核节点：
+- 未决问题：无新增产品或架构未决项。AF-604 PR 合并、后端台账 PR 创建、Flutter XS-143 推送均属于后续授权节点，不进入 AF-608 回执 `openQuestions` 或 `manualReviewList`。
+- 后续节点记录：
   1. AF-604 PR #311 转 ready 后等待 required checks 全绿，再 squash 合并；合并后复核 integrate push 的 Orchestration Gate 与 merge SHA。
-  2. AF-605 后端台账 PR 在 AF-604 合并后创建；避免把 AF-604 未合并状态投影混入 AF-605 PR。
+  2. AF-605 / AF-606 / AF-608 后端台账 PR 在 AF-604 合并后创建；避免把 AF-604 未合并状态投影混入台账 PR。
   3. Flutter XS-143 提交当前为本地 `code-dev` 未推送；按仓库 push 授权口径与前端门禁结果再推送。
 
 ## 9. 提交、推送与结论

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-608",
+  "contextId": "phase3-orchestration",
+  "status": "backlog",
+  "createdAt": "2026-11-28T23:37:10+08:00",
+  "updatedAt": "2026-11-28T15:35:54.670Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-orchestration/AF-608/task-sheet.md",
+    "sha256": "e84510bd36339691e2d29d63d79408142b3fde24f5aa9210233becea59e527bd",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af605-frontend-memo-alignment-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-orchestration-af608-af606-receipt-scope-rework-2026-11-28.md"
+  ],
+  "tombstone": null
+}

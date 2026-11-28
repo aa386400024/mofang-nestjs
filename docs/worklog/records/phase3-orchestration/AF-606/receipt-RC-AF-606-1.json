@@ -1,0 +1,166 @@
+{
+  "deliveredAt": "2026-11-28T15:31:26.592Z",
+  "payload": {
+    "receiptId": "RC-AF-606-1",
+    "taskId": "AF-606",
+    "contextId": "phase3-orchestration",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "fe845ffb3b7634fb6f7c7d4971c5bc8b51eb4f9a",
+    "dependsOn": [
+      "AF-605"
+    ],
+    "priorTasks": [],
+    "policyRefs": [
+      "docs/team/conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration/AF-606/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af605-frontend-memo-alignment-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [
+        "4b084db2"
+      ],
+      "added": [
+        "docs/worklog/completed/phase3-orchestration/af605-frontend-memo-alignment-2026-11-28.md",
+        "docs/worklog/records/legacy/AF-605/manifest.json",
+        "docs/worklog/records/legacy/AF-605/task-sheet.md",
+        "docs/worklog/records/phase3-docs-governance/AF-605/manifest.json",
+        "docs/worklog/records/phase3-docs-governance/AF-605/receipt-RC-AF-605-1.json"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2556,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / node v22.23.2",
+        "wallClock": "秒级",
+        "note": "PASS：事件日志 2556 条，schema state-event 1.0.0，哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-orchestration/AF-606/task-sheet.md",
+        "exitCode": 1,
+        "errors": 3,
+        "warnings": 0,
+        "specFiles": null,
+        "passed": null,
+        "failed": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / node v22.23.2",
+        "wallClock": "秒级",
+        "note": "AF-606 任务单元 PASS；状态索引、工具契约、协议视图与事件链 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单引入"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 7,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "PASS：task=AF-606 status=submitted files=7 covered=0；状态投影、Web data.js 与 legacy migrate 遗留均未进入暂存清单"
+      },
+      {
+        "command": "git show --stat --oneline --name-only HEAD",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 7,
+        "passed": null,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell / mofang-nestjs repo",
+        "wallClock": "秒级",
+        "note": "首个收口提交 4b084db2 实际收录 7 个台账文件；未收录状态面生成物、业务代码或 legacy migrate 遗留目录"
+      }
+    ],
+    "reproNotes": "AF-606 是 AF-605 归档后的台账入库收口任务，不承接业务编码。先登记、提级、领单，使 AF-605 已归档产物获得活跃任务提交归属；暂存仅包含 AF-605 记录包、交付记录与 AF-606 任务记录包。状态投影（snapshot、journal、task-state-index、Web data.js）继续保持未暂存，待 AF-604 PR 合并后按独立状态同步提交处理；约 494 项 legacy manifest 修改、6 个回执删除件与 8 个未跟踪 legacy 记录包目录继续排除。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-606 贯穿任务单、记录包、交付记录引用与回执；AF-605 作为被收口的前置归档任务出现在依赖与产物路径中"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "后端登记、提级、领单与回执摄入只经后端 CLI；未手工编辑 task-state-index.json、journal.jsonl、快照或 Web 投影"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 经 register 摄入；回执六组必填字段齐备，contractRef 使用 receipt 1.0.0"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify PASS：2556 条事件哈希链与索引投影一致"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "仅后端文档台账与任务记录包；NestJS src/、测试、迁移、种子、运行配置、Flutter lib/、Framework 规范件与冻结期 PsyGuard 零改动"
+      },
+      {
+        "item": "cross-repo-boundary",
+        "result": "pass",
+        "note": "前端 XS-143 SHA 仅在 AF-605 交付记录中引用；本仓 changedFiles.commits 只记录后端收口提交"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria 对应台账文件入库、状态投影隔离、legacy migrate 遗留排除与业务代码零改动；回执文件清单与 git show 实际收录清单一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF606-B1",
+        "impact": "AF-600 / AF-601 / AF-602 历史回执 schema 缺口、VPT 报告合同哈希漂移、根目录临时日志与排查脚本、AF-545 历史记录缺口、legacy migrate 遗留改动继续作为既有战线，另立任务单授权后处理，不在本单范围",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [
+      "AF-604 PR #311 转 ready 后等待 required checks 全绿，再 squash 合并；合并后复核 integrate push 的 Orchestration Gate 与 merge SHA",
+      "AF-605 / AF-606 后端台账 PR 在 AF-604 合并后创建，避免混入 AF-604 未合并状态投影",
+      "Flutter XS-143 提交 760e318 当前为本地 code-dev 未推送；按仓库 push 授权口径与前端门禁结果再推送"
+    ],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-606 收口提交仅限台账文档与任务记录包；事件链 verify PASS，AF-606 任务单元通过，preflight 确认暂存归属唯一且无状态面混入。validate 的 3 个 FAIL 全部来自历史 AF-600 / AF-601 / AF-602 回执 schema 缺口，与本单无关；无越界重构、无并行 legacy 产物混入，新增遗留已编号记录，偏差为空。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地 CLI 校验与 git 只读核对，无付费 API 调用。"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

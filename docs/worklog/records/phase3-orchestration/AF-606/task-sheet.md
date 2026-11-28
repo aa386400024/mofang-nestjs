@@ -17,6 +17,7 @@ scope:
     - docs/worklog/pending/phase3-orchestration-af606-af605-ledger-record-commit-2026-11-28.md
     - docs/worklog/records/legacy/AF-605/
     - docs/worklog/records/phase3-docs-governance/AF-605/
+    - docs/worklog/records/phase3-orchestration/AF-606/
     - docs/worklog/completed/phase3-orchestration/af605-frontend-memo-alignment-2026-11-28.md
   modules: []
   interfaces: []
