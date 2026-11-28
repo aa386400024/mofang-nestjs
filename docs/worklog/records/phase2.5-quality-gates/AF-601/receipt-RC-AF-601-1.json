@@ -1,0 +1,236 @@
+{
+  "deliveredAt": "2026-11-28T21:18:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-601-1",
+    "taskId": "AF-601",
+    "contextId": "phase2.5-quality-gates",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "3e09857652efda56e728400b1ac9fe6ce4107b4c",
+    "dependsOn": ["AF-599"],
+    "policyRefs": ["docs/team/conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-601/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af601-icon-emoji-field-removal-2026-11-28.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "commits": [],
+      "added": [
+        "docs/worklog/completed/phase2.5/af601-icon-emoji-field-removal-2026-11-28.md"
+      ],
+      "modified": [
+        "src/home/dto/home-overview.dto.ts",
+        "src/home/dto/home-companion-overview.dto.ts",
+        "src/guide/dto/guide.dto.ts",
+        "src/counselor/dto/counselor-home.dto.ts",
+        "src/home/providers/home-overview.service.ts",
+        "src/home/providers/home-companion.service.ts",
+        "src/home/providers/home-micro-intervention-scenario.service.ts",
+        "src/guide/providers/guide.service.ts",
+        "src/counselor/providers/counselor-home.service.ts",
+        "test/home/af596-icon-glyph-contract.spec.ts"
+      ],
+      "deleted": [
+        "test/home/af599-icon-glyph-http-contract.spec.ts"
+      ],
+      "deletionChecks": [
+        {
+          "path": "test/home/af599-icon-glyph-http-contract.spec.ts",
+          "reason": "renamed",
+          "replacement": "test/home/af600-icon-field-removal.spec.ts",
+          "note": "AF-599 覆盖内容保留并翻转为旧字段缺席断言"
+        }
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/home/af600-icon-field-removal.spec.ts test/home/af596-icon-glyph-contract.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "passed": 15,
+        "failed": 0,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "14.45s",
+        "note": "2 files / 15 tests passed；四条端点旧字段缺席、glyph 在场，OpenAPI 8 个旧属性消失"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 60s",
+        "note": "tsc --noEmit 通过，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 90s",
+        "note": "eslint --cache 全量通过，0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 370,
+        "passed": 5222,
+        "failed": 0,
+        "skipped": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "339.34s",
+        "note": "全量收尾：370 files passed / 1 skipped；5222 tests passed / 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "秒级",
+        "note": "输出为空；engine-core 零 diff"
+      }
+    ],
+    "reproNotes": "复核顺序：pnpm exec vitest run test/home/af600-icon-field-removal.spec.ts test/home/af596-icon-glyph-contract.spec.ts；pnpm typecheck；pnpm lint；pnpm test（收尾一次）；git diff --stat HEAD -- src/engine-core。HTTP 契约测试用 @nestjs/testing + supertest，override JwtAuthGuard 注入 userId；OpenAPI 用 SwaggerModule.createDocument + extraModels 强制生成 8 个 schema。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": false,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-601 贯穿任务单、分支、交付记录、回执与提交 trailer"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记 / 提级 / 领单 / 验收 / 归档只经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 通过 validate；回执六组字段齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "register / promote / claim 由 CLI 写入，events verify 待归档后复核"
+      },
+      {
+        "item": "scope-domain",
+        "result": "pass",
+        "note": "只改 4 个 DTO、5 个 provider、2 个测试文件、交付记录"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "task-sheet-eol",
+        "result": "pass",
+        "note": "任务单、交付记录为 UTF-8 无 BOM + LF"
+      },
+      {
+        "item": "field-removal",
+        "result": "pass",
+        "note": "8 个已有 glyph 替代的旧字段全部删除，未留空占位或 undefined 序列化"
+      },
+      {
+        "item": "protected-fields",
+        "result": "pass",
+        "note": "GuideCategoryDto.emoji、DualPracticeItemDto.emoji、DailyCompanionTipDto.icon 均未删除"
+      },
+      {
+        "item": "no-new-dependency",
+        "result": "pass",
+        "note": "无新依赖、无 migration、无表结构变更"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 10 条 successCriteria 全部落地：8 字段删除、4 端点 HTTP 无旧字段、OpenAPI 旧属性消失、3 个受保护字段保留、三闸门全绿、engine-core 零 diff、UTF-8 LF"
+    },
+    "backlogItems": [
+      {
+        "id": "AF601-B1",
+        "impact": "本单为 breaking change；若线上仍有旧版 App 安装包读取 avatarEmoji / coverEmoji / emoji / icon，会出现字段缺失，需要 revert 本提交或推进 API 版本化",
+        "schedule": null
+      },
+      {
+        "id": "AF601-B2",
+        "impact": "AF-599 归档回执仍引用旧测试文件名 test/home/af599-icon-glyph-http-contract.spec.ts，该文件已 git mv 为 af600 文件；按历史记录不回改",
+        "schedule": null
+      },
+      {
+        "id": "AF601-B3",
+        "impact": "AF-600 因 GUI 投递租约过期被归档为 rejected，AF-601 为其内容重签发；AF-600 记录包保留作为审计链路",
+        "schedule": null
+      },
+      {
+        "id": "AF601-B4",
+        "impact": "前端 XS-142 已切 glyph 优先，但 7 处读点与真实响应仍需在联调窗口验证一次",
+        "schedule": null
+      }
+    ],
+    "openQuestions": [
+      "AF-601 硬删旧字段是否随本次发版直接上线，还是与客户端发版窗口对齐后再发布",
+      "是否需要为本次 breaking change 补 release notes 或 API 版本化说明"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "任务单 gates 列三条",
+        "reality": "额外跑了 pnpm test 全量与 git diff --stat HEAD -- src/engine-core",
+        "action": "保留并登记",
+        "why": "全量测试按收尾一次口径执行；engine-core 是框架边界红线，单列证据便于验收"
+      },
+      {
+        "taskSays": "删除 test/home/af599-icon-glyph-http-contract.spec.ts",
+        "reality": "以 git mv 方式重命名为 test/home/af600-icon-field-removal.spec.ts 并翻转断言",
+        "action": "保留并登记",
+        "why": "保留 AF-599 的四端点覆盖，避免重复维护两套 HTTP 契约测试"
+      },
+      {
+        "taskSays": "AF-600 承接本单内容",
+        "reality": "AF-600 被归档为 rejected（GUI 投递租约过期），改由 AF-601 重签发，代码与测试沿用同一份落盘结果",
+        "action": "保留并登记",
+        "why": "已归档任务不得返修，必须新任务；AF-600 记录包保留审计链路"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "8 个旧字段已从 DTO、provider、HTTP 响应与 OpenAPI 中全部移除，glyph 成为唯一图标事实源；3 个无 glyph 替代的字段按任务单保留；定向 15 例、typecheck、lint、全量 5222 例全部通过，engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null,
+    "costNote": "仅本地单测、typecheck、lint 与全量测试，无付费 API 调用。",
+    "deliveredAt": "2026-11-28T21:18:00+08:00"
+  },
+  "scaffold": {
+    "requiredGroups": [
+      "gateResults",
+      "scopeCheck",
+      "contractChecks",
+      "backlogItems",
+      "deviationTable",
+      "reviewVerdict"
+    ],
+    "placeholders": [
+      "gateResults 填命令+退出码+数字",
+      "scopeCheck 填 in-scope 或越界说明",
+      "reviewVerdict 只能填 passed/conditional-pass/rejected"
+    ]
+  }
+}

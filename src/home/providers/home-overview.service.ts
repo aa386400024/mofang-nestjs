@@ -167,8 +167,7 @@ export class HomeOverviewService {
       return {
         id: b.id,
         nickname: profile?.nickname ?? '陪伴者',
-        avatarEmoji: avatar.avatarEmoji,
-        avatarGlyph: avatar.avatarGlyph,
+        avatarGlyph: avatar,
         relation: 'other', // V2.0 简化: 不存 relation 字段, 默认 other
         permissionLevel: b.permissionLevel,
         lastActiveAt: b.boundAt?.toISOString() ?? null,
@@ -178,21 +177,20 @@ export class HomeOverviewService {
   }
 
   /**
-   * 权限等级 → 默认头像 (emoji + 枚举名同图).
+   * 权限等级 → 默认头像枚举名.
    *
-   * 单一事实源: 同一 helper 同时产出新旧字段, 避免 emoji 与 glyph 漂移.
    * L1 基础可见 → personUser; L2 进阶陪伴 → personCompanion; L3 完整信任 → personVerified.
    */
-  private avatarForPermission(permission: 'L1' | 'L2' | 'L3'): { avatarEmoji: string; avatarGlyph: IconGlyph } {
+  private avatarForPermission(permission: 'L1' | 'L2' | 'L3'): IconGlyph {
     switch (permission) {
       case 'L1':
-        return { avatarEmoji: '🌸', avatarGlyph: 'personUser' };
+        return 'personUser';
       case 'L2':
-        return { avatarEmoji: '🌿', avatarGlyph: 'personCompanion' };
+        return 'personCompanion';
       case 'L3':
-        return { avatarEmoji: '🌷', avatarGlyph: 'personVerified' };
+        return 'personVerified';
       default:
-        return { avatarEmoji: '🌱', avatarGlyph: 'personCompanion' };
+        return 'personCompanion';
     }
   }
 }
