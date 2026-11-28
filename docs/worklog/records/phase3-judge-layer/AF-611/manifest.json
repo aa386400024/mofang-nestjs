@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-611",
+  "contextId": "phase3-judge-layer",
+  "status": "backlog",
+  "createdAt": "2026-11-28T23:50:41+08:00",
+  "updatedAt": "2026-11-28T15:51:57.325Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-judge-layer/AF-611/task-sheet.md",
+    "sha256": "193fcfcd9d2000d72a415caad935daa419062afcb49dc7ed5537f8e7cb5d9021",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase3-judge-layer/af611-review-port-shadow-skeleton-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-judge-layer-af611-review-port-shadow-skeleton-2026-11-28.md"
+  ],
+  "tombstone": null
+}
