@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-28T08:10:53.316Z",
+  "generatedAt": "2026-11-28T08:21:11.268Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-597",
-      "contextId": "phase2.5-quality-gates",
-      "type": "implementation",
-      "title": "图标字段 glyph 枚举兼容契约（AF-596 返修）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-597",
-        "contextId": "phase2.5-quality-gates",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-28T08:10:53.079Z",
-        "leaseDeadline": "2026-11-28T08:40:53.076Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-597.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-28T08:10:53.079Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-597.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2089,6 +2048,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-737",
+      "recordedAt": "2026-11-28T08:10:53.561Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-597",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-597",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-597.json"
+      ]
+    },
+    {
       "auditId": "AUD-736",
       "recordedAt": "2026-11-28T08:10:44.298Z",
       "actorRef": "orchestrator",
@@ -2309,65 +2283,25 @@
       "resources": [
         "task/AF-591-export-ai-practice"
       ]
-    },
-    {
-      "auditId": "AUD-722",
-      "recordedAt": "2026-11-27T22:31:52.414Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-591",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-591",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-591.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 736,
+    "total": 737,
     "byResult": {
-      "allowed": 736,
+      "allowed": 737,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 735,
+      "TOOL-QUEUE-SCHEDULER": 736,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 736
+      "orchestrator": 737
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-597",
-        "title": "图标字段 glyph 枚举兼容契约（AF-596 返修）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-quality-gates",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11798,6 +11732,24 @@
             "ref": "docs/worklog/completed/phase2.5/af596-icon-glyph-contract-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-597",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11812,22 +11764,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-597",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md"
-      },
-      {
-        "taskId": "AF-597",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md"
-      }
-    ],
-    "groupId": "phase2.5-quality-gates",
-    "groupIds": [
-      "phase2.5-quality-gates"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11835,5 +11774,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 533
+  "archivedCount": 534
 }
