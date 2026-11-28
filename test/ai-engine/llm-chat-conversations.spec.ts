@@ -145,7 +145,7 @@ describe('流式对话结束 · 落会话元数据', () => {
       { get: vi.fn().mockReturnValue({ enforceAiChat: true }) } as never,
       recorder as never,
     );
-    return { service, recorder };
+    return { service, recorder, conversationRepo };
   }
 
   const dto = {
@@ -160,7 +160,7 @@ describe('流式对话结束 · 落会话元数据', () => {
   };
 
   it('正常流结束后按 uid + conversationId 写会话', async () => {
-    const { service, recorder } = buildOrchestrator('none');
+    const { service, recorder, conversationRepo } = buildOrchestrator('none');
     for await (const _chunk of service.streamChat('u-1', dto as never)) {
       // drain
     }
@@ -169,6 +169,16 @@ describe('流式对话结束 · 落会话元数据', () => {
       conversationId: 'conv-1',
       messages: dto.messages,
     });
+
+    // AF-594: 续聊不重复 INSERT 整行; token 走一条 UPDATE 原子累加.
+    expect(conversationRepo.save).not.toHaveBeenCalled();
+    expect(conversationRepo.update).toHaveBeenCalledWith(
+      { id: 'conv-1', uid: 'u-1' },
+      expect.objectContaining({
+        promptTokens: expect.any(Function),
+        completionTokens: expect.any(Function),
+      }),
+    );
   });
 
   it('高危危机直出路径同样写会话', async () => {

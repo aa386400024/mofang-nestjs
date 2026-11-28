@@ -133,6 +133,14 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
   protected readonly defaultModelKwargs?: Readonly<Record<string, unknown>>;
   /** 重试观测日志 (只打状态码/错误类型名, 不打内容). */
   private readonly logger = new Logger(this.constructor.name);
+  /**
+   * AF-594: LangChain 客户端复用池.
+   *
+   * ChatOpenAI 是无状态构造 + 请求级参数走 call options, 按请求 new 会反复
+   * 创建 HTTP agent / 解析配置. 这里按 (apiKey, model, 生成参数, timeout) 缓存;
+   * 池上限 32, 超出整体清空 (配置维度天然很小, 不会逼近上限).
+   */
+  private readonly llmClients = new Map<string, ChatOpenAI>();
 
   protected constructor(cfg: OpenAICompatibleConfig) {
     this.id = cfg.id;
@@ -327,14 +335,42 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     void accumulated;
   }
 
+  /** AF-594: 客户端缓存键 —— 覆盖所有会改变 ChatOpenAI 构造结果的请求维度. */
+  private llmClientKey(
+    apiKey: string,
+    request: ChatCompletionRequest,
+    modelName: string,
+    overrides: { readonly maxTokens?: number; readonly reasoningEffort?: string; readonly modelKwargs?: Record<string, unknown> },
+    timeoutMs: number | undefined,
+  ): string {
+    return JSON.stringify([
+      apiKey,
+      modelName,
+      request.temperature ?? 0.7,
+      request.topP ?? null,
+      request.frequencyPenalty ?? null,
+      request.presencePenalty ?? null,
+      request.stop ?? null,
+      request.stream ?? false,
+      overrides.maxTokens ?? null,
+      overrides.reasoningEffort ?? null,
+      overrides.modelKwargs ?? null,
+      timeoutMs ?? null,
+    ]);
+  }
+
   /**
    * 构建 LangChain ChatOpenAI — 子类可覆盖 (e.g. 加 vision 模型特殊处理).
    */
   protected buildLLM(apiKey: string, request: ChatCompletionRequest, options?: { readonly timeoutMs?: number }): ChatOpenAI {
     const modelName = this.modelAlias(request.model ?? this.defaultChatModel);
     const overrides = this.buildRequestOverrides(request);
+    const cacheKey = this.llmClientKey(apiKey, request, modelName, overrides, options?.timeoutMs);
 
-    return new ChatOpenAI({
+    const cached = this.llmClients.get(cacheKey);
+    if (cached) return cached;
+
+    const client = new ChatOpenAI({
       modelName,
       // V2026-11-09 治本 (WP-H · 改动 3): **关掉** LangChain 的隐式重试.
       //   AsyncCaller 默认 maxRetries=6 (指数退避 + 抖动), 且不看调用方的截止时间:
@@ -373,6 +409,10 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
         defaultHeaders: this.customHeaders,
       },
     });
+
+    if (this.llmClients.size >= 32) this.llmClients.clear();
+    this.llmClients.set(cacheKey, client);
+    return client;
   }
 
   /**

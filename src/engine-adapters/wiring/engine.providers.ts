@@ -40,7 +40,6 @@ import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
-import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
 import { RuleBasedClassifier } from '../../engine-core/index.js';
 import type {
   AllianceConfig,
@@ -67,6 +66,7 @@ import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-ho
 import type { DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
 import type { DeliberationGatePort } from '../deliberation-gate/deliberation-gate.types.js';
 import type { SessionCostPricing, SessionCostPricingTable } from '../observability/session-cost.js';
+import { BoundedInMemoryMemoryStore } from '../persistence/bounded-in-memory-memory.store.js';
 import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
@@ -113,7 +113,7 @@ export interface EngineMemoryStoreDeps {
 export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStore {
   // WP59: 召回策略配置喂给内存版 (省略 = 内核默认值, 行为与加端口前逐字一致).
   //   纯内存部署与向量版部署喂的是**同一份**配置 → 换存储实现不换召回结果.
-  const fallback = new InMemoryMemoryStore({
+  const fallback = new BoundedInMemoryMemoryStore({
     ...(deps.config ? { recallPolicy: toRecallPolicyOptions(deps.config) } : {}),
   });
   if (!deps.qdrantUrl) return fallback;

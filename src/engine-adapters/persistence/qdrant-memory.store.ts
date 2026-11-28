@@ -235,6 +235,19 @@ export class QdrantMemoryStore implements MemoryStore {
     this.fallback = options.fallback;
   }
 
+  /**
+   * AF-594: 会话关闭时清理回落仓中的会话级记忆.
+   *
+   * 不改变 MemoryStore 端口签名 —— 门面通过结构性类型判断调用可选能力;
+   * 纯内存部署由 BoundedInMemoryMemoryStore 直接提供该方法.
+   */
+  forgetSession(tenantId: string, sessionId: string): void {
+    const fallback = this.fallback as MemoryStore & {
+      forgetSession?: (tenantId: string, sessionId: string) => void;
+    };
+    fallback.forgetSession?.(tenantId, sessionId);
+  }
+
   async remember(entry: MemoryEntry): Promise<void> {
     assertValidMemoryEntry(entry);
 

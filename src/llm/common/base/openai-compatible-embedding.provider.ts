@@ -74,6 +74,8 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
 
   protected readonly customHeaders?: Record<string, string>;
   protected readonly batchSize?: number;
+  /** AF-594: 按 apiKey 复用 embedding 客户端, 避免每次 embed 重建 HTTP 栈. */
+  private readonly embeddingClients = new Map<string, OpenAIEmbeddings>();
 
   protected constructor(cfg: OpenAICompatibleEmbeddingConfig) {
     this.id = cfg.id;
@@ -156,7 +158,10 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
   }
 
   protected buildEmbeddings(apiKey: string): OpenAIEmbeddings {
-    return new OpenAIEmbeddings({
+    const cached = this.embeddingClients.get(apiKey);
+    if (cached) return cached;
+
+    const client = new OpenAIEmbeddings({
       modelName: this.defaultEmbeddingModel,
       // V2026-10-14 治本 (VS-3a — LangChain 1.x OpenAIEmbeddingsParams 类型不完整, 治本 3 类错):
       //   原因: 装包后 npx tsc 报 3 类错, 每修一处引出 1-2 个新错:
@@ -179,6 +184,10 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
       // (跟 chat provider 同 pattern). 保留 openAIApiKey 顶层供 runtime 用.
       openAIApiKey: apiKey,
     });
+
+    if (this.embeddingClients.size >= 32) this.embeddingClients.clear();
+    this.embeddingClients.set(apiKey, client);
+    return client;
   }
 
   /**

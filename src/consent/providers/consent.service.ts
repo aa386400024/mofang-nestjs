@@ -1,11 +1,15 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
 import { CONSENT_REPOSITORY, type ConsentRepository } from '../domain/repositories/consent.repository.js';
 import { ConsentStatusResponseDto } from '../dto/consent-status.dto.js';
 import { RecordConsentDto } from '../dto/record-consent.dto.js';
+
+/** AF-594: 同意正缓存 TTL. 只做每轮前置校验的短窗削峰, 不是权威状态. */
+const CONSENT_ACCEPTED_CACHE_TTL_SECONDS = 300;
 
 /**
  * Consent context — 审计所需的请求元数据.
@@ -48,6 +52,14 @@ export class ConsentService {
     @Inject(CONSENT_REPOSITORY)
     private readonly repo: ConsentRepository,
     private readonly config: ConfigService,
+    /**
+     * AF-594: 同意前置校验的短 TTL 正缓存.
+     *
+     * 可选注入: 既有单测与未接 Redis 的宿主仍可直接 new ConsentService(repo, config).
+     * Redis 不可用时静默回落 DB, 不改变 fail-fast 语义.
+     */
+    @Optional()
+    private readonly redis?: RedisService,
   ) {
     // V2026-11-06 治本 (WP69 · 路径错误型 env 盲区):
     //   旧写法读的是**平铺键** 'consentCurrentVersion' —— 但 default.ts 里没有这个平铺字段
@@ -63,6 +75,16 @@ export class ConsentService {
    * @returns 新创建记录的 id + acceptedAt, 或已有记录的 id + 原始 acceptedAt
    */
   public async record(dto: RecordConsentDto, ctx: ConsentContext): Promise<{ id: string; acceptedAt: Date }> {
+    // AF-594: 记录写入后使该用户该类型的正缓存失效, 保证撤回/重签立刻可见.
+    const invalidate = async (userId: string | null): Promise<void> => {
+      if (!userId || !this.redis) return;
+      try {
+        await this.redis.del(this.acceptedCacheKey(userId, dto.consentType));
+      } catch {
+        // 缓存失效失败最多让旧正缓存在 TTL 内继续命中, 不回滚已提交的写入.
+      }
+    };
+
     // 幂等查询: 已有则更新 IP/UA/metadata (审计), 保留原始 acceptedAt
     const existing = await this.repo.findByIdempotentKey({
       deviceId: dto.deviceId,
@@ -96,6 +118,7 @@ export class ConsentService {
         userAgent: ctx.userAgent,
         metadata,
       });
+      await invalidate(saved.userId);
       return { id: saved.id, acceptedAt: saved.acceptedAt };
     }
 
@@ -112,6 +135,7 @@ export class ConsentService {
       metadata: dto.metadata ?? null,
     });
     this.log.log(`[record] new consent: id=${saved.id} device=${dto.deviceId.slice(0, 8)}... version=${dto.consentVersion}`);
+    await invalidate(saved.userId);
     return { id: saved.id, acceptedAt: saved.acceptedAt };
   }
 
@@ -152,9 +176,27 @@ export class ConsentService {
    * @throws BizException ConsentRequired（未同意或版本过期）
    */
   public async assertAccepted(userId: string, consentType: string): Promise<void> {
+    const cacheKey = this.acceptedCacheKey(userId, consentType);
+    if (this.redis) {
+      try {
+        if ((await this.redis.get(cacheKey)) === '1') return;
+      } catch {
+        // 缓存不可用不阻断业务, 回落 DB 校验.
+      }
+    }
+
     const accepted = await this.repo.findLatestByUser(userId, consentType);
     if (!accepted || accepted.consentVersion !== this.currentVersion) {
       throw new BizException(BizCode.ConsentRequired, `请先同意当前版本协议（${consentType} ${this.currentVersion}）`);
+    }
+
+    // 只缓存"当前版本已同意"的正结果; 未同意不缓存, 避免绑定/补记录后仍被旧否定命中.
+    if (this.redis) {
+      try {
+        await this.redis.set(cacheKey, '1', CONSENT_ACCEPTED_CACHE_TTL_SECONDS);
+      } catch {
+        // 同上, 缓存写失败不影响本次校验.
+      }
     }
   }
 
@@ -167,6 +209,13 @@ export class ConsentService {
    */
   public async withdraw(userId: string, consentType: string): Promise<number> {
     const affected = await this.repo.deleteByUser(userId, consentType);
+    if (this.redis) {
+      try {
+        await this.redis.del(this.acceptedCacheKey(userId, consentType));
+      } catch {
+        // 同 record: 失效失败不阻断撤回本身.
+      }
+    }
     this.log.log(`[withdraw] user=${userId.slice(0, 8)}... type=${consentType} rows=${affected}`);
     return affected;
   }
@@ -183,5 +232,10 @@ export class ConsentService {
       this.log.log(`[bindToUser] migrated ${affected} consents to user=${userId.slice(0, 8)}...`);
     }
     return affected;
+  }
+
+  /** AF-594: 缓存键带版本 —— 配置升版后旧正缓存自然失效. */
+  private acceptedCacheKey(userId: string, consentType: string): string {
+    return `consent:accepted:${this.currentVersion}:${consentType}:${userId}`;
   }
 }

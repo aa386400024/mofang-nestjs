@@ -811,6 +811,15 @@ export class TurnRenderOrchestrator {
    * @param handleId 内核会话句柄
    */
   forgetSession(handleId: string): void {
+    // AF-594: 会话关闭时同时释放该会话的工作记忆 —— 否则记忆仓储会跨场累积.
+    // 可选能力: 有界回落仓提供 forgetSession, 其他 MemoryStore 实现无此方法时跳过.
+    const context = this.resolveContext(handleId);
+    if (context) {
+      const store = this.deps.memories as MemoryStore & {
+        forgetSession?: (tenantId: string, sessionId: string) => void;
+      };
+      store.forgetSession?.(context.tenantId, context.sessionId);
+    }
     this.histories.delete(handleId);
     // AF-358: 来访序号与 history 同生命周期 —— 一起清, 不留跨场残留.
     this.lastVisitorLegByHandle.delete(handleId);

@@ -17,11 +17,23 @@ import { ChatSessionRecorder } from '../../ai-companion/providers/chat-session-r
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
 import { ConsentService } from '../../consent/providers/consent.service.js';
+import type { ChatCompletionChunk } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto.js';
 import { CrisisEventEntity } from '../entities/crisis-event.entity.js';
 import { LLMConversationEntity } from '../entities/llm-conversation.entity.js';
 import { CrisisLevel } from '../enums/ai-crisis.enums.js';
+
+/**
+ * 本轮 usage 累计 (AF-594).
+ *
+ * provider chunk 的 prompt/completion 都是**累计值**, 这里只保存最后一次非空值,
+ * 流结束后一次性原子累加进 DB.
+ */
+interface TurnUsage {
+  promptTokens: number;
+  completionTokens: number;
+}
 
 /**
  * LLM 编排器 — V6.0 §3.5.
@@ -72,21 +84,9 @@ export class LlmOrchestratorService {
       return;
     }
 
-    // 3. 创建 conversation 记录 (用于 token 累计 + crisis 关联).
-    const conversationId = await this.resolveConversationId(uid, dto.conversationId);
-    await this.conversationRepo.save(
-      this.conversationRepo.create({
-        id: conversationId,
-        uid,
-        tier: dto.tier,
-        providerId: null,
-        model: null,
-        title: null,
-        promptTokens: 0,
-        completionTokens: 0,
-        crisisEventId: null,
-      }),
-    );
+    // 3. 创建 / 归属校验 conversation (用于 token 累计 + crisis 关联).
+    //    AF-594: 只有新会话才 INSERT; 续聊已做过归属校验, 不再重复 save 整行.
+    const conversationId = await this.openConversation(uid, dto);
 
     // 4. medium / low crisis — 透传给 LLM, 让其知道上下文, 但 yield chunk 时携带信号.
     let crisisEventId: string | null = null;
@@ -115,9 +115,7 @@ export class LlmOrchestratorService {
         { uid },
       );
 
-      const promptTokens = 0;
-      let completionTokens = 0;
-      let finishReason: string | null = null;
+      const usage: TurnUsage = { promptTokens: 0, completionTokens: 0 };
 
       for await (const chunk of stream) {
         // router chunk → DTO chunk.
@@ -137,25 +135,13 @@ export class LlmOrchestratorService {
               : null,
         };
 
-        // 终结 chunk: 记录 token.
-        if (chunk.isFinal) {
-          finishReason = chunk.finishReason ?? 'stop';
-          completionTokens = chunk.tokenCount;
-        }
+        // 终结 chunk: 记录 token (输入侧 usage 回填 / 输出侧优先 provider 累计值).
+        this.captureUsage(chunk, usage);
       }
 
-      // 6. 更新 conversation (token + crisisEvent + endedAt).
-      await this.conversationRepo.update(
-        { id: conversationId, uid },
-        {
-          promptTokens,
-          completionTokens,
-          crisisEventId,
-          endedAt: new Date(),
-        },
-      );
+      // 6. 更新 conversation (token 原子累加 + crisisEvent + endedAt).
+      await this.persistConversationUsage(uid, conversationId, crisisEventId, usage);
       await this.persistChatSession(uid, conversationId, dto.messages);
-      void finishReason;
     } catch (e) {
       this.logger.error(`streamChat failed uid=${uid} conversationId=${conversationId}: ${(e as Error).message}`);
       throw e;
@@ -248,6 +234,65 @@ export class LlmOrchestratorService {
     } catch (e) {
       this.logger.warn(`persist chat session failed uid=${uid} conversationId=${conversationId} err=${(e as Error).name}`);
     }
+  }
+
+  /**
+   * AF-594: 新会话 INSERT 一次; 续聊只做归属校验, 不再整行 save.
+   */
+  private async openConversation(uid: string, dto: ChatCompletionDto): Promise<string> {
+    if (dto.conversationId) {
+      return this.resolveConversationId(uid, dto.conversationId);
+    }
+
+    const conversationId = randomUUID();
+    await this.conversationRepo.save(
+      this.conversationRepo.create({
+        id: conversationId,
+        uid,
+        tier: dto.tier,
+        providerId: null,
+        model: null,
+        title: null,
+        promptTokens: 0,
+        completionTokens: 0,
+        crisisEventId: null,
+      }),
+    );
+    return conversationId;
+  }
+
+  /** AF-594: 从上游 chunk 回填本轮 usage (只保留累计终值). */
+  private captureUsage(chunk: ChatCompletionChunk, usage: TurnUsage): void {
+    if (chunk.promptTokens !== undefined) usage.promptTokens = chunk.promptTokens;
+    if (chunk.completionTokens !== undefined) usage.completionTokens = chunk.completionTokens;
+    if (!chunk.isFinal) return;
+    if (chunk.completionTokens === undefined) usage.completionTokens = chunk.tokenCount;
+  }
+
+  /**
+   * AF-594: 一条 UPDATE 完成 token 原子累加 + crisisEvent + endedAt.
+   *
+   * 旧写法每轮覆盖 prompt/completion, 会把历史 token 冲掉; 原始表达式让 DB 做
+   * `col = col + delta`, 并发轮次不会互相覆盖.
+   */
+  private async persistConversationUsage(
+    uid: string,
+    conversationId: string,
+    crisisEventId: string | null,
+    usage: TurnUsage,
+  ): Promise<void> {
+    const promptDelta = Math.max(0, Math.trunc(usage.promptTokens));
+    const completionDelta = Math.max(0, Math.trunc(usage.completionTokens));
+
+    await this.conversationRepo.update(
+      { id: conversationId, uid },
+      {
+        promptTokens: () => `prompt_tokens + ${promptDelta}`,
+        completionTokens: () => `completion_tokens + ${completionDelta}`,
+        crisisEventId,
+        endedAt: new Date(),
+      },
+    );
   }
 
   /**

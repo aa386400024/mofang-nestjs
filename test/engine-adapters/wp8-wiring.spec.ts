@@ -32,6 +32,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { vi, type Mock } from 'vitest';
 
+import { BoundedInMemoryMemoryStore } from '../../src/engine-adapters/persistence/bounded-in-memory-memory.store.js';
 import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
@@ -572,7 +573,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
 
     it('未配置向量库时记忆仓储是纯内存实现 (不建任何客户端)', () => {
       const store = createEngineMemoryStore({});
-      expect(store).toBeInstanceOf(InMemoryMemoryStore);
+      expect(store).toBeInstanceOf(BoundedInMemoryMemoryStore);
     });
   });
 
@@ -591,7 +592,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
 
       const store = createEngineMemoryStore({ qdrantUrl: 'http://qdrant:6333', qdrant, embedder });
 
-      expect(store).not.toBeInstanceOf(InMemoryMemoryStore);
+      expect(store).not.toBeInstanceOf(BoundedInMemoryMemoryStore);
     });
 
     it('配了向量库却缺客户端 → 装配期直接炸 (不静默回落成纯内存)', () => {
