@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-609",
+  "contextId": "phase3-orchestration",
+  "status": "backlog",
+  "createdAt": "2026-11-28T23:41:09+08:00",
+  "updatedAt": "2026-11-28T15:41:36.106Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-orchestration/AF-609/task-sheet.md",
+    "sha256": "ae2bb48209d20b1b2443a4e9b216e0f968ea21e283c12059c01e68c73ef88cbb",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af609-orchestrator-intake-scope-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-orchestration-af609-orchestrator-intake-scope-2026-11-28.md"
+  ],
+  "tombstone": null
+}
