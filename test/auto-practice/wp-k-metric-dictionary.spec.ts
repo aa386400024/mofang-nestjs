@@ -88,8 +88,8 @@ describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2 起)', () => {
     'text.disfluency.trailoff_per_turn',
   ];
 
-  it('字典版本已升到 dict-v4 (C5-1 探索指标分层后; 版本必须跟着字典内容走)', () => {
-    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v4');
+  it('字典版本已升到 dict-v5 (Judge P1-A 一致率段并入后; 版本必须跟着字典内容走)', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v5');
   });
 
   it('八个新键齐备, 全部 nullable=false 且方向 neutral', () => {
@@ -135,8 +135,8 @@ describe('D-2 · 两类在场状态事件的指标登记 (dict-v3)', () => {
     }
   });
 
-  it('字典版本已随内容升到 dict-v4 (两份字典不共用同一版本号)', () => {
-    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v4');
+  it('字典版本已随内容升到 dict-v5 (Judge P1-A 一致率段并入后)', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v5');
   });
 });
 

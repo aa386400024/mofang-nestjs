@@ -191,6 +191,38 @@ export interface ReviewJudgePort {
   review(input: JudgeReviewInput): Promise<JudgeReviewResult>;
 }
 
+/** 一致率统计引用的评审血缘快照 (只引用两侧既有 lineage, 不重新采集). */
+export interface JudgeAgreementLineageRef {
+  /** Provider id. */
+  readonly providerId: string;
+  /** 模型名. */
+  readonly model: string;
+  /** Rubric 版本. */
+  readonly rubricVersion: string;
+  /** Prompt 版本. */
+  readonly promptVersion: string;
+  /** Rubric 指纹. */
+  readonly rubricFingerprint: string;
+}
+
+/** 快照 / 报告里的可选一致率子段 (挂在 Judge 段内, 不改变 v1 schemaVersion). */
+export interface JudgeAgreementSection {
+  /** 最小配对场次门槛. */
+  readonly minPairs: number;
+  /** 实际配对场次数 (两侧都非 null 且 sessionId 相同的场次). */
+  readonly pairedSessions: number;
+  /** 整体一致率 [0,1]; 低于 minPairs 时为 null. */
+  readonly overallAgreementRate: number | null;
+  /** 逐维一致率 [0,1]; 低于 minPairs 时三维均为 null. */
+  readonly dimensionAgreementRates: Readonly<Record<JudgeDimension, number | null>>;
+  /** 分歧维度分布 (逐维分歧场次数). */
+  readonly disagreementDimensionCounts: Readonly<Record<JudgeDimension, number>>;
+  /** 左侧 Provider 血缘引用; 无配对时为 null. */
+  readonly leftLineage: JudgeAgreementLineageRef | null;
+  /** 右侧 Provider 血缘引用; 无配对时为 null. */
+  readonly rightLineage: JudgeAgreementLineageRef | null;
+}
+
 /** 快照 / 报告里的可选 Judge 段 (v1 schema 不升级). */
 export interface JudgeSnapshotSection {
   /** 固定 shadow. */
@@ -219,6 +251,8 @@ export interface JudgeSnapshotSection {
   readonly failureCodes: Readonly<Record<string, number>>;
   /** 逐场结果; 失败场次记 null (批次继续). */
   readonly reviews: readonly (JudgeReviewResult | null)[];
+  /** 可选一致率子段 (P1-A); 旧快照缺省即通过, 不改变 v1 版本. */
+  readonly agreement?: JudgeAgreementSection | null;
   /** 生成时刻 (ISO). */
   readonly generatedAt: string;
 }
