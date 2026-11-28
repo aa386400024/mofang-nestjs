@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-28T02:56:18.982Z",
+  "generatedAt": "2026-11-28T04:19:00.969Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-595",
-      "contextId": "phase2.5-quality-gates",
-      "type": "fix",
-      "title": "后台导出与聚合查询性能治理",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-595",
-        "contextId": "phase2.5-quality-gates",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-28T02:56:18.718Z",
-        "leaseDeadline": "2026-11-28T03:26:18.708Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-595.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-28T02:56:18.718Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-595.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2090,6 +2049,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-733",
+      "recordedAt": "2026-11-28T02:56:19.241Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-595",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-595",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-595.json"
+      ]
+    },
+    {
       "auditId": "AUD-732",
       "recordedAt": "2026-11-28T02:56:13.618Z",
       "actorRef": "orchestrator",
@@ -2308,69 +2282,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-590.json"
       ]
-    },
-    {
-      "auditId": "AUD-718",
-      "recordedAt": "2026-11-27T21:59:43.478Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-590",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 732,
+    "total": 733,
     "byResult": {
-      "allowed": 732,
+      "allowed": 733,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 731,
+      "TOOL-QUEUE-SCHEDULER": 732,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 732
+      "orchestrator": 733
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-595",
-        "title": "后台导出与聚合查询性能治理",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-quality-gates",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-594"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11777,6 +11707,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af594-ai-hotpath-performance-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-595",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11791,22 +11739,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-595",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-quality-gates/AF-595/task-sheet.md"
-      },
-      {
-        "taskId": "AF-595",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md"
-      }
-    ],
-    "groupId": "phase2.5-quality-gates",
-    "groupIds": [
-      "phase2.5-quality-gates"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -11814,5 +11749,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 531
+  "archivedCount": 532
 };
