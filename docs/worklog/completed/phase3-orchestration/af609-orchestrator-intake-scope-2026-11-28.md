@@ -31,13 +31,14 @@
 | --- | ---: | ---: | ---: | --- | --- |
 | `node scripts/orchestration/cli.mjs events verify` | 0 | 0 | 0 | 事件日志 2569 条；schema state-event 1.0.0；哈希链、状态索引与投影一致 | 后端 CLI stdout |
 | `node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-orchestration/AF-609/task-sheet.md` | 1（仅历史遗留失败） | 3 | 0 | AF-609 任务单元 PASS；FAIL 仅 AF-600 / AF-601 / AF-602 历史回执 schema 缺口，非本单引入 | 后端 CLI stdout |
-| `pnpm orchestration:preflight` | 待提交前执行 | — | — | 暂存清单唯一归属 AF-609，不含状态面生成物、业务代码或 legacy migrate 遗留 | 后端 preflight stdout |
+| `pnpm orchestration:preflight` | 0 | 0 | 0 | PASS：task=AF-609 status=submitted files=4；暂存清单唯一归属 AF-609，不含状态面生成物、业务代码或 legacy migrate 遗留 | 后端 preflight stdout |
 
 本单为 R0 文档治理任务，不触发 Flutter analyze / test；后端未新增 `src/`、迁移、种子数据或环境启停改动。
 
 ## 4. Scope、契约与并行隔离
 
 - `scopeCheck`：`in-scope`；后端仓改动仅限协作备忘与 AF-609 记录包、交付记录。
+- `contractChecks`：任务单、回执、交付记录的 taskId、状态写入口、事件链与 scope 域口径一致；本地技能文件不进入后端 `changedFiles.commits`。
 - 执行方职责：scope 内实现、闸门运行、测试 / lint / typecheck / analyze、回执字段自洽与偏差记录。
 - 主会话职责：回执与交付记录路径回流、verdict / scope / 契约 / 遗留字段核对、文件清单与跨仓引用比对、CLI 台账归档状态核对。
 - 状态面检查：`events verify`、归档计数和任务索引用于确认台账事件链与归档状态一致；这不是对执行方业务结果的重复验收。
@@ -53,7 +54,7 @@
 
 ## 6. 提交、推送与结论
 
-- 后端提交：AF-609 备忘、任务记录包与本交付记录随任务分支提交；提交 SHA 在 `git show --name-only` 复核后回填。
+- 后端提交：`e6ce70e0`，收录 AF-609 协作备忘、任务记录包与本交付记录；提交文件清单已经 `git show --name-only` 复核。
 - Push / PR：AF-604 PR #311 合并前不创建后端台账合并 PR；禁止直推 `integrate`、force push、删除 required checks 或绕过 `--no-verify`。
 - `finalStatus`：`completed`
 - `reviewVerdict`：`passed`

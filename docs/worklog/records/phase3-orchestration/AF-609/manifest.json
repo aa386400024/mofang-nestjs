@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-609",
   "contextId": "phase3-orchestration",
-  "status": "backlog",
+  "status": "submitted",
   "createdAt": "2026-11-28T23:41:09+08:00",
-  "updatedAt": "2026-11-28T15:41:36.106Z",
+  "updatedAt": "2026-11-28T15:44:12.303Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase3-orchestration/AF-609/task-sheet.md",
     "sha256": "ae2bb48209d20b1b2443a4e9b216e0f968ea21e283c12059c01e68c73ef88cbb",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-orchestration/AF-609/receipt-RC-AF-609-1.json",
+      "sha256": "4ba8f6e8bcb296cb1ed0a8bc0168c47ff2e4f6ba6d711570fa881d6c9e6aa6e7",
+      "receiptId": "RC-AF-609-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af609-orchestrator-intake-scope-2026-11-28.md",
   "legacyPaths": [
     "docs/worklog/pending/phase3-orchestration-af609-orchestrator-intake-scope-2026-11-28.md"
