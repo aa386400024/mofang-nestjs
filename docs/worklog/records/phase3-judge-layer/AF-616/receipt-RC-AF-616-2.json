@@ -1,0 +1,189 @@
+{
+  "deliveredAt": "2026-11-29T02:26:26+08:00",
+  "payload": {
+    "receiptId": "RC-AF-616-2",
+    "taskId": "AF-616",
+    "contextId": "phase3-judge-layer",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "67bd90e6aada453f0c1743e57d10de0d8f200899",
+    "dependsOn": ["AF-611"],
+    "policyRefs": [],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-judge-layer/AF-616/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-judge-layer/af616-p1-judge-agreement-metrics-2026-11-29.md",
+      "reply": null,
+      "others": [
+        ".tmp/af616-evidence/vitest-full.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase3-judge-layer/af616-p1-judge-agreement-metrics-2026-11-29.md",
+        "docs/worklog/records/phase3-judge-layer/AF-616/manifest.json",
+        "docs/worklog/records/phase3-judge-layer/AF-616/task-sheet.md",
+        "src/engine-adapters/judge/judge.agreement.ts",
+        "test/engine-adapters/judge/judge-agreement.spec.ts"
+      ],
+      "modified": [
+        "src/auto-practice/metrics/batch-metrics.schema.ts",
+        "src/auto-practice/metrics/metric-dictionary.ts",
+        "src/engine-adapters/judge/judge.types.ts",
+        "test/auto-practice/wp-k-metric-dictionary.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": [
+        "fc361ea99fddf17cca44f2a60136496b5eef30c8",
+        "7533280c"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Node v22.23.2",
+        "wallClock": null,
+        "note": "PASS；schema state-event 1.0.0，事件 2538 条，哈希链与索引投影一致",
+        "evidenceFile": null
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/records/phase3-judge-layer/AF-616/task-sheet.md",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Node v22.23.2",
+        "wallClock": null,
+        "note": "AF-616 任务单、状态索引、事件链、工具契约、协议视图、Agent Card 全 PASS",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / pnpm 9.15.0",
+        "wallClock": null,
+        "note": "tsc 0 error；仅 pnpm engine 提示 package 要求 node>=26（当前 v22.23.2）",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/judge test/auto-practice/wp-k-metric-dictionary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 7,
+        "machine": "DESKTOP-E3EVQ9P / Node v22.23.2",
+        "wallClock": null,
+        "note": "7 files / 67 tests passed",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / pnpm 9.15.0",
+        "wallClock": null,
+        "note": "eslint 0 error；初版 complexity/cognitive 与 sonar 恒 false 已重构消除",
+        "evidenceFile": null
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 377,
+        "machine": "DESKTOP-E3EVQ9P / Node v22.23.2",
+        "wallClock": "429.01s",
+        "note": "376 passed / 1 skipped files；5263 passed / 10 skipped tests（补齐 .env 后重跑）",
+        "evidenceFile": ".tmp/af616-evidence/vitest-full.log"
+      },
+      {
+        "command": "ORCH_STATE_ANCHOR=off pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Node v22.23.2",
+        "wallClock": null,
+        "note": "PASS task=AF-616 status=submitted files=8 covered=6",
+        "evidenceFile": null
+      },
+      {
+        "command": "ORCH_STATE_ANCHOR=off node scripts/orchestration/cli.mjs worklog verify --strict --state-free",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Node v22.23.2",
+        "wallClock": null,
+        "note": "PASS 活跃=1 归档=539 记录包=562 inbox=0 legacy指针=133/133；仅提示 AF-508 非 completed 交付指针已忽略",
+        "evidenceFile": null
+      },
+      {
+        "command": "git commit -m \"feat(judge): AF-616 Judge P1-A 双评审一致率度量与 dict-v5 指标段\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / git",
+        "wallClock": null,
+        "note": "提交成功 fc361ea9（9 files, +937/-8），Task trailer AF-616；docs 回填提交 7533280c",
+        "evidenceFile": null
+      }
+    ],
+    "reproNotes": "复现顺序：events verify → task-sheet validate → pnpm typecheck → 目标 vitest → pnpm lint → pnpm test（先复制主工作区 .env 至 worktree，gitignored）→ ORCH_STATE_ANCHOR=off preflight → ORCH_STATE_ANCHOR=off worklog verify --strict --state-free → commit。首次 pnpm test 因 worktree 缺 .env 导致 af073-batch-report-cli 子进程 JWT_SECRET 缺失失败（3 failed/5260 passed）；复制 .env 后全量 5263 passed/10 skipped，失败项定性为环境前置缺失而非代码缺陷。目标测试 7 files/67 tests；lint/typecheck 0。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单、索引、提交 trailer、回执均为 AF-616"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/取消/领单均走 orchestration CLI；记录包 manifest 由 worklog migrate 生成，未手写；状态面投影未纳入提交"
+      },
+      {
+        "item": "scope-file",
+        "result": "pass",
+        "note": "提交 9 个文件全部落在 AF-616 scope.files；legacy manifest 修改、回执删除件、未跟踪记录包均未纳入并已清理"
+      },
+      {
+        "item": "contract-ref",
+        "result": "pass",
+        "note": "task-sheet validate exit 0；receipt 采用 receipt:1.0.0 的 21 个必填字段"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify PASS，2538 条事件哈希链一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef/dependsOn/type 与索引、回执一致；指标版本 dict-v5 为唯一真相源"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-616 实现、16 例新增单测、dict-v5 指标段、v1 快照 agreement 子段守卫与文档均已落地；目标测试 67/67、全量 5263 passed、lint/typecheck 0、preflight 与 strict worklog verify PASS；提交 9 文件全在 scope，未混入并行产物或越界重构；契约字段对齐，遗留仅为第二 Provider 未接入与编排侧依赖改指。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
