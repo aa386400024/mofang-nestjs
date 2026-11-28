@@ -6,6 +6,7 @@ import { UserModule } from '../user/user.module.js';
 import { AiConversationsController } from './controllers/ai-conversations.controller.js';
 import { ChatSession } from './entities/chat-session.entity.js';
 import { AiConversationsService } from './providers/ai-conversations.service.js';
+import { ChatSessionRecorder } from './providers/chat-session-recorder.js';
 
 /**
  * AI 对话记录模块 — V2.0 §Tab4 「我的数据」AI 对话记录.
@@ -17,7 +18,7 @@ import { AiConversationsService } from './providers/ai-conversations.service.js'
 @Module({
   imports: [TypeOrmModule.forFeature([ChatSession]), UserModule],
   controllers: [AiConversationsController],
-  providers: [AiConversationsService],
-  exports: [AiConversationsService],
+  providers: [AiConversationsService, ChatSessionRecorder],
+  exports: [AiConversationsService, ChatSessionRecorder],
 })
 export class AiConversationsModule {}

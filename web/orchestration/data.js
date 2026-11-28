@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-27T23:25:43.665Z",
+  "generatedAt": "2026-11-28T00:15:49.234Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2049,6 +2049,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-729",
+      "recordedAt": "2026-11-27T23:29:37.836Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-593",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-593-chat-session-writer"
+      ]
+    },
+    {
+      "auditId": "AUD-728",
+      "recordedAt": "2026-11-27T23:29:32.982Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-593",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-593",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-593.json"
+      ]
+    },
+    {
+      "auditId": "AUD-727",
+      "recordedAt": "2026-11-27T23:29:26.268Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-593",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-726",
       "recordedAt": "2026-11-27T23:01:29.526Z",
       "actorRef": "orchestrator",
@@ -2235,67 +2282,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-714",
-      "recordedAt": "2026-11-27T21:10:52.636Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-588",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-588-delete-account-contract"
-      ]
-    },
-    {
-      "auditId": "AUD-713",
-      "recordedAt": "2026-11-27T21:10:47.585Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-588",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-588",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-588.json"
-      ]
-    },
-    {
-      "auditId": "AUD-712",
-      "recordedAt": "2026-11-27T21:10:42.051Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-588",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 726,
+    "total": 729,
     "byResult": {
-      "allowed": 726,
+      "allowed": 729,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 725,
+      "TOOL-QUEUE-SCHEDULER": 728,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 726
+      "orchestrator": 729
     }
   },
   "protocolView": {
@@ -11671,6 +11671,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af592-chat-history-contract-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-593",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-593/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af593-chat-session-writer-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11695,5 +11713,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 529
+  "archivedCount": 530
 };
