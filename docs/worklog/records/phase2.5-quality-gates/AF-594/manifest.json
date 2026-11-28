@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-594",
+  "contextId": "phase2.5-quality-gates",
+  "status": "backlog",
+  "createdAt": "2026-11-28T08:35:00+08:00",
+  "updatedAt": "2026-11-28T02:11:29.061Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-594/task-sheet.md",
+    "sha256": "b4aa44c5580fdb85331628abf93f5869f74bfdba53ef03af2275561ed4d898e1",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af594-ai-hotpath-performance-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af594-ai-hotpath-performance-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}

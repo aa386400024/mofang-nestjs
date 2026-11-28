@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-28T00:15:49.234Z",
+  "generatedAt": "2026-11-28T02:11:40.499Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,48 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-594",
+      "contextId": "phase2.5-quality-gates",
+      "type": "fix",
+      "title": "AI 会话热路径内存与写放大根治",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-594/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af594-ai-hotpath-performance-2026-11-28.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-594",
+        "contextId": "phase2.5-quality-gates",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-28T02:11:40.252Z",
+        "leaseDeadline": "2026-11-28T02:41:40.247Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-594.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-28T02:11:40.252Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-594.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2049,6 +2090,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-730",
+      "recordedAt": "2026-11-28T02:11:30.648Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-594",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-729",
       "recordedAt": "2026-11-27T23:29:37.836Z",
       "actorRef": "orchestrator",
@@ -2265,42 +2323,50 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-589.json"
       ]
-    },
-    {
-      "auditId": "AUD-715",
-      "recordedAt": "2026-11-27T21:35:52.687Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-589",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 729,
+    "total": 730,
     "byResult": {
-      "allowed": 729,
+      "allowed": 730,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 728,
+      "TOOL-QUEUE-SCHEDULER": 729,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 729
+      "orchestrator": 730
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-594",
+        "title": "AI 会话热路径内存与写放大根治",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-quality-gates",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-594/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af594-ai-hotpath-performance-2026-11-28.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -11703,9 +11769,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-594",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-quality-gates/AF-594/task-sheet.md"
+      },
+      {
+        "taskId": "AF-594",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af594-ai-hotpath-performance-2026-11-28.md"
+      }
+    ],
+    "groupId": "phase2.5-quality-gates",
+    "groupIds": [
+      "phase2.5-quality-gates"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
