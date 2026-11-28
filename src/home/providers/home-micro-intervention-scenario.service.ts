@@ -55,7 +55,6 @@ export class HomeMicroInterventionScenarioService {
     return {
       trigger: row.trigger,
       scenario: row.scenario,
-      icon: row.icon,
       glyph: this.glyphForIcon(row.icon),
       kind: row.kind,
       durationSeconds: row.durationSeconds,

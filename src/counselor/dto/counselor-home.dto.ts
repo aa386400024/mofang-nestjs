@@ -82,11 +82,8 @@ export class CounselorTrainingCategoryDto {
   @ApiProperty({ description: '分类 enum (跟 xin_su_app TrainingCategory 1:1)', enum: ['skill', 'fullSession', 'script', 'caseConcept'] })
   category!: 'skill' | 'fullSession' | 'script' | 'caseConcept';
 
-  @ApiProperty({ description: 'emoji 图标（deprecated：请改读 glyph）', example: '🎯', deprecated: true })
-  emoji!: string;
-
   @ApiProperty({
-    description: '图标枚举名 (前端 AppIcons 渲染, 与 emoji 同图)',
+    description: '图标枚举名 (前端 AppIcons 渲染)',
     enum: ICON_GLYPHS,
     required: false,
     nullable: true,

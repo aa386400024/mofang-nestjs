@@ -111,11 +111,8 @@ export class SupportCompanionDto {
   @ApiProperty({ description: '陪伴者昵称 (用户给陪伴者起的爱称, 不是真实姓名)' })
   nickname!: string;
 
-  @ApiProperty({ description: '头像 emoji（deprecated：请改读 avatarGlyph）', deprecated: true })
-  avatarEmoji!: string;
-
   @ApiProperty({
-    description: '头像图标枚举名 (前端 AppIcons 渲染, 与 avatarEmoji 同图)',
+    description: '头像图标枚举名 (前端 AppIcons 渲染)',
     enum: ICON_GLYPHS,
     required: false,
     nullable: true,
@@ -155,10 +152,7 @@ export class MicroInterventionScenarioDto {
   @ApiProperty({ description: '显示场景名', example: '会议前' })
   scenario!: string;
 
-  @ApiProperty({ description: 'emoji 图标（deprecated：请改读 glyph）', example: '📅', deprecated: true })
-  icon!: string;
-
-  @ApiProperty({ description: '图标枚举名 (前端 AppIcons 渲染, 与 icon 同图)', enum: ICON_GLYPHS, required: false, nullable: true })
+  @ApiProperty({ description: '图标枚举名 (前端 AppIcons 渲染)', enum: ICON_GLYPHS, required: false, nullable: true })
   glyph?: IconGlyph | null;
 
   @ApiProperty({ description: '微干预类型', enum: ['breathing', 'grounding', 'cognitive_defusion', 'self_talk'] })

@@ -7,7 +7,7 @@
 //   ④ 首页支撑关系 avatarGlyph 按权限层级映射;
 //   ⑤ 陪伴者端首页 avatarGlyph + 工具卡 glyph 与旧字段同图;
 //   ⑥ 微干预工具卡 icon → glyph 映射, 未知图标返回 null;
-//   ⑦ 同一版本保留旧字段 (avatarEmoji / coverEmoji / emoji / icon).
+//   ⑦ 旧字段已在 AF-600 删除，不再随响应下发.
 //
 // 验证: pnpm exec vitest run test/home/af596-icon-glyph-contract.spec.ts
 
@@ -73,23 +73,23 @@ describe('AF-596 图标枚举白名单', () => {
 });
 
 describe('AF-596 guide 课程封面', () => {
-  it('12 门课程同时保留 coverEmoji 并新增合法 coverGlyph', () => {
+  it('12 门课程只保留合法 coverGlyph', () => {
     const courses = new GuideService().courses;
     expect(courses).toHaveLength(12);
     for (const course of courses) {
-      expect(course.coverEmoji).toBeTruthy();
       expectGlyph(course.coverGlyph);
+      expect(course).not.toHaveProperty('coverEmoji');
     }
   });
 });
 
 describe('AF-596 咨询师端入口卡', () => {
-  it('4 个训练分类同时保留 emoji 并新增合法 glyph', async () => {
+  it('4 个训练分类只保留合法 glyph', async () => {
     const overview = await new CounselorHomeService().getOverview('uid');
     expect(overview.trainingCategories).toHaveLength(4);
     for (const category of overview.trainingCategories) {
-      expect(category.emoji).toBeTruthy();
       expectGlyph(category.glyph);
+      expect(category).not.toHaveProperty('emoji');
     }
   });
 });
@@ -147,10 +147,10 @@ describe('AF-596 首页支撑关系', () => {
     );
 
     const overview = await service.getOverview('u1', null);
-    expect(overview.companions.map((c) => c.avatarEmoji)).toEqual(['🌸', '🌿', '🌷']);
     expect(overview.companions.map((c) => c.avatarGlyph)).toEqual(['personUser', 'personCompanion', 'personVerified']);
     for (const companion of overview.companions) {
       expectGlyph(companion.avatarGlyph);
+      expect(companion).not.toHaveProperty('avatarEmoji');
     }
   });
 });
@@ -176,19 +176,18 @@ describe('AF-596 陪伴者端首页', () => {
     return new HomeCompanionService(bindingRepo, profileRepo);
   }
 
-  it('首页头像 / 被陪伴者头像同时保留 emoji 并新增合法 glyph', async () => {
+  it('首页头像 / 被陪伴者头像只保留合法 glyph', async () => {
     const overview = await buildService().getOverview('companion');
-    expect(overview.avatarEmoji).toBe('🤝');
     expect(overview.avatarGlyph).toBe('personSupport');
-    expect(overview.accompaniedPersonStatus.avatarEmoji).toBe('🌱');
+    expect(overview).not.toHaveProperty('avatarEmoji');
     expect(overview.accompaniedPersonStatus.avatarGlyph).toBe('personCompanion');
+    expect(overview.accompaniedPersonStatus).not.toHaveProperty('avatarEmoji');
     expectGlyph(overview.avatarGlyph);
     expectGlyph(overview.accompaniedPersonStatus.avatarGlyph);
   });
 
-  it('5 个工具卡同时保留 emoji 并新增合法 glyph', async () => {
+  it('5 个工具卡只保留合法 glyph', async () => {
     const overview = await buildService().getOverview('companion');
-    expect(overview.toolbox.map((item) => item.emoji)).toEqual(['💌', '🤝', '📝', '🆘', '🌱']);
     expect(overview.toolbox.map((item) => item.glyph)).toEqual([
       'actionMail',
       'personSupport',
@@ -198,13 +197,14 @@ describe('AF-596 陪伴者端首页', () => {
     ]);
     for (const item of overview.toolbox) {
       expectGlyph(item.glyph);
+      expect(item).not.toHaveProperty('emoji');
     }
   });
 
-  it('切换陪伴对象返回 avatarGlyph', async () => {
+  it('切换陪伴对象只返回 avatarGlyph', async () => {
     const response = await buildService().switchAccompaniedPerson('companion', 'b1');
-    expect(response?.avatarEmoji).toBe('🌱');
     expect(response?.avatarGlyph).toBe('personCompanion');
+    expect(response).not.toHaveProperty('avatarEmoji');
     expectGlyph(response?.avatarGlyph);
   });
 });
@@ -233,16 +233,16 @@ describe('AF-596 微干预工具卡', () => {
     const icons = ['📅', '👥', '🌙', '💢', '📱', '🌌', '☀️'];
     const expected: IconGlyph[] = ['growthTarget', 'personSupport', 'moodNeutral', 'statusWarning', 'moodLow', 'moodNature', 'moodGreat'];
     const rows = await buildService(icons.map(scenario)).listActive();
-    expect(rows.map((row) => row.icon)).toEqual(icons);
     expect(rows.map((row) => row.glyph)).toEqual(expected);
     for (const row of rows) {
       expectGlyph(row.glyph);
+      expect(row).not.toHaveProperty('icon');
     }
   });
 
   it('未知 icon 返回 null, 交由前端兜底 personUser', async () => {
     const [row] = await buildService([scenario('🦄')]).listActive();
-    expect(row?.icon).toBe('🦄');
+    expect(row).not.toHaveProperty('icon');
     expect(row?.glyph).toBeNull();
   });
 });

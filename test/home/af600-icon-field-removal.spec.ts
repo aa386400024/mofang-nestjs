@@ -1,14 +1,14 @@
-// AF-599 · 图标字段 HTTP 契约回归
+// AF-600 · 旧 emoji 字段删除契约
 //
 // 覆盖:
-//   ① GET /home/overview：L2 陪伴者同时返回 avatarEmoji=🌿 与 avatarGlyph=personCompanion；
-//   ② GET /home/companion-overview：首页/被陪伴者/工具箱新旧字段同时在场；
-//   ③ GET /guide/courses：12 门课程 coverEmoji 与合法 coverGlyph 同时在场，⚠️→systemHandbook；
-//   ④ GET /counselor/home/overview：4 个分类 emoji 与合法 glyph 同时在场，⏱️→statusSuccess；
-//   ⑤ 微干预 📅→growthTarget、未知 icon→glyph null；
-//   ⑥ OpenAPI 旧字段 deprecated=true，但字段仍保留。
+//   ① GET /home/overview：L2 陪伴者只返回 avatarGlyph=personCompanion，avatarEmoji 缺席；
+//   ② GET /home/companion-overview：首页/被陪伴者/工具箱只返回 glyph，旧 emoji 字段缺席；
+//   ③ GET /guide/courses：12 门课程只返回合法 coverGlyph，pitfall_001→systemHandbook；
+//   ④ GET /counselor/home/overview：4 个分类只返回合法 glyph，fullSession→statusSuccess；
+//   ⑤ 微干预只返回 glyph，旧 icon 字段缺席；未知 glyph 为 null；
+//   ⑥ OpenAPI 中 8 个旧属性全部消失，新 glyph 属性保留。
 //
-// 验证: pnpm exec vitest run test/home/af599-icon-glyph-http-contract.spec.ts
+// 验证: pnpm exec vitest run test/home/af600-icon-field-removal.spec.ts
 
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -82,7 +82,6 @@ function buildOverviewService(): HomeOverviewService {
       {
         trigger: 'before_meeting',
         scenario: '会议前',
-        icon: '📅',
         glyph: 'growthTarget',
         kind: 'breathing',
         durationSeconds: 30,
@@ -95,7 +94,6 @@ function buildOverviewService(): HomeOverviewService {
       {
         trigger: 'unknown',
         scenario: '未知',
-        icon: '🦄',
         glyph: null,
         kind: 'breathing',
         durationSeconds: 30,
@@ -153,7 +151,7 @@ function buildCompanionService(): HomeCompanionService {
   return new HomeCompanionService(bindingRepo, profileRepo);
 }
 
-describe('AF-599 图标字段 HTTP 契约回归', () => {
+describe('AF-600 旧 emoji 字段删除契约', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -182,60 +180,63 @@ describe('AF-599 图标字段 HTTP 契约回归', () => {
     await app.close();
   });
 
-  it('GET /home/overview 同时返回 L2 的 avatarEmoji 与 avatarGlyph', async () => {
+  it('GET /home/overview 只返回 L2 的 avatarGlyph，avatarEmoji 缺席', async () => {
     const res = await request(app.getHttpServer()).get('/home/overview').expect(200);
-    const companions = res.body.companions as { avatarEmoji: string; avatarGlyph: string }[];
-    expect(companions.map((item) => item.avatarEmoji)).toEqual(['🌸', '🌿', '🌷']);
+    const companions = res.body.companions as { avatarGlyph: string; avatarEmoji?: unknown }[];
     expect(companions.map((item) => item.avatarGlyph)).toEqual(['personUser', 'personCompanion', 'personVerified']);
-    for (const companion of companions) expectGlyph(companion.avatarGlyph);
+    for (const companion of companions) {
+      expectGlyph(companion.avatarGlyph);
+      expect(companion).not.toHaveProperty('avatarEmoji');
+    }
   });
 
-  it('GET /home/overview 微干预 📅→growthTarget，未知 icon→null', async () => {
+  it('GET /home/overview 微干预只返回 glyph，旧 icon 缺席', async () => {
     const res = await request(app.getHttpServer()).get('/home/overview').expect(200);
-    const scenarios = res.body.microInterventionScenarios as { icon: string; glyph: IconGlyph | null }[];
-    expect(scenarios[0]?.icon).toBe('📅');
+    const scenarios = res.body.microInterventionScenarios as { glyph: IconGlyph | null; icon?: unknown }[];
     expect(scenarios[0]?.glyph).toBe('growthTarget');
-    expect(scenarios[1]?.icon).toBe('🦄');
     expect(scenarios[1]?.glyph).toBeNull();
+    for (const scenario of scenarios) {
+      expect(scenario).not.toHaveProperty('icon');
+    }
   });
 
-  it('GET /home/companion-overview 首页、被陪伴者与工具箱新旧字段同时在场', async () => {
+  it('GET /home/companion-overview 首页、被陪伴者与工具箱只返回 glyph', async () => {
     const res = await request(app.getHttpServer()).get('/home/companion-overview').expect(200);
-    expect(res.body.avatarEmoji).toBe('🤝');
     expect(res.body.avatarGlyph).toBe('personSupport');
-    expect(res.body.accompaniedPersonStatus.avatarEmoji).toBe('🌱');
+    expect(res.body).not.toHaveProperty('avatarEmoji');
     expect(res.body.accompaniedPersonStatus.avatarGlyph).toBe('personCompanion');
-    const toolbox = res.body.toolbox as { emoji: string; glyph: IconGlyph }[];
-    expect(toolbox.map((item) => item.emoji)).toEqual(['💌', '🤝', '📝', '🆘', '🌱']);
+    expect(res.body.accompaniedPersonStatus).not.toHaveProperty('avatarEmoji');
+    const toolbox = res.body.toolbox as { glyph: IconGlyph; emoji?: unknown }[];
     expect(toolbox.map((item) => item.glyph)).toEqual(['actionMail', 'personSupport', 'actionArchive', 'statusWarning', 'growthTarget']);
-    for (const item of toolbox) expectGlyph(item.glyph);
+    for (const item of toolbox) {
+      expectGlyph(item.glyph);
+      expect(item).not.toHaveProperty('emoji');
+    }
   });
 
-  it('GET /guide/courses 12 门课程 coverEmoji 与 coverGlyph 同时在场，⚠️→systemHandbook', async () => {
+  it('GET /guide/courses 12 门课程只返回 coverGlyph，pitfall_001→systemHandbook', async () => {
     const res = await request(app.getHttpServer()).get('/guide/courses').expect(200);
-    const courses = res.body.courses as { coverEmoji: string; coverGlyph: IconGlyph }[];
+    const courses = res.body.courses as { id: string; coverGlyph: IconGlyph; coverEmoji?: unknown }[];
     expect(courses).toHaveLength(12);
     for (const course of courses) {
-      expect(course.coverEmoji).toBeTruthy();
       expectGlyph(course.coverGlyph);
+      expect(course).not.toHaveProperty('coverEmoji');
     }
-    const warning = courses.find((course) => course.coverEmoji === '⚠️');
-    expect(warning?.coverGlyph).toBe('systemHandbook');
+    expect(courses.find((course) => course.id === 'pitfall_001')?.coverGlyph).toBe('systemHandbook');
   });
 
-  it('GET /counselor/home/overview 4 个分类 emoji 与 glyph 同时在场，⏱️→statusSuccess', async () => {
+  it('GET /counselor/home/overview 4 个分类只返回 glyph，fullSession→statusSuccess', async () => {
     const res = await request(app.getHttpServer()).get('/counselor/home/overview').expect(200);
-    const categories = res.body.trainingCategories as { emoji: string; glyph: IconGlyph }[];
+    const categories = res.body.trainingCategories as { category: string; glyph: IconGlyph; emoji?: unknown }[];
     expect(categories).toHaveLength(4);
     for (const category of categories) {
-      expect(category.emoji).toBeTruthy();
       expectGlyph(category.glyph);
+      expect(category).not.toHaveProperty('emoji');
     }
-    const stopwatch = categories.find((category) => category.emoji === '⏱️');
-    expect(stopwatch?.glyph).toBe('statusSuccess');
+    expect(categories.find((category) => category.category === 'fullSession')?.glyph).toBe('statusSuccess');
   });
 
-  it('OpenAPI 旧字段标 deprecated，但字段仍然存在', () => {
+  it('OpenAPI 中 8 个旧属性全部消失，新 glyph 属性保留', () => {
     const document = SwaggerModule.createDocument(app, new DocumentBuilder().build(), {
       extraModels: [
         SupportCompanionDto,
@@ -249,21 +250,20 @@ describe('AF-599 图标字段 HTTP 契约回归', () => {
       ],
     });
     const schemas = document.components?.schemas ?? {};
-    const cases: [string, string][] = [
-      ['SupportCompanionDto', 'avatarEmoji'],
-      ['MicroInterventionScenarioDto', 'icon'],
-      ['CompanionPersonStatusDto', 'avatarEmoji'],
-      ['ToolboxItemDto', 'emoji'],
-      ['SwitchAccompaniedPersonResponseDto', 'avatarEmoji'],
-      ['CompanionHomeOverviewDto', 'avatarEmoji'],
-      ['GuideCourseDto', 'coverEmoji'],
-      ['CounselorTrainingCategoryDto', 'emoji'],
+    const cases: [string, string, string][] = [
+      ['SupportCompanionDto', 'avatarEmoji', 'avatarGlyph'],
+      ['MicroInterventionScenarioDto', 'icon', 'glyph'],
+      ['CompanionPersonStatusDto', 'avatarEmoji', 'avatarGlyph'],
+      ['ToolboxItemDto', 'emoji', 'glyph'],
+      ['SwitchAccompaniedPersonResponseDto', 'avatarEmoji', 'avatarGlyph'],
+      ['CompanionHomeOverviewDto', 'avatarEmoji', 'avatarGlyph'],
+      ['GuideCourseDto', 'coverEmoji', 'coverGlyph'],
+      ['CounselorTrainingCategoryDto', 'emoji', 'glyph'],
     ];
-    for (const [schemaName, propertyName] of cases) {
-      const schema = schemas[schemaName] as { properties?: Record<string, { deprecated?: boolean }> } | undefined;
-      const property = schema?.properties?.[propertyName];
-      expect(property, `${schemaName}.${propertyName} 应存在`).toBeTruthy();
-      expect(property?.deprecated, `${schemaName}.${propertyName} 应标记 deprecated`).toBe(true);
+    for (const [schemaName, removed, kept] of cases) {
+      const schema = schemas[schemaName] as { properties?: Record<string, unknown> } | undefined;
+      expect(schema?.properties?.[removed], `${schemaName}.${removed} 应已删除`).toBeUndefined();
+      expect(schema?.properties?.[kept], `${schemaName}.${kept} 应保留`).toBeTruthy();
     }
   });
 });

@@ -153,7 +153,6 @@ export class CounselorHomeService {
         //   验证: GET /counselor/training/overview → skill.collapsed === true
         //          且 skill.scenarios.length === 0
         category: 'skill',
-        emoji: '🎯',
         glyph: 'growthTarget',
         title: '专项技能',
         collapsed: true,
@@ -163,7 +162,6 @@ export class CounselorHomeService {
       },
       {
         category: 'fullSession',
-        emoji: '⏱️',
         glyph: 'statusSuccess',
         title: '全流程模拟',
         collapsed: false,
@@ -186,7 +184,6 @@ export class CounselorHomeService {
       },
       {
         category: 'script',
-        emoji: '🗣️',
         glyph: 'actionShare',
         title: '话术工坊',
         collapsed: false,
@@ -217,7 +214,6 @@ export class CounselorHomeService {
       },
       {
         category: 'caseConcept',
-        emoji: '🧠',
         glyph: 'systemHandbook',
         title: '个案训练',
         collapsed: false,

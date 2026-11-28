@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-602",
+  "contextId": "phase2.5-quality-gates",
+  "status": "ready",
+  "createdAt": "2026-11-28T21:28:00+08:00",
+  "updatedAt": "2026-11-28T13:12:02.414Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-quality-gates/AF-602/task-sheet.md",
+    "sha256": "8c794204ab6a6fd0666e3c80f59a92827eda6b812c2d79613274db2faabe7f93",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-quality-gates/AF-602/receipt-RC-AF-602-1.json",
+      "sha256": "5c1a22f8aa6bba2f8d52b66a02144e40ee2693cd935b27bf6001eced648f7c44",
+      "receiptId": "RC-AF-602-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af602-icon-emoji-field-removal-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase2.5-af602-icon-emoji-field-removal-task-2026-11-28.md"
+  ],
+  "tombstone": null
+}
