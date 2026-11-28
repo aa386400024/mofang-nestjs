@@ -2,12 +2,12 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-596",
   "contextId": "phase2.5-quality-gates",
-  "status": "submitted",
+  "status": "rejected",
   "createdAt": "2026-11-28T15:10:00+08:00",
-  "updatedAt": "2026-11-28T08:00:16.714Z",
+  "updatedAt": "2026-11-28T08:36:13.440Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-quality-gates/AF-596/task-sheet.md",
-    "sha256": "f1a04e7089bdbb0f063e4a6cc553a363f8431419d3a99a6bfb486f6a10b56a6e",
+    "sha256": "32c04910e00ecdbe455e677625b4279d8e93a55c3eade95b9d52f8c6506b7392",
     "immutable": true
   },
   "receipts": [
