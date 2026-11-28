@@ -31,7 +31,7 @@ export class ExportController {
 
   @Post('export')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '申请导出我的数据 (同步生成, 任务与文件 24h 有效)' })
+  @ApiOperation({ summary: '申请导出我的数据 (异步生成, 轮询 GET 查询状态, 任务与文件 24h 有效)' })
   public async exportData(@CurrentUser() user: { userId: string }, @Body() dto: ExportDataDto): Promise<ExportTaskDto> {
     return this.service.exportData(user.userId, dto);
   }

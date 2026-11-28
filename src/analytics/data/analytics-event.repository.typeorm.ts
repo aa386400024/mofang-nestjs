@@ -80,25 +80,45 @@ export class AnalyticsEventRepositoryTypeorm implements AnalyticsEventRepository
   }
 
   /**
-   * 取时间窗内该租户该类型事件的 `createdAt` 序列.
+   * 等宽分桶计数 —— 用 SQL `GROUP BY` 聚合，只回传桶号 + 计数.
    *
-   * V2026-10-12 治本 (Phase 8.3 — TypeORM select 类型) 随端口化一并下沉到本实现:
-   *   TypeORM FindOptions select 是对象形式 { field: true }, 不是 string[].
-   *   string[] 走 createQueryBuilder().select() 合法 (跟 src/ai-engine
-   *   providers/ai-effect.service.ts getHistory 同 pattern), 但 Repository.find
-   *   的 select 必须是对象. 治本: 改对象形式.
+   * AF-595: 旧端口返回窗口内全部 `createdAt`，由 service 在 Node 里逐条分桶；
+   * `year` 窗口事件多时内存与耗时都随事件量线性增长。现在桶号在 DB 里算：
+   * `FLOOR(已过毫秒 / 桶宽)`，末桶 clamp 到 `bucketCount - 1`，口径与旧实现一致.
+   *
+   * MySQL 方言说明: `TIMESTAMPDIFF(MICROSECOND, ...)` 精度到微秒，再除 1000 得毫秒，
+   * 避免 `TIMESTAMPDIFF(SECOND, ...)` 丢精度导致边界桶错位.
    *
    * @param tenantId 租户隔离
    * @param eventType 事件类型
    * @param start 时间窗起点 (含)
    * @param end 时间窗终点 (含)
-   * @returns createdAt 序列
+   * @param bucketCount 桶数
+   * @returns 长度恒为 bucketCount 的计数数组
    */
-  async findCreatedAtBetween(tenantId: string, eventType: AnalyticsEventType, start: Date, end: Date): Promise<readonly Date[]> {
-    const rows = await this.repo.find({
-      where: { tenantId, eventType, createdAt: Between(start, end) },
-      select: { createdAt: true },
-    });
-    return rows.map((row) => row.createdAt);
+  async countBucketed(tenantId: string, eventType: AnalyticsEventType, start: Date, end: Date, bucketCount: number): Promise<number[]> {
+    const counts = Array.from({ length: bucketCount }, () => 0);
+    if (bucketCount <= 0) return counts;
+
+    const bucketWidthMs = Math.max(1, Math.floor((end.getTime() - start.getTime()) / bucketCount));
+    const rows = await this.repo
+      .createQueryBuilder('e')
+      .select(`LEAST(FLOOR(TIMESTAMPDIFF(MICROSECOND, :start, e.created_at) / 1000 / :bucketWidthMs), :maxBucket)`, 'bucket')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('e.tenant_id = :tenantId', { tenantId })
+      .andWhere('e.event_type = :eventType', { eventType })
+      .andWhere('e.created_at BETWEEN :start AND :end', { start, end })
+      .setParameter('bucketWidthMs', bucketWidthMs)
+      .setParameter('maxBucket', bucketCount - 1)
+      .groupBy('bucket')
+      .getRawMany<{ bucket: string | number; cnt: string | number }>();
+
+    for (const row of rows) {
+      const idx = Number(row.bucket);
+      if (Number.isInteger(idx) && idx >= 0 && idx < bucketCount) {
+        counts[idx] = Number(row.cnt);
+      }
+    }
+    return counts;
   }
 }

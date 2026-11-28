@@ -40,12 +40,12 @@ class RepositoryDouble {
   readonly records: AnalyticsEventRecordInput[] = [];
   /** countByType 的调用参数序列. */
   readonly counts: { tenantId: string; eventType: AnalyticsEventType; start: Date; end: Date }[] = [];
-  /** findCreatedAtBetween 的调用参数序列. */
-  readonly lookups: { tenantId: string; eventType: AnalyticsEventType; start: Date; end: Date }[] = [];
+  /** countBucketed 的调用参数序列 (AF-595: trend 改为 SQL 分桶). */
+  readonly bucketCalls: { tenantId: string; eventType: AnalyticsEventType; start: Date; end: Date; bucketCount: number }[] = [];
   /** 按事件类型配置的计数 (缺省 0). */
   readonly countByEventType = new Map<AnalyticsEventType, number>();
-  /** 按事件类型配置的 createdAt 序列 (缺省空). */
-  readonly createdAtByEventType = new Map<AnalyticsEventType, readonly Date[]>();
+  /** 按事件类型配置的分桶计数 (缺省全 0). */
+  readonly bucketsByEventType = new Map<AnalyticsEventType, readonly number[]>();
   /** 注入给 record 的失败 (测静默失败路径; null = 正常). */
   recordFailure: Error | null = null;
 
@@ -64,9 +64,16 @@ class RepositoryDouble {
         this.counts.push({ tenantId, eventType, start, end });
         return this.countByEventType.get(eventType) ?? 0;
       },
-      findCreatedAtBetween: async (tenantId: string, eventType: AnalyticsEventType, start: Date, end: Date): Promise<readonly Date[]> => {
-        this.lookups.push({ tenantId, eventType, start, end });
-        return this.createdAtByEventType.get(eventType) ?? [];
+      countBucketed: async (
+        tenantId: string,
+        eventType: AnalyticsEventType,
+        start: Date,
+        end: Date,
+        bucketCount: number,
+      ): Promise<number[]> => {
+        this.bucketCalls.push({ tenantId, eventType, start, end, bucketCount });
+        const preset = this.bucketsByEventType.get(eventType) ?? [];
+        return Array.from({ length: bucketCount }, (_, index) => preset[index] ?? 0);
       },
     };
   }
@@ -164,9 +171,9 @@ describe('TD-13 · analytics 仓储端口 (端口替身驱动)', () => {
 
       expect(overview.kbPublished).toBe(3);
       expect(overview.timeRange).toBe(TimeRange.Week);
-      // 改前是 2 次 count (KPI 1 分子 + KPI 2 分母) + 1 次 find (trend): 端口化后**不多不少**.
+      // 2 次 count (KPI 1 分子 + KPI 2 分母) + 1 次 SQL 分桶：三次查询并发发出.
       expect(double.counts).toHaveLength(2);
-      expect(double.lookups).toHaveLength(1);
+      expect(double.bucketCalls).toHaveLength(1);
     });
 
     it('KPI 2 转化率 = published / submitted', async () => {
@@ -184,7 +191,7 @@ describe('TD-13 · analytics 仓储端口 (端口替身驱动)', () => {
       const double = new RepositoryDouble();
       double.countByEventType.set(AnalyticsEventType.KbPublished, 3);
       double.countByEventType.set(AnalyticsEventType.DraftSubmitted, 0);
-      double.createdAtByEventType.set(AnalyticsEventType.KbPublished, [new Date('2026-11-09T00:00:00.000Z')]);
+      double.bucketsByEventType.set(AnalyticsEventType.KbPublished, [1]);
       const service = new AnalyticsService(double.repo);
 
       const overview = await service.getOverview('tenant-1', TimeRange.Week);
@@ -197,11 +204,7 @@ describe('TD-13 · analytics 仓储端口 (端口替身驱动)', () => {
       const double = new RepositoryDouble();
       double.countByEventType.set(AnalyticsEventType.KbPublished, 3);
       double.countByEventType.set(AnalyticsEventType.DraftSubmitted, 6);
-      double.createdAtByEventType.set(AnalyticsEventType.KbPublished, [
-        new Date('2026-11-07T00:00:00.000Z'),
-        new Date('2026-11-09T00:00:00.000Z'),
-        new Date('2026-11-13T00:00:00.000Z'),
-      ]);
+      double.bucketsByEventType.set(AnalyticsEventType.KbPublished, [1, 0, 1, 0, 0, 0, 1]);
       const service = new AnalyticsService(double.repo);
 
       const overview = await service.getOverview('tenant-1', TimeRange.Week);
@@ -214,10 +217,10 @@ describe('TD-13 · analytics 仓储端口 (端口替身驱动)', () => {
       expect(overview.scheduledPublishRatio).toBe(0);
     });
 
-    it('trend 落在窗口末端 → 夹进最后一桶 (bucketCount - 1)', async () => {
+    it('trend 落在窗口末端 → 仓储返回末桶计数 (bucketCount - 1)', async () => {
       const double = new RepositoryDouble();
       double.countByEventType.set(AnalyticsEventType.KbPublished, 1);
-      double.createdAtByEventType.set(AnalyticsEventType.KbPublished, [new Date('2026-11-14T00:00:00.000Z')]);
+      double.bucketsByEventType.set(AnalyticsEventType.KbPublished, [0, 0, 0, 0, 0, 0, 1]);
       const service = new AnalyticsService(double.repo);
 
       const overview = await service.getOverview('tenant-1', TimeRange.Week);
@@ -237,10 +240,11 @@ describe('TD-13 · analytics 仓储端口 (端口替身驱动)', () => {
       expect(double.counts[0]?.end).toEqual(NOW);
       expect(double.counts[1]?.tenantId).toBe('tenant-9');
       expect(double.counts[1]?.eventType).toBe(AnalyticsEventType.DraftSubmitted);
-      expect(double.lookups[0]?.tenantId).toBe('tenant-9');
-      expect(double.lookups[0]?.eventType).toBe(AnalyticsEventType.KbPublished);
-      expect(double.lookups[0]?.start).toEqual(WEEK_START);
-      expect(double.lookups[0]?.end).toEqual(NOW);
+      expect(double.bucketCalls[0]?.tenantId).toBe('tenant-9');
+      expect(double.bucketCalls[0]?.eventType).toBe(AnalyticsEventType.KbPublished);
+      expect(double.bucketCalls[0]?.start).toEqual(WEEK_START);
+      expect(double.bucketCalls[0]?.end).toEqual(NOW);
+      expect(double.bucketCalls[0]?.bucketCount).toBe(7);
     });
   });
 });

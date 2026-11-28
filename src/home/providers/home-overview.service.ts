@@ -73,15 +73,22 @@ export class HomeOverviewService {
     // 1. greeting + dateLabel + timeSlot (服务端时区)
     const greet = this.recommendationEngine.greet(now);
 
-    // 2. 用户昵称 + 头像 + 角色
-    const profile = await this.profileRepo.findOne({ where: { uid } });
-    const user = await this.userRepo.findOne({ where: { uid } });
+    // 2-6. 资料 / 昵称 / 今日情绪 / 陪伴者 / 未读数互不依赖，统一并行：
+    //   AF-595 前是 5 段串行 await，首页 P99 被最慢一段拖住；现在只有两波并发
+    //   （第一波基础数据，第二波依赖 effectiveEmotion 的微干预）.
+    const [profile, user, mood, companionResult, unreadCount] = await Promise.all([
+      this.profileRepo.findOne({ where: { uid } }),
+      this.userRepo.findOne({ where: { uid } }),
+      emotionLevel ? Promise.resolve(null) : this.moodService.getTodayLatest(uid, now),
+      this.fetchCompanions(uid),
+      this.messageRepo.count({ where: { uid, readAt: IsNull() } }),
+    ]);
+
     const nickname = profile?.nickname ?? user?.phone ?? user?.email?.split('@', 1)[0] ?? '你';
     const avatarUrl = profile?.avatarUrl ?? null;
     const currentRole = profile?.currentRole ?? 'growth_user';
 
     // 3. 今日情绪 (前端实时 emotion 优先, 否则查表)
-    const mood = emotionLevel ? null : await this.moodService.getTodayLatest(uid, now);
     const effectiveEmotion: HomeEmotionLevel | null = emotionLevel ?? mood?.level ?? null;
     const emotionFields = mood
       ? this.moodService.toOverviewFields(mood)
@@ -103,13 +110,7 @@ export class HomeOverviewService {
     // 5. 推荐 (情绪 + 时段联合)
     const recommendation: TodayRecommendationDto = this.recommendationEngine.pick(effectiveEmotion, now);
 
-    // 6. 陪伴者列表 (上限 3)
-    const { companions, total } = await this.fetchCompanions(uid);
-
-    // 7. 未读消息数
-    const unreadCount = await this.messageRepo.count({
-      where: { uid, readAt: IsNull() },
-    });
+    const { companions, total } = companionResult;
 
     return {
       nickname,
@@ -146,16 +147,19 @@ export class HomeOverviewService {
   /**
    * 拉陪伴者 (限 3 个 + total).
    *
-   * 大厂做法: 1 query bindings + 1 query profiles (避免 N+1).
-   * 头像 emoji 默认按 relation 给, V3 接 avatar_url 字段.
+   * AF-595: 旧实现 `find` 全量绑定后 `slice(0, 3)` 统计总数，绑定多时白拉一整表；
+   * 改为 `take: 3` + `count` 两查询并行 —— 返回行数与总数量级解耦.
    */
   private async fetchCompanions(uid: string): Promise<{ companions: SupportCompanionDto[]; total: number }> {
-    const all = await this.bindingRepo.find({
-      where: { ownerUid: uid, status: 'active' },
-      order: { createdAt: 'DESC' },
-    });
-    const total = all.length;
-    const top3 = all.slice(0, 3);
+    const where = { ownerUid: uid, status: 'active' as const };
+    const [top3, total] = await Promise.all([
+      this.bindingRepo.find({
+        where,
+        order: { createdAt: 'DESC' },
+        take: 3,
+      }),
+      this.bindingRepo.count({ where }),
+    ]);
     const companionUids = top3.map((b) => b.companionUid).filter((u): u is string => !!u);
     const profiles = companionUids.length ? await this.profileRepo.find({ where: companionUids.map((u) => ({ uid: u })) }) : [];
     const profileMap = new Map(profiles.map((p) => [p.uid, p]));

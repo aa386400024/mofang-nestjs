@@ -25,6 +25,7 @@ import { CertificationService } from './providers/certification.service.js';
 import { CompanionBindingService } from './providers/companion-binding.service.js';
 import { CompanionRecordService } from './providers/companion-record.service.js';
 import { ConsentService } from './providers/consent.service.js';
+import { ExportQueueService } from './providers/export-queue.service.js';
 import { ExportService } from './providers/export.service.js';
 import { GrowthReportService } from './providers/growth-report.service.js';
 import { MembershipService } from './providers/membership.service.js';
@@ -87,6 +88,7 @@ import { User } from '../user/entities/user.entity.js';
     SelfcareRecordService,
     BurnoutSettingsService,
     ConsentService,
+    ExportQueueService,
     ExportService,
     UserDataExportCollector,
     PrivacyAuthorizationService,

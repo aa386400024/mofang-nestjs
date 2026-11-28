@@ -41,12 +41,13 @@ export class AnalyticsService {
   async getOverview(tenantId: string, range: TimeRange): Promise<AnalyticsOverviewDto> {
     const { start, end } = this.timeRangeWindow(range);
 
-    // KPI 1: KB 发布量 (approve 计数)
-    const kbPublished = await this.events.countByType(tenantId, AnalyticsEventType.KbPublished, start, end);
-
-    // KPI 2: 草稿→发布转化率 (published / submitted, 0 分母保护)
-    const submitted = await this.events.countByType(tenantId, AnalyticsEventType.DraftSubmitted, start, end);
-    const draftToPublishRate = submitted > 0 ? kbPublished / submitted : 0;
+    // AF-595: KPI 1 / KPI 2 与 trend 分桶互不依赖，改 Promise.all 并行；
+    // trend 的桶号与计数由仓储在 SQL 里聚合，service 不再拉全量 createdAt.
+    const [kbPublished, submitted, publishedTrend] = await Promise.all([
+      this.events.countByType(tenantId, AnalyticsEventType.KbPublished, start, end),
+      this.events.countByType(tenantId, AnalyticsEventType.DraftSubmitted, start, end),
+      this.buildTrend(tenantId, range, AnalyticsEventType.KbPublished, start, end),
+    ]);
 
     // KPI 3: 平均审核 SLA (V0.x 占位返 0, V1.x 真实计算)
     const avgReviewSlaHours = 0;
@@ -56,7 +57,7 @@ export class AnalyticsService {
 
     // 4 trend — V0.x 用 KB_PUBLISHED 事件作 sparkline 数据源, 各 KPI 各自归一化.
     // V1.x 接 ClickHouse 物化视图时, trend 走预聚合表, 实时 query 退场.
-    const publishedTrend = await this.buildTrend(tenantId, range, AnalyticsEventType.KbPublished, start, end);
+    const draftToPublishRate = submitted > 0 ? kbPublished / submitted : 0;
 
     return {
       timeRange: range,
@@ -117,28 +118,12 @@ export class AnalyticsService {
   }
 
   /**
-   * 在内存分桶, 避免 N+1 (V0.x 数据量小 OK, V1.x 升级 SQL GROUP BY).
+   * trend 分桶 —— 桶号与计数由仓储 SQL 聚合，内存只保留 bucketCount 个数.
    */
   private async buildTrend(tenantId: string, range: TimeRange, eventType: AnalyticsEventType, start: Date, end: Date): Promise<number[]> {
     const bucketCount = this.bucketCount(range);
-    const bucketMs = (end.getTime() - start.getTime()) / bucketCount;
-    // V2026-10-12 治本 (Phase 8.3 — unicorn/no-new-array):
-    //   new Array(N) 意图不清, 改 Array.from({length: N}).fill(0) 明确表达
-    //   "创建 N 个 0 的数组". 跟 src/ai-engine/providers/effect-aggregate.cron.ts
-    //   Map 分桶 pattern 一致.
-    // V2026-10-12 治本 (Phase 8.3 — unicorn/no-array-from-fill):
-    //   Array.from({length}).fill() 链式调用违规, 改用 Array.from(N, () => 0)
-    //   第 2 个 mapFunction 参数 (跟 src/ai-engine 现有 pattern 对齐). 顺带去
-    //   显式 <number> 泛型, 第 2 参数返回 number 推断.
-    const counts = Array.from({ length: bucketCount }, () => 0);
-
-    // V2026-11-14 治本 (TD-13): 只取 createdAt 序列 (端口方法), 分桶口径一字不改.
-    const createdAts = await this.events.findCreatedAtBetween(tenantId, eventType, start, end);
-
-    for (const createdAt of createdAts) {
-      const idx = Math.min(Math.floor((createdAt.getTime() - start.getTime()) / bucketMs), bucketCount - 1);
-      counts[idx]++;
-    }
-    return counts;
+    const buckets = await this.events.countBucketed(tenantId, eventType, start, end, bucketCount);
+    // 仓储契约保证定长；这里再裁/补一次，防止实现偏差把前端 sparkline 长度带歪.
+    return Array.from({ length: bucketCount }, (_, index) => buckets[index] ?? 0);
   }
 }

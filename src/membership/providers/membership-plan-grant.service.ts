@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, LessThanOrEqual, MoreThan, type EntityManager, type Repository } from 'typeorm';
 
+import { forEachWithConcurrency, MEMBERSHIP_CRON_CONCURRENCY } from './concurrency.js';
 import { QuotaLedgerService } from './quota-ledger.service.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { MembershipPlanGrantStatus, MembershipTier } from '../domain/membership.enums.js';
@@ -132,7 +133,9 @@ export class MembershipPlanGrantService {
 
   private async refreshTerms(terms: readonly MembershipPlanGrantTerm[], now: Date): Promise<number> {
     let granted = 0;
-    for (const term of terms) {
+    // AF-595: 每条 term 仍是独立事务 + 行锁，但批内不再逐条串行等待；
+    // 并发上限 8，避免一次把连接池打满，也避免 500 条 term 拖长 cron 窗口.
+    await forEachWithConcurrency(terms, MEMBERSHIP_CRON_CONCURRENCY, async (term) => {
       try {
         const count = await this.dataSource.transaction((manager) => this.refreshOne(manager, term.id, now));
         granted += count;
@@ -141,7 +144,7 @@ export class MembershipPlanGrantService {
         this.metrics?.incMembershipPlanGrant('failed');
         this.logger.error(`年付套餐发放失败 term=${term.id} uid=${term.uid}`, error instanceof Error ? error.stack : String(error));
       }
-    }
+    });
     return granted;
   }
 

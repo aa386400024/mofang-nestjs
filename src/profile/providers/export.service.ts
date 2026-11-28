@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
 import { buildExportArchive } from './export-archive.js';
+import { ExportQueueService, type ExportJobData } from './export-queue.service.js';
 import { UserDataExportCollector } from './user-data-export.collector.js';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
@@ -34,12 +35,13 @@ const LOCK_KEY_PREFIX = 'profile:export:lock:';
 interface ExportTaskRecord {
   taskId: string;
   uid: string;
-  status: 'completed';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  format: 'json' | 'zip';
   createdAt: string;
-  completedAt: string;
-  sizeBytes: number;
-  contentType: string;
-  fileName: string;
+  completedAt: string | null;
+  sizeBytes: number | null;
+  contentType: string | null;
+  fileName: string | null;
 }
 
 /** 下载时返回的字节流信息. */
@@ -74,19 +76,18 @@ export class ExportService {
     private readonly exportCollector: UserDataExportCollector,
     private readonly redis: RedisService,
     config: ConfigService,
+    private readonly exportQueue: ExportQueueService,
   ) {
     this.retentionDays = config.get<number>('softDelete.retentionDays') ?? 30;
+    this.exportQueue.registerProcessor((data) => this.processTask(data));
   }
 
   /**
-   * 导出我的数据 — 同步采集 + 生成 JSON/ZIP，任务元数据与文件进 Redis 24h.
+   * 申请导出 — 只登记任务并入队，采集与打包全部异步.
    *
-   * 为什么同步生成: 当前纵切只覆盖 profile 域（10 张表），数据量在校内可控；
-   * 先给出**真实可用**的导出，不假装 BullMQ 异步。等对话/记忆纳入后再切异步.
-   *
-   * @param uid 用户 id
-   * @param dto 导出格式
-   * @returns 已完成的任务状态 + 下载地址
+   * AF-595: 旧实现把 14 域采集、全量 `JSON.stringify`、ZIP CRC、base64 写 Redis
+   * 全放在 HTTP 请求里；数据越多请求越久，还阻塞事件循环。现在请求线程只做
+   * 锁 + 写 pending 元数据 + 入队，立即返回任务号。
    */
   async exportData(uid: string, dto: ExportDataDto): Promise<ExportTaskDto> {
     const lockKey = `${LOCK_KEY_PREFIX}${uid}`;
@@ -95,31 +96,73 @@ export class ExportService {
       throw new BizException(BizCode.RateLimited, `导出过于频繁，请 ${EXPORT_MIN_INTERVAL_SECONDS}s 后再试`);
     }
 
-    const payload = await this.exportCollector.collect(uid);
-    const archive = buildExportArchive(dto.format ?? 'json', payload);
     const taskId = randomUUID();
-    const now = new Date();
+    const format = dto.format ?? 'json';
     const record: ExportTaskRecord = {
       taskId,
       uid,
-      status: 'completed',
-      createdAt: now.toISOString(),
-      completedAt: now.toISOString(),
-      sizeBytes: archive.buffer.length,
-      contentType: archive.contentType,
-      fileName: archive.fileName,
+      status: 'pending',
+      format,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      sizeBytes: null,
+      contentType: null,
+      fileName: null,
     };
-
     await this.redis.set(`${TASK_KEY_PREFIX}${taskId}`, JSON.stringify(record), EXPORT_TASK_TTL_SECONDS);
-    await this.redis.set(`${DATA_KEY_PREFIX}${taskId}`, archive.buffer.toString('base64'), EXPORT_TASK_TTL_SECONDS);
+
+    const enqueued = await this.exportQueue.enqueue({ taskId, uid, format });
+    if (!enqueued) {
+      record.status = 'failed';
+      await this.redis.set(`${TASK_KEY_PREFIX}${taskId}`, JSON.stringify(record), EXPORT_TASK_TTL_SECONDS);
+      throw new BizException(BizCode.ServiceUnavailable, '导出任务队列不可用，请稍后重试');
+    }
+
     await this.auditLog.log({
       userId: uid,
       event: AuditEvent.UserDataExportRequested,
-      metadata: { taskId, format: dto.format ?? 'json', sizeBytes: record.sizeBytes },
+      metadata: { taskId, format },
       isSuccess: true,
     });
-    this.logger.log(`[export] uid=${uid} taskId=${taskId} format=${dto.format ?? 'json'} size=${record.sizeBytes}`);
+    this.logger.log(`[export] enqueued uid=${uid} taskId=${taskId} format=${format}`);
     return ExportService.toTaskDto(record);
+  }
+
+  /**
+   * Worker 侧处理：processing → 采集/打包 → completed；任一步失败落 failed.
+   *
+   * 失败落盘后再抛出，让 BullMQ 按 attempts 重试；最终一次仍失败时记录保持 failed，
+   * 用户可通过 getExportTask 查询，不会静默丢失.
+   */
+  async processTask(data: ExportJobData): Promise<void> {
+    const record = await this.readTask(data.uid, data.taskId);
+    if (record.status === 'completed') return;
+
+    record.status = 'processing';
+    await this.writeTask(record);
+
+    try {
+      const payload = await this.exportCollector.collect(record.uid);
+      const archive = buildExportArchive(record.format, payload);
+      await this.redis.set(`${DATA_KEY_PREFIX}${record.taskId}`, archive.buffer.toString('base64'), EXPORT_TASK_TTL_SECONDS);
+
+      record.status = 'completed';
+      record.completedAt = new Date().toISOString();
+      record.sizeBytes = archive.buffer.length;
+      record.contentType = archive.contentType;
+      record.fileName = archive.fileName;
+      await this.writeTask(record);
+      this.logger.log(`[export] completed uid=${record.uid} taskId=${record.taskId} size=${record.sizeBytes}`);
+    } catch (err) {
+      record.status = 'failed';
+      record.completedAt = null;
+      record.sizeBytes = null;
+      record.contentType = null;
+      record.fileName = null;
+      await this.writeTask(record).catch(() => {});
+      this.logger.error(`[export] failed uid=${record.uid} taskId=${record.taskId}: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   /**
@@ -137,6 +180,9 @@ export class ExportService {
     const record = await this.readTask(uid, taskId);
     const encoded = await this.redis.get(`${DATA_KEY_PREFIX}${taskId}`);
     if (!encoded) throw new NotFoundException('导出文件不存在或已过期');
+    if (record.status !== 'completed' || !record.contentType || !record.fileName) {
+      throw new NotFoundException('导出尚未完成或已失败');
+    }
     return {
       contentType: record.contentType,
       fileName: record.fileName,
@@ -159,6 +205,11 @@ export class ExportService {
     return record;
   }
 
+  /** 写任务元数据（成功/失败态统一入口）. */
+  private async writeTask(record: ExportTaskRecord): Promise<void> {
+    await this.redis.set(`${TASK_KEY_PREFIX}${record.taskId}`, JSON.stringify(record), EXPORT_TASK_TTL_SECONDS);
+  }
+
   /** 元数据 → 对客 DTO. */
   private static toTaskDto(record: ExportTaskRecord): ExportTaskDto {
     return {
@@ -166,7 +217,7 @@ export class ExportService {
       status: record.status,
       createdAt: record.createdAt,
       completedAt: record.completedAt,
-      downloadUrl: `/profile/me/export/${record.taskId}/download`,
+      downloadUrl: record.status === 'completed' ? `/profile/me/export/${record.taskId}/download` : null,
       sizeBytes: record.sizeBytes,
     };
   }

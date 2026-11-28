@@ -62,10 +62,26 @@ function fakeRedis() {
   };
 }
 
-function buildService() {
+function buildService(options: { failCollect?: boolean } = {}) {
   const redis = fakeRedis();
-  const collector = { collect: vi.fn(async () => samplePayload()) };
+  const collector = {
+    collect: vi.fn(async () => {
+      if (options.failCollect) throw new Error('collector down');
+      return samplePayload();
+    }),
+  };
   const audit = { log: vi.fn(async () => ({})) };
+  const jobs: { taskId: string; uid: string; format: 'json' | 'zip' }[] = [];
+  let processor: ((data: { taskId: string; uid: string; format: 'json' | 'zip' }) => Promise<void>) | undefined;
+  const queue = {
+    registerProcessor: vi.fn((fn: typeof processor) => {
+      processor = fn;
+    }),
+    enqueue: vi.fn(async (data: { taskId: string; uid: string; format: 'json' | 'zip' }) => {
+      jobs.push(data);
+      return true;
+    }),
+  };
   const service = new ExportService(
     { findOne: vi.fn() } as never,
     { revokeAllByUserId: vi.fn() } as never,
@@ -74,8 +90,16 @@ function buildService() {
     collector as never,
     redis as never,
     { get: vi.fn(() => 30) } as never,
+    queue as never,
   );
-  return { service, redis, collector, audit };
+  /** 模拟 Worker 消费：按入队顺序跑注册的处理器. */
+  const drain = async () => {
+    while (jobs.length > 0) {
+      const job = jobs.shift()!;
+      await processor?.(job);
+    }
+  };
+  return { service, redis, collector, audit, queue, jobs, drain };
 }
 
 /** 删除账户路径：用户仓储、会话、JWT、OAuth 全部用可断言的桩. */
@@ -110,24 +134,45 @@ function buildDeletionService(options: { user?: Record<string, unknown> | null; 
     { collect: vi.fn() } as never,
     fakeRedis() as never,
     { get: vi.fn(() => options.retentionDays ?? 30) } as never,
+    { registerProcessor: vi.fn(), enqueue: vi.fn() } as never,
   );
   return { service, repo, sessions, blacklist, audit, oauthDelete };
 }
 
 describe('Phase4 WP29 · 用户数据导出纵切', () => {
-  it('导出完成态返回任务、下载地址与真实字节数，并写审计', async () => {
-    const { service, redis, audit } = buildService();
+  it('申请导出先落 pending，Worker 消费后转 completed 并写审计', async () => {
+    const { service, redis, audit, drain } = buildService();
 
     const task = await service.exportData('uid-1', { format: 'json' });
 
-    expect(task.status).toBe('completed');
-    expect(task.downloadUrl).toBe(`/profile/me/export/${task.taskId}/download`);
-    expect(task.sizeBytes).toBeGreaterThan(0);
-    expect(task.completedAt).not.toBeNull();
-    expect(redis.values.size).toBe(3); // lock + task + data
+    expect(task.status).toBe('pending');
+    expect(task.downloadUrl).toBeNull();
+    expect(task.sizeBytes).toBeNull();
+    expect(redis.values.size).toBe(2); // lock + 任务元数据（data 还没生成）
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'uid-1', event: 'user_data_export_requested', isSuccess: true }),
     );
+
+    await drain();
+
+    const done = await service.getExportTask('uid-1', task.taskId);
+    expect(done.status).toBe('completed');
+    expect(done.downloadUrl).toBe(`/profile/me/export/${task.taskId}/download`);
+    expect(done.sizeBytes).toBeGreaterThan(0);
+    expect(done.completedAt).not.toBeNull();
+  });
+
+  it('采集失败 → 任务落 failed 可查询，下载 404，且不静默丢失', async () => {
+    const { service, drain } = buildService({ failCollect: true });
+    const task = await service.exportData('uid-1', { format: 'json' });
+
+    await expect(drain()).rejects.toThrow('collector down');
+
+    const failed = await service.getExportTask('uid-1', task.taskId);
+    expect(failed.status).toBe('failed');
+    expect(failed.downloadUrl).toBeNull();
+    expect(failed.sizeBytes).toBeNull();
+    await expect(service.getExportDownload('uid-1', task.taskId)).rejects.toMatchObject({ status: 404 });
   });
 
   it('同一用户 60s 内重复导出 → RateLimited', async () => {
@@ -141,8 +186,9 @@ describe('Phase4 WP29 · 用户数据导出纵切', () => {
   });
 
   it('查询 / 下载只允许任务所有者', async () => {
-    const { service } = buildService();
+    const { service, drain } = buildService();
     const task = await service.exportData('uid-1', { format: 'json' });
+    await drain();
 
     await expect(service.getExportTask('uid-2', task.taskId)).rejects.toMatchObject({ status: 404 });
     await expect(service.getExportDownload('uid-2', task.taskId)).rejects.toMatchObject({ status: 404 });
@@ -150,8 +196,9 @@ describe('Phase4 WP29 · 用户数据导出纵切', () => {
   });
 
   it('JSON 下载内容与采集载荷一致', async () => {
-    const { service } = buildService();
+    const { service, drain } = buildService();
     const task = await service.exportData('uid-1', { format: 'json' });
+    await drain();
 
     const file = await service.getExportDownload('uid-1', task.taskId);
     expect(file.contentType).toBe('application/json; charset=utf-8');
@@ -162,8 +209,9 @@ describe('Phase4 WP29 · 用户数据导出纵切', () => {
   });
 
   it('ZIP 下载是合法单成员归档', async () => {
-    const { service } = buildService();
+    const { service, drain } = buildService();
     const task = await service.exportData('uid-1', { format: 'zip' });
+    await drain();
 
     const file = await service.getExportDownload('uid-1', task.taskId);
     expect(file.contentType).toBe('application/zip');

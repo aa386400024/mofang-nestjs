@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, IsNull, LessThanOrEqual, type EntityManager, type Repository } from 'typeorm';
 
+import { forEachWithConcurrency, MEMBERSHIP_CRON_CONCURRENCY } from './concurrency.js';
 import { MembershipAccountService } from './membership-account.service.js';
 import { MembershipPlanGrantService } from './membership-plan-grant.service.js';
 import { MembershipPricingService } from './membership-pricing.service.js';
@@ -295,7 +296,9 @@ export class MembershipOrderService {
       take: limit,
     });
     let closed = 0;
-    for (const candidate of candidates) {
+    // AF-595: 每单仍是独立事务 + 行锁，批内改有界并发（8）—— 既不让 500 条串行拖长 cron，
+    // 也不一次性打满连接池；行锁保证多实例同时跑也不会重复关闭.
+    await forEachWithConcurrency(candidates, MEMBERSHIP_CRON_CONCURRENCY, async (candidate) => {
       const didClose = await this.dataSource.transaction(async (manager) => {
         const orderRepo = manager.getRepository(MembershipOrder);
         const order = await orderRepo.findOne({ where: { id: candidate.id }, lock: { mode: 'pessimistic_write' } });
@@ -307,7 +310,7 @@ export class MembershipOrderService {
         return true;
       });
       if (didClose) closed += 1;
-    }
+    });
     if (closed > 0) this.logger.log(`membership pending orders closed rows=${closed}`);
     return closed;
   }

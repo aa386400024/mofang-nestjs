@@ -71,17 +71,19 @@ export interface AnalyticsEventRepository {
   countByType(tenantId: string, eventType: AnalyticsEventType, start: Date, end: Date): Promise<number>;
 
   /**
-   * 取时间窗内该租户该类型事件的 `createdAt` 序列 (trend 分桶的数据源).
+   * 按租户 + 事件类型 + 时间窗做等宽分桶计数 (trend 的数据源).
    *
-   * 只出 `createdAt` 一个字段 —— 分桶只需要时间戳, 别的字段 (metadata 等) 不该进内存.
+   * AF-595: 分桶下沉到 SQL —— 只把每桶计数回传，不再把窗口内全部 `createdAt`
+   * 拉进 Node 内存逐条累加；事件量随租户增长时内存占用恒定为 O(bucketCount).
    *
    * @param tenantId 租户隔离
    * @param eventType 事件类型
    * @param start 时间窗起点 (含)
    * @param end 时间窗终点 (含)
-   * @returns createdAt 序列 (无命中返空数组)
+   * @param bucketCount 桶数 (24 / 7 / 30 / 12)
+   * @returns 长度恒为 bucketCount 的计数数组 (无命中全 0)
    */
-  findCreatedAtBetween(tenantId: string, eventType: AnalyticsEventType, start: Date, end: Date): Promise<readonly Date[]>;
+  countBucketed(tenantId: string, eventType: AnalyticsEventType, start: Date, end: Date, bucketCount: number): Promise<number[]>;
 }
 
 /** DI token —— NestJS 注入用. */
