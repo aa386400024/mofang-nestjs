@@ -9,6 +9,7 @@ import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-vali
 //   治本: 跟 profile dto 同模式, HomeOverviewDto.currentRole 用 RoleValues
 //   + Role — source 变 sink 同跟 (DRY 单一真理).
 import { Role, RoleValues } from '../../profile/entities/user-profile.entity.js';
+import { ICON_GLYPHS, type IconGlyph } from '../../shared/types/icon-glyph.types.js';
 
 import { HOME_EMOTION_LEVELS, HOME_TIME_SLOTS, type HomeEmotionLevel, type HomeTimeSlot } from '../home.constants.js';
 
@@ -113,6 +114,14 @@ export class SupportCompanionDto {
   @ApiProperty({ description: '头像 emoji (用户可选头像, 用 emoji 不引入图片依赖)' })
   avatarEmoji!: string;
 
+  @ApiProperty({
+    description: '头像图标枚举名 (前端 AppIcons 渲染, 与 avatarEmoji 同图)',
+    enum: ICON_GLYPHS,
+    required: false,
+    nullable: true,
+  })
+  avatarGlyph?: IconGlyph | null;
+
   @ApiProperty({ description: '关系类型', enum: ['family', 'friend', 'partner', 'colleague', 'other'] })
   relation!: 'family' | 'friend' | 'partner' | 'colleague' | 'other';
 
@@ -148,6 +157,9 @@ export class MicroInterventionScenarioDto {
 
   @ApiProperty({ description: 'emoji 图标', example: '📅' })
   icon!: string;
+
+  @ApiProperty({ description: '图标枚举名 (前端 AppIcons 渲染, 与 icon 同图)', enum: ICON_GLYPHS, required: false, nullable: true })
+  glyph?: IconGlyph | null;
 
   @ApiProperty({ description: '微干预类型', enum: ['breathing', 'grounding', 'cognitive_defusion', 'self_talk'] })
   kind!: 'breathing' | 'grounding' | 'cognitive_defusion' | 'self_talk';

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
+import type { IconGlyph } from '../../shared/types/icon-glyph.types.js';
 import { MicroInterventionScenarioDto } from '../dto/home-overview.dto.js';
 import { MicroInterventionScenario } from '../entities/micro-intervention-scenario.entity.js';
 
@@ -55,6 +56,7 @@ export class HomeMicroInterventionScenarioService {
       trigger: row.trigger,
       scenario: row.scenario,
       icon: row.icon,
+      glyph: this.glyphForIcon(row.icon),
       kind: row.kind,
       durationSeconds: row.durationSeconds,
       category: row.category,
@@ -63,5 +65,32 @@ export class HomeMicroInterventionScenarioService {
       displayOrder: row.displayOrder,
       isEnabled: row.isEnabled,
     };
+  }
+
+  /**
+   * 微干预工具卡 emoji → 前端图标枚举名.
+   *
+   * 按图标本身映射而不是按 trigger 映射: 旧字段 `icon` 是视觉事实源,
+   * 同一版本内新旧字段必须指向同一图形. 未知图标返回 null, 前端兜底 personUser.
+   */
+  private glyphForIcon(icon: string): IconGlyph | null {
+    switch (icon) {
+      case '📅':
+        return 'growthTarget';
+      case '👥':
+        return 'personSupport';
+      case '🌙':
+        return 'moodNeutral';
+      case '💢':
+        return 'statusWarning';
+      case '📱':
+        return 'moodLow';
+      case '🌌':
+        return 'moodNature';
+      case '☀️':
+        return 'moodGreat';
+      default:
+        return null;
+    }
   }
 }

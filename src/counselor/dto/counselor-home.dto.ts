@@ -19,6 +19,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
 import { HOME_EMOTION_LEVELS, type HomeEmotionLevel } from '../../home/home.constants.js';
+import { ICON_GLYPHS, type IconGlyph } from '../../shared/types/icon-glyph.types.js';
 
 /**
  * V2026-10-20 治本 (专项技能训练中心改版 — 路由意图显式化):
@@ -83,6 +84,14 @@ export class CounselorTrainingCategoryDto {
 
   @ApiProperty({ description: 'emoji 图标 (跟 xin_su_app TrainingCategoryDisplay.emoji 1:1)', example: '🎯' })
   emoji!: string;
+
+  @ApiProperty({
+    description: '图标枚举名 (前端 AppIcons 渲染, 与 emoji 同图)',
+    enum: ICON_GLYPHS,
+    required: false,
+    nullable: true,
+  })
+  glyph?: IconGlyph | null;
 
   @ApiProperty({ description: '分类标题 (跟 xin_su_app TrainingCategoryDisplay.title 1:1)', example: '专项技能' })
   title!: string;

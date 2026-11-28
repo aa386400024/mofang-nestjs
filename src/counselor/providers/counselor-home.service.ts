@@ -154,6 +154,7 @@ export class CounselorHomeService {
         //          且 skill.scenarios.length === 0
         category: 'skill',
         emoji: '🎯',
+        glyph: 'growthTarget',
         title: '专项技能',
         collapsed: true,
         target: 'specializedSkills',
@@ -163,6 +164,7 @@ export class CounselorHomeService {
       {
         category: 'fullSession',
         emoji: '⏱️',
+        glyph: 'statusSuccess',
         title: '全流程模拟',
         collapsed: false,
         // V2026-10-16 治本续 (C1): 3 个 full_l1/l2/l3 card 合并 1 个 full_process.
@@ -185,6 +187,7 @@ export class CounselorHomeService {
       {
         category: 'script',
         emoji: '🗣️',
+        glyph: 'actionShare',
         title: '话术工坊',
         collapsed: false,
         scenarios: [
@@ -215,6 +218,7 @@ export class CounselorHomeService {
       {
         category: 'caseConcept',
         emoji: '🧠',
+        glyph: 'systemHandbook',
         title: '个案训练',
         collapsed: false,
         scenarios: [
