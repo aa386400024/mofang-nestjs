@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-604",
+  "contextId": "phase3-docs-governance",
+  "status": "completed",
+  "createdAt": "2026-11-28T22:49:12+08:00",
+  "updatedAt": "2026-11-28T14:55:45.169Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-docs-governance/AF-604/task-sheet.md",
+    "sha256": "b70a1157c64c62d5b96ac21d87fa20683698d7285afe0617cc96f0bb499e3133",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-docs-governance/AF-604/receipt-RC-AF-604-1.json",
+      "sha256": "995c13ce9540a1cd717d52eca25a1e48c563e358823c748af25ec7dd1ff8407e",
+      "receiptId": "RC-AF-604-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af604-collaboration-workflow-update-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-docs-governance-af604-collaboration-workflow-update-2026-11-28.md"
+  ],
+  "tombstone": null
+}

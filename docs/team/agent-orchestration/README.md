@@ -538,3 +538,4 @@ node scripts/orchestration/cli.mjs docs normalize --path docs/worklog/completed/
 | 台账与 backlog                                     | `docs/team/gate-performance-remediation-2026-11-11.md` 及阶段 wp-list                                                                    |
 | 架构设计留档                                       | `docs/architecture/`（通用概念以框架仓为准；项目约束与待决策见各文档附录）                                                               |
 | 回执归档                                           | `docs/worklog/records/<contextId>/<taskId>/receipt-*.json`（durable）；历史 relay 回交在 `docs/worklog/pending/archive/relay-response-*` |
+| 会话分工与任务流转规范                             | `docs/team/agent-orchestration/collaboration-workflow.md`（含主会话、Flutter / NestJS 会话、Framework 评审、MiniMax Code 分工与进度事实源） |

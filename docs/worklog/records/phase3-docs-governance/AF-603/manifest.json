@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-603",
+  "contextId": "phase3-docs-governance",
+  "status": "submitted",
+  "createdAt": "2026-11-28T22:03:38+08:00",
+  "updatedAt": "2026-11-28T14:14:13.653Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-docs-governance/AF-603/task-sheet.md",
+    "sha256": "a17a71ee4f63a8e75c6f4a14b893aead9a93c1c6fe5c8547f5e6d0f4b680a988",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-docs-governance/AF-603/receipt-RC-AF-603-1.json",
+      "sha256": "9404011d481e916218a3fe3aaa2530b3a90da1d0cd2d3faddc8ae86050ddcda5",
+      "receiptId": "RC-AF-603-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af603-docs-governance-gap-closure-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-docs-governance-gap-closure-2026-11-28.md"
+  ],
+  "tombstone": null
+}
