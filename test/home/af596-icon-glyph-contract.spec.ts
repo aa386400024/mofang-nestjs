@@ -11,7 +11,7 @@
 //
 // 验证: pnpm exec vitest run test/home/af596-icon-glyph-contract.spec.ts
 
-import type { Repository } from 'typeorm';
+import type { ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CounselorHomeService } from '../../src/counselor/providers/counselor-home.service.js';
@@ -60,7 +60,7 @@ function expectGlyph(value: unknown): asserts value is IconGlyph {
   expect(isIconGlyph(value)).toBe(true);
 }
 
-function asRepo<T>(value: unknown): Repository<T> {
+function asRepo<T extends ObjectLiteral>(value: unknown): Repository<T> {
   return value as Repository<T>;
 }
 
