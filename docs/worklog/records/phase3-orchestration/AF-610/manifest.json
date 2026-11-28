@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-610",
+  "contextId": "phase3-orchestration",
+  "status": "backlog",
+  "createdAt": "2026-11-28T23:46:07+08:00",
+  "updatedAt": "2026-11-28T15:46:31.852Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-orchestration/AF-610/task-sheet.md",
+    "sha256": "356b73d44f8ef1ded849015291d49d8a8eebf6a47bda512b7e9295297f81748a",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af610-frontend-memo-ledger-intake-scope-2026-11-28.md",
+  "legacyPaths": [
+    "docs/worklog/pending/phase3-orchestration-af610-frontend-memo-ledger-intake-scope-2026-11-28.md"
+  ],
+  "tombstone": null
+}
