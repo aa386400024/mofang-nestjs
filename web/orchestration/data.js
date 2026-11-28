@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-28T07:37:19.747Z",
+  "generatedAt": "2026-11-28T08:10:53.316Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -18,10 +18,10 @@ window.ORCH_SNAPSHOT = {
   },
   "tasks": [
     {
-      "taskId": "AF-596",
+      "taskId": "AF-597",
       "contextId": "phase2.5-quality-gates",
       "type": "implementation",
-      "title": "图标字段 glyph 枚举兼容契约",
+      "title": "图标字段 glyph 枚举兼容契约（AF-596 返修）",
       "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
@@ -29,26 +29,26 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-596/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af596-icon-glyph-contract-2026-11-28.md",
+        "taskSheet": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md",
         "reply": null
       },
       "manualReview": [],
       "dispatch": {
-        "taskId": "AF-596",
+        "taskId": "AF-597",
         "contextId": "phase2.5-quality-gates",
         "channel": "gui-relay",
         "targetRole": "executor",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-28T07:37:19.473Z",
-        "leaseDeadline": "2026-11-28T08:07:19.469Z",
+        "dispatchedAt": "2026-11-28T08:10:53.079Z",
+        "leaseDeadline": "2026-11-28T08:40:53.076Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-596.json",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-597.json",
         "delivery": {
           "state": "pending",
-          "preparedAt": "2026-11-28T07:37:19.473Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-596.brief.md",
+          "preparedAt": "2026-11-28T08:10:53.079Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-597.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -2090,6 +2090,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-736",
+      "recordedAt": "2026-11-28T08:10:44.298Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-597",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-735",
+      "recordedAt": "2026-11-28T07:37:19.954Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-596",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-596",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-596.json"
+      ]
+    },
+    {
       "auditId": "AUD-734",
       "recordedAt": "2026-11-28T07:37:10.725Z",
       "actorRef": "orchestrator",
@@ -2293,60 +2325,28 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-591.json"
       ]
-    },
-    {
-      "auditId": "AUD-721",
-      "recordedAt": "2026-11-27T22:31:46.775Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-591",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-720",
-      "recordedAt": "2026-11-27T21:59:54.241Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-590",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-590-ai-conversations-real-data"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 734,
+    "total": 736,
     "byResult": {
-      "allowed": 734,
+      "allowed": 736,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 733,
+      "TOOL-QUEUE-SCHEDULER": 735,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 734
+      "orchestrator": 736
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
     "tasks": [
       {
-        "taskId": "AF-596",
-        "title": "图标字段 glyph 枚举兼容契约",
+        "taskId": "AF-597",
+        "title": "图标字段 glyph 枚举兼容契约（AF-596 返修）",
         "type": "implementation",
         "status": {
           "framework": "submitted",
@@ -2360,11 +2360,11 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-596/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af596-icon-glyph-contract-2026-11-28.md"
+            "ref": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md"
           }
         ]
       }
@@ -11781,6 +11781,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af595-background-query-performance-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-596",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-quality-gates/AF-596/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af596-icon-glyph-contract-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11797,14 +11815,14 @@ window.ORCH_SNAPSHOT = {
     },
     "artifacts": [
       {
-        "taskId": "AF-596",
+        "taskId": "AF-597",
         "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-quality-gates/AF-596/task-sheet.md"
+        "ref": "docs/worklog/records/phase2.5-quality-gates/AF-597/task-sheet.md"
       },
       {
-        "taskId": "AF-596",
+        "taskId": "AF-597",
         "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af596-icon-glyph-contract-2026-11-28.md"
+        "ref": "docs/worklog/completed/phase2.5/af597-icon-glyph-rework-2026-11-28.md"
       }
     ],
     "groupId": "phase2.5-quality-gates",
@@ -11818,5 +11836,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 532
+  "archivedCount": 533
 };
