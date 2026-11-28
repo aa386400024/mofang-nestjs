@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-28T13:12:51.915Z",
+  "generatedAt": "2026-11-28T14:14:22.737Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -2048,6 +2048,38 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-754",
+      "recordedAt": "2026-11-28T14:06:54.884Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-603",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-603",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-603.json"
+      ]
+    },
+    {
+      "auditId": "AUD-753",
+      "recordedAt": "2026-11-28T14:06:41.639Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-603",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-752",
       "recordedAt": "2026-11-28T13:12:29.781Z",
       "actorRef": "orchestrator",
@@ -2249,52 +2281,20 @@
       "resources": [
         "task/AF-598-worklog-record-hardening"
       ]
-    },
-    {
-      "auditId": "AUD-739",
-      "recordedAt": "2026-11-28T10:06:35.530Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-598",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-598",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-598.json"
-      ]
-    },
-    {
-      "auditId": "AUD-738",
-      "recordedAt": "2026-11-28T10:06:29.976Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-598",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 752,
+    "total": 754,
     "byResult": {
-      "allowed": 752,
+      "allowed": 754,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 751,
+      "TOOL-QUEUE-SCHEDULER": 753,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 752
+      "orchestrator": 754
     }
   },
   "protocolView": {
@@ -11850,6 +11850,24 @@
             "ref": "docs/worklog/completed/phase2.5/af602-icon-emoji-field-removal-2026-11-28.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-603",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-docs-governance/AF-603/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af603-docs-governance-gap-closure-2026-11-28.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -11874,5 +11892,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 539
+  "archivedCount": 540
 }
